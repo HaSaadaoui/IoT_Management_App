@@ -1,6 +1,3 @@
-### Intaller une image avec jdk17 ###
-#FROM openjdk:17-jdk-slim
-#FROM openjdk:17-jdk
 ### for linux/amd64 ### Windows 11
 #FROM openjdk:17-jdk@sha256:98f0304b3a3b7c12ce641177a99d1f3be56f532473a528fda38d53d519cafb13
 ### for linux/arm64/v8 ### Raspberry

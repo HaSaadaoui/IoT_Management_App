@@ -63,8 +63,12 @@ public class MonitoringGatewayData {
 
     @Data
     public static class GatewayInfo {
+        @JsonProperty("name")
+        private String name;
+
         @JsonProperty("created_at")
         private String createdAt;
+
         private Location location;
 
         @Data

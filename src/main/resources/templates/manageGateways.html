@@ -72,46 +72,6 @@
         </div>
     </div>
 
-    <!--  <table>-->
-    <!--    <thead>-->
-    <!--    <tr>-->
-    <!--      <th>ID Gateway</th>-->
-    <!--      <th>IP Address</th>-->
-    <!--      <th>Date Commissioning</th>-->
-    <!--      <th>Building</th>-->
-    <!--      <th>Floor</th>-->
-    <!--      <th>Location</th>-->
-    <!--      <th>Actions</th>-->
-    <!--    </tr>-->
-    <!--    </thead>-->
-    <!--    <tbody>-->
-    <!--    <tr th:each="gateway : ${gateways}">-->
-    <!--      <td th:text="${gateway.idGateway}"></td>-->
-    <!--      <td th:text="${gateway.ipAddress}"></td>-->
-    <!--      <td th:text="${gateway.commissioningDate}"></td>-->
-    <!--      <td th:text="${gateway.buildingName}"></td>-->
-    <!--      <td th:text="${gateway.floor}"></td>-->
-    <!--      <td th:text="${gateway.location}"></td>-->
-    <!--      <td>-->
-    <!--        <div class="button-container">-->
-    <!--          <a th:href="@{/manage-gateways/monitoring/{id}/view(id=${gateway.gatewayId}, ip=${gateway.ipAddress})}">-->
-    <!--            <img src="/image/monitoring-data.svg" alt="Modify" width="20">-->
-    <!--          </a>-->
-    <!--          <a th:href="@{/manage-gateways/edit/{id}(id=${gateway.gatewayId})}">-->
-    <!--            <img src="/image/edit-icon.svg" alt="editModify" width="20">-->
-    <!--          </a>-->
-    <!--          <form th:action="@{/manage-gateways/delete/{id}(id=${gateway.gatewayId})}" method="post" class="deleteForm" style="display:inline;">-->
-    <!--            <input type="hidden" name="_method" value="DELETE" />-->
-    <!--            <button type="submit" style="background:none; border:none;">-->
-    <!--              <img src="/image/delete-icon.svg" alt="Delete" width="20">-->
-    <!--            </button>-->
-    <!--          </form>-->
-    <!--        </div>-->
-    <!--      </td>-->
-    <!--    </tr>-->
-    <!--    </tbody>-->
-    <!--  </table>-->
-
     <!-- table en js -->
     <table id="gatewayTable">
         <thead>

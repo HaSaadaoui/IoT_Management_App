@@ -43,7 +43,7 @@ public class GatewayLorawanDao {
     public void deleteGatewayInLorawan(String gatewayId) {
         webClientBuilder.build()
             .delete()
-            .uri(lorawanBaseUrl + "/" + gatewayId)
+            .uri(lorawanBaseUrl + "/gateways/" + gatewayId)
             .header(AUTHORIZATION, BEARER + " " + lorawanToken)
             .retrieve()
             .toBodilessEntity()
@@ -53,7 +53,7 @@ public class GatewayLorawanDao {
     public void updateGatewayInLorawan(LorawanGatewayUpdateData updateData, String gatewayId) {
         webClientBuilder.build()
             .put()
-            .uri(lorawanBaseUrl + "/" + gatewayId)
+            .uri(lorawanBaseUrl + "/gateways/" + gatewayId)
             .header(AUTHORIZATION, BEARER + " " + lorawanToken)
             .bodyValue(updateData)
             .retrieve()

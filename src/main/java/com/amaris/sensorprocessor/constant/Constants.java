@@ -13,6 +13,7 @@ public final class Constants {
     public static final String LORAWAN_PROBLEM = "Lorawan server problem";
     public static final String DATABASE_PROBLEM = "Database problem";
     public static final String GATEWAY_NOT_FOUND = "Gateway ID not found";
+    public static final String SENSOR_NOT_FOUND = "Sensor ID not found";
     public static final String PERMISSION_DENIED = "Permission user denied";
     public static final String GATEWAY_PROBLEM = "Problem with this gateway";
     public static final String GATEWAY_DONT_EXISTS = "Gateway don't exists";
@@ -50,5 +51,28 @@ public final class Constants {
      */
     public static final String PAGE_MANAGE_GATEWAYS = "manageGateways";
     public static final String PAGE_MONITORING_GATEWAYS = "monitoringGateway";
+    public static final String PAGE_MANAGE_SENSORS = "manageSensors";
+
+
+    /* ===== Messages (Sensors) ===== */
+    public static final String SENSOR_ID_EXISTS   = "Sensor ID already exists";
+    public static final String SENSOR_ID_INVALID  = "Sensor ID format is invalid";
+    public static final String SENSOR_PROBLEM     = "Problem with this sensor";
+
+    /* ===== Noms de champs pour BindingResult (Sensors) ===== */
+    /* IMPORTANT: ils doivent correspondre EXACTEMENT aux noms des propriétés du bean Sensor */
+    public static final String BINDING_SENSOR_ID             = "idSensor";          // <-- corriger ici
+    public static final String BINDING_DEVICE_TYPE           = "deviceType";
+    public static final String BINDING_COMMISSIONING_DATE    = "commissioningDate";
+    public static final String BINDING_STATUS                = "status";
+    public static final String BINDING_SENSOR_BUILDING_NAME  = "buildingName";
+    public static final String BINDING_SENSOR_FLOOR          = "floor";
+    public static final String BINDING_SENSOR_LOCATION       = "location";
+    public static final String BINDING_GATEWAY_ID_FK         = "idGateway";
+
+    /* ===== Noms de l'objet BindingResult pour les formulaires Sensors ===== */
+    /* Doivent matcher les th:object utilisés dans la page: sensorAdd / sensorEdit */
+    public static final String BINDING_SENSOR_ADD  = "org.springframework.validation.BindingResult.sensorAdd";
+    public static final String BINDING_SENSOR_EDIT = "org.springframework.validation.BindingResult.sensorEdit";
 
 }

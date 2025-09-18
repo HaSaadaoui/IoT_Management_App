@@ -1,3 +1,5 @@
+PRAGMA foreign_keys = ON;
+
 -- Création de la table Gateways
 CREATE TABLE Gateways (
     gateway_id VARCHAR(50) PRIMARY KEY NOT NULL,
@@ -15,44 +17,74 @@ CREATE TABLE Gateways (
 
 -- Insertion des valeurs dans la table Gateways
 INSERT INTO Gateways (gateway_id, gateway_eui, ip_address, frequency_plan, created_at, building_name, floor_number, location_description, antenna_latitude, antenna_longitude, antenna_altitude) VALUES
---('gateway-001', '4446C001F55527AB', '192.168.1.10', 'EU_863_870_TTN', '2023-01-01', 'Batiment A', 1, 'Open space A', NULL, NULL, NULL),
---('gateway-002', '4254C001F75641AA', '192.168.1.11', 'EU_863_870_TTN', '2023-02-01', 'Batiment B', 2, 'Bureau 202', NULL, NULL, NULL),
---('gateway-003', '0016C333F98761BA', '192.168.1.12', 'EU_863_870_TTN', '2023-03-01', 'Batiment A', 3, 'Open space F', NULL, NULL, NULL),
---('gateway-004', '3316C001F99927AB', '192.168.1.13', 'US_902_928_FSB_2', '2023-04-01', 'Batiment C', 1, 'Bureau 104', NULL, NULL, NULL),
---('gateway-005', '4416C005F16747DB', '192.168.1.14', 'AS_920_923', '2023-05-01', 'Batiment D', 2, 'Bureau 205', NULL, NULL, NULL),
---('gateway-006', '0016C661F10333BA', '192.168.1.15', 'US_902_928_FSB_2', '2023-06-01', 'Batiment A', 1, 'Open space K', NULL, NULL, NULL),
---('gateway-007', '2216C441F16727CB', '192.168.1.16', 'AU_915_928_FSB_2', '2023-07-01', 'Batiment B', 2, 'Bureau 206', NULL, NULL, NULL),
---('gateway-008', '0016C441F10534BA', '192.168.1.17', 'AU_915_928_FSB_2', '2023-08-01', 'Batiment A', 3, 'Bureau 306', NULL, NULL, NULL),
---('gateway-009', '0321C001F44427AA', '192.168.1.18', 'CN_470_510_FSB_11', '2023-09-01', 'Batiment C', 1, 'Open space T', NULL, NULL, NULL),
---('gateway-010', '0016C021F10543AB', '192.168.1.19', 'EU_863_870_TTN', '2023-10-01', 'Batiment A', 2, 'Open space U', NULL, NULL, NULL),
+('gateway-001', '4446C001F55527AB', '192.168.1.10', 'EU_863_870_TTN', '2023-01-01', 'Batiment A', 1, 'Open space A', NULL, NULL, NULL),
+('gateway-002', '4254C001F75641AA', '192.168.1.11', 'EU_863_870_TTN', '2023-02-01', 'Batiment B', 2, 'Bureau 202', NULL, NULL, NULL),
+('gateway-003', '0016C333F98761BA', '192.168.1.12', 'EU_863_870_TTN', '2023-03-01', 'Batiment A', 3, 'Open space F', NULL, NULL, NULL),
+('gateway-004', '3316C001F99927AB', '192.168.1.13', 'US_902_928_FSB_2', '2023-04-01', 'Batiment C', 1, 'Bureau 104', NULL, NULL, NULL),
+('gateway-005', '4416C005F16747DB', '192.168.1.14', 'AS_920_923', '2023-05-01', 'Batiment D', 2, 'Bureau 205', NULL, NULL, NULL),
+('gateway-006', '0016C661F10333BA', '192.168.1.15', 'US_902_928_FSB_2', '2023-06-01', 'Batiment A', 1, 'Open space K', NULL, NULL, NULL),
+('gateway-007', '2216C441F16727CB', '192.168.1.16', 'AU_915_928_FSB_2', '2023-07-01', 'Batiment B', 2, 'Bureau 206', NULL, NULL, NULL),
+('gateway-008', '0016C441F10534BA', '192.168.1.17', 'AU_915_928_FSB_2', '2023-08-01', 'Batiment A', 3, 'Bureau 306', NULL, NULL, NULL),
+('gateway-009', '0321C001F44427AA', '192.168.1.18', 'CN_470_510_FSB_11', '2023-09-01', 'Batiment C', 1, 'Open space T', NULL, NULL, NULL),
+('gateway-010', '0016C021F10543AB', '192.168.1.19', 'EU_863_870_TTN', '2023-10-01', 'Batiment A', 2, 'Open space U', NULL, NULL, NULL),
 ('leva-rpi-mantu', '0016C001F10527BB', '10.243.129.10', 'EU_863_870_TTN', '2025-04-14', 'Batiment Z', 3, 'Bureau 333', NULL, NULL, NULL),
 ('rpi-mantu', '0016C001F1054209', '10.243.129.10', 'EU_863_870_TTN', '2024-07-25', 'Batiment Z', 3, 'Bureau 333', NULL, NULL, NULL);
 
 -- Création de la table Sensors
 CREATE TABLE Sensors (
-    id_sensor VARCHAR(50) PRIMARY KEY NOT NULL,
-    device_type VARCHAR(50) NOT NULL,
-    commissioning_date DATE NOT NULL,
-    status BOOLEAN NOT NULL,
-    building_name VARCHAR(100) NOT NULL,
-    floor INTEGER NOT NULL,
-    location VARCHAR(50) NULL,
-    id_gateway VARCHAR(50) NULL,
-    FOREIGN KEY (id_gateway) REFERENCES Gateways(id_gateway) ON DELETE SET NULL
+    id_sensor         VARCHAR(50) PRIMARY KEY NOT NULL,
+    device_type       VARCHAR(50) NOT NULL,
+    commissioning_date DATE      NOT NULL,
+    status            BOOLEAN    NOT NULL,
+    building_name     VARCHAR(100) NOT NULL,
+    floor             INTEGER    NOT NULL,
+    location          VARCHAR(50) NULL,
+    id_gateway        VARCHAR(50) NULL,
+    dev_eui           TEXT       NULL,
+    join_eui          TEXT       NULL,
+    app_key           TEXT       NULL,
+    frequency_plan    VARCHAR(50) NULL,
+    FOREIGN KEY (id_gateway) REFERENCES Gateways(gateway_id) ON DELETE SET NULL
 );
 
+
 -- Insertion des valeurs dans la table Sensors
-INSERT INTO Sensors (id_sensor, device_type, commissioning_date, status, building_name, floor, location, id_gateway) VALUES
-('dev_eui_001', 'device_001', '2023-01-01', TRUE, 'Batiment A', 1, 'Bureau 101', 'gateway-001'),
-('dev_eui_002', 'device_002', '2023-02-01', TRUE, 'Batiment B', 2, 'Bureau 202', 'gateway-002'),
-('dev_eui_003', 'device_003', '2023-03-01', FALSE, 'Batiment A', 3, 'Bureau 303', 'gateway-001'),
-('dev_eui_004', 'device_004', '2023-04-01', TRUE, 'Batiment C', 1, 'Bureau 104', 'gateway-003'),
-('dev_eui_005', 'device_005', '2023-05-01', TRUE, 'Batiment D', 2, 'Bureau 205', 'gateway-004'),
-('dev_eui_006', 'device_001', '2023-06-01', FALSE, 'Batiment E', 3, 'Bureau 306', 'gateway-005'),
-('dev_eui_007', 'device_002', '2023-07-01', TRUE, 'Batiment A', 1, 'Bureau 107', 'gateway-001'),
-('dev_eui_008', 'device_003', '2023-08-01', TRUE, 'Batiment B', 2, 'Bureau 208', 'gateway-002'),
-('dev_eui_009', 'device_004', '2023-09-01', FALSE, 'Batiment C', 3, 'Bureau 309', 'gateway-003'),
-('dev_eui_010', 'device_005', '2023-10-01', TRUE, 'Batiment D', 1, 'Bureau 110', 'gateway-004');
+-- (Optionnel) Vider avant de ré-insérer
+-- DELETE FROM Sensors;
+
+INSERT INTO Sensors (
+  id_sensor, device_type, commissioning_date, status, building_name, floor, location,
+  id_gateway, dev_eui, join_eui, app_key, frequency_plan
+) VALUES
+('dev_eui_001','device_001','2023-01-01',1,'Batiment A',1,'Bureau 101','gateway-001',
+ 'A1B2C3D4E5F60701','0102030405060701','00112233445566778899AABBCCDDEEF0','EU_863_870_TTN'),
+
+('dev_eui_002','device_002','2023-02-01',1,'Batiment B',2,'Bureau 202','gateway-002',
+ 'A1B2C3D4E5F60702','0102030405060702','00112233445566778899AABBCCDDEEF1','EU_863_870_TTN'),
+
+('dev_eui_003','device_003','2023-03-01',0,'Batiment A',3,'Bureau 303','gateway-001',
+ 'A1B2C3D4E5F60703','0102030405060703','00112233445566778899AABBCCDDEEF2','EU_863_870_TTN'),
+
+('dev_eui_004','device_004','2023-04-01',1,'Batiment C',1,'Bureau 104','gateway-003',
+ 'A1B2C3D4E5F60704','0102030405060704','00112233445566778899AABBCCDDEEF3','EU_863_870_TTN'),
+
+('dev_eui_005','device_005','2023-05-01',1,'Batiment D',2,'Bureau 205','gateway-004',
+ 'A1B2C3D4E5F60705','0102030405060705','00112233445566778899AABBCCDDEEF4','US_902_928_FSB_2'),
+
+('dev_eui_006','device_001','2023-06-01',0,'Batiment E',3,'Bureau 306','gateway-005',
+ 'A1B2C3D4E5F60706','0102030405060706','00112233445566778899AABBCCDDEEF5','AS_920_923'),
+
+('dev_eui_007','device_002','2023-07-01',1,'Batiment A',1,'Bureau 107','gateway-001',
+ 'A1B2C3D4E5F60707','0102030405060707','00112233445566778899AABBCCDDEEF6','EU_863_870_TTN'),
+
+('dev_eui_008','device_003','2023-08-01',1,'Batiment B',2,'Bureau 208','gateway-002',
+ 'A1B2C3D4E5F60708','0102030405060708','00112233445566778899AABBCCDDEEF7','EU_863_870_TTN'),
+
+('dev_eui_009','device_004','2023-09-01',0,'Batiment C',3,'Bureau 309','gateway-003',
+ 'A1B2C3D4E5F60709','0102030405060709','00112233445566778899AABBCCDDEEF8','EU_863_870_TTN'),
+
+('dev_eui_010','device_005','2023-10-01',1,'Batiment D',1,'Bureau 110','gateway-004',
+ 'A1B2C3D4E5F6070A','010203040506070A','00112233445566778899AABBCCDDEEF9','US_902_928_FSB_2');
 
 -- Création de la table Data_emsdesk
 CREATE TABLE Data_emsdesk (

@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class GatewayService {
@@ -40,6 +41,15 @@ public class GatewayService {
         } catch (Exception e) {
             LoggerUtil.logError(e, null);
             return Collections.emptyList();
+        }
+    }
+
+    public Optional<Gateway> findById(String gatewayId) {
+        try {
+            return gatewayDao.findGatewayById(gatewayId);
+        } catch (Exception e) {
+            LoggerUtil.logError(e, gatewayId);
+            return Optional.empty();
         }
     }
 

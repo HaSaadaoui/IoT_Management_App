@@ -11,9 +11,11 @@ public class Sensor {
 
     public Sensor() {}
 
+    // ⇨ Si tu gardes un constructeur custom, pense à l’aligner avec les nouveaux champs
     public Sensor(String idSensor, String deviceType, String commissioningDate,
                   Boolean status, String buildingName, Integer floor,
-                  String location, String idGateway) {
+                  String location, String idGateway,
+                  String devEui, String joinEui, String appKey, String frequencyPlan) {
         this.idSensor = idSensor;
         this.deviceType = deviceType;
         this.commissioningDate = commissioningDate;
@@ -22,6 +24,10 @@ public class Sensor {
         this.floor = floor;
         this.location = location;
         this.idGateway = idGateway;
+        this.devEui = devEui;
+        this.joinEui = joinEui;
+        this.appKey = appKey;
+        this.frequencyPlan = frequencyPlan;
     }
 
     @Id
@@ -49,4 +55,15 @@ public class Sensor {
     @Column("id_gateway")
     private String idGateway;
 
+    @Column("dev_eui")
+    private String devEui;
+
+    @Column("join_eui")
+    private String joinEui;
+
+    @Column("app_key")
+    private String appKey;
+
+    @Column("frequency_plan")
+    private String frequencyPlan;
 }

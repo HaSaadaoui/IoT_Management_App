@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="'Sensor Monitoring - ' + ${sensor.idSensor}">Sensor Monitoring</title>
+    <link rel="stylesheet" href="/css/styles.css"/>
+    <!-- Tu peux réutiliser le CSS de monitoring gateway -->
+    <link rel="stylesheet" href="/css/monitoringGateway.css"/>
+    <style>
+        /* Petits raffinements visuels */
+        .empty-state{opacity:.7;font-style:italic}
+        .kv{display:grid;grid-template-columns:160px 1fr;gap:6px 16px}
+        .kv b{color:#444}
+    </style>
+</head>
+<body>
+
+<header th:text="${sensor.deviceType} ?: ${sensor.idSensor}">Sensor</header>
+
+<main>
+    <!-- Cartes infos (statiques) -->
+    <section class="info-grid">
+        <div class="card">
+            <h4>Status</h4>
+            <p>
+        <span class="badge" th:classappend="${sensor.status} ? ' badge--ok' : ' badge--off'">
+          <img th:src="${sensor.status} ? '/image/toggle_on.svg' : '/image/toggle_off.svg'"
+               alt="Status"/>
+          <span th:text="${sensor.status} ? 'Active' : 'Inactive'">--</span>
+        </span>
+            </p>
+        </div>
+
+        <div class="card"><h4>Sensor ID</h4>
+            <p th:text="${sensor.idSensor}">--</p>
+        </div>
+
+        <div class="card"><h4>Device Type</h4>
+            <p th:text="${sensor.deviceType}">--</p>
+        </div>
+
+        <div class="card"><h4>Commissioning Date</h4>
+            <p th:text="${sensor.commissioningDate} ?: '--'">--</p>
+        </div>
+
+        <div class="card">
+            <h4>Gateway</h4>
+            <p th:with="gid=${sensor.idGateway}, ip=${gatewayIp} ?: ''">
+                <a class="link"
+                   th:href="@{|/manage-gateways/monitoring/${gid}/view?ip=${ip}|}"
+                   th:text="${gatewayName} ?: ${gid}">
+                    --
+                </a>
+            </p>
+        </div>
+
+
+        <div class="card"><h4>Building</h4>
+            <p th:text="${sensor.buildingName} ?: '--'">--</p>
+        </div>
+
+        <div class="card"><h4>Floor</h4>
+            <p th:text="${sensor.floor} ?: '--'">--</p>
+        </div>
+
+        <div class="card"><h4>Location</h4>
+            <p th:text="${sensor.location} ?: '--'">--</p>
+        </div>
+
+        <div class="card"><h4>Frequency Plan</h4>
+            <p th:text="${sensor.frequencyPlan} ?: '--'">--</p>
+        </div>
+    </section>
+
+    <!-- Détails techniques (clés masquées) -->
+    <section class="card" style="margin-top:20px;">
+        <h4>Identifiers</h4>
+        <div class="kv">
+            <b>DevEUI</b>
+            <span th:text="${#strings.length(sensor.devEui) > 0} ? ${#strings.substring(sensor.devEui,0,4)} + '••••••••' + ${#strings.substring(sensor.devEui,#strings.length(sensor.devEui)-4)} : '--'">--</span>
+
+            <b>JoinEUI</b>
+            <span th:text="${#strings.length(sensor.joinEui) > 0} ? ${#strings.substring(sensor.joinEui,0,4)} + '••••••••' + ${#strings.substring(sensor.joinEui,#strings.length(sensor.joinEui)-4)} : '--'">--</span>
+
+            <!-- Par sécurité, on n’affiche PAS l’AppKey en clair -->
+            <b>AppKey</b>
+            <span th:text="${#strings.length(sensor.appKey) > 0} ? '••••••••••••••••' : '--'">--</span>
+        </div>
+    </section>
+
+    <!-- Emplacements charts (statiques / “à venir”) -->
+    <section class="chart-grid" style="margin-top:20px;">
+        <div class="card">
+            <h4>RSSI</h4>
+            <div class="empty-state">Pas de données en direct pour le moment.</div>
+            <!-- <canvas id="rssiChart"></canvas> -->
+        </div>
+        <div class="card">
+            <h4>SNR</h4>
+            <div class="empty-state">Pas de données en direct pour le moment.</div>
+            <!-- <canvas id="snrChart"></canvas> -->
+        </div>
+        <div class="card">
+            <h4>Battery</h4>
+            <div class="empty-state">Pas de données en direct pour le moment.</div>
+            <!-- <canvas id="batteryChart"></canvas> -->
+        </div>
+    </section>
+
+    <div style="margin-top:20px;">
+        <a href="/manage-sensors" class="btn">← Back to list</a>
+    </div>
+</main>
+
+</body>
+</html>
+
