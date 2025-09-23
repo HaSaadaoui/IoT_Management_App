@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/register.css}"/>
+</head>
+<body>
+<div class="register-container">
+    <div class="register-box">
+        <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
+        <h2>Create an Account</h2>
+        <form th:action="@{/register}" method="post">
+            <div class="form-register">
+                <input type="text" name="username" placeholder="Username" required/>
+            </div>
+            <div class="form-register">
+                <input type="text" name="firstname" placeholder="Firstname" required/>
+            </div>
+            <div class="form-register">
+                <input type="text" name="lastname" placeholder="Lastname" required/>
+            </div>
+            <div class="form-register">
+                <input type="password" name="password" placeholder="Password" required/>
+            </div>
+            <div class="form-register">
+                <input type="email" name="email" placeholder="E-mail" required/>
+            </div>
+            <div class="form-register">
+                <input type="hidden" name="role" value="USER"/>
+            </div>
+            <div class="form-register"></div>
+            <div class="form-button">
+                <button type="submit" class="submit-btn">Register</button>
+            </div>
+        </form>
+    </div>
+    <div class="error-message" th:if="${error}">
+        <p th:text="${error}"></p>
+    </div>
+</div>
+</body>
+</html>

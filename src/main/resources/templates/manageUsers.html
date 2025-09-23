@@ -1,125 +1,127 @@
 <!DOCTYPE html>
-    <html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
     <title>Manage users</title>
     <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}" />
     <link rel="stylesheet" type="text/css" th:href="@{/css/manageUsers.css}" />
 </head>
 <body>
 <div th:replace="fragments/header :: appHeader(pageTitle='Manage Users', homeUrl=@{/})"></div>
-    <div class="manageUsers-container">
-        <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
-        <table>
-            <thead>
-            <tr>
-                <th>Username</th>
-                <th>Firstname</th>
-                <th>Lastname</th>
-                <th>E-mail</th>
-                <th>Role</th>
-                <th>Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="user : ${users}">
-                <td th:text="${user.username}"></td>
-                <td th:text="${user.firstname}"></td>
-                <td th:text="${user.lastname}"></td>
-                <td th:text="${user.email}"></td>
-                <td th:text="${user.role}"></td>
-<!--                <td style="white-space: nowrap; overflow: visible;">-->
-                <td>
-                    <div th:if="${user.username != loggedUsername}" class="button-container">
-                        <a th:href="@{/manage-users/edit/{username}(username=${user.username})}" class="openEditModalBtn">
-                            <img src="/image/edit-icon.svg" alt="Modify" width="20" >
-                        </a>
-                        <form th:action="@{/manage-users/delete/{username}(username=${user.username})}" method="post" class="deleteForm" style="display:inline;">
-                            <input type="hidden" name="_method" value="DELETE" />
-                            <button type="submit" style="background:none; border:none;">
-                                <img src="/image/delete-icon.svg" alt="Delete" width="20">
-                            </button>
-                        </form>
-                    </div>
-                    <div th:if="${user.username == loggedUsername}" class="button-container">
-                        <!-- Bouton désactivé pour l'utilisateur connecté -->
-                        <a th:href="@{/manage-users/edit/{username}(username=${user.username})}" class="openEditModalBtn">
-                            <img src="/image/edit-icon.svg" alt="Modify" width="20" >
-                        </a>
-                        <!-- Bouton désactivé pour l'utilisateur connecté -->
-                        <form class="disabledBtn" style="display:inline;">
-                            <button th:if="${user.username == loggedUsername}" type="button" style="background:none; border:none; pointer-events: none;" disabled>
-                                <img src="/image/delete-icon.svg" alt="Delete" width="20">
-                            </button>
-                        </form>
-                    </div>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-        <!-- Popup de confirmation -->
-        <div id="deleteUserPopup" class="modal">
-            <div class="modal-content-delete">
-                <h2>Confirm delete?</h2>
-                <div class="form-buttons-delete">
-                    <button id="confirmDelete" class="formButton">Delete</button>
-                    <button id="cancelDelete" class="formButton">Cancel</button>
+<div class="manageUsers-container">
+    <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
+    <table>
+        <thead>
+        <tr>
+            <th>Username</th>
+            <th>Firstname</th>
+            <th>Lastname</th>
+            <th>E-mail</th>
+            <th>Role</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="user : ${users}">
+            <td th:text="${user.username}"></td>
+            <td th:text="${user.firstname}"></td>
+            <td th:text="${user.lastname}"></td>
+            <td th:text="${user.email}"></td>
+            <td th:text="${user.role}"></td>
+            <!--                <td style="white-space: nowrap; overflow: visible;">-->
+            <td>
+                <div th:if="${user.username != loggedUsername}" class="button-container">
+                    <a th:href="@{/manage-users/edit/{username}(username=${user.username})}" class="openEditModalBtn">
+                        <img src="/image/edit-icon.svg" alt="Modify" width="20" >
+                    </a>
+                    <form th:action="@{/manage-users/delete/{username}(username=${user.username})}"
+                          method="post" class="deleteForm" style="display:inline;">
+                        <button type="submit" style="background:none; border:none;">
+                            <img src="/image/delete-icon.svg" alt="Delete" width="20">
+                        </button>
+                    </form>
                 </div>
-            </div>
-        </div>
-
-        <!-- Formulaire pour modifier un utilisateur -->
-        <div id="editUserPopup" class="modal" th:if="${user != null}">
-            <div class="modal-content">
-                <h2>Edit User</h2>
-                <form th:action="@{/manage-users/edit}" th:object="${user}" method="post">
-                    <input id="username" th:field="*{username}" placeholder="Username" required readonly />
-                    <input id="firstname" th:field="*{firstname}" placeholder="Firstname" required />
-                    <input id="lastname" th:field="*{lastname}" placeholder="Lastname" required />
-                    <input id="email" type="email" th:field="*{email}" placeholder="E-mail" required />
-                    <select id="role" th:field="*{role}" >
-                        <option value="USER" th:selected="${user.role == 'USER'}">User</option>
-                        <option value="SUPERUSER" th:selected="${user.role == 'SUPERUSER'}">Superuser</option>
-                        <option value="ADMIN" th:selected="${user.role == 'ADMIN'}">Admin</option>
-                    </select>
-                    <div class="form-buttons">
-                        <button type="submit">Update</button>
-                        <button type="button" id="closeEdit">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Bouton pour ouvrir la popup Create -->
-        <button id="openCreateBtn">Add User</button>
-
-        <!-- Formulaire pour ajouter un utilisateur -->
-        <div id="createUserPopup" class="modal modalCreate">
-            <div class="modal-content">
-                <h2>Add User</h2>
-                <div th:if="${error}" class="alert alert-danger">
-                    <p th:text="${error}"></p>
+                <div th:if="${user.username == loggedUsername}" class="button-container">
+                    <!-- Bouton désactivé pour l'utilisateur connecté -->
+                    <a th:href="@{/manage-users/edit/{username}(username=${user.username})}" class="openEditModalBtn">
+                        <img src="/image/edit-icon.svg" alt="Modify" width="20" >
+                    </a>
+                    <!-- Bouton désactivé pour l'utilisateur connecté -->
+                    <form class="disabledBtn" style="display:inline;">
+                        <button th:if="${user.username == loggedUsername}" type="button" style="background:none; border:none; pointer-events: none;" disabled>
+                            <img src="/image/delete-icon.svg" alt="Delete" width="20">
+                        </button>
+                    </form>
                 </div>
-                <form th:action="@{/manage-users/add}" method="post">
-                    <input type="text" name="username" placeholder="Username" required />
-                    <input type="text" name="firstname" placeholder="Firstname" required />
-                    <input type="text" name="lastname" placeholder="Lastname" required />
-                    <input type="password" name="password" placeholder="Password" required />
-                    <input type="email" name="email" placeholder="E-mail" required />
-                    <select name="role" required>
-                        <option value="USER">User</option>
-                        <option value="SUPERUSER">Superuser</option>
-                        <option value="ADMIN">Admin</option>
-                    </select>
-                    <div class="form-buttons">
-                        <button type="submit">Add</button>
-                        <button type="button" id="closeCreate">Cancel</button>
-                    </div>
-                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <!-- Popup de confirmation -->
+    <div id="deleteUserPopup" class="modal">
+        <div class="modal-content-delete">
+            <h2>Confirm delete?</h2>
+            <div class="form-buttons-delete">
+                <button id="confirmDelete" class="formButton">Delete</button>
+                <button id="cancelDelete" class="formButton">Cancel</button>
             </div>
         </div>
     </div>
 
-    <script th:src="@{/javascript/manageUsers.js}" defer></script>
+    <!-- Formulaire pour modifier un utilisateur -->
+    <div id="editUserPopup" class="modal" th:if="${user != null}">
+        <div class="modal-content">
+            <h2>Edit User</h2>
+            <form th:action="@{/manage-users/edit}" th:object="${user}" method="post">
+                <input id="username" th:field="*{username}" placeholder="Username" required readonly />
+                <input id="firstname" th:field="*{firstname}" placeholder="Firstname" required />
+                <input id="lastname" th:field="*{lastname}" placeholder="Lastname" required />
+                <input id="email" type="email" th:field="*{email}" placeholder="E-mail" required />
+                <select id="role" th:field="*{role}" >
+                    <option value="USER" th:selected="${user.role == 'USER'}">User</option>
+                    <option value="SUPERUSER" th:selected="${user.role == 'SUPERUSER'}">Superuser</option>
+                    <option value="ADMIN" th:selected="${user.role == 'ADMIN'}">Admin</option>
+                </select>
+                <div class="form-buttons">
+                    <button type="submit">Update</button>
+                    <button type="button" id="closeEdit">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bouton pour ouvrir la popup Create -->
+    <button id="openCreateBtn">Add User</button>
+
+    <!-- Formulaire pour ajouter un utilisateur -->
+    <div id="createUserPopup" class="modal modalCreate">
+        <div class="modal-content">
+            <h2>Add User</h2>
+            <div th:if="${error}" class="alert alert-danger">
+                <p th:text="${error}"></p>
+            </div>
+            <form th:action="@{/manage-users/add}" method="post">
+                <input type="text" name="username" placeholder="Username" required />
+                <input type="text" name="firstname" placeholder="Firstname" required />
+                <input type="text" name="lastname" placeholder="Lastname" required />
+                <input type="password" name="password" placeholder="Password" required />
+                <input type="email" name="email" placeholder="E-mail" required />
+                <select name="role" required>
+                    <option value="USER">User</option>
+                    <option value="SUPERUSER">Superuser</option>
+                    <option value="ADMIN">Admin</option>
+                </select>
+                <div class="form-buttons">
+                    <button type="submit">Add</button>
+                    <button type="button" id="closeCreate">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/javascript/manageUsers.js}" defer></script>
 </body>
 </html>

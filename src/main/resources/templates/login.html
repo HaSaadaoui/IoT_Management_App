@@ -24,6 +24,12 @@
                     </div>
                     <button type="submit" class="submit-btn">Log in</button>
                 </form>
+                <p class="register-link">
+                    Not registered yet? <a th:href="@{/register}">Create an account</a>
+                </p>
+            </div>
+            <div class="success-message" th:if="${param.registered}">
+                Your account has been created. Please log in.
             </div>
         </div>
     </body>

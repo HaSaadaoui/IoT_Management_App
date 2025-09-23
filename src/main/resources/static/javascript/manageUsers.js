@@ -19,6 +19,7 @@ var cancelDelete = document.getElementById("cancelDelete");
 // Quand l'utilisateur clique sur ouvrir la popup Create
 if (btnCreate) {
     btnCreate.addEventListener("click", () => {
+        updateCsrfToken();
         modalCreate.style.display = "block";
     });
 }
@@ -108,3 +109,16 @@ window.addEventListener('pageshow', function(event) {
         window.location.href = "/home?" + new Date().getTime();
     }
 });
+
+function updateCsrfToken() {
+    const token = document.querySelector("meta[name='_csrf']").content;
+    let csrfInput = modalCreate.querySelector("input[name='_csrf']");
+    if (!csrfInput) {
+        // si le champ n'existe pas, on le crée
+        csrfInput = document.createElement("input");
+        csrfInput.type = "hidden";
+        csrfInput.name = "_csrf";
+        modalCreate.querySelector("form").prepend(csrfInput);
+    }
+    csrfInput.value = token;
+}

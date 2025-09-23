@@ -40,7 +40,7 @@ public class SpringSecurityConfig {
 //                        .anyRequest().hasAnyRole("ADMIN", "USER", "SUPERUSER")
 //                )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/css/**", "/image/**", "/login").permitAll()
+                        .requestMatchers("/", "/css/**", "/image/**", "/login", "/register").permitAll()
                         .requestMatchers("/home").authenticated()
                         .anyRequest().hasAnyRole("ADMIN", "USER", "SUPERUSER")
                 )

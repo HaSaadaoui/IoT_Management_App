@@ -5,3 +5,19 @@ body {
     margin: 0;
     background-repeat: no-repeat;
 }
+
+.register-link {
+    margin-top: 1rem;
+    font-size: 14px;
+    color: #333;
+}
+
+.register-link a {
+    color: #007BFF;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.register-link a:hover {
+    text-decoration: underline;
+}
