@@ -110,6 +110,143 @@ window.addEventListener('pageshow', function(event) {
     }
 });
 
+
+// -----------------------
+// Filtres + Pagination
+// -----------------------
+
+// Filter elements
+const usernameFilter = document.getElementById('usernameFilter');
+const emailFilter    = document.getElementById('emailFilter');
+const roleFilter     = document.getElementById('roleFilter');
+const clearRoleBtn   = document.getElementById('clearRole');
+
+// Récupère toutes les lignes du tableau
+const userRows = document.querySelectorAll('table tbody tr');
+const paginationEl = document.getElementById('pagination');
+
+// Pagination state
+const PAGE_SIZE = 10;
+let currentPage = 1;
+let filteredRows = [];
+
+// Listeners pour filtres
+if (usernameFilter) {
+    usernameFilter.addEventListener('input', filterUsers);
+    document.querySelector('[onclick*="usernameFilter"]')?.addEventListener('click', function() {
+        usernameFilter.value = '';
+        filterUsers();
+    });
+}
+
+if (emailFilter) {
+    emailFilter.addEventListener('input', filterUsers);
+    document.querySelector('[onclick*="emailFilter"]')?.addEventListener('click', function() {
+        emailFilter.value = '';
+        filterUsers();
+    });
+}
+
+if (roleFilter) {
+    roleFilter.addEventListener('change', function() {
+        clearRoleBtn.style.display = this.value ? 'block' : 'none';
+        filterUsers();
+    });
+}
+
+if (clearRoleBtn) {
+    clearRoleBtn.addEventListener('click', function() {
+        roleFilter.value = '';
+        this.style.display = 'none';
+        filterUsers();
+    });
+}
+
+// Fonction de filtrage
+function filterUsers() {
+    const usernameValue = usernameFilter ? usernameFilter.value.toLowerCase() : '';
+    const emailValue    = emailFilter ? emailFilter.value.toLowerCase() : '';
+    const roleValue     = roleFilter ? roleFilter.value : '';
+
+    const rows = Array.from(userRows).filter(row => {
+        const username = row.cells[0].textContent.toLowerCase();
+        const email    = row.cells[3].textContent.toLowerCase();
+        const role     = row.cells[4].textContent.trim();
+
+        const matchesUsername = username.includes(usernameValue);
+        const matchesEmail    = email.includes(emailValue);
+        const matchesRole     = !roleValue || role === roleValue;
+
+        return matchesUsername && matchesEmail && matchesRole;
+    });
+
+    filteredRows = rows;
+    currentPage = 1;
+    renderRowsPaginated();
+}
+
+// -----------------------
+// Pagination functions
+// -----------------------
+function renderPagination(totalCount) {
+    if (!paginationEl) return;
+
+    const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+    currentPage = Math.min(currentPage, totalPages);
+
+    paginationEl.innerHTML = '';
+
+    const btn = (label, page, disabled = false, active = false) => {
+        const b = document.createElement('button');
+        b.className = 'page-btn' + (active ? ' active' : '');
+        b.textContent = label;
+        if (disabled) b.setAttribute('disabled', 'disabled');
+        b.addEventListener('click', () => {
+            if (!disabled && currentPage !== page) {
+                currentPage = page;
+                renderRowsPaginated();
+            }
+        });
+        return b;
+    };
+
+    paginationEl.appendChild(btn('«', 1, currentPage === 1));
+    paginationEl.appendChild(btn('‹', currentPage - 1, currentPage === 1));
+
+    const totalPagesToShow = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(totalPagesToShow / 2));
+    let endPage   = Math.min(totalPages, startPage + totalPagesToShow - 1);
+    if (endPage - startPage + 1 < totalPagesToShow) {
+        startPage = Math.max(1, endPage - totalPagesToShow + 1);
+    }
+
+    for (let p = startPage; p <= endPage; p++) {
+        paginationEl.appendChild(btn(String(p), p, false, p === currentPage));
+    }
+
+    paginationEl.appendChild(btn('›', currentPage + 1, currentPage === totalPages));
+    paginationEl.appendChild(btn('»', totalPages, currentPage === totalPages));
+}
+
+function renderRowsPaginated() {
+    const total = filteredRows.length;
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageRows = filteredRows.slice(start, start + PAGE_SIZE);
+
+    // cacher toutes les lignes
+    userRows.forEach(r => r.style.display = 'none');
+    // afficher seulement celles de la page
+    pageRows.forEach(r => r.style.display = '');
+    renderPagination(total);
+}
+
+// -----------------------
+// Init page
+// -----------------------
+document.addEventListener('DOMContentLoaded', () => {
+    filteredRows = Array.from(userRows);
+    renderRowsPaginated();
+});
 function updateCsrfToken() {
     const token = document.querySelector("meta[name='_csrf']").content;
     let csrfInput = modalCreate.querySelector("input[name='_csrf']");

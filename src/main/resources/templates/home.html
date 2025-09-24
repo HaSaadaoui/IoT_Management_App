@@ -1,31 +1,43 @@
 <!DOCTYPE html>
-    <html lang="en" xmlns:th="http://www.thymeleaf.org">
-    <head>
-        <meta charset="UTF-8">
-        <title>Home page</title>
-        <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}" />
-        <link rel="stylesheet" type="text/css" th:href="@{/css/login-home.css}" />
-    </head>
-    <body>
-        <div class="home-container">
-            <div class="home-box">
-                <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
-                <h2>Welcome to the Dashboard</h2>
-                <div class="icon-button-container">
-                    <a href="/manage-sensors" class="icon-btn" title="Sensors">
-                        <img src="/image/sensor-icon.svg" alt="Sensors" />
-                    </a>
-                    <a href="/manage-gateways" class="icon-btn" title="Gateways">
-                        <img src="/image/gateway-icon.svg" alt="Gateways" />
-                    </a>
-                    <a href="/manage-users" class="icon-btn" title="Users">
-                        <img src="/image/user-icon.svg" alt="Users" />
-                    </a>
-                    <a href="/manage-account" class="icon-btn" title="Account">
-                        <img src="/image/manage-user-account.svg" alt="User account" />
-                    </a>
-                </div>
-            </div>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Home page</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}" />
+    <link rel="stylesheet" type="text/css" th:href="@{/css/login-home.css}" />
+</head>
+<body>
+<div class="home-container">
+    <div class="home-box">
+        <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
+        <h2>Welcome to the Dashboard</h2>
+        <div class="icon-button-container">
+            <a href="/manage-sensors" class="icon-btn" title="Sensors">
+                <img src="/image/sensor-icon.svg" alt="Sensors" />
+            </a>
+            <a href="/manage-gateways" class="icon-btn" title="Gateways">
+                <img src="/image/gateway-icon.svg" alt="Gateways" />
+            </a>
+            <a href="/manage-users" class="icon-btn" title="Users">
+                <img src="/image/user-icon.svg" alt="Users" />
+            </a>
+            <a href="/manage-account" class="icon-btn" title="Account">
+                <img src="/image/manage-user-account.svg" alt="User account" />
+            </a>
         </div>
-    </body>
+        <!-- Logout row under the four icons -->
+        <div class="icon-button-container" style="margin-top: 16px;">
+            <form th:action="@{/logout}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="icon-btn" title="Logout" style="border: none;">
+                    <img src="/image/logout-icon.svg" alt="Logout" />
+                </button>
+            </form>
+            <a href="/" class="icon-btn" title="predictions">
+                <img src="/image/predictive.png" alt="Predictions" style="filter: invert(0);" />
+            </a>
+        </div>
+    </div>
+</div>
+</body>
 </html>

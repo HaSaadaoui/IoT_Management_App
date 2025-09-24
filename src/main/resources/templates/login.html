@@ -1,37 +1,71 @@
 <!DOCTYPE html>
-    <html lang="en" xmlns:th="http://www.thymeleaf.org">
-    <head>
-        <meta charset="UTF-8">
-        <title>Please Log In</title>
-        <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}" />
-        <link rel="stylesheet" type="text/css" th:href="@{/css/login-home.css}" />
-    </head>
-    <body>
-        <div class="login-container">
-            <div class="login-box">
-                <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
-                <h2>Please log in</h2>
-                <div class="error-message" th:if="${param.error}">
-                    Invalid username and password.</div>
-                <form th:action="@{/login}" method="post">
-                    <div class="form-login">
-                        <input type="text" id="username" name="username" placeholder="Username" required>
-                    </div>
-                    <div class="form-login">
-                        <input type="password" id="password" name="password" placeholder="Password" required>
-                    </div>
-                    <button type="submit" class="submit-btn">Log in</button>
-                </form>
-                <p class="register-link">
-                    Not registered yet? <a th:href="@{/register}">Create an account</a>
-                </p>
-            </div>
-            <div class="success-message" th:if="${param.registered}">
-                Your account has been created. Please log in.
-            </div>
-            <div class="error-message" th:if="${param.logout}">
-                You have been logged out.
-            </div>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Please Log In</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}" />
+    <link rel="stylesheet" type="text/css" th:href="@{/css/login-home.css}" />
+</head>
+<body>
+<div class="login-container">
+    <div class="login-box">
+        <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
+        <h2>Please log in</h2>
+        <div class="error-message" th:if="${param.error}">
+            Invalid username and password.
         </div>
-    </body>
+        <div class="error-message" th:if="${param.logout}">
+            You have been logged out.
+        </div>
+        <form th:action="@{/login}" method="post">
+            <div class="form-login">
+                <input type="text" id="username" name="username" placeholder="Username" required>
+            </div>
+            <div class="form-login password-container">
+                <input type="password" id="password" name="password" placeholder="Password" required>
+                <span class="toggle-password" id="togglePassword">
+                            <!-- œil barré par défaut -->
+                            <img id="eyeClosed" src="/image/cacher.svg" alt="Masqué">
+                    <!-- œil ouvert (masqué par défaut) -->
+                            <img id="eyeOpen" src="/image/oeil.svg" alt="Visible" style="display:none;">
+                        </span>
+            </div>
+            <button type="submit" class="submit-btn">Log in</button>
+        </form>
+        <p class="register-link">
+            Not registered yet? <a th:href="@{/register}">Create an account</a>
+        </p>
+    </div>
+    <div class="success-message" th:if="${param.registered}">
+        Your account has been created. Please log in.
+    </div>
+</div>
+
+<!-- Script inline -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const passwordInput = document.getElementById('password');
+        const eyeClosed = document.getElementById('eyeClosed');
+        const eyeOpen = document.getElementById('eyeOpen');
+        const togglePassword = document.getElementById('togglePassword');
+        let timerId = null;
+
+        togglePassword.addEventListener('click', function() {
+            // Affiche mot de passe temporairement
+            passwordInput.type = 'text';
+            eyeClosed.style.display = 'none';
+            eyeOpen.style.display = 'inline';
+
+            // Remet à l'état masqué après 1 seconde
+            if (timerId) clearTimeout(timerId);
+            timerId = setTimeout(function() {
+                passwordInput.type = 'password';
+                eyeClosed.style.display = 'inline';
+                eyeOpen.style.display = 'none';
+                timerId = null;
+            }, 1000);
+        });
+    });
+</script>
+</body>
 </html>

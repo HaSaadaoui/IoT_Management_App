@@ -6,6 +6,29 @@ body {
     background-repeat: no-repeat;
 }
 
+.password-container {
+    position: relative;
+}
+
+.toggle-password {
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    transform: translateY(-50%);
+    cursor: pointer;
+    z-index: 2;
+}
+
+.password-container input[type="password"],
+.password-container input[type="text"] {
+    padding-right: 40px;
+}
+
+.toggle-password img {
+    width: 20px;
+    height: 20px;
+}
+
 .register-link {
     margin-top: 1rem;
     font-size: 14px;

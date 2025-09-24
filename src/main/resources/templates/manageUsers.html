@@ -12,6 +12,81 @@
 <div th:replace="fragments/header :: appHeader(pageTitle='Manage Users', homeUrl=@{/})"></div>
 <div class="manageUsers-container">
     <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
+    <!-- Add filters container -->
+    <div class="filters-container"
+         style="width: 95%; margin: 20px auto 15px auto; padding: 12px 15px; background-color: white; border: 2px solid #662179; border-radius: 8px; display: flex; gap: 15px; align-items: center; box-sizing: border-box; overflow-x: auto">
+
+        <!-- Username search -->
+        <div style="position: relative; display: flex; align-items: center; width: 200px;">
+            <input type="text" id="usernameFilter"
+                   placeholder="Search by username"
+                   style="
+                         padding: 8px 30px 8px 36px;
+                         border: 1px solid #662179;
+                         font-size: inherit;
+                         border-radius: 6px;
+                         background: url('/image/search-icon.svg') no-repeat 10px center;
+                         background-size: 18px 18px;
+                         outline: none;
+                         transition: border-color 0.3s ease;
+                         width: 100%;
+                         box-sizing: border-box;"
+                   onfocus="this.style.borderColor='#440d64'"
+                   onblur="this.style.borderColor='#662179'"/>
+            <span onclick="document.getElementById('usernameFilter').value='';"
+                  style="position: absolute; right: 8px; cursor: pointer; font-size: 16px; color: #000;">&#10005;</span>
+        </div>
+
+        <!-- Email search -->
+        <div style="position: relative; display: flex; align-items: center; width: 250px;">
+            <input type="text" id="emailFilter"
+                   placeholder="Search by email"
+                   style="
+                         padding: 8px 30px 8px 36px;
+                         border: 1px solid #662179;
+                         font-size: inherit;
+                         border-radius: 6px;
+                         background: url('/image/search-icon.svg') no-repeat 10px center;
+                         background-size: 18px 18px;
+                         outline: none;
+                         transition: border-color 0.3s ease;
+                         width: 100%;
+                         box-sizing: border-box;"
+                   onfocus="this.style.borderColor='#440d64'"
+                   onblur="this.style.borderColor='#662179'"/>
+            <span onclick="document.getElementById('emailFilter').value='';"
+                  style="position: absolute; right: 8px; cursor: pointer; font-size: 16px; color: #000;">&#10005;</span>
+        </div>
+
+        <!-- Role filter -->
+        <div style="position: relative; display: flex; align-items: center; width: 180px;">
+            <select id="roleFilter"
+                    style="
+                          padding: 8px 30px 8px 12px;
+                          border: 1px solid #662179;
+                          border-radius: 6px;
+                          font-size: inherit;
+                          outline: none;
+                          box-shadow: none;
+                          width: 100%;
+                          -webkit-appearance: none;
+                          -moz-appearance: none;
+                          appearance: none;
+                          background: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23662179%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e') no-repeat;
+                          background-position: right 10px center;
+                          background-size: 15px;
+                          padding-right: 35px;">
+                <option value="" selected>All Roles</option>
+                <option value="USER">User</option>
+                <option value="SUPERUSER">Superuser</option>
+                <option value="ADMIN">Admin</option>
+            </select>
+            <span id="clearRole"
+                  style="position: absolute; right: 25px; cursor: pointer; font-size: 16px; color: #000; user-select: none; display: none;">
+                    &#10005;
+                </span>
+        </div>
+    </div>
     <table>
         <thead>
         <tr>
@@ -59,6 +134,9 @@
         </tr>
         </tbody>
     </table>
+
+    <div id="pagination" class="pagination"></div>
+
     <!-- Popup de confirmation -->
     <div id="deleteUserPopup" class="modal">
         <div class="modal-content-delete">
