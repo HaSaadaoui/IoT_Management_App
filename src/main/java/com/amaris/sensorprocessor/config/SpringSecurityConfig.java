@@ -49,6 +49,11 @@ public class SpringSecurityConfig {
                         .permitAll()
                         .defaultSuccessUrl("/home", true)
                 )
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/login?logout")
+                        .permitAll()
+                )
 //                .sessionManagement(session -> session
 //                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 //                )

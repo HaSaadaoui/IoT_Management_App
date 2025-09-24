@@ -13,8 +13,6 @@
                 <h2>Please log in</h2>
                 <div class="error-message" th:if="${param.error}">
                     Invalid username and password.</div>
-                <div class="error-message" th:if="${param.logout}">
-                    You have been logged out.</div>
                 <form th:action="@{/login}" method="post">
                     <div class="form-login">
                         <input type="text" id="username" name="username" placeholder="Username" required>
@@ -30,6 +28,9 @@
             </div>
             <div class="success-message" th:if="${param.registered}">
                 Your account has been created. Please log in.
+            </div>
+            <div class="error-message" th:if="${param.logout}">
+                You have been logged out.
             </div>
         </div>
     </body>
