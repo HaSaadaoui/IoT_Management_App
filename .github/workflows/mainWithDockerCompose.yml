@@ -1,95 +1,95 @@
-name: Deploy to Raspberry Pi with Docker Compose
+# name: Deploy to Raspberry Pi with Docker Compose
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+# on:
+#   push:
+#     branches:
+#       - main
+#   workflow_dispatch:
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
 
-      - name: Give execute permission to mvnw
-        run: chmod +x ./mvnw
+#       - name: Give execute permission to mvnw
+#         run: chmod +x ./mvnw
 
-      - name: Build project
-        run: ./mvnw clean package -DskipTests
+#       - name: Build project
+#         run: ./mvnw clean package -DskipTests
 
-      - name: Build and tag Docker image
-        run: |
-          docker build --platform linux/arm64 --no-cache -t localhost:5000/sensorprocessor:latest .
+#       - name: Build and tag Docker image
+#         run: |
+#           docker build --platform linux/arm64 --no-cache -t localhost:5000/sensorprocessor:latest .
 
-      - name: Install OpenVPN 2.5.7
-        run: |
-          sudo apt-get update
-          sudo apt-get --assume-yes --no-install-recommends install build-essential
-          sudo apt-get install liblzo2-dev
-          sudo apt-get install libpam0g-dev
-          curl -L -o openvpn-2.5.7.tar.gz https://swupdate.openvpn.org/community/releases/openvpn-2.5.7.tar.gz
-          tar -xvzf openvpn-2.5.7.tar.gz
-          cd openvpn-2.5.7
-          ./configure
-          make
-          sudo make install
-          cd ..
-          mkdir -p ./tmp
-          echo "${{ secrets.OVPN_CONFIG }}" | base64 --decode | sudo tee ./tmp/config > /dev/null
-          sudo chmod 777 ./tmp/config
+#       - name: Install OpenVPN 2.5.7
+#         run: |
+#           sudo apt-get update
+#           sudo apt-get --assume-yes --no-install-recommends install build-essential
+#           sudo apt-get install liblzo2-dev
+#           sudo apt-get install libpam0g-dev
+#           curl -L -o openvpn-2.5.7.tar.gz https://swupdate.openvpn.org/community/releases/openvpn-2.5.7.tar.gz
+#           tar -xvzf openvpn-2.5.7.tar.gz
+#           cd openvpn-2.5.7
+#           ./configure
+#           make
+#           sudo make install
+#           cd ..
+#           mkdir -p ./tmp
+#           echo "${{ secrets.OVPN_CONFIG }}" | base64 --decode | sudo tee ./tmp/config > /dev/null
+#           sudo chmod 777 ./tmp/config
 
-      - name: Connect to VPN
-        uses: kota65535/github-openvpn-connect-action@v2
-        with:
-          config_file: ./tmp/config
-          username: ${{ secrets.OVPN_USERNAME }}
-          password: ${{ secrets.OVPN_PASSWORD }}
+#       - name: Connect to VPN
+#         uses: kota65535/github-openvpn-connect-action@v2
+#         with:
+#           config_file: ./tmp/config
+#           username: ${{ secrets.OVPN_USERNAME }}
+#           password: ${{ secrets.OVPN_PASSWORD }}
 
-      - name: Install Docker on Raspberry Pi
-        run: |
-          sshpass -p ${{ secrets.RASPBERRY_PASSWORD }} ssh -o StrictHostKeyChecking=no ${{ secrets.RASPBERRY_USER }}@${{ secrets.RASPBERRY_HOST }} '
-            if ! command -v docker &> /dev/null; then
-              echo "Docker non trouvé, installation..."
-              echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S apt-get clean && \
-              echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S apt-get update --fix-missing && \
-              echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S apt-get install -y apt-transport-https ca-certificates curl software-properties-common && \
-              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/trusted.gpg.d/docker.asc && \
-              sudo add-apt-repository "deb [arch=armhf] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && \
-              echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S apt-get update && \
-              echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S apt-get install -y docker-ce && \
-              echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S chmod -R 777 /var/lib/docker
-            else
-              echo "Docker est déjà installé."
-            fi'
+#       - name: Install Docker on Raspberry Pi
+#         run: |
+#           sshpass -p ${{ secrets.RASPBERRY_PASSWORD }} ssh -o StrictHostKeyChecking=no ${{ secrets.RASPBERRY_USER }}@${{ secrets.RASPBERRY_HOST }} '
+#             if ! command -v docker &> /dev/null; then
+#               echo "Docker non trouvé, installation..."
+#               echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S apt-get clean && \
+#               echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S apt-get update --fix-missing && \
+#               echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S apt-get install -y apt-transport-https ca-certificates curl software-properties-common && \
+#               curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/trusted.gpg.d/docker.asc && \
+#               sudo add-apt-repository "deb [arch=armhf] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && \
+#               echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S apt-get update && \
+#               echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S apt-get install -y docker-ce && \
+#               echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S chmod -R 777 /var/lib/docker
+#             else
+#               echo "Docker est déjà installé."
+#             fi'
 
-      - name: Stop and remove existing Docker container and image
-        run: |
-          sshpass -p ${{ secrets.RASPBERRY_PASSWORD }} ssh -o StrictHostKeyChecking=no ${{ secrets.RASPBERRY_USER }}@${{ secrets.RASPBERRY_HOST }} '
-            echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S docker stop sensorprocessor || true && \
-            echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S docker rm sensorprocessor || true && \
-            echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S docker rmi localhost:5000/sensorprocessor:latest || true
-            '
+#       - name: Stop and remove existing Docker container and image
+#         run: |
+#           sshpass -p ${{ secrets.RASPBERRY_PASSWORD }} ssh -o StrictHostKeyChecking=no ${{ secrets.RASPBERRY_USER }}@${{ secrets.RASPBERRY_HOST }} '
+#             echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S docker stop sensorprocessor || true && \
+#             echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S docker rm sensorprocessor || true && \
+#             echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S docker rmi localhost:5000/sensorprocessor:latest || true
+#             '
 
-      - name: Copy Docker image to Raspberry Pi
-        run: |
-          echo "Starting Docker save"
-          docker save localhost:5000/sensorprocessor:latest -o image.tar
-          echo "Docker save completed"
-          echo "Compressing image"
-          gzip image.tar
-          echo "Compression completed"
-          echo "Starting SCP transfer"
-          sshpass -p "${{ secrets.RASPBERRY_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.RASPBERRY_USER }}@${{ secrets.RASPBERRY_HOST }} 'if [ -e /tmp/appPrincipal/image.tar.gz ]; then echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S rm -f /tmp/appPrincipal/image.tar.gz; fi'
-          sshpass -p "${{ secrets.RASPBERRY_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.RASPBERRY_USER }}@${{ secrets.RASPBERRY_HOST }} 'if [ -e /tmp/appPrincipal/image.tar ]; then echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S rm -f /tmp/appPrincipal/image.tar; fi'             
-          sshpass -p "${{ secrets.RASPBERRY_PASSWORD }}" scp -o StrictHostKeyChecking=no image.tar.gz ${{ secrets.RASPBERRY_USER }}@${{ secrets.RASPBERRY_HOST }}:/tmp/appPrincipal
-          echo "SCP transfer completed"
-          echo "Starting SSH to Raspberry Pi"
-          sshpass -p "${{ secrets.RASPBERRY_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.RASPBERRY_USER }}@${{ secrets.RASPBERRY_HOST }} 'echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S bash -c "gunzip -f /tmp/appPrincipal/image.tar.gz && docker load -i /tmp/appPrincipal/image.tar"'
-          echo "SSH and Docker load completed"
+#       - name: Copy Docker image to Raspberry Pi
+#         run: |
+#           echo "Starting Docker save"
+#           docker save localhost:5000/sensorprocessor:latest -o image.tar
+#           echo "Docker save completed"
+#           echo "Compressing image"
+#           gzip image.tar
+#           echo "Compression completed"
+#           echo "Starting SCP transfer"
+#           sshpass -p "${{ secrets.RASPBERRY_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.RASPBERRY_USER }}@${{ secrets.RASPBERRY_HOST }} 'if [ -e /tmp/appPrincipal/image.tar.gz ]; then echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S rm -f /tmp/appPrincipal/image.tar.gz; fi'
+#           sshpass -p "${{ secrets.RASPBERRY_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.RASPBERRY_USER }}@${{ secrets.RASPBERRY_HOST }} 'if [ -e /tmp/appPrincipal/image.tar ]; then echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S rm -f /tmp/appPrincipal/image.tar; fi'             
+#           sshpass -p "${{ secrets.RASPBERRY_PASSWORD }}" scp -o StrictHostKeyChecking=no image.tar.gz ${{ secrets.RASPBERRY_USER }}@${{ secrets.RASPBERRY_HOST }}:/tmp/appPrincipal
+#           echo "SCP transfer completed"
+#           echo "Starting SSH to Raspberry Pi"
+#           sshpass -p "${{ secrets.RASPBERRY_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.RASPBERRY_USER }}@${{ secrets.RASPBERRY_HOST }} 'echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S bash -c "gunzip -f /tmp/appPrincipal/image.tar.gz && docker load -i /tmp/appPrincipal/image.tar"'
+#           echo "SSH and Docker load completed"
 
-      - name: Run Docker Compose on Raspberry Pi
-        run: |
-          sshpass -p ${{ secrets.RASPBERRY_PASSWORD }} ssh -o StrictHostKeyChecking=no ${{ secrets.RASPBERRY_USER }}@${{ secrets.RASPBERRY_HOST }} 'echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S docker-compose -f /opt/app/docker-compose.yml up -d'
+#       - name: Run Docker Compose on Raspberry Pi
+#         run: |
+#           sshpass -p ${{ secrets.RASPBERRY_PASSWORD }} ssh -o StrictHostKeyChecking=no ${{ secrets.RASPBERRY_USER }}@${{ secrets.RASPBERRY_HOST }} 'echo ${{ secrets.RASPBERRY_PASSWORD }} | sudo -S docker-compose -f /opt/app/docker-compose.yml up -d'
