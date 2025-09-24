@@ -80,4 +80,4 @@ jobs:
 
       - name: Run Docker Compose on Azure Cloud
         run: |
-          sshpass -p "Mantu@ntuDev2025!" ssh -o StrictHostKeyChecking=no azureuser@20.82.0.151 'echo "Mantu@ntuDev2025!" | sudo -S docker-compose -f /opt/app/docker-compose.yml up -d'
+          sshpass -p "Mantu@ntuDev2025!" ssh -o StrictHostKeyChecking=no azureuser@20.82.0.151 'echo "Mantu@ntuDev2025!" | sudo -S docker compose -f /opt/app/docker-compose.yml up -d'
