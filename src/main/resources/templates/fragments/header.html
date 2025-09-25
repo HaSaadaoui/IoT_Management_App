@@ -11,6 +11,9 @@
                       d="M12 3.172 2.293 12.88a1 1 0 1 0 1.414 1.414L5 13.001V20a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-5h2v5a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-6.999l1.293 1.293a1 1 0 0 0 1.414-1.414L12 3.172z"/>
             </svg>
         </a>
+        <form th:action="@{/logout}" method="post" class="logout-form">
+            <button type="submit" class="logout-btn">Logout</button>
+        </form>
     </header>
     <style>
         .app-header {
@@ -30,9 +33,29 @@
           height: 28px;
           display: block;
         }
+        .logout-form {
+            margin: 0;
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            background-color: #662179;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .logout-btn:hover {
+            background-color: #4b0c68;
+        }
     </style>
 </th:block>
 </body>
 </html>
 
 <div th:replace="fragments/header :: appHeader(pageTitle='Manage Users', homeUrl=@{/})"></div>
+

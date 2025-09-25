@@ -9,11 +9,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
-
 @Repository
 public class SensorLorawanDao {
 
-    @Value("${lorawan.baseurl1}")
+    @Value("${lorawan.baseurl}")
     private String lorawanBaseUrl;
 
     @Value("${lorawan.token}")
@@ -30,43 +29,44 @@ public class SensorLorawanDao {
     }
 
     public void insertSensorInLorawan(String applicationId, LorawanSensorData body) {
-        WebClient client = webClientBuilder.baseUrl(lorawanBaseUrl).build();
+        WebClient client = webClientBuilder.baseUrl(lorawanBaseUrl + "/applications").build();
         client.post()
-                .uri(uriBuilder -> uriBuilder.path("/{app}/devices").build(applicationId))
-                .header(AUTHORIZATION, BEARER + " " + lorawanToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(body)
-                .retrieve()
-                .onStatus(
-                        status -> status.isError(),
-                        resp -> resp.bodyToMono(String.class).flatMap(msg ->
-                                Mono.error(new WebClientResponseException(
-                                        "TTN error: " + msg,
-                                        resp.statusCode().value(), resp.statusCode().toString(),
-                                        null, null, null))
-                        )
+            .uri(uriBuilder -> uriBuilder.path("/{app}/devices").build(applicationId))
+            .header(AUTHORIZATION, BEARER + " " + lorawanToken)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(body)
+            .retrieve()
+            .onStatus(
+                status -> status.isError(),
+                resp -> resp.bodyToMono(String.class).flatMap(msg ->
+                    Mono.error(new WebClientResponseException(
+                        "TTN error: " + msg,
+                        resp.statusCode().value(), resp.statusCode().toString(),
+                        null, null, null))
                 )
-                .toBodilessEntity()
-                .block();
+            )
+            .toBodilessEntity()
+            .block();
     }
 
     public void deleteSensorInLorawan(String applicationId, String sensorId) {
-        WebClient client = webClientBuilder.baseUrl(lorawanBaseUrl).build();
+        WebClient client = webClientBuilder.baseUrl(lorawanBaseUrl + "/applications").build();
         client.delete()
-                .uri(uriBuilder -> uriBuilder.path("/{app}/devices/{dev}")
-                        .build(applicationId, sensorId))
-                .header(AUTHORIZATION, BEARER + " " + lorawanToken)
-                .retrieve()
-                .onStatus(
-                        status -> status.isError(),
-                        resp -> resp.bodyToMono(String.class).flatMap(msg ->
-                                Mono.error(new WebClientResponseException(
-                                        "TTN error: " + msg,
-                                        resp.statusCode().value(), resp.statusCode().toString(),
-                                        null, null, null))
-                        )
+            .uri(uriBuilder -> uriBuilder.path("/{app}/devices/{dev}")
+                .build(applicationId, sensorId))
+            .header(AUTHORIZATION, BEARER + " " + lorawanToken)
+            .retrieve()
+            .onStatus(
+                status -> status.isError(),
+                resp -> resp.bodyToMono(String.class).flatMap(msg ->
+                    Mono.error(new WebClientResponseException(
+                        "TTN error: " + msg,
+                        resp.statusCode().value(), resp.statusCode().toString(),
+                        null, null, null))
                 )
-                .toBodilessEntity()
-                .block();
+            )
+            .toBodilessEntity()
+            .block();
     }
+
 }

@@ -1,0 +1,72 @@
+body, html {
+    background-image: url('/image/mantu-background.jpg');
+    background-size: cover;
+    height: 100vh;
+    margin: 0;
+    background-repeat: no-repeat;
+}
+
+.register-container {
+    text-align: center;
+    margin-top: 50px;
+}
+
+.register-box {
+    display: inline-block;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 350px;
+}
+
+.mantu-logo {
+    width: 300px;
+    max-width: 100%;
+    display: block;
+    margin: 0 auto 20px;
+}
+
+.register-box h2 {
+    font-family: Arial, sans-serif;
+    color: #662179;
+}
+
+.error-message {
+    color: red;
+    font-weight: bold;
+}
+
+.form-register {
+    margin-bottom: 20px;
+}
+
+.form-register input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.form-register input:focus {
+    border-color: #a64ca6;
+    outline: none;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #662179;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.submit-btn:hover {
+    background-color: #4b0c68;
+}
