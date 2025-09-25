@@ -76,7 +76,7 @@ jobs:
 
       - name: Run Docker Compose on Azure Cloud
         run: |
-          sshpass -p "${{ secrets.AZURE_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }} 'echo "${{ secrets.AZURE_PASSWORD }}" | sudo -S docker-compose -f /opt/app/docker-compose.yml up -d'
+          sshpass -p "${{ secrets.AZURE_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }} 'echo "${{ secrets.AZURE_PASSWORD }}" | sudo -S docker compose -f /opt/app/docker-compose.yml up -d'
 
 #      - name: Run Docker Compose on Azure Cloud
 #        run: |
