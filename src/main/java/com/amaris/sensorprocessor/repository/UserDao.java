@@ -92,4 +92,17 @@ public class UserDao {
         );
     }
 
+    /**
+     * Supprime un utilisateur de la base de données en fonction de son identifiant.
+     *
+     * @param username l'identifiant de l'utilisateur à mettre à jour
+     * @param newPasswordHash mot de passe
+     */
+    public int updatePassword(String username, String newPasswordHash) {
+        return jdbcTemplate.update(
+                "UPDATE USERS SET PASSWORD = ? WHERE USERNAME = ?",
+                newPasswordHash, username
+        );
+    }
+
 }

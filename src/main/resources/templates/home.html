@@ -24,6 +24,9 @@
             <a href="/manage-account" class="icon-btn" title="Account">
                 <img src="/image/manage-user-account.svg" alt="User account" />
             </a>
+            <a th:href="@{/users/{username}(username=${loggedUsername})}" class="icon-btn" title="Profile">
+                <img src="/image/profile.svg" alt="Profile" />
+            </a>
         </div>
         <!-- Logout row under the four icons -->
         <div class="icon-button-container" style="margin-top: 16px;">

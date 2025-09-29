@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>My Profile</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/profile.css}"/>
+</head>
+<body>
+<div th:replace="fragments/header :: appHeader(pageTitle='My profile', homeUrl=@{/})"></div>
+<div class="profile-container">
+    <div class="profile-box">
+        <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
+        <h2>My Profile</h2>
+
+        <div class="profile-info">
+            <p><strong>Username:</strong> <span th:text="${user.username}"></span></p>
+            <p><strong>Firstname:</strong> <span th:text="${user.firstname}"></span></p>
+            <p><strong>Lastname:</strong> <span th:text="${user.lastname}"></span></p>
+            <p><strong>Email:</strong> <span th:text="${user.email}"></span></p>
+            <p><strong>Role:</strong> <span th:text="${user.role}"></span></p>
+        </div>
+
+        <div class="profile-actions">
+            <div th:if="${user.username == loggedUsername}" class="button-container">
+                <button onclick="openModal()" class="btn-change-password">
+                    Changer mon mot de passe
+                </button>
+            </div>
+        </div>
+        <p class="success-message" th:if="${success}" th:text="${success}"></p>
+    </div>
+</div>
+<!-- Modal pour changement de mot de passe -->
+<div id="passwordModal"
+     class="modal"
+     th:classappend="(${errorCurrent != null} or ${errorNew != null} or ${errorConfirm != null} or ${globalError != null}) ? ' show' : ''">
+    <div class="modal-content">
+        <h3>Changer mon mot de passe</h3>
+        <form id="passwordForm"
+              th:action="@{/users/{username}/change-password(username=${user.username})}"
+              method="post">
+            <label>Mot de passe actuel</label>
+            <input type="password" name="currentPassword" required>
+            <p class="error-message" th:if="${errorCurrent}" th:text="${errorCurrent}"></p>
+
+            <label>Nouveau mot de passe</label>
+            <input type="password" name="newPassword" required minlength="8">
+            <p class="error-message" th:if="${errorNew}" th:text="${errorNew}"></p>
+
+            <label>Confirmer le nouveau mot de passe</label>
+            <input type="password" name="confirmPassword" required>
+            <p class="error-message" th:if="${errorConfirm}" th:text="${errorConfirm}"></p>
+
+            <p class="error-message" th:if="${globalError}" th:text="${globalError}"></p>
+
+            <div style="margin-top: 10px;">
+                <button type="submit">Valider</button>
+                <button type="button" onclick="closeModal()">Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    const modal = document.getElementById("passwordModal");
+    function openModal() {
+        modal.style.display = "flex";
+    }
+    function closeModal() {
+        modal.style.display = "none";
+    }
+    window.onclick = function(event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    }
+</script>
+</body>
+</html>

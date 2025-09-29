@@ -4,8 +4,10 @@ import com.amaris.sensorprocessor.entity.User;
 import com.amaris.sensorprocessor.exception.CustomException;
 import com.amaris.sensorprocessor.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import com.amaris.sensorprocessor.service.UserService;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,7 +34,16 @@ public class HomeController {
      * @return la vue "home" pour afficher la page d'accueil.
      */
     @GetMapping("/home")
-    public String homePage() { return "home"; }
+    public String home(Model model) {
+        String loggedUsername = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        // Ajout d'un attribut au modèle Thymeleaf
+        model.addAttribute("loggedUsername", loggedUsername);
+
+        return "home";
+    }
 
     /**
      * @return la vue "register" pour afficher la page d'inscrition.

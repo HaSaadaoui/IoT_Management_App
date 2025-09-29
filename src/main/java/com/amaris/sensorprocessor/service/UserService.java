@@ -54,4 +54,25 @@ public class UserService {
         return userDao.updateUser(user);
     }
 
+    public void changePassword(String username, String currentPassword, String newPassword) {
+        User user = searchUserByUsername(username);
+
+        // Vérifie mot de passe actuel
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException("Mot de passe actuel incorrect.");
+        }
+
+        // Vérifie la complexité du nouveau mot de passe
+        if (newPassword.length() < 8) {
+            throw new IllegalArgumentException("Le mot de passe doit contenir au moins 8 caractères.");
+        }
+        if (!newPassword.matches(".*[A-Z].*") || !newPassword.matches(".*[0-9].*")) {
+            throw new IllegalArgumentException("Le mot de passe doit contenir au moins une majuscule et un chiffre.");
+        }
+
+        // Hash et sauvegarde
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userDao.updatePassword(username, passwordEncoder.encode(newPassword));
+    }
+
 }
