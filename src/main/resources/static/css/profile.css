@@ -1,0 +1,169 @@
+body, html {
+    background-image: url('/image/mantu-background.jpg');
+    background-size: cover;
+    height: 100vh;
+    margin: 0;
+    background-repeat: no-repeat;
+}
+
+.profile-container {
+    text-align: center;
+    margin-top: 50px;
+}
+
+.profile-box {
+    display: inline-block;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 400px;
+    text-align: left;
+}
+
+.profile-box h2 {
+    font-family: Arial, sans-serif;
+    color: #662179;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.profile-info p {
+    font-size: 16px;
+    margin: 10px 0;
+}
+
+.profile-info strong {
+    color: #4b0c68;
+}
+
+.profile-actions {
+    margin-top: 20px;
+    text-align: center;
+}
+/* --- Bouton "Changer mon mot de passe" --- */
+.btn-change-password {
+    background-color: #662179;   /* Violet Mantù */
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-change-password:hover {
+    background-color: #4b0c68;
+    transform: scale(1.05);
+}
+
+.btn-change-password:active {
+    background-color: #3a094f;
+    transform: scale(0.98);
+}
+
+/* --- Modal --- */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    width: 400px;
+    max-width: 90%;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    text-align: center;
+    font-family: Arial, sans-serif;
+    color: #662179;
+}
+
+.modal-content label {
+    display: block;
+    margin-top: 12px;
+    font-weight: bold;
+    color: #4b0c68;
+}
+
+.modal-content input[type="password"] {
+    width: 100%;
+    padding: 8px 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.modal-content input[type="password"]:focus {
+    outline: none;
+    border-color: #662179;
+    box-shadow: 0 0 4px rgba(102, 33, 121, 0.4);
+}
+
+.modal-content button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    margin: 10px 5px 0 0;
+}
+
+.modal-content button[type="submit"] {
+    background-color: #662179;
+    color: white;
+    transition: background-color 0.3s ease;
+}
+
+.modal-content button[type="submit"]:hover {
+    background-color: #4b0c68;
+}
+
+.modal-content button[type="button"] {
+    background-color: #ccc;
+    color: #333;
+    transition: background-color 0.3s ease;
+}
+
+.modal-content button[type="button"]:hover {
+    background-color: #aaa;
+}
+
+/* --- Messages --- */
+.error-message {
+    color: red;
+    font-size: 0.9em;
+    margin: 4px 0 0 0;
+}
+
+.success-message {
+    color: green;
+    font-size: 0.9em;
+    margin: 6px 0 0 0;
+}
+
+/* --- Animation --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
