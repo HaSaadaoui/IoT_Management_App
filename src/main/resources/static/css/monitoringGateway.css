@@ -75,14 +75,6 @@ canvas {
     height: 280px !important;
 }
 
-/* Container pour garder taille fixe + scroll si besoin */
-.table-container {
-    max-height: 300px;
-    overflow-y: auto;
-    margin-top: 1rem;
-}
-
-/* Tableau simple, clair et lisible */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -122,8 +114,24 @@ th, td {
     flex-wrap: wrap;
 }
 
+#sensorsTable .card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
 #sensorsTable, #mapContainer {
     margin-top: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+#table-container {
+    flex: 1;
+    max-height: 450px;
+    overflow-y: auto;
+    margin-top: 1rem;
 }
 
 #map {
