@@ -41,12 +41,12 @@ jobs:
           gzip image.tar
           echo "Compression completed"
           echo "Starting SCP transfer"
-          sshpass -p "${{ secrets.AZURE_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }} 'if [ -e /tmp/appPrincipal/image.tar.gz ]; then echo ${{ secrets.AZURE_PASSWORD }} | sudo -S rm -f /tmp/appPrincipal/image.tar.gz; fi'
-          sshpass -p "${{ secrets.AZURE_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }} 'if [ -e /tmp/appPrincipal/image.tar ]; then echo ${{ secrets.AZURE_PASSWORD }} | sudo -S rm -f /tmp/appPrincipal/image.tar; fi'
-          sshpass -p "${{ secrets.AZURE_PASSWORD }}" scp -o StrictHostKeyChecking=no image.tar.gz ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }}:/tmp/appPrincipal
+          sshpass -p "${{ secrets.AZURE_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }} 'if [ -e /home/azureuser/appPrincipal/image.tar.gz ]; then echo ${{ secrets.AZURE_PASSWORD }} | sudo -S rm -f /home/azureuser/appPrincipal/image.tar.gz; fi'
+          sshpass -p "${{ secrets.AZURE_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }} 'if [ -e /home/azureuser/appPrincipal/image.tar ]; then echo ${{ secrets.AZURE_PASSWORD }} | sudo -S rm -f /home/azureuser/appPrincipal/image.tar; fi'
+          sshpass -p "${{ secrets.AZURE_PASSWORD }}" scp -o StrictHostKeyChecking=no image.tar.gz ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }}:/home/azureuser/appPrincipal
           echo "SCP transfer completed"
           echo "Starting SSH to Azure Cloud"
-          sshpass -p "${{ secrets.AZURE_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }} 'echo ${{ secrets.AZURE_PASSWORD }} | sudo -S bash -c "gunzip -f /tmp/appPrincipal/image.tar.gz && docker load -i /tmp/appPrincipal/image.tar"'
+          sshpass -p "${{ secrets.AZURE_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }} 'echo ${{ secrets.AZURE_PASSWORD }} | sudo -S bash -c "gunzip -f /home/azureuser/appPrincipal/image.tar.gz && docker load -i /home/azureuser/appPrincipal/image.tar"'
           echo "SSH and Docker load completed"
 
       - name: Run Docker Compose on Azure Cloud
