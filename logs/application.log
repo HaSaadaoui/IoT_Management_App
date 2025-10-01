@@ -2897,3 +2897,166 @@ java.lang.IllegalArgumentException: Cannot apply length on null
 2025-10-01 17:06:56 - Graceful shutdown complete
 2025-10-01 17:06:58 - HikariPool-1 - Shutdown initiated...
 2025-10-01 17:06:58 - HikariPool-1 - Shutdown completed.
+2025-10-01 17:07:04 - Starting SensorprocessorApplication using Java 17.0.12 with PID 33096 (C:\Users\seraphin.verbeke_ama\Desktop\IoT_Management_App\target\classes started by seraphin.verbeke_ama in C:\Users\seraphin.verbeke_ama\Desktop\IoT_Management_App)
+2025-10-01 17:07:04 - No active profile set, falling back to 1 default profile: "default"
+2025-10-01 17:07:07 - Tomcat initialized with port 8080 (http)
+2025-10-01 17:07:07 - Starting service [Tomcat]
+2025-10-01 17:07:07 - Starting Servlet engine: [Apache Tomcat/10.1.44]
+2025-10-01 17:07:07 - Initializing Spring embedded WebApplicationContext
+2025-10-01 17:07:07 - Root WebApplicationContext: initialization completed in 2868 ms
+2025-10-01 17:07:07 - Filter 'webMvcObservationFilter' configured for use
+2025-10-01 17:07:07 - Filter 'hiddenHttpMethodFilter' configured for use
+2025-10-01 17:07:07 - HikariPool-1 - Starting...
+2025-10-01 17:07:07 - HikariPool-1 - Added connection org.sqlite.jdbc4.JDBC4Connection@13516600
+2025-10-01 17:07:07 - HikariPool-1 - Start completed.
+2025-10-01 17:07:09 - Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2025-10-01 17:07:09 - 34 mappings in 'requestMappingHandlerMapping'
+2025-10-01 17:07:09 - Patterns [/webjars/**, /**] in 'resourceHandlerMapping'
+2025-10-01 17:07:09 - Exposing 1 endpoint beneath base path '/actuator'
+2025-10-01 17:07:09 - ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 1 RequestBodyAdvice, 1 ResponseBodyAdvice
+2025-10-01 17:07:09 - ControllerAdvice beans: 0 @ExceptionHandler, 1 ResponseBodyAdvice
+2025-10-01 17:07:10 - Tomcat started on port 8080 (http) with context path '/'
+2025-10-01 17:07:10 - Started SensorprocessorApplication in 7.089 seconds (process running for 7.888)
+2025-10-01 17:07:47 - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-10-01 17:07:47 - Initializing Servlet 'dispatcherServlet'
+2025-10-01 17:07:47 - Detected StandardServletMultipartResolver
+2025-10-01 17:07:47 - Detected AcceptHeaderLocaleResolver
+2025-10-01 17:07:47 - Detected FixedThemeResolver
+2025-10-01 17:07:47 - Detected org.springframework.web.servlet.view.DefaultRequestToViewNameTranslator@7466b371
+2025-10-01 17:07:47 - Detected org.springframework.web.servlet.support.SessionFlashMapManager@750c5244
+2025-10-01 17:07:47 - enableLoggingRequestDetails='false': request parameters and headers will be masked to prevent unsafe logging of potentially sensitive data
+2025-10-01 17:07:47 - Completed initialization in 7 ms
+2025-10-01 17:07:48 - GET "/login", parameters={}
+2025-10-01 17:07:48 - Mapped to com.amaris.sensorprocessor.controller.HomeController#loginPage()
+2025-10-01 17:07:48 - Selected 'text/html' given [text/html, application/xhtml+xml, image/avif, image/webp, image/apng, application/xml;q=0.9, */*;q=0.8, application/signed-exchange;v=b3;q=0.7]
+2025-10-01 17:07:48 - Completed 200 OK
+2025-10-01 17:07:48 - GET "/css/styles.css", parameters={}
+2025-10-01 17:07:48 - GET "/css/login-home.css", parameters={}
+2025-10-01 17:07:48 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:48 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:48 - GET "/image/mantu-logo.jpg", parameters={}
+2025-10-01 17:07:48 - GET "/image/cacher.svg", parameters={}
+2025-10-01 17:07:48 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:48 - GET "/image/oeil.svg", parameters={}
+2025-10-01 17:07:48 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:48 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:48 - Completed 200 OK
+2025-10-01 17:07:48 - Completed 200 OK
+2025-10-01 17:07:48 - Completed 200 OK
+2025-10-01 17:07:48 - Completed 200 OK
+2025-10-01 17:07:48 - Completed 200 OK
+2025-10-01 17:07:48 - GET "/image/mantu-background.jpg", parameters={}
+2025-10-01 17:07:48 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:48 - Completed 200 OK
+2025-10-01 17:07:49 - GET "/login", parameters={}
+2025-10-01 17:07:49 - Mapped to com.amaris.sensorprocessor.controller.HomeController#loginPage()
+2025-10-01 17:07:49 - Selected '*/*' given [*/*]
+2025-10-01 17:07:49 - Completed 200 OK
+2025-10-01 17:07:50 - GET "/home", parameters={}
+2025-10-01 17:07:50 - Mapped to com.amaris.sensorprocessor.controller.HomeController#home(Model)
+2025-10-01 17:07:50 - Selected 'text/html' given [text/html, application/xhtml+xml, image/avif, image/webp, image/apng, application/xml;q=0.9, */*;q=0.8, application/signed-exchange;v=b3;q=0.7]
+2025-10-01 17:07:50 - Completed 200 OK
+2025-10-01 17:07:50 - GET "/.well-known/appspecific/com.chrome.devtools.json", parameters={}
+2025-10-01 17:07:50 - GET "/css/styles.css", parameters={}
+2025-10-01 17:07:50 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:50 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:50 - Resource not found
+2025-10-01 17:07:50 - Completed 200 OK
+2025-10-01 17:07:50 - Resolved [org.springframework.web.servlet.resource.NoResourceFoundException: No static resource .well-known/appspecific/com.chrome.devtools.json.]
+2025-10-01 17:07:50 - Completed 404 NOT_FOUND
+2025-10-01 17:07:50 - GET "/css/login-home.css", parameters={}
+2025-10-01 17:07:50 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:50 - GET "/image/mantu-logo.jpg", parameters={}
+2025-10-01 17:07:50 - GET "/image/sensor-icon.svg", parameters={}
+2025-10-01 17:07:50 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:50 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:50 - Completed 200 OK
+2025-10-01 17:07:50 - GET "/image/gateway-icon.svg", parameters={}
+2025-10-01 17:07:50 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:50 - Completed 200 OK
+2025-10-01 17:07:50 - GET "/image/user-icon.svg", parameters={}
+2025-10-01 17:07:50 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:50 - GET "/image/manage-user-account.svg", parameters={}
+2025-10-01 17:07:50 - Completed 200 OK
+2025-10-01 17:07:50 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:50 - Completed 200 OK
+2025-10-01 17:07:50 - Completed 200 OK
+2025-10-01 17:07:50 - GET "/image/predictive.png", parameters={}
+2025-10-01 17:07:50 - Completed 200 OK
+2025-10-01 17:07:50 - "ERROR" dispatch for GET "/error", parameters={}
+2025-10-01 17:07:50 - Mapped to org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController#error(HttpServletRequest)
+2025-10-01 17:07:50 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:50 - Completed 200 OK
+2025-10-01 17:07:50 - GET "/image/mantu-background.jpg", parameters={}
+2025-10-01 17:07:50 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:50 - Completed 200 OK
+2025-10-01 17:07:50 - Using 'application/json', given [*/*] and supported [application/json, application/*+json, application/cbor]
+2025-10-01 17:07:50 - Writing [{timestamp=Wed Oct 01 17:07:50 CEST 2025, status=404, error=Not Found, path=/.well-known/appspecific (truncated)...]
+2025-10-01 17:07:50 - Exiting from "ERROR" dispatch, status 404
+2025-10-01 17:07:53 - GET "/manage-users", parameters={}
+2025-10-01 17:07:53 - Mapped to com.amaris.sensorprocessor.controller.UserController#manageUsers(Model)
+2025-10-01 17:07:53 - Selected 'text/html' given [text/html, application/xhtml+xml, image/avif, image/webp, image/apng, application/xml;q=0.9, */*;q=0.8, application/signed-exchange;v=b3;q=0.7]
+2025-10-01 17:07:53 - [THYMELEAF][http-nio-8080-exec-9][manageUsers] Deprecated unwrapped fragment expression "fragments/header :: appHeader(pageTitle='Manage Users', homeUrl=@{/})" found in template manageUsers, line 12, col 6. Please use the complete syntax of fragment expressions instead ("~{fragments/header :: appHeader(pageTitle='Manage Users', homeUrl=@{/})}"). The old, unwrapped syntax for fragment expressions will be removed in future versions of Thymeleaf.
+2025-10-01 17:07:53 - GET "/.well-known/appspecific/com.chrome.devtools.json", parameters={}
+2025-10-01 17:07:53 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:53 - Resource not found
+2025-10-01 17:07:53 - GET "/css/manageUsers.css", parameters={}
+2025-10-01 17:07:53 - GET "/image/mantu-logo.jpg", parameters={}
+2025-10-01 17:07:53 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:53 - Resolved [org.springframework.web.servlet.resource.NoResourceFoundException: No static resource .well-known/appspecific/com.chrome.devtools.json.]
+2025-10-01 17:07:54 - Completed 404 NOT_FOUND
+2025-10-01 17:07:54 - GET "/image/edit-icon.svg", parameters={}
+2025-10-01 17:07:54 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:54 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:54 - GET "/css/styles.css", parameters={}
+2025-10-01 17:07:54 - "ERROR" dispatch for GET "/error", parameters={}
+2025-10-01 17:07:54 - Completed 200 OK
+2025-10-01 17:07:54 - Completed 200 OK
+2025-10-01 17:07:54 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:54 - Completed 200 OK
+2025-10-01 17:07:54 - Mapped to org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController#error(HttpServletRequest)
+2025-10-01 17:07:54 - Using 'application/json', given [*/*] and supported [application/json, application/*+json, application/cbor]
+2025-10-01 17:07:54 - Writing [{timestamp=Wed Oct 01 17:07:54 CEST 2025, status=404, error=Not Found, path=/.well-known/appspecific (truncated)...]
+2025-10-01 17:07:54 - Completed 200 OK
+2025-10-01 17:07:54 - GET "/image/delete-icon.svg", parameters={}
+2025-10-01 17:07:54 - Completed 200 OK
+2025-10-01 17:07:54 - GET "/javascript/manageUsers.js", parameters={}
+2025-10-01 17:07:54 - Exiting from "ERROR" dispatch, status 404
+2025-10-01 17:07:54 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:54 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:54 - Completed 200 OK
+2025-10-01 17:07:54 - GET "/image/search-icon.svg", parameters={}
+2025-10-01 17:07:54 - Completed 200 OK
+2025-10-01 17:07:54 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:54 - Completed 200 OK
+2025-10-01 17:07:56 - GET "/users/user5", parameters={}
+2025-10-01 17:07:56 - Mapped to com.amaris.sensorprocessor.controller.UserController#viewUserProfile(String, Model, Authentication)
+2025-10-01 17:07:56 - Selected 'text/html' given [text/html, application/xhtml+xml, image/avif, image/webp, image/apng, application/xml;q=0.9, */*;q=0.8, application/signed-exchange;v=b3;q=0.7]
+2025-10-01 17:07:56 - [THYMELEAF][http-nio-8080-exec-1][profile] Deprecated unwrapped fragment expression "fragments/header :: appHeader(pageTitle='My profile', homeUrl=@{/})" found in template profile, line 10, col 6. Please use the complete syntax of fragment expressions instead ("~{fragments/header :: appHeader(pageTitle='My profile', homeUrl=@{/})}"). The old, unwrapped syntax for fragment expressions will be removed in future versions of Thymeleaf.
+2025-10-01 17:07:56 - Completed 200 OK
+2025-10-01 17:07:56 - GET "/.well-known/appspecific/com.chrome.devtools.json", parameters={}
+2025-10-01 17:07:56 - GET "/image/mantu-logo.jpg", parameters={}
+2025-10-01 17:07:56 - GET "/css/profile.css", parameters={}
+2025-10-01 17:07:56 - GET "/css/styles.css", parameters={}
+2025-10-01 17:07:56 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:56 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:56 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:56 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:56 - Resource not found
+2025-10-01 17:07:56 - Resolved [org.springframework.web.servlet.resource.NoResourceFoundException: No static resource .well-known/appspecific/com.chrome.devtools.json.]
+2025-10-01 17:07:56 - Completed 200 OK
+2025-10-01 17:07:56 - Completed 200 OK
+2025-10-01 17:07:56 - Completed 404 NOT_FOUND
+2025-10-01 17:07:56 - Completed 200 OK
+2025-10-01 17:07:56 - "ERROR" dispatch for GET "/error", parameters={}
+2025-10-01 17:07:56 - Mapped to org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController#error(HttpServletRequest)
+2025-10-01 17:07:56 - GET "/image/mantu-background.jpg", parameters={}
+2025-10-01 17:07:56 - Using 'application/json', given [*/*] and supported [application/json, application/*+json, application/cbor]
+2025-10-01 17:07:56 - Writing [{timestamp=Wed Oct 01 17:07:56 CEST 2025, status=404, error=Not Found, path=/.well-known/appspecific (truncated)...]
+2025-10-01 17:07:56 - Mapped to ResourceHttpRequestHandler [classpath [META-INF/resources/], classpath [resources/], classpath [static/], classpath [public/], ServletContext [/]]
+2025-10-01 17:07:56 - Exiting from "ERROR" dispatch, status 404
+2025-10-01 17:07:56 - Completed 200 OK
+2025-10-01 17:31:04 - Commencing graceful shutdown. Waiting for active requests to complete
+2025-10-01 17:31:05 - Graceful shutdown complete
+2025-10-01 17:31:08 - HikariPool-1 - Shutdown initiated...
+2025-10-01 17:31:08 - HikariPool-1 - Shutdown completed.
