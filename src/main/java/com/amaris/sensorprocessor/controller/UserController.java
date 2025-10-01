@@ -117,6 +117,20 @@ public class UserController {
         return "profile";
     }
 
+    @PostMapping("/users/{username}/edit")
+    public String editUserProfile(@PathVariable String username,
+                                  @RequestParam String firstname,
+                                  @RequestParam String lastname,
+                                  @RequestParam String email,
+                                  RedirectAttributes redirectAttributes) {
+        try {
+            userService.updateUserInfo(username, firstname, lastname, email);
+            redirectAttributes.addFlashAttribute("successEdit", "Informations mises à jour avec succès.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorEdit", "Erreur lors de la mise à jour des informations.");
+        }
+        return "redirect:/users/" + username;
+    }
 
 
 }

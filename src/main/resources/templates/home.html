@@ -24,18 +24,9 @@
             <a href="/manage-account" class="icon-btn" title="Account">
                 <img src="/image/manage-user-account.svg" alt="User account" />
             </a>
-            <a th:href="@{/users/{username}(username=${loggedUsername})}" class="icon-btn" title="Profile">
-                <img src="/image/profile.svg" alt="Profile" />
-            </a>
         </div>
         <!-- Logout row under the four icons -->
         <div class="icon-button-container" style="margin-top: 16px;">
-            <form th:action="@{/logout}" method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                <button type="submit" class="icon-btn" title="Logout" style="border: none;">
-                    <img src="/image/logout-icon.svg" alt="Logout" />
-                </button>
-            </form>
             <a href="/" class="icon-btn" title="predictions">
                 <img src="/image/predictive.png" alt="Predictions" style="filter: invert(0);" />
             </a>

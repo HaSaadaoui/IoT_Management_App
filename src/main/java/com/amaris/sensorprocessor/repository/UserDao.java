@@ -93,6 +93,23 @@ public class UserDao {
     }
 
     /**
+     * Met à jour les informations d'un utilisateur en mode non admin dans la base de données.
+     *
+     * @param user l'objet {@link User} contenant les nouvelles valeurs à mettre à jour.
+     * @return le nombre de lignes affectées par la mise à jour (1 si l'id existe, 0 sinon).
+     */
+
+    public int updateUserProfile(User user) {
+        return jdbcTemplate.update(
+                "UPDATE USERS SET FIRSTNAME = ?, LASTNAME = ?, EMAIL = ? WHERE USERNAME = ?",
+                user.getFirstname(),
+                user.getLastname(),
+                user.getEmail(),
+                user.getUsername()
+        );
+    }
+
+    /**
      * Supprime un utilisateur de la base de données en fonction de son identifiant.
      *
      * @param username l'identifiant de l'utilisateur à mettre à jour

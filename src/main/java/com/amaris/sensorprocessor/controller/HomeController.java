@@ -35,13 +35,6 @@ public class HomeController {
      */
     @GetMapping("/home")
     public String home(Model model) {
-        String loggedUsername = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getName();
-
-        // Ajout d'un attribut au modèle Thymeleaf
-        model.addAttribute("loggedUsername", loggedUsername);
-
         return "home";
     }
 

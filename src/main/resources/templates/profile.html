@@ -23,8 +23,14 @@
 
         <div class="profile-actions">
             <div th:if="${user.username == loggedUsername}" class="button-container">
+                <!-- Bouton changer mot de passe -->
                 <button onclick="openModal()" class="btn-change-password">
-                    Changer mon mot de passe
+                    Change password
+                </button>
+
+                <!-- Bouton éditer user -->
+                <button onclick="openEditModal()" class="btn-edit-user">
+                    Update my details
                 </button>
             </div>
         </div>
@@ -36,42 +42,86 @@
      class="modal"
      th:classappend="(${errorCurrent != null} or ${errorNew != null} or ${errorConfirm != null} or ${globalError != null}) ? ' show' : ''">
     <div class="modal-content">
-        <h3>Changer mon mot de passe</h3>
+        <h3>Change password</h3>
         <form id="passwordForm"
               th:action="@{/users/{username}/change-password(username=${user.username})}"
               method="post">
-            <label>Mot de passe actuel</label>
+            <label>Current password</label>
             <input type="password" name="currentPassword" required>
             <p class="error-message" th:if="${errorCurrent}" th:text="${errorCurrent}"></p>
 
-            <label>Nouveau mot de passe</label>
+            <label>New password</label>
             <input type="password" name="newPassword" required minlength="8">
             <p class="error-message" th:if="${errorNew}" th:text="${errorNew}"></p>
 
-            <label>Confirmer le nouveau mot de passe</label>
+            <label>Confirm new password</label>
             <input type="password" name="confirmPassword" required>
             <p class="error-message" th:if="${errorConfirm}" th:text="${errorConfirm}"></p>
 
             <p class="error-message" th:if="${globalError}" th:text="${globalError}"></p>
 
             <div style="margin-top: 10px;">
-                <button type="submit">Valider</button>
-                <button type="button" onclick="closeModal()">Annuler</button>
+                <button type="submit">Udpate</button>
+                <button type="button" onclick="closeModal()">Cancel</button>
             </div>
         </form>
     </div>
 </div>
+
+<!-- Modal pour édition des informations -->
+<div id="editUserModal"
+     class="modal"
+     th:classappend="(${errorEdit != null}) ? ' show' : ''">
+    <div class="modal-content">
+        <h3>Update my details</h3>
+        <form id="editUserForm"
+              th:action="@{/users/{username}/edit(username=${user.username})}"
+              method="post">
+
+            <label>Firstname</label>
+            <input type="text" name="firstname" th:value="${user.firstname}" required>
+
+            <label>Lastname</label>
+            <input type="text" name="lastname" th:value="${user.lastname}" required>
+
+            <label>Email</label>
+            <input type="email" name="email" th:value="${user.email}" required>
+
+            <p class="error-message" th:if="${errorEdit}" th:text="${errorEdit}"></p>
+            <p class="success-message" th:if="${successEdit}" th:text="${successEdit}"></p>
+
+            <div style="margin-top: 10px;">
+                <button type="submit">Udapte</button>
+                <button type="button" onclick="closeEditModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
-    const modal = document.getElementById("passwordModal");
+    const passwordModal = document.getElementById("passwordModal");
+    const editUserModal = document.getElementById("editUserModal");
+
     function openModal() {
-        modal.style.display = "flex";
+        passwordModal.style.display = "flex";
     }
     function closeModal() {
-        modal.style.display = "none";
+        passwordModal.style.display = "none";
     }
+
+    function openEditModal() {
+        editUserModal.style.display = "flex";
+    }
+    function closeEditModal() {
+        editUserModal.style.display = "none";
+    }
+
     window.onclick = function(event) {
-        if (event.target === modal) {
+        if (event.target === passwordModal) {
             closeModal();
+        }
+        if (event.target === editUserModal) {
+            closeEditModal();
         }
     }
 </script>
