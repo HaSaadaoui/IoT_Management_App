@@ -4,6 +4,7 @@
     <meta charset="UTF-8"/>
     <title th:text="'Sensor Monitoring - ' + ${sensor.idSensor}">Sensor Monitoring</title>
     <link rel="stylesheet" href="/css/styles.css"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
     <!-- Tu peux réutiliser le CSS de monitoring gateway -->
     <link rel="stylesheet" href="/css/monitoringGateway.css"/>
     <style>
@@ -14,7 +15,7 @@
     </style>
 </head>
 <body>
-
+<div th:replace="fragments/header :: appHeader(pageTitle='My profile', homeUrl=@{/})"></div>
 <header th:text="${sensor.deviceType} ?: ${sensor.idSensor}">Sensor</header>
 
 <main>

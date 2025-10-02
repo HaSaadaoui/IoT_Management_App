@@ -54,6 +54,14 @@ public class UserService {
         return userDao.updateUser(user);
     }
 
+    public void updateUserInfo(String username, String firstname, String lastname, String email) {
+        User user = searchUserByUsername(username);
+        user.setFirstname(firstname);
+        user.setLastname(lastname);
+        user.setEmail(email);
+        userDao.updateUserProfile(user);
+    }
+
     public void changePassword(String username, String currentPassword, String newPassword) {
         User user = searchUserByUsername(username);
 

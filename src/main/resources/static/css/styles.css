@@ -37,6 +37,7 @@ body {
 .error-message {
     color: red;
     font-weight: bold;
+    margin-bottom: 10px;
 }
 
 .form-login {
@@ -123,4 +124,12 @@ body {
     width: 40px;
     height: 40px;
     filter: invert(1);
+}
+.header-title-gateway {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 18px;
+    font-weight: normal;
+    color: #662179;
 }

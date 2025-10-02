@@ -42,7 +42,7 @@ body, html {
     text-align: center;
 }
 /* --- Bouton "Changer mon mot de passe" --- */
-.btn-change-password {
+.btn-change-password, .btn-edit-user {
     background-color: #662179;   /* Violet Mantù */
     color: white;
     font-size: 14px;
@@ -52,14 +52,15 @@ body, html {
     border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease;
+    margin: 10px;
 }
 
-.btn-change-password:hover {
+.btn-change-password:hover, .btn-edit-user:hover {
     background-color: #4b0c68;
     transform: scale(1.05);
 }
 
-.btn-change-password:active {
+.btn-change-password:active, .btn-edit-user:active {
     background-color: #3a094f;
     transform: scale(0.98);
 }
@@ -104,7 +105,7 @@ body, html {
     color: #4b0c68;
 }
 
-.modal-content input[type="password"] {
+.modal-content input {
     width: 100%;
     padding: 8px 10px;
     margin-top: 5px;
@@ -114,7 +115,7 @@ body, html {
     box-sizing: border-box;
 }
 
-.modal-content input[type="password"]:focus {
+.modal-content input:focus {
     outline: none;
     border-color: #662179;
     box-shadow: 0 0 4px rgba(102, 33, 121, 0.4);
