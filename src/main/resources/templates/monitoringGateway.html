@@ -56,7 +56,7 @@
         </div>
     </div>
     <div class="header-title-gateway">
-        <span>--[[${gatewayName}]]</span>
+        <span id="gatewayName">--[[${gatewayName}]]</span>
     </div>
 </header>
 <main>
@@ -172,7 +172,7 @@
         const data = JSON.parse(event.data);
 
         if (data.gateway_info && data.gateway_info.name) {
-            document.querySelector("header").textContent = data.gateway_info.name;
+            document.getElementById("gatewayName").textContent = data.gateway_info.name;
         }
 
         const statusBadge = document.querySelector("#gateway-status-badge");

@@ -5,13 +5,14 @@ body {
     color: #333;
 }
 
-header {
-    background: #662179;
-    color: white;
-    padding: 1.5rem;
-    font-size: 1.8rem;
-    text-align: center;
-    font-weight: bold;
+.header-title-gateway {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #662179;
+    font-size: 18px;
+    font-weight: normal;
 }
 
 main {
@@ -129,7 +130,8 @@ th, td {
 
 #table-container {
     flex: 1;
-    max-height: 450px;
+    height: auto;
+    max-height: 60vh;
     overflow-y: auto;
     margin-top: 1rem;
 }
