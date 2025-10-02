@@ -7,6 +7,7 @@ import com.amaris.sensorprocessor.service.GatewayService;
 import com.amaris.sensorprocessor.service.SensorService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BeanPropertyBindingResult;
@@ -51,6 +52,8 @@ public class SensorController {
     @GetMapping("/manage-sensors")
     public String manageSensors(Model model) {
         prepareModel(model);
+        String loggedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        model.addAttribute("loggedUsername", loggedUsername);
         return Constants.PAGE_MANAGE_SENSORS;
     }
 
@@ -156,7 +159,8 @@ public class SensorController {
             model.addAttribute("gatewayName", label);          // <-- remplace l'ancien getGatewayName()
             model.addAttribute("gatewayIp", gw.getIpAddress()); // <-- remplace ipLocal/ipPublic
         });
-
+        String loggedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        model.addAttribute("loggedUsername", loggedUsername);
         return "monitoringSensor"; // ou ta constante si tu en as une
     }
 
@@ -178,12 +182,16 @@ public class SensorController {
             model.addAttribute(SENSOR_EDIT, new Sensor());
             model.addAttribute(ERROR_EDIT, Constants.SENSOR_NOT_FOUND);
         }
+        String loggedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        model.addAttribute("loggedUsername", loggedUsername);
         return Constants.PAGE_MANAGE_SENSORS;
     }
 
     @GetMapping("/manage-sensors/edit")
     public String handleEditGet(@RequestParam(required = false) String idSensor, Model model) {
         if (idSensor == null) return redirectWithTimestamp();
+        String loggedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        model.addAttribute("loggedUsername", loggedUsername);
         return editSensor(idSensor, model);
     }
 

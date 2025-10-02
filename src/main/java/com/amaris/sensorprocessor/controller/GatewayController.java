@@ -8,6 +8,7 @@ import com.amaris.sensorprocessor.service.GatewayService;
 import com.amaris.sensorprocessor.service.InputValidationService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -45,6 +46,8 @@ public class GatewayController {
 
     @GetMapping("/manage-gateways")
     public String manageGateways(Model model) {
+        String loggedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        model.addAttribute("loggedUsername", loggedUsername);
         prepareModel(model);
         return Constants.PAGE_MANAGE_GATEWAYS;
     }
@@ -161,6 +164,8 @@ public class GatewayController {
             model.addAttribute(ERROR_EDIT, Constants.DATABASE_PROBLEM);
             model.addAttribute(GATEWAY_EDIT, new Gateway());
         }
+        String loggedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        model.addAttribute("loggedUsername", loggedUsername);
         return Constants.PAGE_MANAGE_GATEWAYS;
     }
 
@@ -234,6 +239,8 @@ public class GatewayController {
     public String monitoringView(@PathVariable("id") String id, @RequestParam("ip") String ip, Model model) {
         model.addAttribute(Constants.BINDING_GATEWAY_ID, id);
         model.addAttribute("ipAddress", ip);
+        String loggedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        model.addAttribute("loggedUsername", loggedUsername);
         return Constants.PAGE_MONITORING_GATEWAYS;
     }
 

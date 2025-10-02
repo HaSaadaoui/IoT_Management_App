@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head></head>
+<head>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
+</head>
 <body><th:block th:fragment="appHeader">
     <header class="app-header">
         <div class="dropdown">
@@ -25,24 +27,17 @@
                     Home
                 </a>
 
-                <!-- Profile -->
+                <!-- Account -->
                 <a th:href="@{/users/{username}(username=${loggedUsername})}">
-                    <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px">
-                        <!-- Icône de base (profil) -->
-                        <path fill="#662179" d="M480-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Zm80-80h480v-32q0-11-5.5-20T700-306q-54-27-109-40.5T480-360q-56 0-111 13.5T260-306q-9 5-14.5 14t-5.5 20v32Zm240-320q33 0 56.5-23.5T560-640q0-33-23.5-56.5T480-720q-33 0-56.5 23.5T400-640q0 33 23.5 56.5T480-560Z"/>
-
-                        <!-- Note rectangulaire à droite -->
-                        <rect x="640" y="-660" width="220" height="180" rx="12" ry="12" fill="none" stroke="#662179" stroke-width="40"/>
-
-                        <!-- Lignes de texte dans la note -->
-                        <path d="M680-620h140M680-560h100" stroke="#662179" stroke-width="40" stroke-linecap="round"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22" >
+                        <path fill="#662179" d="M400-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM80-160v-112q0-33 17-62t47-44q51-26 115-44t141-18h14q6 0 12 2-8 18-13.5 37.5T404-360h-4q-71 0-127.5 18T180-306q-9 5-14.5 14t-5.5 20v32h252q6 21 16 41.5t22 38.5H80Zm560 40-12-60q-12-5-22.5-10.5T584-204l-58 18-40-68 46-40q-2-14-2-26t2-26l-46-40 40-68 58 18q11-8 21.5-13.5T628-460l12-60h80l12 60q12 5 22.5 11t21.5 15l58-20 40 70-46 40q2 12 2 25t-2 25l46 40-40 68-58-18q-11 8-21.5 13.5T732-180l-12 60h-80Zm40-120q33 0 56.5-23.5T760-320q0-33-23.5-56.5T680-400q-33 0-56.5 23.5T600-320q0 33 23.5 56.5T680-240ZM400-560q33 0 56.5-23.5T480-640q0-33-23.5-56.5T400-720q-33 0-56.5 23.5T320-640q0 33 23.5 56.5T400-560Zm0-80Zm12 400Z"/>
                     </svg>
 
-                    Profile
+                    Account
                 </a>
 
                 <!-- Logout -->
-                <form th:action="@{/logout}" method="post" class="logout-form">
+                <form th:action="@{/logout}" method="post" class="logout-form" style="margin:0;">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                     <button type="submit" class="logout-link">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="22" height="22" fill="#662179">
@@ -54,75 +49,6 @@
             </div>
         </div>
     </header>
-
-    <style>
-        .app-header {
-            position: static;
-            top: 0;
-            left: 0;
-            z-index: 1000;
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            padding: 10px 16px;
-            background: #fff;
-            border-bottom: 1px solid #eee;
-        }
-
-        .menu-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 6px;
-        }
-
-        .menu-btn:hover {
-            background-color: rgba(102, 33, 121, 0.1);
-        }
-
-        .dropdown {
-            position: relative;
-            display: inline-block;
-        }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            right: 0;
-            top: 40px;
-            background-color: #fff;
-            min-width: 180px;
-            box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
-            border-radius: 8px;
-            overflow: hidden;
-            z-index: 1000;
-        }
-
-        .dropdown-content a,
-        .dropdown-content .logout-link {
-            color: #662179;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            font-size: 14px;
-            border: none;
-            background: none;
-            cursor: pointer;
-            width: 100%;
-            text-align: left;
-        }
-
-        .dropdown-content a:hover,
-        .dropdown-content .logout-link:hover {
-            background-color: rgba(102, 33, 121, 0.1);
-        }
-        .show {
-            display: block;
-        }
-
-    </style>
 
     <script>
         function toggleMenu() {

@@ -4,13 +4,14 @@
     <meta charset="UTF-8"/>
     <title>Gateway Monitoring</title>
     <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
     <link rel="stylesheet" href="/css/monitoringGateway.css"/>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
-
+<div th:replace="fragments/header :: appHeader(pageTitle='My profile', homeUrl=@{/})"></div>
 <header th:inline="text">--[[${gatewayName}]]</header>
 <main>
     <section class="info-grid">
