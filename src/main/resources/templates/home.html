@@ -8,6 +8,7 @@
     <link rel="stylesheet" type="text/css" th:href="@{/css/login-home.css}" />
 </head>
 <body>
+<div th:replace="fragments/header :: appHeader(pageTitle='Manage Users', homeUrl=@{/})"></div>
 <div class="home-container">
     <div class="home-box">
         <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">

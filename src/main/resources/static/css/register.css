@@ -72,15 +72,20 @@ body, html {
 }
 
 .register-header {
+    position: static;
+    top: 0;
+    left: 0;
+    z-index: 1000;
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    padding: 0 20px;
+    padding: 10px 16px;
+    background: #fff;
+    border-bottom: 1px solid #eee;
 }
 
 .btn-back {
     display: inline-block;
-    margin-top: 15px;
     padding: 8px 16px;
     background-color: #662179;
     color: white;

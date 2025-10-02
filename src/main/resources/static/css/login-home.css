@@ -19,11 +19,6 @@ body {
     z-index: 2;
 }
 
-.password-container input[type="password"],
-.password-container input[type="text"] {
-    padding-right: 40px;
-}
-
 .toggle-password img {
     width: 20px;
     height: 20px;

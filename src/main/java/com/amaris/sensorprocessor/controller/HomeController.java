@@ -35,6 +35,8 @@ public class HomeController {
      */
     @GetMapping("/home")
     public String home(Model model) {
+        String loggedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        model.addAttribute("loggedUsername", loggedUsername);
         return "home";
     }
 
