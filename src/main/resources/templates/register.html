@@ -7,8 +7,14 @@
     <link rel="stylesheet" type="text/css" th:href="@{/css/register.css}"/>
 </head>
 <header class="register-header">
-    <a th:href="@{/login}" class="btn-back">
-        ← Back
+    <a th:href="@{/login}" class="back-btn" title="Back to login">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="30" height="30" role="img"
+             aria-label="Flèche arrière violette">
+            <circle cx="15" cy="15" r="13" fill="none" stroke="#662179" stroke-width="2"/>
+            <path d="M17 9 L11 15 L17 21" fill="none" stroke="#662179" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round"/>
+            <line x1="11" y1="15" x2="22" y2="15" stroke="#662179" stroke-width="2" stroke-linecap="round"/>
+        </svg>
     </a>
 </header>
 <body>
