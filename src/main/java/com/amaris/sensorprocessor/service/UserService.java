@@ -62,6 +62,10 @@ public class UserService {
         userDao.updateUserProfile(user);
     }
 
+    public void updateAvatar(String username, String avatarUrl) {
+        userDao.updateAvatar(username, avatarUrl);
+    }
+
     public void changePassword(String username, String currentPassword, String newPassword) {
         User user = searchUserByUsername(username);
 

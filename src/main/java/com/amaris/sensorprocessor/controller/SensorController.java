@@ -3,8 +3,10 @@ package com.amaris.sensorprocessor.controller;
 import com.amaris.sensorprocessor.constant.Constants;
 import com.amaris.sensorprocessor.entity.Gateway;
 import com.amaris.sensorprocessor.entity.Sensor;
+import com.amaris.sensorprocessor.entity.User;
 import com.amaris.sensorprocessor.service.GatewayService;
 import com.amaris.sensorprocessor.service.SensorService;
+import com.amaris.sensorprocessor.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,6 +18,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -40,20 +43,23 @@ public class SensorController {
 
     private final SensorService sensorService;
     private final GatewayService gatewayService;
+    private final UserService userService;
 
     @Autowired
-    public SensorController(SensorService sensorService, GatewayService gatewayService) {
+    public SensorController(SensorService sensorService, GatewayService gatewayService, UserService userService) {
         this.sensorService = sensorService;
         this.gatewayService = gatewayService;
+        this.userService = userService;
     }
 
     /* ===================== LISTE ===================== */
 
     @GetMapping("/manage-sensors")
-    public String manageSensors(Model model) {
+    public String manageSensors(Model model, Principal principal) {
         prepareModel(model);
-        String loggedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        model.addAttribute("loggedUsername", loggedUsername);
+        User user = userService.searchUserByUsername(principal.getName());
+        model.addAttribute("user", user);
+        model.addAttribute("loggedUsername", user.getUsername());
         return Constants.PAGE_MANAGE_SENSORS;
     }
 
@@ -146,7 +152,7 @@ public class SensorController {
     }
 
     @GetMapping("/manage-sensors/monitoring/{idSensor}")
-    public String monitorSensor(@PathVariable String idSensor, Model model) {
+    public String monitorSensor(@PathVariable String idSensor, Model model, Principal principal) {
         Sensor s = sensorService.getOrThrow(idSensor);
         model.addAttribute("sensor", s);
 
@@ -159,8 +165,9 @@ public class SensorController {
             model.addAttribute("gatewayName", label);          // <-- remplace l'ancien getGatewayName()
             model.addAttribute("gatewayIp", gw.getIpAddress()); // <-- remplace ipLocal/ipPublic
         });
-        String loggedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        model.addAttribute("loggedUsername", loggedUsername);
+        User user = userService.searchUserByUsername(principal.getName());
+        model.addAttribute("user", user);
+        model.addAttribute("loggedUsername", user.getUsername());
         return "monitoringSensor"; // ou ta constante si tu en as une
     }
 
@@ -173,7 +180,7 @@ public class SensorController {
     /* ===================== EDIT ===================== */
 
     @GetMapping("/manage-sensors/edit/{idSensor}")
-    public String editSensor(@PathVariable String idSensor, Model model) {
+    public String editSensor(@PathVariable String idSensor, Model model, Principal principal) {
         prepareModel(model);
         try {
             Sensor sensor = sensorService.getOrThrow(idSensor);
@@ -182,17 +189,19 @@ public class SensorController {
             model.addAttribute(SENSOR_EDIT, new Sensor());
             model.addAttribute(ERROR_EDIT, Constants.SENSOR_NOT_FOUND);
         }
-        String loggedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        model.addAttribute("loggedUsername", loggedUsername);
+        User user = userService.searchUserByUsername(principal.getName());
+        model.addAttribute("user", user);
+        model.addAttribute("loggedUsername", user.getUsername());
         return Constants.PAGE_MANAGE_SENSORS;
     }
 
     @GetMapping("/manage-sensors/edit")
-    public String handleEditGet(@RequestParam(required = false) String idSensor, Model model) {
+    public String handleEditGet(@RequestParam(required = false) String idSensor, Model model, Principal principal) {
         if (idSensor == null) return redirectWithTimestamp();
-        String loggedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        model.addAttribute("loggedUsername", loggedUsername);
-        return editSensor(idSensor, model);
+        User user = userService.searchUserByUsername(principal.getName());
+        model.addAttribute("user", user);
+        model.addAttribute("loggedUsername", user.getUsername());
+        return editSensor(idSensor, model,principal);
     }
 
     @PostMapping("/manage-sensors/edit")

@@ -13,13 +13,14 @@ public class User {
 
     public User(
             String username, String firstname, String lastname,
-            String password, String role, String email) {
+            String password, String role, String email, String icon) {
         this.username = username;
         this.firstname = firstname;
         this.lastname = lastname;
         this.password = password;
         this.role = role;
         this.email = email;
+        this.icon = icon;
     }
 
     @Id
@@ -40,5 +41,8 @@ public class User {
 
     @Column("email")
     private String email;
+
+    @Column("icon")
+    private String icon;
 
 }

@@ -1,51 +1,73 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
+    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}"/>
 </head>
-<body><th:block th:fragment="appHeader">
+<body>
+<th:block th:fragment="appHeader">
     <header class="app-header">
-        <div class="dropdown">
-            <!-- Bouton pour ouvrir le menu -->
-            <button onclick="toggleMenu()" class="menu-btn" aria-label="Menu">
-                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="#662179" viewBox="0 0 24 24">
-                    <path d="M3 6h18M3 12h18M3 18h18" stroke="#662179" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-            </button>
-
-            <!-- Menu déroulant -->
-            <div id="dropdownMenu" class="dropdown-content">
-
-                <!-- Home -->
-                <a th:href="@{/home}">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-                         width="22" height="22" aria-hidden="true"
-                         class="icon-home">
-                        <path fill="#662179"
-                              d="M12 3.172 2.293 12.88a1 1 0 1 0 1.414 1.414L5 13.001V20a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-5h2v5a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-6.999l1.293 1.293a1 1 0 0 0 1.414-1.414L12 3.172z"/>
-                    </svg>
-                    Home
+        <a href="javascript:history.back()" class="back-btn" title="Back to list" style="margin-right: 20px">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="30" height="30" role="img"
+                 aria-label="Flèche arrière violette">
+                <circle cx="15" cy="15" r="13" fill="none" stroke="#662179" stroke-width="2"/>
+                <path d="M17 9 L11 15 L17 21" fill="none" stroke="#662179" stroke-width="2" stroke-linecap="round"
+                      stroke-linejoin="round"/>
+                <line x1="11" y1="15" x2="22" y2="15" stroke="#662179" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+        </a>
+        <div class="header-right">
+            <div class="header-user">
+                <a th:href="@{/users/{username}(username=${loggedUsername})}" class="header-link">
+                    <img th:src="${user.icon}"
+                         class="header-avatar"
+                         alt="User Avatar"
+                         width="32" height="32">
                 </a>
-
-                <!-- Account -->
-                <a th:href="@{/users/{username}(username=${loggedUsername})}">
-                    <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22" >
-                        <path fill="#662179" d="M400-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM80-160v-112q0-33 17-62t47-44q51-26 115-44t141-18h14q6 0 12 2-8 18-13.5 37.5T404-360h-4q-71 0-127.5 18T180-306q-9 5-14.5 14t-5.5 20v32h252q6 21 16 41.5t22 38.5H80Zm560 40-12-60q-12-5-22.5-10.5T584-204l-58 18-40-68 46-40q-2-14-2-26t2-26l-46-40 40-68 58 18q11-8 21.5-13.5T628-460l12-60h80l12 60q12 5 22.5 11t21.5 15l58-20 40 70-46 40q2 12 2 25t-2 25l46 40-40 68-58-18q-11 8-21.5 13.5T732-180l-12 60h-80Zm40-120q33 0 56.5-23.5T760-320q0-33-23.5-56.5T680-400q-33 0-56.5 23.5T600-320q0 33 23.5 56.5T680-240ZM400-560q33 0 56.5-23.5T480-640q0-33-23.5-56.5T400-720q-33 0-56.5 23.5T320-640q0 33 23.5 56.5T400-560Zm0-80Zm12 400Z"/>
+            </div>
+            <div class="dropdown">
+                <!-- Bouton pour ouvrir le menu -->
+                <button onclick="toggleMenu()" class="menu-btn" aria-label="Menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="#662179" viewBox="0 0 24 24">
+                        <path d="M3 6h18M3 12h18M3 18h18" stroke="#662179" stroke-width="2" stroke-linecap="round"/>
                     </svg>
+                </button>
 
-                    Account
-                </a>
+                <!-- Menu déroulant -->
+                <div id="dropdownMenu" class="dropdown-content">
 
-                <!-- Logout -->
-                <form th:action="@{/logout}" method="post" class="logout-form" style="margin:0;">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                    <button type="submit" class="logout-link">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="22" height="22" fill="#662179">
-                            <path d="M 2.174 2.314 C 0.018 4.610, 0 4.949, 0 44.140 L 0 83.651 2.250 85.699 C 4.901 88.111, 28.126 96, 32.577 96 C 36.811 96, 40 92.427, 40 87.686 L 40 84 48.050 84 C 62.336 84, 64.223 81.596, 63.785 63.959 L 63.500 52.500 61 52.500 C 58.510 52.500, 58.498 52.544, 58 63.834 C 57.397 77.497, 57 78, 46.809 78 L 40 78 40 45.174 C 40 12.406, 39.996 12.345, 37.750 10.302 C 36.513 9.176, 34.150 7.783, 32.500 7.206 C 30.082 6.361, 31.839 6.143, 41.559 6.079 C 57.716 5.973, 57.360 5.669, 58 20.166 C 58.498 31.456, 58.510 31.500, 61 31.500 L 63.500 31.500 63.785 20.041 C 63.962 12.888, 63.628 7.515, 62.894 5.744 C 60.667 0.367, 58.579 -0, 30.224 0 C 4.470 0, 4.338 0.011, 2.174 2.314 M 7.095 7.305 C 5.842 8.558, 5.527 78.748, 6.765 80.596 C 7.169 81.199, 12.970 83.514, 19.655 85.741 C 28.459 88.673, 32.113 89.487, 32.905 88.695 C 34.158 87.442, 34.473 17.252, 33.235 15.404 C 32.831 14.801, 27.030 12.486, 20.345 10.259 C 11.541 7.327, 7.887 6.513, 7.095 7.305 M 75.667 24.667 C 74.049 26.284, 75.348 28.918, 80.041 33.538 L 85.083 38.500 68.791 39 L 52.500 39.500 52.500 42 L 52.500 44.500 68.940 44.776 L 85.381 45.051 80.094 50.405 C 74.652 55.915, 73.730 59.132, 77.392 59.837 C 79.568 60.256, 96 44.506, 96 42 C 96 39.981, 79.926 24, 77.896 24 C 77.036 24, 76.033 24.300, 75.667 24.667"/>
+                    <!-- Home -->
+                    <a th:href="@{/home}">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                             width="22" height="22" aria-hidden="true"
+                             class="icon-home">
+                            <path fill="#662179"
+                                  d="M12 3.172 2.293 12.88a1 1 0 1 0 1.414 1.414L5 13.001V20a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-5h2v5a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-6.999l1.293 1.293a1 1 0 0 0 1.414-1.414L12 3.172z"/>
                         </svg>
-                        Logout
-                    </button>
-                </form>
+                        Home
+                    </a>
+
+                    <!-- Account -->
+                    <a th:href="@{/users/{username}(username=${loggedUsername})}">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22">
+                            <path fill="#662179"
+                                  d="M400-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM80-160v-112q0-33 17-62t47-44q51-26 115-44t141-18h14q6 0 12 2-8 18-13.5 37.5T404-360h-4q-71 0-127.5 18T180-306q-9 5-14.5 14t-5.5 20v32h252q6 21 16 41.5t22 38.5H80Zm560 40-12-60q-12-5-22.5-10.5T584-204l-58 18-40-68 46-40q-2-14-2-26t2-26l-46-40 40-68 58 18q11-8 21.5-13.5T628-460l12-60h80l12 60q12 5 22.5 11t21.5 15l58-20 40 70-46 40q2 12 2 25t-2 25l46 40-40 68-58-18q-11 8-21.5 13.5T732-180l-12 60h-80Zm40-120q33 0 56.5-23.5T760-320q0-33-23.5-56.5T680-400q-33 0-56.5 23.5T600-320q0 33 23.5 56.5T680-240ZM400-560q33 0 56.5-23.5T480-640q0-33-23.5-56.5T400-720q-33 0-56.5 23.5T320-640q0 33 23.5 56.5T400-560Zm0-80Zm12 400Z"/>
+                        </svg>
+
+                        Account
+                    </a>
+
+                    <!-- Logout -->
+                    <form th:action="@{/logout}" method="post" class="logout-form" style="margin:0;">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <button type="submit" class="logout-link">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="22" height="22"
+                                 fill="#662179">
+                                <path d="M 2.174 2.314 C 0.018 4.610, 0 4.949, 0 44.140 L 0 83.651 2.250 85.699 C 4.901 88.111, 28.126 96, 32.577 96 C 36.811 96, 40 92.427, 40 87.686 L 40 84 48.050 84 C 62.336 84, 64.223 81.596, 63.785 63.959 L 63.500 52.500 61 52.500 C 58.510 52.500, 58.498 52.544, 58 63.834 C 57.397 77.497, 57 78, 46.809 78 L 40 78 40 45.174 C 40 12.406, 39.996 12.345, 37.750 10.302 C 36.513 9.176, 34.150 7.783, 32.500 7.206 C 30.082 6.361, 31.839 6.143, 41.559 6.079 C 57.716 5.973, 57.360 5.669, 58 20.166 C 58.498 31.456, 58.510 31.500, 61 31.500 L 63.500 31.500 63.785 20.041 C 63.962 12.888, 63.628 7.515, 62.894 5.744 C 60.667 0.367, 58.579 -0, 30.224 0 C 4.470 0, 4.338 0.011, 2.174 2.314 M 7.095 7.305 C 5.842 8.558, 5.527 78.748, 6.765 80.596 C 7.169 81.199, 12.970 83.514, 19.655 85.741 C 28.459 88.673, 32.113 89.487, 32.905 88.695 C 34.158 87.442, 34.473 17.252, 33.235 15.404 C 32.831 14.801, 27.030 12.486, 20.345 10.259 C 11.541 7.327, 7.887 6.513, 7.095 7.305 M 75.667 24.667 C 74.049 26.284, 75.348 28.918, 80.041 33.538 L 85.083 38.500 68.791 39 L 52.500 39.500 52.500 42 L 52.500 44.500 68.940 44.776 L 85.381 45.051 80.094 50.405 C 74.652 55.915, 73.730 59.132, 77.392 59.837 C 79.568 60.256, 96 44.506, 96 42 C 96 39.981, 79.926 24, 77.896 24 C 77.036 24, 76.033 24.300, 75.667 24.667"/>
+                            </svg>
+                            Logout
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </header>
@@ -55,10 +77,19 @@
             document.getElementById("dropdownMenu").classList.toggle("show");
         }
 
-        window.onclick = function(event) {
+        window.onclick = function (event) {
             if (!event.target.closest('.dropdown')) {
                 document.getElementById("dropdownMenu").classList.remove("show");
             }
+        }
+        const isHomePage = window.location.pathname.endsWith("/home");
+
+        if (!isHomePage) {
+            document.querySelector('.back-btn').style.visibility = 'visible';
+            document.querySelector('.back-btn').style.pointerEvents = 'auto';
+        } else {
+            document.querySelector('.back-btn').style.visibility = 'hidden';
+            document.querySelector('.back-btn').style.pointerEvents = 'none';
         }
     </script>
 </th:block>

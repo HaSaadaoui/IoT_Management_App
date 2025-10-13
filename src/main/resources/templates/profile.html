@@ -4,38 +4,53 @@
     <meta charset="UTF-8">
     <title>My Profile</title>
     <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}"/>
-    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
+    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}"/>
     <link rel="stylesheet" type="text/css" th:href="@{/css/profile.css}"/>
 </head>
 <body>
 <div th:replace="fragments/header :: appHeader(pageTitle='My profile', homeUrl=@{/})"></div>
 <div class="profile-container">
     <div class="profile-box">
-        <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
-        <h2>My Profile</h2>
 
-        <div class="profile-info">
-            <p><strong>Username:</strong> <span th:text="${user.username}"></span></p>
-            <p><strong>Firstname:</strong> <span th:text="${user.firstname}"></span></p>
-            <p><strong>Lastname:</strong> <span th:text="${user.lastname}"></span></p>
-            <p><strong>Email:</strong> <span th:text="${user.email}"></span></p>
-            <p><strong>Role:</strong> <span th:text="${user.role}"></span></p>
+        <!-- Bloc avatar à gauche -->
+        <div class="profile-left">
+            <img th:src="${user.icon}"
+                 alt="User Avatar" class="user-avatar">
+
+            <div class="avatar-edit-icon" th:if="${user.username == loggedUsername}" onclick="openAvatarModal()"
+                 title="Change avatar">
+                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px">
+                    <path fill="#662179"
+                          d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/>
+                </svg>
+            </div>
         </div>
 
-        <div class="profile-actions">
-            <div th:if="${user.username == loggedUsername}" class="button-container">
-                <!-- Bouton changer mot de passe -->
+        <!-- Infos utilisateur à droite -->
+        <div class="profile-right">
+            <h2>My Profile</h2>
+
+            <div class="profile-info">
+                <p><strong>Username:</strong> <span th:text="${user.username}"></span></p>
+                <p><strong>Firstname:</strong> <span th:text="${user.firstname}"></span></p>
+                <p><strong>Lastname:</strong> <span th:text="${user.lastname}"></span></p>
+                <p><strong>Email:</strong> <span th:text="${user.email}"></span></p>
+                <p><strong>Role:</strong> <span th:text="${user.role}"></span></p>
+            </div>
+
+            <!-- Boutons actions -->
+            <div class="profile-actions" th:if="${user.username == loggedUsername}">
                 <button onclick="openModal()" class="btn-change-password">
                     Change password
                 </button>
-
-                <!-- Bouton éditer user -->
                 <button onclick="openEditModal()" class="btn-edit-user">
                     Update my details
                 </button>
             </div>
+
+            <!-- Message succès -->
+            <p class="success-message" th:if="${success}" th:text="${success}"></p>
         </div>
-        <p class="success-message" th:if="${success}" th:text="${success}"></p>
     </div>
 </div>
 <!-- Modal pour changement de mot de passe -->
@@ -99,30 +114,61 @@
     </div>
 </div>
 
+<!-- Modal pour édition de l'avatar -->
+<div id="avatarModal" class="modal">
+    <div class="modal-content">
+        <h3>Change Icon</h3>
+        <form th:action="@{/users/{username}/update-avatar(username=${user.username})}"
+              method="post" enctype="multipart/form-data">
+            <input type="file" name="avatar" accept="image/*" required>
+            <div style="margin-top: 10px;">
+                <button type="submit">Upload</button>
+                <button type="button" onclick="closeAvatarModal()" style="background:#ccc;color:#000;margin-left:10px;">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     const passwordModal = document.getElementById("passwordModal");
     const editUserModal = document.getElementById("editUserModal");
+    const avatarModal = document.getElementById('avatarModal');
 
     function openModal() {
         passwordModal.style.display = "flex";
     }
+
     function closeModal() {
         passwordModal.style.display = "none";
+    }
+
+    function openAvatarModal() {
+        avatarModal.style.display = 'flex';
+    }
+
+    function closeAvatarModal() {
+        avatarModal.style.display = 'none';
     }
 
     function openEditModal() {
         editUserModal.style.display = "flex";
     }
+
     function closeEditModal() {
         editUserModal.style.display = "none";
     }
 
-    window.onclick = function(event) {
+    window.onclick = function (event) {
         if (event.target === passwordModal) {
             closeModal();
         }
         if (event.target === editUserModal) {
             closeEditModal();
+        }
+        if (event.target === avatarModal) {
+            closeAvatarModal();
         }
     }
 </script>

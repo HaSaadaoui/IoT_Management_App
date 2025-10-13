@@ -3,28 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <title>Home page</title>
-    <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}" />
-    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
-    <link rel="stylesheet" type="text/css" th:href="@{/css/login-home.css}" />
+    <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/login-home.css}"/>
 </head>
 <body>
 <div th:replace="fragments/header :: appHeader(pageTitle='Manage Users', homeUrl=@{/})"></div>
-<div class="home-container">
-    <div class="home-box">
-        <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
-        <h2>Welcome to the Dashboard</h2>
-        <div class="icon-button-container">
-            <a href="/manage-sensors" class="icon-btn" title="Sensors">
-                <img src="/image/sensor-icon.svg" alt="Sensors" />
+<div class="main-container">
+    <div class="dashboard-container">
+        <h1>Smart Building<br><span>IoT Dashboard</span></h1>
+
+        <div class="dashboard-grid">
+            <a href="/manage-sensors" class="dashboard-card">
+                <img src="/image/sensor-icon.svg" alt="Supervision"/>
+                <span>Sensors</span>
             </a>
-            <a href="/manage-gateways" class="icon-btn" title="Gateways">
-                <img src="/image/gateway-icon.svg" alt="Gateways" />
+
+            <a href="/manage-gateways" class="dashboard-card">
+                <img src="/image/gateway-icon.svg" alt="Gateways"/>
+                <span>Gateways</span>
             </a>
-            <a href="/manage-users" class="icon-btn" title="Users">
-                <img src="/image/user-icon.svg" alt="Users" />
+
+            <a href="/" class="dashboard-card">
+                <img src="/image/predictive.svg" alt="Prediction"/>
+                <span>Prediction</span>
             </a>
-            <a href="/" class="icon-btn" title="predictions">
-                <img src="/image/predictive.png" alt="Predictions" style="filter: invert(0);" />
+
+            <a href="/Alerts" class="dashboard-card">
+                <img src="/image/alerte.svg" alt="Alerts"/>
+                <span>Alerts</span>
+            </a>
+
+            <a href="/manage-users" class="dashboard-card">
+                <img src="/image/user-icon.svg" alt="Manage Users"/>
+                <span>Manage Users</span>
+            </a>
+
+            <a href="/" class="dashboard-card">
+                <img src="/image/config-icon.svg" alt="Configuration"/>
+                <span>Configuration</span>
             </a>
         </div>
     </div>

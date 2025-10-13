@@ -68,10 +68,10 @@ public class UserDao {
         return jdbcTemplate.update(
                 "INSERT INTO USERS (" +
                         "USERNAME, FIRSTNAME, LASTNAME, " +
-                        "PASSWORD, ROLE, EMAIL) " +
+                        "PASSWORD, ROLE, EMAIL, AVATAR) " +
                         "VALUES(?, ?, ?, ?, ?, ?)",
                 user.getUsername(), user.getFirstname(), user.getLastname(),
-                user.getPassword(), user.getRole(), user.getEmail()
+                user.getPassword(), user.getRole(), user.getEmail(), user.getIcon()
         );
     }
 
@@ -110,7 +110,7 @@ public class UserDao {
     }
 
     /**
-     * Supprime un utilisateur de la base de données en fonction de son identifiant.
+     * met a jour un utilisateur de la base de données en fonction de son identifiant.
      *
      * @param username l'identifiant de l'utilisateur à mettre à jour
      * @param newPasswordHash mot de passe
@@ -119,6 +119,19 @@ public class UserDao {
         return jdbcTemplate.update(
                 "UPDATE USERS SET PASSWORD = ? WHERE USERNAME = ?",
                 newPasswordHash, username
+        );
+    }
+
+    /**
+     * met a jour un utilisateur de la base de données en fonction de son identifiant.
+     *
+     * @param username l'identifiant de l'utilisateur à mettre à jour
+     * @param avatar url avatar
+     */
+    public int updateAvatar(String username, String avatar) {
+        return jdbcTemplate.update(
+                "UPDATE USERS SET ICON = ? WHERE USERNAME = ?",
+                avatar, username
         );
     }
 

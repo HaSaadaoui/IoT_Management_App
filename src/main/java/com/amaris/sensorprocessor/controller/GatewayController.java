@@ -3,9 +3,11 @@ package com.amaris.sensorprocessor.controller;
 import com.amaris.sensorprocessor.constant.Constants;
 import com.amaris.sensorprocessor.constant.FrequencyPlan;
 import com.amaris.sensorprocessor.entity.Gateway;
+import com.amaris.sensorprocessor.entity.User;
 import com.amaris.sensorprocessor.service.GatewayLorawanService;
 import com.amaris.sensorprocessor.service.GatewayService;
 import com.amaris.sensorprocessor.service.InputValidationService;
+import com.amaris.sensorprocessor.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +31,7 @@ public class GatewayController {
     private final GatewayService gatewayService;
     private final InputValidationService inputValidationService;
     private final GatewayLorawanService gatewayLorawanService;
+    private final UserService userService;
 
     private static final String ERROR_ADD = "errorAdd";
     private static final String GATEWAY_ADD = "gatewayAdd";
@@ -38,16 +42,19 @@ public class GatewayController {
     @Autowired
     public GatewayController(GatewayService gatewayService,
                              InputValidationService inputValidationService,
-                             GatewayLorawanService gatewayLorawanService) {
+                             GatewayLorawanService gatewayLorawanService,
+                             UserService userService) {
         this.gatewayService = gatewayService;
         this.inputValidationService = inputValidationService;
         this.gatewayLorawanService = gatewayLorawanService;
+        this.userService = userService;
     }
 
     @GetMapping("/manage-gateways")
-    public String manageGateways(Model model) {
-        String loggedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        model.addAttribute("loggedUsername", loggedUsername);
+    public String manageGateways(Model model, Principal principal) {
+        User user = userService.searchUserByUsername(principal.getName());
+        model.addAttribute("user", user);
+        model.addAttribute("loggedUsername", user.getUsername());
         prepareModel(model);
         return Constants.PAGE_MANAGE_GATEWAYS;
     }
@@ -151,7 +158,7 @@ public class GatewayController {
     }
 
     @GetMapping("/manage-gateways/edit/{gatewayId}")
-    public String editGateway(@PathVariable String gatewayId, Model model) {
+    public String editGateway(@PathVariable String gatewayId, Model model, Principal principal) {
         prepareModel(model);
         Gateway gateway;
         try {
@@ -164,8 +171,9 @@ public class GatewayController {
             model.addAttribute(ERROR_EDIT, Constants.DATABASE_PROBLEM);
             model.addAttribute(GATEWAY_EDIT, new Gateway());
         }
-        String loggedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        model.addAttribute("loggedUsername", loggedUsername);
+        User user = userService.searchUserByUsername(principal.getName());
+        model.addAttribute("user", user);
+        model.addAttribute("loggedUsername", user.getUsername());
         return Constants.PAGE_MANAGE_GATEWAYS;
     }
 
@@ -220,11 +228,11 @@ public class GatewayController {
      * @return vue à afficher ou redirection vers la liste des gateways avec horodatage pour éviter le cache
      */
     @GetMapping("/manage-gateways/edit")
-    public String handleEditGet(@RequestParam(required = false) String gatewayId, Model model) {
+    public String handleEditGet(@RequestParam(required = false) String gatewayId, Model model, Principal principal) {
         if (gatewayId == null) {
             return redirectWithTimestamp();
         }
-        return editGateway(gatewayId, model);
+        return editGateway(gatewayId, model, principal);
     }
 
     /**
@@ -236,11 +244,12 @@ public class GatewayController {
      * @return Nom de la vue Thymeleaf "monitoringGateway"
      */
     @GetMapping("/manage-gateways/monitoring/{id}/view")
-    public String monitoringView(@PathVariable("id") String id, @RequestParam("ip") String ip, Model model) {
+    public String monitoringView(@PathVariable("id") String id, @RequestParam("ip") String ip, Model model , Principal principal) {
         model.addAttribute(Constants.BINDING_GATEWAY_ID, id);
         model.addAttribute("ipAddress", ip);
-        String loggedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        model.addAttribute("loggedUsername", loggedUsername);
+        User user = userService.searchUserByUsername(principal.getName());
+        model.addAttribute("user", user);
+        model.addAttribute("loggedUsername", user.getUsername());;
         return Constants.PAGE_MONITORING_GATEWAYS;
     }
 

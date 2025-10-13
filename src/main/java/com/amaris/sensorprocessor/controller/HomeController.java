@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.security.Principal;
+
 @Controller
 public class HomeController {
 
@@ -34,9 +36,10 @@ public class HomeController {
      * @return la vue "home" pour afficher la page d'accueil.
      */
     @GetMapping("/home")
-    public String home(Model model) {
-        String loggedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        model.addAttribute("loggedUsername", loggedUsername);
+    public String home(Model model, Principal principal) {
+        User user = userService.searchUserByUsername(principal.getName());
+        model.addAttribute("user", user);
+        model.addAttribute("loggedUsername", user.getUsername());
         return "home";
     }
 
