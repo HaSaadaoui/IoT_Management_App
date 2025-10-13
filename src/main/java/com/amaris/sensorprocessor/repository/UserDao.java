@@ -68,8 +68,8 @@ public class UserDao {
         return jdbcTemplate.update(
                 "INSERT INTO USERS (" +
                         "USERNAME, FIRSTNAME, LASTNAME, " +
-                        "PASSWORD, ROLE, EMAIL, AVATAR) " +
-                        "VALUES(?, ?, ?, ?, ?, ?)",
+                        "PASSWORD, ROLE, EMAIL, ICON) " +
+                        "VALUES(?, ?, ?, ?, ?, ?, ?)",
                 user.getUsername(), user.getFirstname(), user.getLastname(),
                 user.getPassword(), user.getRole(), user.getEmail(), user.getIcon()
         );
