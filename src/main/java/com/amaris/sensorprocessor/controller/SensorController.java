@@ -7,8 +7,10 @@ import com.amaris.sensorprocessor.entity.User;
 import com.amaris.sensorprocessor.service.GatewayService;
 import com.amaris.sensorprocessor.service.SensorService;
 import com.amaris.sensorprocessor.service.UserService;
+import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,7 +19,9 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
 import java.security.Principal;
 import java.util.List;
 import java.util.Objects;
@@ -30,10 +34,10 @@ import java.util.stream.Stream;
 @Controller
 public class SensorController {
 
-    private static final String ERROR_ADD    = "errorAdd";
-    private static final String SENSOR_ADD   = "sensorAdd";
-    private static final String ERROR_EDIT   = "errorEdit";
-    private static final String SENSOR_EDIT  = "sensorEdit";
+    private static final String ERROR_ADD = "errorAdd";
+    private static final String SENSOR_ADD = "sensorAdd";
+    private static final String ERROR_EDIT = "errorEdit";
+    private static final String SENSOR_EDIT = "sensorEdit";
     private static final String ERROR_DELETE = "errorDelete";
 
     // Regex TTN pour device_id
@@ -201,7 +205,7 @@ public class SensorController {
         User user = userService.searchUserByUsername(principal.getName());
         model.addAttribute("user", user);
         model.addAttribute("loggedUsername", user.getUsername());
-        return editSensor(idSensor, model,principal);
+        return editSensor(idSensor, model, principal);
     }
 
     @PostMapping("/manage-sensors/edit")
@@ -234,7 +238,7 @@ public class SensorController {
         return redirectWithTimestamp();
     }
 
-        /* ===================== DELETE ===================== */
+    /* ===================== DELETE ===================== */
 
     @PostMapping("/manage-sensors/delete/{idSensor}")
     public String deleteSensor(@PathVariable String idSensor, Model model) {
@@ -255,11 +259,60 @@ public class SensorController {
         return redirectWithTimestamp();
     }
 
+
+    @GetMapping(value = "/manage-sensors/monitoring/{idSensor}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamSensor(@PathVariable String idSensor, HttpSession session) {
+        // 1) Récupère le capteur
+        Sensor sensor = sensorService.getOrThrow(idSensor);
+
+        // 2) Déduis l'app TTN à partir de la gateway (règle par défaut + cas particulier)
+        String appId = gatewayService.findById(sensor.getIdGateway())
+                .map(Gateway::getGatewayId)
+                .map(gid -> "leva-rpi-mantu".equals(gid) ? "lorawan-network-mantu" : gid + "-appli")
+                .orElseThrow(() -> new IllegalStateException("Gateway introuvable pour le capteur " + idSensor));
+
+        // 3) Thread unique par client
+        String threadId = "sensor-" + idSensor + "-" + session.getId() + "-" + System.currentTimeMillis();
+
+        // 4) Emitter SSE côté MVC
+        SseEmitter emitter = new SseEmitter(3600000L);
+
+        emitter.onCompletion(() -> sensorService.stopMonitoring(idSensor, threadId));
+        emitter.onTimeout(() -> {
+            sensorService.stopMonitoring(idSensor, threadId);
+            emitter.complete();
+        });
+
+        // 5) Abonnement au Flux<String> retourné par le microservice (8081), puis normalisation -> MonitoringSensorData
+        var normalizer = new SensorEventNormalizer();
+        var subscription = sensorService.getMonitoringData(appId, idSensor, threadId)
+                .map(json -> normalizer.normalizeToMonitoringSensorDataJson(json, appId, sensor))
+                .subscribe(
+                        normalizedJson -> {
+                            try {
+                                emitter.send(normalizedJson);
+                            } catch (IOException e) {
+                                emitter.completeWithError(e);
+                            }
+                        },
+                        emitter::completeWithError,
+                        emitter::complete
+                );
+
+        // 6) Nettoyage
+        emitter.onCompletion(subscription::dispose);
+        emitter.onTimeout(subscription::dispose);
+
+        return emitter;
+    }
+
+
+
     /* ===================== PRIVÉS ===================== */
 
 
     private void prepareModel(Model model) {
-        List<Sensor> sensors  = sensorService.findAll();
+        List<Sensor> sensors = sensorService.findAll();
         List<Gateway> gateways = gatewayService.getAllGateways();
         model.addAttribute("sensors", sensors);
         model.addAttribute("gateways", gateways);
@@ -291,4 +344,180 @@ public class SensorController {
     private static boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
     }
+
+    // --- Utilitaire minimal de normalisation (inline pour simplicité) ---
+    static class SensorEventNormalizer {
+        private final com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+
+        @SuppressWarnings("unchecked")
+        public String normalizeToMonitoringSensorDataJson(String json, String appId, Sensor sensor) {
+            try {
+                var root = om.readValue(json, java.util.Map.class);
+                // TTN "events" mettent l'objet dans result ; storage uplink le met directement
+                var result = (java.util.Map<String, Object>) root.getOrDefault("result", root);
+                var up = (java.util.Map<String, Object>) result.getOrDefault("uplink_message", java.util.Map.of());
+                var rx = (java.util.List<java.util.Map<String, Object>>) up.getOrDefault("rx_metadata", java.util.List.of());
+                var rx0 = rx.isEmpty() ? java.util.Map.<String, Object>of() : rx.get(0);
+                var gwIds = (java.util.Map<String, Object>) ((java.util.Map<String, Object>) rx0.getOrDefault("gateway_ids", java.util.Map.of()));
+                var settings = (java.util.Map<String, Object>) up.getOrDefault("settings", java.util.Map.of());
+                var dataRate = (java.util.Map<String, Object>) settings.getOrDefault("data_rate", java.util.Map.of());
+                var lora = (java.util.Map<String, Object>) dataRate.getOrDefault("lora", java.util.Map.of());
+                var network = (java.util.Map<String, Object>) result.getOrDefault("network_ids", java.util.Map.of());
+                var endIds = (java.util.Map<String, Object>) result.getOrDefault("end_device_ids", java.util.Map.of());
+
+                // decoded_payload : objet OU string concaténée → parse
+                Object decodedPayloadRaw = up.get("decoded_payload");
+                java.util.Map<String, Object> dp = parseDecodedPayload(decodedPayloadRaw);
+
+                // Profil par contenu puis fallback deviceType
+                String profile = detectProfile(dp, sensor.getDeviceType());
+
+                // Construire DTO
+                var dto = com.amaris.sensorprocessor.entity.MonitoringSensorData.now();
+
+                // ids
+                var ids = new com.amaris.sensorprocessor.entity.MonitoringSensorData.Ids();
+                ids.setApplicationId(appId);
+                ids.setDeviceId(String.valueOf(endIds.getOrDefault("device_id", sensor.getIdSensor())));
+                ids.setDevEui((String) endIds.get("dev_eui"));
+                ids.setJoinEui((String) endIds.get("join_eui"));
+                ids.setDevAddr((String) endIds.get("dev_addr"));
+                ids.setProfile(profile);
+                dto.setIds(ids);
+
+                // link
+                var link = new com.amaris.sensorprocessor.entity.MonitoringSensorData.LinkInfo();
+                link.setFPort(nInt(up.get("f_port")));
+                link.setFCnt(nInt(up.get("f_cnt")));
+                link.setGatewayId((String) gwIds.get("gateway_id"));
+                link.setRssi(nDbl(rx0.get("rssi") != null ? rx0.get("rssi") : rx0.get("channel_rssi")));
+                link.setSnr(nDbl(rx0.get("snr")));
+                Integer sf = nInt(lora.get("spreading_factor"));
+                link.setSpreadingFactor(sf != null ? "SF" + sf : null);
+                Integer bw = nInt(lora.get("bandwidth"));
+                link.setBandwidthKhz(bw != null ? (int) Math.round(bw / 1000.0) : null);
+                link.setCodingRate((String) lora.get("coding_rate"));
+                Double fHz = nDbl(settings.get("frequency"));
+                link.setFrequencyMhz(fHz != null ? fHz / 1e6 : null);
+                link.setConsumedAirtime((String) up.get("consumed_airtime"));
+                link.setChannelIndex(nInt(rx0.get("channel_index")));
+                // location
+                var locRaw = (java.util.Map<String, Object>) rx0.get("location");
+                if (locRaw != null) {
+                    var loc = new com.amaris.sensorprocessor.entity.MonitoringSensorData.LinkInfo.Location();
+                    loc.setLatitude(nDbl(locRaw.get("latitude")));
+                    loc.setLongitude(nDbl(locRaw.get("longitude")));
+                    loc.setAltitude(nInt(locRaw.get("altitude")));
+                    loc.setSource((String) locRaw.get("source"));
+                    link.setLocation(loc);
+                }
+                dto.setLink(link);
+
+                // payload normalisé
+                var payload = new com.amaris.sensorprocessor.entity.MonitoringSensorData.Payload();
+                // presence (occupancy ou pir si présent)
+                if (dp.containsKey("occupancy")) payload.setPresence(dp.get("occupancy"));
+                else if (dp.containsKey("pir")) payload.setPresence(dp.get("pir"));
+
+                // light (illuminance ou daylight)
+                if (dp.containsKey("illuminance")) payload.setLight(dp.get("illuminance"));
+                else if (dp.containsKey("daylight")) payload.setLight(dp.get("daylight"));
+
+                // battery
+                Double batt = nDbl(dp.get("battery"));
+                if (batt == null) {
+                    var lastBatt = (java.util.Map<String, Object>) up.get("last_battery_percentage");
+                    if (lastBatt != null) batt = nDbl(lastBatt.get("value"));
+                }
+                payload.setBattery(batt);
+
+                // temp/hum/vdd (desk/text)
+                payload.setTemperature(nDbl(dp.get("temperature")));
+                payload.setHumidity(nDbl(dp.get("humidity")));
+                payload.setVdd(nDbl(dp.get("vdd")));
+                dto.setPayload(payload);
+
+                // network
+                var net = new com.amaris.sensorprocessor.entity.MonitoringSensorData.NetworkInfo();
+                net.setNetId((String) network.get("net_id"));
+                net.setNsId((String) network.get("ns_id"));
+                net.setTenantId((String) network.get("tenant_id"));
+                net.setClusterId((String) network.get("cluster_id"));
+                net.setClusterAddress((String) network.get("cluster_address"));
+                dto.setNetwork(net);
+
+                // raw pour debug minimal
+                var raw = new com.amaris.sensorprocessor.entity.MonitoringSensorData.Raw();
+                raw.setDecodedPayload(dp);
+                raw.setFrmPayloadBase64((String) up.get("frm_payload"));
+                dto.setRaw(raw);
+
+                // timestamp (received_at event ou uplink)
+                String receivedAt = (String) (result.get("received_at") != null ? result.get("received_at") : up.get("received_at"));
+                dto.setTimestamp(receivedAt != null ? receivedAt : dto.getTimestamp());
+
+                return om.writeValueAsString(dto);
+            } catch (Exception e) {
+                // en cas de souci, on renvoie tel quel (pour ne pas casser l'affichage)
+                return json;
+            }
+        }
+
+        private static Integer nInt(Object o) {
+            if (o instanceof Number n) return n.intValue();
+            if (o instanceof String s) try {
+                return Integer.parseInt(s);
+            } catch (Exception ignored) {
+            }
+            return null;
+        }
+
+        private static Double nDbl(Object o) {
+            if (o instanceof Number n) return n.doubleValue();
+            if (o instanceof String s) try {
+                return Double.parseDouble(s);
+            } catch (Exception ignored) {
+            }
+            return null;
+        }
+
+        @SuppressWarnings("unchecked")
+        private static java.util.Map<String, Object> parseDecodedPayload(Object raw) {
+            if (raw == null) return new java.util.LinkedHashMap<>();
+            if (raw instanceof java.util.Map) return new java.util.LinkedHashMap<>((java.util.Map<String, Object>) raw);
+            if (raw instanceof String s) {
+                var m = new java.util.LinkedHashMap<String, Object>();
+                var re = java.util.regex.Pattern.compile("([A-Za-z_]+)\\s*[:=]?\\s*([+-]?\\d+(?:\\.\\d+)?)");
+                var x = re.matcher(s);
+                while (x.find()) {
+                    var key = x.group(1).toLowerCase();
+                    var val = x.group(2);
+                    try {
+                        m.put(key, val.contains(".") ? Double.parseDouble(val) : Integer.parseInt(val));
+                    } catch (NumberFormatException nfe) {
+                        m.put(key, val);
+                    }
+                }
+                return m;
+            }
+            // fallback best-effort
+            return new java.util.LinkedHashMap<>();
+        }
+
+        private static String detectProfile(java.util.Map<String, Object> dp, String deviceType) {
+            if (dp.containsKey("occupancy") || dp.containsKey("illuminance")) return "VS70_OCCUPANCY";
+            if (dp.containsKey("pir") || dp.containsKey("daylight")) return "PIR_LIGHT";
+            if (dp.containsKey("temperature") || dp.containsKey("humidity") || dp.containsKey("vdd"))
+                return "DESK_TEXT";
+            if (deviceType != null) {
+                var dt = deviceType.toLowerCase();
+                if (dt.contains("occupancy")) return "VS70_OCCUPANCY";
+                if (dt.contains("pir")) return "PIR_LIGHT";
+                if (dt.contains("desk")) return "DESK_TEXT";
+            }
+            return "GENERIC";
+        }
+    }
 }
+
+

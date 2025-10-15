@@ -5,110 +5,255 @@
     <title th:text="'Sensor Monitoring - ' + ${sensor.idSensor}">Sensor Monitoring</title>
     <link rel="stylesheet" href="/css/styles.css"/>
     <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
-    <!-- Tu peux réutiliser le CSS de monitoring gateway -->
     <link rel="stylesheet" href="/css/monitoringGateway.css"/>
     <style>
-        /* Petits raffinements visuels */
-        .empty-state{opacity:.7;font-style:italic}
-        .kv{display:grid;grid-template-columns:160px 1fr;gap:6px 16px}
-        .kv b{color:#444}
+        .empty-state { opacity:.7; font-style:italic; }
+        .kv { display:grid; grid-template-columns:160px 1fr; gap:6px 16px; }
+        .kv b { color:#444; }
+        .badge { padding:4px 8px; border-radius:8px; background:#ddd; }
+        .badge--ok { background:#1f9d55; color:white; }
+        .badge--warn { background:#f59e0b; color:black; }
+        .hidden { display:none !important; }
     </style>
 </head>
+
 <body>
 <div th:replace="fragments/header :: appHeader(pageTitle='My profile', homeUrl=@{/})"></div>
+
 <header th:text="${sensor.deviceType} ?: ${sensor.idSensor}">Sensor</header>
 
 <main>
-    <!-- Cartes infos (statiques) -->
+
+    <!-- Infos statiques -->
     <section class="info-grid">
         <div class="card">
             <h4>Status</h4>
             <p>
         <span class="badge" th:classappend="${sensor.status} ? ' badge--ok' : ' badge--off'">
-          <img th:src="${sensor.status} ? '/image/toggle_on.svg' : '/image/toggle_off.svg'"
-               alt="Status"/>
+          <img th:src="${sensor.status} ? '/image/toggle_on.svg' : '/image/toggle_off.svg'" alt="Status"/>
           <span th:text="${sensor.status} ? 'Active' : 'Inactive'">--</span>
         </span>
             </p>
         </div>
 
         <div class="card"><h4>Sensor ID</h4>
-            <p th:text="${sensor.idSensor}">--</p>
-        </div>
+            <p th:text="${sensor.idSensor}">--</p></div>
 
         <div class="card"><h4>Device Type</h4>
-            <p th:text="${sensor.deviceType}">--</p>
-        </div>
+            <p th:text="${sensor.deviceType}">--</p></div>
 
         <div class="card"><h4>Commissioning Date</h4>
-            <p th:text="${sensor.commissioningDate} ?: '--'">--</p>
-        </div>
+            <p th:text="${sensor.commissioningDate} ?: '--'">--</p></div>
 
         <div class="card">
             <h4>Gateway</h4>
             <p th:with="gid=${sensor.idGateway}, ip=${gatewayIp} ?: ''">
                 <a class="link"
                    th:href="@{|/manage-gateways/monitoring/${gid}/view?ip=${ip}|}"
-                   th:text="${gatewayName} ?: ${gid}">
-                    --
-                </a>
+                   th:text="${gatewayName} ?: ${gid}">--</a>
             </p>
         </div>
 
-
         <div class="card"><h4>Building</h4>
-            <p th:text="${sensor.buildingName} ?: '--'">--</p>
-        </div>
+            <p th:text="${sensor.buildingName} ?: '--'">--</p></div>
 
         <div class="card"><h4>Floor</h4>
-            <p th:text="${sensor.floor} ?: '--'">--</p>
-        </div>
+            <p th:text="${sensor.floor} ?: '--'">--</p></div>
 
         <div class="card"><h4>Location</h4>
-            <p th:text="${sensor.location} ?: '--'">--</p>
-        </div>
+            <p th:text="${sensor.location} ?: '--'">--</p></div>
 
         <div class="card"><h4>Frequency Plan</h4>
-            <p th:text="${sensor.frequencyPlan} ?: '--'">--</p>
-        </div>
+            <p th:text="${sensor.frequencyPlan} ?: '--'">--</p></div>
     </section>
 
-    <!-- Détails techniques (clés masquées) -->
-    <section class="card" style="margin-top:20px;">
-        <h4>Identifiers</h4>
-        <div class="kv">
-            <b>DevEUI</b>
-            <span th:text="${#strings.length(sensor.devEui) > 0} ? ${#strings.substring(sensor.devEui,0,4)} + '••••••••' + ${#strings.substring(sensor.devEui,#strings.length(sensor.devEui)-4)} : '--'">--</span>
-
-            <b>JoinEUI</b>
-            <span th:text="${#strings.length(sensor.joinEui) > 0} ? ${#strings.substring(sensor.joinEui,0,4)} + '••••••••' + ${#strings.substring(sensor.joinEui,#strings.length(sensor.joinEui)-4)} : '--'">--</span>
-
-            <!-- Par sécurité, on n’affiche PAS l’AppKey en clair -->
-            <b>AppKey</b>
-            <span th:text="${#strings.length(sensor.appKey) > 0} ? '••••••••••••••••' : '--'">--</span>
+    <!-- Données dynamiques (live) -->
+    <section class="info-grid" style="margin-top:20px;">
+        <div id="card-occupancy" class="card">
+            <h4 id="label-occupancy">Live Occupancy</h4>
+            <p><span id="s-occupancy" class="badge">--</span></p>
         </div>
-    </section>
 
-    <!-- Emplacements charts (statiques / “à venir”) -->
-    <section class="chart-grid" style="margin-top:20px;">
-        <div class="card">
-            <h4>RSSI</h4>
-            <div class="empty-state">Pas de données en direct pour le moment.</div>
-            <!-- <canvas id="rssiChart"></canvas> -->
+        <div id="card-illum" class="card">
+            <h4 id="label-illum">Luminosity</h4>
+            <p><span id="s-illum" class="badge">--</span></p>
         </div>
-        <div class="card">
-            <h4>SNR</h4>
-            <div class="empty-state">Pas de données en direct pour le moment.</div>
-            <!-- <canvas id="snrChart"></canvas> -->
-        </div>
-        <div class="card">
+
+        <div id="card-batt" class="card">
             <h4>Battery</h4>
-            <div class="empty-state">Pas de données en direct pour le moment.</div>
-            <!-- <canvas id="batteryChart"></canvas> -->
+            <p><span id="s-batt" class="badge">--</span></p>
+        </div>
+
+        <!-- Ajouts -->
+        <div id="card-temp" class="card">
+            <h4>Temperature</h4>
+            <p><span id="s-temp" class="badge">--</span></p>
+        </div>
+
+        <div id="card-hum" class="card">
+            <h4>Humidity</h4>
+            <p><span id="s-hum" class="badge">--</span></p>
+        </div>
+
+        <div id="card-vdd" class="card">
+            <h4>VDD</h4>
+            <p><span id="s-vdd" class="badge">--</span></p>
+        </div>
+        <!-- /Ajouts -->
+
+        <div id="card-last" class="card">
+            <h4>Last seen</h4>
+            <p id="s-lastseen">--</p>
+        </div>
+
+        <div id="card-appdev" class="card">
+            <h4>App / Device</h4>
+            <p><span id="s-app">--</span> / <span id="s-device">--</span></p>
+        </div>
+
+        <div id="card-counters" class="card">
+            <h4>f_cnt / f_port</h4>
+            <p><span id="s-fcnt">--</span> / <span id="s-fport">--</span></p>
+        </div>
+
+        <div id="card-rxgw" class="card">
+            <h4>Gateway RX</h4>
+            <p id="s-rxgw">--</p>
+        </div>
+
+        <div id="card-rssi" class="card">
+            <h4>RSSI / SNR</h4>
+            <p><span id="s-rssi">--</span> / <span id="s-snr">--</span></p>
+        </div>
+
+        <div id="card-dr" class="card">
+            <h4>SF / BW / Freq</h4>
+            <p id="s-dr">--</p>
         </div>
     </section>
+
 </main>
+
+<script th:inline="javascript">
+    (function () {
+      const deviceId  = /*[[${sensor.idSensor}]]*/ '';
+      const gatewayId = /*[[${sensor.idGateway}]]*/ '';
+
+      // Affiche l'app/dev au chargement (sera écrasé par le DTO)
+      const appGuess = (gatewayId === 'leva-rpi-mantu') ? 'lorawan-network-mantu'
+                       : (gatewayId ? (gatewayId + '-appli') : '');
+      document.getElementById('s-app').textContent    = appGuess || '--';
+      document.getElementById('s-device').textContent = deviceId || '--';
+
+      if (!deviceId) { console.warn('deviceId manquant — SSE non lancé'); return; }
+
+      const $ = (id) => document.getElementById(id);
+      const show = (id, on) => { const el=$(id); if(el) el.classList.toggle('hidden', !on); };
+      const setBadge = (id, text, okIf=()=>false) => {
+        const el=$(id); if(!el) return;
+        el.textContent = (text == null ? '--' : String(text));
+        el.classList.remove('badge--ok','badge--warn');
+        if (okIf(String(text).toLowerCase())) el.classList.add('badge--ok');
+      };
+
+      const url = `/manage-sensors/monitoring/${encodeURIComponent(deviceId)}/stream`;
+      const es  = new EventSource(url);
+
+      es.onmessage = (evt) => {
+        if (!evt?.data) return;
+        let dto; try { dto = JSON.parse(evt.data); } catch(e) { return; }
+
+        // --- IDs / Profil
+        const ids = dto.ids || {};
+        const profile = (ids.profile || 'GENERIC');
+
+        // App / device réels du DTO
+        if (ids.application_id) $('s-app').textContent = ids.application_id;
+        if (ids.device_id)      $('s-device').textContent = ids.device_id;
+
+        // --- Payload normalisé
+        const p = dto.payload || {};
+
+        // Presence
+        if (p.presence !== undefined) {
+          $('label-occupancy').textContent = (profile === 'PIR_LIGHT') ? 'PIR' : 'Occupancy';
+          setBadge('s-occupancy', p.presence, v => ['occupied','motion','1','true'].includes(String(v).toLowerCase()));
+          show('card-occupancy', true);
+        } else {
+          show('card-occupancy', false);
+        }
+
+        // Light
+        if (p.light !== undefined) {
+          $('label-illum').textContent = (profile === 'PIR_LIGHT') ? 'Daylight' : 'Illuminance';
+          setBadge('s-illum', p.light, v => ['bright','daylight'].includes(String(v).toLowerCase()));
+          show('card-illum', true);
+        } else {
+          show('card-illum', false);
+        }
+
+        // Battery
+        if (typeof p['battery (%)'] === 'number') {
+          $('s-batt').textContent = `${Math.round(p['battery (%)'])} %`;
+          show('card-batt', true);
+        } else {
+          show('card-batt', false);
+        }
+
+        // Temperature
+        if (typeof p['temperature (°C)'] === 'number') {
+          $('s-temp').textContent = `${p['temperature (°C)']} °C`;
+          show('card-temp', true);
+        } else {
+          show('card-temp', false);
+        }
+
+        // Humidity
+        if (typeof p['humidity (%)'] === 'number') {
+          $('s-hum').textContent = `${p['humidity (%)']} %`;
+          show('card-hum', true);
+        } else {
+          show('card-hum', false);
+        }
+
+        // VDD
+        if (typeof p['vdd (mV)'] === 'number') {
+          $('s-vdd').textContent = `${p['vdd (mV)']} mV`;
+          show('card-vdd', true);
+        } else {
+          show('card-vdd', false);
+        }
+
+        // --- Link / radio
+        const link = dto.link || {};
+        if (dto.timestamp) {
+          $('s-lastseen').textContent = new Date(dto.timestamp).toLocaleString();
+          show('card-last', true);
+        }
+
+        $('s-fcnt').textContent  = link.f_cnt  ?? '--';
+        $('s-fport').textContent = link.f_port ?? '--';
+        show('card-counters', true);
+
+        $('s-rxgw').textContent = link.gateway_id ?? '--';
+        show('card-rxgw', true);
+
+        $('s-rssi').textContent = (link['rssi (dBm)'] != null) ? `${link['rssi (dBm)']} dBm` : '--';
+        $('s-snr').textContent  = (link['snr (dB)']   != null) ? `${link['snr (dB)']} dB`   : '--';
+        show('card-rssi', true);
+
+        const sf   = link.sf || null;
+        const bw   = (link['bw (kHz)'] != null) ? `${link['bw (kHz)']} kHz` : null;
+        const cr   = link.coding_rate || null;
+        const freq = (link['frequency (MHz)'] != null) ? `${link['frequency (MHz)']} MHz` : null;
+        const drLine = [sf, bw, cr, freq].filter(Boolean).join(' / ');
+        if (drLine) { $('s-dr').textContent = drLine; show('card-dr', true); } else { show('card-dr', false); }
+      };
+
+      es.onerror = (err) => { console.error('SSE sensor error:', err); };
+      window.addEventListener('beforeunload', () => es.close());
+    })();
+</script>
 
 </body>
 </html>
-
