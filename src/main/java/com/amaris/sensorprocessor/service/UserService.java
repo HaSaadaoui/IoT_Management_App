@@ -34,6 +34,10 @@ public class UserService {
         // Encoder le mot de passe avant sauvegarde
         String encodedPassword = passwordEncoder.encode(user.getPassword());
         user.setPassword(encodedPassword);
+        // Set default icon if missing
+        if (user.getIcon() == null || user.getIcon().isBlank()) {
+            user.setIcon("/image/default-avatar.png");
+        }
 
         return userDao.insertUser(user);
     }

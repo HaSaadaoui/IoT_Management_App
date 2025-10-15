@@ -77,9 +77,11 @@ body {
 /*** *** home.html *** ***/
 .main-container {
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
     align-items: center;
-    padding-top: 35px;
+    padding-top: 120px;
+    padding-bottom: 120px;
+    padding-right: 70px; 
 }
 
 .dashboard-container {

@@ -187,18 +187,19 @@ CREATE TABLE Users (
     lastname VARCHAR(50) NOT NULL,
     password VARCHAR(50) NOT NULL,
     role VARCHAR(20) NOT NULL,
-    email VARCHAR(100) NOT NULL
+    email VARCHAR(100) NOT NULL,
+    icon VARCHAR(100) DEFAULT 'default-avatar.png'
 );
 
 -- Insertion des valeurs dans la table Users
-INSERT INTO Users (username, firstname, lastname, password, role, email) VALUES
-('user1', 'John', 'Doe', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'ADMIN', 'john.doe@example.com'),
-('user2', 'Jane', 'Smith', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'USER', 'jane.smith@example.com'),
-('user3', 'Alice', 'Johnson', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'SUPERUSER', 'alice.johnson@example.com'),
-('user4', 'Bob', 'Brown', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'USER', 'bob.brown@example.com'),
-('user5', 'Charlie', 'Davis', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'ADMIN', 'charlie.davis@example.com'),
-('user6', 'David', 'Wilson', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'USER', 'david.wilson@example.com'),
-('user7', 'Eva', 'Martinez', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'SUPERUSER', 'eva.martinez@example.com'),
-('user8', 'Frank', 'Taylor', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'USER', 'frank.taylor@example.com'),
-('user9', 'Grace', 'Anderson', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'SUPERUSER', 'grace.anderson@example.com'),
-('user10', 'Hannah', 'Thomas', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'ADMIN', 'hannah.thomas@example.com');
+INSERT INTO Users (username, firstname, lastname, password, role, email, icon) VALUES
+('user1', 'John', 'Doe', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'ADMIN', 'john.doe@example.com', 'default-avatar.png'),
+('user2', 'Jane', 'Smith', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'USER', 'jane.smith@example.com', 'default-avatar.png'),
+('user3', 'Alice', 'Johnson', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'SUPERUSER', 'alice.johnson@example.com', 'default-avatar.png'),
+('user4', 'Bob', 'Brown', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'USER', 'bob.brown@example.com', 'default-avatar.png'),
+('user5', 'Charlie', 'Davis', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'ADMIN', 'charlie.davis@example.com', 'default-avatar.png'),
+('user6', 'David', 'Wilson', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'USER', 'david.wilson@example.com', 'default-avatar.png'),
+('user7', 'Eva', 'Martinez', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'SUPERUSER', 'eva.martinez@example.com', 'default-avatar.png'),
+('user8', 'Frank', 'Taylor', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'USER', 'frank.taylor@example.com', 'default-avatar.png'),
+('user9', 'Grace', 'Anderson', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'SUPERUSER', 'grace.anderson@example.com', 'default-avatar.png'),
+('user10', 'Hannah', 'Thomas', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'ADMIN', 'hannah.thomas@example.com', 'default-avatar.png');

@@ -4,6 +4,7 @@ body {
     height: 100vh;
     margin: 0;
     background-repeat: no-repeat;
+    background-position: center -50px;
 }
 
 .password-container {
@@ -39,3 +40,15 @@ body {
 .register-link a:hover {
     text-decoration: underline;
 }
+
+
+/* Home footer style */
+.app-footer {
+    border-top: 1px solid #fff; /* white border */
+    height: 60px;               /* adjust to match header height */
+    background: transparent;    /* or white if you prefer */
+  }
+  
+  body.home-page .app-footer {
+    display: block;
+  }

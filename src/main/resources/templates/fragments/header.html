@@ -16,14 +16,6 @@
             </svg>
         </a>
         <div class="header-right">
-            <div class="header-user">
-                <a th:href="@{/users/{username}(username=${loggedUsername})}" class="header-link">
-                    <img th:src="${user.icon}"
-                         class="header-avatar"
-                         alt="User Avatar"
-                         width="32" height="32">
-                </a>
-            </div>
             <div class="dropdown">
                 <!-- Bouton pour ouvrir le menu -->
                 <button onclick="toggleMenu()" class="menu-btn" aria-label="Menu">
@@ -68,6 +60,14 @@
                         </button>
                     </form>
                 </div>
+            </div>
+            <div class="header-user">
+                <a th:href="@{/users/{username}(username=${loggedUsername})}" class="header-link">
+                    <img th:src="${user.icon}"
+                         class="header-avatar"
+                         alt="User Avatar"
+                         width="32" height="32">
+                </a>
             </div>
         </div>
     </header>
