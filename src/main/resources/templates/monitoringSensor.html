@@ -4,20 +4,30 @@
     <meta charset="UTF-8"/>
     <title th:text="'Sensor Monitoring - ' + ${sensor.idSensor}">Sensor Monitoring</title>
     <link rel="stylesheet" href="/css/styles.css"/>
-    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
+    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}"/>
     <link rel="stylesheet" href="/css/monitoringGateway.css"/>
     <style>
-        .empty-state { opacity:.7; font-style:italic; }
-        .kv { display:grid; grid-template-columns:160px 1fr; gap:6px 16px; }
-        .kv b { color:#444; }
-        .badge { padding:4px 8px; border-radius:8px; background:#ddd; }
+        .info-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:14px; }
+        .card { background:#fff; border-radius:12px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+        .badge { padding:4px 8px; border-radius:8px; background:#ddd; display:inline-block; }
         .badge--ok { background:#1f9d55; color:white; }
-        .badge--warn { background:#f59e0b; color:black; }
-        .hidden { display:none !important; }
+        .badge--off { background:#9ca3af; color:white; }
+        .section-title { margin-top:22px; margin-bottom:8px; font-weight:600; color:#374151; }
     </style>
+
+    <!-- Variables servies côté serveur pour le JS (data-* sur <html>) -->
+    <script th:inline="javascript">
+        document.documentElement.dataset.deviceId  = /*[[${sensor.idSensor}]]*/ '';
+        document.documentElement.dataset.gatewayId = /*[[${sensor.idGateway}]]*/ '';
+        document.documentElement.dataset.devType   = /*[[${sensor.deviceType}]]*/ '';
+        document.documentElement.dataset.sseToken  = /*[[${sseToken}]]*/ '';
+    </script>
+
+    <!-- JS séparé -->
+    <script src="/javascript/monitoringSensor.js" defer></script>
 </head>
 
-<body>
+<body data-page="monitoringSensor">
 <div th:replace="fragments/header :: appHeader(pageTitle='My profile', homeUrl=@{/})"></div>
 
 <header th:text="${sensor.deviceType} ?: ${sensor.idSensor}">Sensor</header>
@@ -67,193 +77,203 @@
             <p th:text="${sensor.frequencyPlan} ?: '--'">--</p></div>
     </section>
 
-    <!-- Données dynamiques (live) -->
-    <section class="info-grid" style="margin-top:20px;">
-        <div id="card-occupancy" class="card">
-            <h4 id="label-occupancy">Live Occupancy</h4>
-            <p><span id="s-occupancy" class="badge">--</span></p>
-        </div>
+    <!-- Live data PAR TYPE (structure fixe rendue côté serveur) -->
+    <h3 class="section-title">Live data</h3>
 
-        <div id="card-illum" class="card">
-            <h4 id="label-illum">Luminosity</h4>
-            <p><span id="s-illum" class="badge">--</span></p>
-        </div>
-
-        <div id="card-batt" class="card">
+    <!-- COUNT -->
+    <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'COUNT')}">
+        <div class="card">
             <h4>Battery</h4>
-            <p><span id="s-batt" class="badge">--</span></p>
+            <p><span id="s-count-batt" class="badge">--</span></p>
         </div>
+        <div class="card">
+            <h4>Period IN</h4>
+            <p><span id="s-count-in" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>Period OUT</h4>
+            <p><span id="s-count-out" class="badge">--</span></p>
+        </div>
+    </section>
 
-        <!-- Ajouts -->
-        <div id="card-temp" class="card">
+    <!-- OCCUP -->
+    <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'OCCUP')}">
+        <div class="card">
+            <h4>Occupancy</h4>
+            <p><span id="s-occup-presence" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>Illuminance</h4>
+            <p><span id="s-occup-illum" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>Battery</h4>
+            <p><span id="s-occup-batt" class="badge">--</span></p>
+        </div>
+    </section>
+
+    <!-- TEMPEX -->
+    <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'TEMPEX')}">
+        <div class="card">
             <h4>Temperature</h4>
-            <p><span id="s-temp" class="badge">--</span></p>
+            <p><span id="s-tempex-temp" class="badge">--</span></p>
         </div>
-
-        <div id="card-hum" class="card">
+        <div class="card">
             <h4>Humidity</h4>
-            <p><span id="s-hum" class="badge">--</span></p>
+            <p><span id="s-tempex-hum" class="badge">--</span></p>
         </div>
+    </section>
 
-        <div id="card-vdd" class="card">
+    <!-- PIR_LIGHT -->
+    <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'PIR_LIGHT')}">
+        <div class="card">
+            <h4>PIR</h4>
+            <p><span id="s-pir-presence" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>Daylight</h4>
+            <p><span id="s-pir-daylight" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>Battery</h4>
+            <p><span id="s-pir-batt" class="badge">--</span></p>
+        </div>
+    </section>
+
+    <!-- DESK -->
+    <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'DESK')}">
+        <div class="card">
+            <h4>Temperature</h4>
+            <p><span id="s-desk-temp" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>Humidity</h4>
+            <p><span id="s-desk-hum" class="badge">--</span></p>
+        </div>
+        <div class="card">
             <h4>VDD</h4>
-            <p><span id="s-vdd" class="badge">--</span></p>
+            <p><span id="s-desk-vdd" class="badge">--</span></p>
         </div>
-        <!-- /Ajouts -->
+    </section>
 
-        <div id="card-last" class="card">
+    <!-- CO2 -->
+    <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'CO2')}">
+        <div class="card">
+            <h4>CO₂</h4>
+            <p><span id="s-co2-ppm" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>Temperature</h4>
+            <p><span id="s-co2-temp" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>Humidity</h4>
+            <p><span id="s-co2-hum" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>VDD</h4>
+            <p><span id="s-co2-vdd" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>Light</h4>
+            <p><span id="s-co2-light" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>Motion</h4>
+            <p><span id="s-co2-motion" class="badge">--</span></p>
+        </div>
+    </section>
+
+    <!-- SON -->
+    <section class="info-grid"
+             th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'SON')}">
+        <div class="card">
+            <h4>LAeq</h4>
+            <p><span id="s-sound-laeq" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>LAI</h4>
+            <p><span id="s-sound-lai" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>LAImax</h4>
+            <p><span id="s-sound-laimax" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>Battery</h4>
+            <p><span id="s-sound-batt" class="badge">--</span></p>
+        </div>
+    </section>
+
+    <!-- EYE -->
+    <section class="info-grid"
+             th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'EYE')}">
+        <div class="card">
+            <h4>Temperature</h4>
+            <p><span id="s-eye-temp" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>Humidity</h4>
+            <p><span id="s-eye-hum" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>Light</h4>
+            <p><span id="s-eye-light" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>Presence</h4>
+            <p><span id="s-eye-presence" class="badge">--</span></p>
+        </div>
+        <div class="card">
+            <h4>VDD</h4>
+            <p><span id="s-eye-vdd" class="badge">--</span></p>
+        </div>
+    </section>
+
+    <!-- GENERIC (fallback) -->
+    <section class="info-grid"
+             th:if="${!(#strings.equalsIgnoreCase(sensor.deviceType,'COUNT')
+                or #strings.equalsIgnoreCase(sensor.deviceType,'OCCUP')
+                or #strings.equalsIgnoreCase(sensor.deviceType,'PIR_LIGHT')
+                or #strings.equalsIgnoreCase(sensor.deviceType,'DESK')
+                or #strings.equalsIgnoreCase(sensor.deviceType,'CO2')
+                or #strings.equalsIgnoreCase(sensor.deviceType,'TEMPEX'))}">
+        <div class="card">
+            <h4>Battery</h4>
+            <p><span id="s-gen-batt" class="badge">--</span></p>
+        </div>
+    </section>
+
+    <!-- Bloc Réseau / Radio -->
+    <h3 class="section-title">Network / Radio</h3>
+    <section id="net-grid" class="info-grid">
+        <div class="card">
             <h4>Last seen</h4>
-            <p id="s-lastseen">--</p>
+            <p><span id="s-last" class="badge">--</span></p>
         </div>
-
-        <div id="card-appdev" class="card">
+        <div class="card">
             <h4>App / Device</h4>
-            <p><span id="s-app">--</span> / <span id="s-device">--</span></p>
+            <p><span id="s-app" class="badge">--</span> / <span id="s-device" class="badge">--</span></p>
         </div>
-
-        <div id="card-counters" class="card">
+        <div class="card">
             <h4>f_cnt / f_port</h4>
-            <p><span id="s-fcnt">--</span> / <span id="s-fport">--</span></p>
+            <p><span id="s-fcnt" class="badge">--</span> / <span id="s-fport" class="badge">--</span></p>
         </div>
-
-        <div id="card-rxgw" class="card">
+        <div class="card">
             <h4>Gateway RX</h4>
-            <p id="s-rxgw">--</p>
+            <p><span id="s-rxgw" class="badge">--</span></p>
         </div>
-
-        <div id="card-rssi" class="card">
+        <div class="card">
             <h4>RSSI / SNR</h4>
-            <p><span id="s-rssi">--</span> / <span id="s-snr">--</span></p>
+            <p><span id="s-rssi" class="badge">--</span> / <span id="s-snr" class="badge">--</span></p>
         </div>
-
-        <div id="card-dr" class="card">
+        <div class="card">
             <h4>SF / BW / Freq</h4>
-            <p id="s-dr">--</p>
+            <p><span id="s-dr" class="badge">--</span></p>
         </div>
     </section>
 
 </main>
-
-<script th:inline="javascript">
-    (function () {
-      const deviceId  = /*[[${sensor.idSensor}]]*/ '';
-      const gatewayId = /*[[${sensor.idGateway}]]*/ '';
-
-      // Affiche l'app/dev au chargement (sera écrasé par le DTO)
-      const appGuess = (gatewayId === 'leva-rpi-mantu') ? 'lorawan-network-mantu'
-                       : (gatewayId ? (gatewayId + '-appli') : '');
-      document.getElementById('s-app').textContent    = appGuess || '--';
-      document.getElementById('s-device').textContent = deviceId || '--';
-
-      if (!deviceId) { console.warn('deviceId manquant — SSE non lancé'); return; }
-
-      const $ = (id) => document.getElementById(id);
-      const show = (id, on) => { const el=$(id); if(el) el.classList.toggle('hidden', !on); };
-      const setBadge = (id, text, okIf=()=>false) => {
-        const el=$(id); if(!el) return;
-        el.textContent = (text == null ? '--' : String(text));
-        el.classList.remove('badge--ok','badge--warn');
-        if (okIf(String(text).toLowerCase())) el.classList.add('badge--ok');
-      };
-
-      const url = `/manage-sensors/monitoring/${encodeURIComponent(deviceId)}/stream`;
-      const es  = new EventSource(url);
-
-      es.onmessage = (evt) => {
-        if (!evt?.data) return;
-        let dto; try { dto = JSON.parse(evt.data); } catch(e) { return; }
-
-        // --- IDs / Profil
-        const ids = dto.ids || {};
-        const profile = (ids.profile || 'GENERIC');
-
-        // App / device réels du DTO
-        if (ids.application_id) $('s-app').textContent = ids.application_id;
-        if (ids.device_id)      $('s-device').textContent = ids.device_id;
-
-        // --- Payload normalisé
-        const p = dto.payload || {};
-
-        // Presence
-        if (p.presence !== undefined) {
-          $('label-occupancy').textContent = (profile === 'PIR_LIGHT') ? 'PIR' : 'Occupancy';
-          setBadge('s-occupancy', p.presence, v => ['occupied','motion','1','true'].includes(String(v).toLowerCase()));
-          show('card-occupancy', true);
-        } else {
-          show('card-occupancy', false);
-        }
-
-        // Light
-        if (p.light !== undefined) {
-          $('label-illum').textContent = (profile === 'PIR_LIGHT') ? 'Daylight' : 'Illuminance';
-          setBadge('s-illum', p.light, v => ['bright','daylight'].includes(String(v).toLowerCase()));
-          show('card-illum', true);
-        } else {
-          show('card-illum', false);
-        }
-
-        // Battery
-        if (typeof p['battery (%)'] === 'number') {
-          $('s-batt').textContent = `${Math.round(p['battery (%)'])} %`;
-          show('card-batt', true);
-        } else {
-          show('card-batt', false);
-        }
-
-        // Temperature
-        if (typeof p['temperature (°C)'] === 'number') {
-          $('s-temp').textContent = `${p['temperature (°C)']} °C`;
-          show('card-temp', true);
-        } else {
-          show('card-temp', false);
-        }
-
-        // Humidity
-        if (typeof p['humidity (%)'] === 'number') {
-          $('s-hum').textContent = `${p['humidity (%)']} %`;
-          show('card-hum', true);
-        } else {
-          show('card-hum', false);
-        }
-
-        // VDD
-        if (typeof p['vdd (mV)'] === 'number') {
-          $('s-vdd').textContent = `${p['vdd (mV)']} mV`;
-          show('card-vdd', true);
-        } else {
-          show('card-vdd', false);
-        }
-
-        // --- Link / radio
-        const link = dto.link || {};
-        if (dto.timestamp) {
-          $('s-lastseen').textContent = new Date(dto.timestamp).toLocaleString();
-          show('card-last', true);
-        }
-
-        $('s-fcnt').textContent  = link.f_cnt  ?? '--';
-        $('s-fport').textContent = link.f_port ?? '--';
-        show('card-counters', true);
-
-        $('s-rxgw').textContent = link.gateway_id ?? '--';
-        show('card-rxgw', true);
-
-        $('s-rssi').textContent = (link['rssi (dBm)'] != null) ? `${link['rssi (dBm)']} dBm` : '--';
-        $('s-snr').textContent  = (link['snr (dB)']   != null) ? `${link['snr (dB)']} dB`   : '--';
-        show('card-rssi', true);
-
-        const sf   = link.sf || null;
-        const bw   = (link['bw (kHz)'] != null) ? `${link['bw (kHz)']} kHz` : null;
-        const cr   = link.coding_rate || null;
-        const freq = (link['frequency (MHz)'] != null) ? `${link['frequency (MHz)']} MHz` : null;
-        const drLine = [sf, bw, cr, freq].filter(Boolean).join(' / ');
-        if (drLine) { $('s-dr').textContent = drLine; show('card-dr', true); } else { show('card-dr', false); }
-      };
-
-      es.onerror = (err) => { console.error('SSE sensor error:', err); };
-      window.addEventListener('beforeunload', () => es.close());
-    })();
-</script>
 
 </body>
 </html>

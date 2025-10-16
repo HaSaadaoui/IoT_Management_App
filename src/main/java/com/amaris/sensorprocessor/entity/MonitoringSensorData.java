@@ -6,31 +6,25 @@ import lombok.Data;
 
 import java.time.Instant;
 import java.util.Map;
-
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MonitoringSensorData {
 
     /** Horodatage ISO de la dernière trame */
-    private String timestamp; // ex: Instant.now().toString()
+    private String timestamp;
 
-    /** Identifiants du device / application */
     @JsonProperty("ids")
     private Ids ids;
 
-    /** Infos radio / link-level (data rate, RSSI/SNR, fréquence, etc.) */
     @JsonProperty("link")
     private LinkInfo link;
 
-    /** Charge utile normalisée pour l’UI (quel que soit le capteur) */
     @JsonProperty("payload")
     private Payload payload;
 
-    /** Infos réseau TTN (facultatif, utile pour debug) */
     @JsonProperty("network")
     private NetworkInfo network;
 
-    /** Copie minimale brute pour debug (decoded_payload, frm_payload, etc.) */
     @JsonProperty("raw")
     private Raw raw;
 
@@ -39,65 +33,43 @@ public class MonitoringSensorData {
     @Data
     public static class Ids {
         @JsonProperty("application_id")
-        private String applicationId;   // ex: rpi-mantu-appli
-
+        private String applicationId;
         @JsonProperty("device_id")
-        private String deviceId;        // ex: pir-light-01-01
-
+        private String deviceId;
         @JsonProperty("dev_eui")
         private String devEui;
-
         @JsonProperty("join_eui")
         private String joinEui;
-
         @JsonProperty("dev_addr")
         private String devAddr;
-
-        /** Profil déduit (ex: PIR_LIGHT / VS70_OCCUPANCY / DESK_TEXT / GENERIC) */
         @JsonProperty("profile")
         private String profile;
     }
 
     @Data
     public static class LinkInfo {
-        /* Compteurs LoRaWAN */
         @JsonProperty("f_port")
         private Integer fPort;
-
         @JsonProperty("f_cnt")
         private Integer fCnt;
-
-        /* Radio : qualité de réception */
         @JsonProperty("gateway_id")
         private String gatewayId;
-
         @JsonProperty("rssi (dBm)")
         private Double rssi;
-
         @JsonProperty("snr (dB)")
         private Double snr;
-
-        /* Data rate / fréquence */
         @JsonProperty("sf")
-        private String spreadingFactor; // ex: "SF7"
-
+        private String spreadingFactor;
         @JsonProperty("bw (kHz)")
-        private Integer bandwidthKhz;   // ex: 125
-
+        private Integer bandwidthKhz;
         @JsonProperty("coding_rate")
-        private String codingRate;      // ex: "4/5"
-
+        private String codingRate;
         @JsonProperty("frequency (MHz)")
-        private Double frequencyMhz;    // ex: 867.1
-
-        /* Divers */
+        private Double frequencyMhz;
         @JsonProperty("airtime")
-        private String consumedAirtime; // ex: "0.056576s"
-
+        private String consumedAirtime;
         @JsonProperty("channel_index")
         private Integer channelIndex;
-
-        /* Localisation de la GW qui a reçu (si dispo) */
         @JsonProperty("location")
         private Location location;
 
@@ -106,7 +78,7 @@ public class MonitoringSensorData {
             private Double latitude;
             private Double longitude;
             private Integer altitude;
-            private String source;      // ex: SOURCE_REGISTRY
+            private String source;
         }
     }
 
@@ -120,6 +92,7 @@ public class MonitoringSensorData {
          *  - temperature (°C)
          *  - humidity (%)
          *  - vdd (mV)
+         *  - period_in / period_out : temps (s) ou compteurs selon capteur
          */
         @JsonProperty("presence")
         private Object presence;
@@ -133,43 +106,52 @@ public class MonitoringSensorData {
         @JsonProperty("temperature (°C)")
         private Double temperature;
 
+        @JsonProperty("co2 (ppm)")
+        private Double co2Ppm;
+
+        @JsonProperty("LAeq (dB)")
+        private Double laeqDb;
+
+        @JsonProperty("LAI (dB)")
+        private Double laiDb;
+
+        @JsonProperty("LAImax (dB)")
+        private Double laiMaxDb;
+
         @JsonProperty("humidity (%)")
         private Double humidity;
 
         @JsonProperty("vdd (mV)")
         private Double vdd;
+
+        @JsonProperty("period_in")
+        private Double periodIn;
+
+        @JsonProperty("period_out")
+        private Double periodOut;
     }
 
     @Data
     public static class NetworkInfo {
         @JsonProperty("net_id")
         private String netId;
-
         @JsonProperty("ns_id")
         private String nsId;
-
         @JsonProperty("tenant_id")
         private String tenantId;
-
         @JsonProperty("cluster_id")
         private String clusterId;
-
         @JsonProperty("cluster_address")
         private String clusterAddress;
     }
 
     @Data
     public static class Raw {
-        /** Payload TTN décodé brut (clé/valeurs tels que TTN les fournit) */
         @JsonProperty("decoded_payload")
         private Map<String, Object> decodedPayload;
-
-        /** Base64 du payload non décodé (frm_payload) */
         @JsonProperty("frm_payload_b64")
         private String frmPayloadBase64;
     }
-
-    /* ===================== Helpers (facultatif) ===================== */
 
     public static MonitoringSensorData now() {
         MonitoringSensorData d = new MonitoringSensorData();

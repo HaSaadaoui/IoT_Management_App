@@ -11,7 +11,7 @@ import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BeanPropertyBindingResult;
@@ -19,6 +19,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -26,6 +27,7 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -79,10 +81,7 @@ public class SensorController {
                             BindingResult bindingResult,
                             Model model) {
 
-        // On garde l'objet soumis
         model.addAttribute(SENSOR_ADD, sensor);
-
-        // -------- Validations (comme manage-gateways) --------
 
         // device_id (TTN)
         if (isBlank(sensor.getIdSensor())) {
@@ -103,7 +102,7 @@ public class SensorController {
             bindingResult.addError(new FieldError(SENSOR_ADD, "floor", "Floor is required"));
         }
 
-        // Gateway obligatoire (sinon pas d’app TTN ni de FP)
+        // Gateway obligatoire
         if (isBlank(sensor.getIdGateway())) {
             bindingResult.addError(new FieldError(SENSOR_ADD, "idGateway", "Gateway is required"));
         }
@@ -119,13 +118,12 @@ public class SensorController {
             bindingResult.addError(new FieldError(SENSOR_ADD, "appKey", "AppKey must be 32 hex characters"));
         }
 
-        // Frequency plan : si vide, le déduire de la gateway sélectionnée
+        // Frequency plan : si vide, déduire de la gateway
         if (isBlank(sensor.getFrequencyPlan()) && !isBlank(sensor.getIdGateway())) {
             Optional<Gateway> gw = gatewayService.findById(sensor.getIdGateway());
             gw.ifPresent(g -> sensor.setFrequencyPlan(g.getFrequencyPlan()));
         }
 
-        // Si erreurs → on renvoie la page avec le binding (comme gateways)
         if (bindingResult.hasErrors()) {
             prepareModel(model);
             model.addAttribute(Constants.BINDING_SENSOR_ADD, bindingResult);
@@ -133,18 +131,15 @@ public class SensorController {
             return Constants.PAGE_MANAGE_SENSORS;
         }
 
-        // -------- Service
         try {
             sensorService.create(sensor);
         } catch (IllegalArgumentException | IllegalStateException e) {
-            // exemple : "idSensor already exists", etc.
             bindingResult.addError(new FieldError(SENSOR_ADD, "idSensor", e.getMessage()));
             prepareModel(model);
             model.addAttribute(Constants.BINDING_SENSOR_ADD, bindingResult);
             model.addAttribute(ERROR_ADD, e.getMessage());
             return Constants.PAGE_MANAGE_SENSORS;
         } catch (Exception e) {
-            // ex: erreur TTN/DB générique
             log.error("[Sensors] Add failed", e);
             prepareModel(model);
             model.addAttribute(ERROR_ADD, Constants.DATABASE_PROBLEM);
@@ -156,25 +151,29 @@ public class SensorController {
     }
 
     @GetMapping("/manage-sensors/monitoring/{idSensor}")
-    public String monitorSensor(@PathVariable String idSensor, Model model, Principal principal) {
+    public String monitorSensor(@PathVariable String idSensor, Model model, Principal principal, HttpSession session) {
         Sensor s = sensorService.getOrThrow(idSensor);
         model.addAttribute("sensor", s);
 
         gatewayService.findById(s.getIdGateway()).ifPresent(gw -> {
-            // Label par défaut = gatewayId ; tu peux le rendre plus parlant si tu as un buildingName
             String label = (gw.getBuildingName() != null && !gw.getBuildingName().isBlank())
                     ? gw.getBuildingName() + " (" + gw.getGatewayId() + ")"
                     : gw.getGatewayId();
 
-            model.addAttribute("gatewayName", label);          // <-- remplace l'ancien getGatewayName()
-            model.addAttribute("gatewayIp", gw.getIpAddress()); // <-- remplace ipLocal/ipPublic
+            model.addAttribute("gatewayName", label);
+            model.addAttribute("gatewayIp", gw.getIpAddress());
         });
+
+        // --- Token SSE par session + capteur (évite les appels hors page)
+        String sseToken = UUID.randomUUID().toString();
+        session.setAttribute("SSE_TOKEN__" + idSensor, sseToken);
+        model.addAttribute("sseToken", sseToken);
+
         User user = userService.searchUserByUsername(principal.getName());
         model.addAttribute("user", user);
         model.addAttribute("loggedUsername", user.getUsername());
-        return "monitoringSensor"; // ou ta constante si tu en as une
+        return "monitoringSensor";
     }
-
 
     @GetMapping("/manage-sensors/add")
     public String handleAddGet() {
@@ -259,23 +258,26 @@ public class SensorController {
         return redirectWithTimestamp();
     }
 
-
     @GetMapping(value = "/manage-sensors/monitoring/{idSensor}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter streamSensor(@PathVariable String idSensor, HttpSession session) {
-        // 1) Récupère le capteur
+    public SseEmitter streamSensor(@PathVariable String idSensor,
+                                   @RequestParam(name = "token") String token,
+                                   HttpSession session) {
+        // --- Vérif token SSE : empêche les appels “fantômes”
+        String expected = (String) session.getAttribute("SSE_TOKEN__" + idSensor);
+        if (expected == null || !expected.equals(token)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid SSE token");
+        }
+
         Sensor sensor = sensorService.getOrThrow(idSensor);
 
-        // 2) Déduis l'app TTN à partir de la gateway (règle par défaut + cas particulier)
         String appId = gatewayService.findById(sensor.getIdGateway())
                 .map(Gateway::getGatewayId)
-                .map(gid -> "leva-rpi-mantu".equals(gid) ? "lorawan-network-mantu" : gid + "-appli")
+                .map(gid -> "leva-rpi-mantu".equalsIgnoreCase(gid) ? "lorawan-network-mantu" : gid + "-appli")
                 .orElseThrow(() -> new IllegalStateException("Gateway introuvable pour le capteur " + idSensor));
 
-        // 3) Thread unique par client
         String threadId = "sensor-" + idSensor + "-" + session.getId() + "-" + System.currentTimeMillis();
 
-        // 4) Emitter SSE côté MVC
-        SseEmitter emitter = new SseEmitter(3600000L);
+        SseEmitter emitter = new SseEmitter(3600000L); // 1h
 
         emitter.onCompletion(() -> sensorService.stopMonitoring(idSensor, threadId));
         emitter.onTimeout(() -> {
@@ -283,33 +285,28 @@ public class SensorController {
             emitter.complete();
         });
 
-        // 5) Abonnement au Flux<String> retourné par le microservice (8081), puis normalisation -> MonitoringSensorData
         var normalizer = new SensorEventNormalizer();
         var subscription = sensorService.getMonitoringData(appId, idSensor, threadId)
                 .map(json -> normalizer.normalizeToMonitoringSensorDataJson(json, appId, sensor))
                 .subscribe(
                         normalizedJson -> {
-                            try {
-                                emitter.send(normalizedJson);
-                            } catch (IOException e) {
-                                emitter.completeWithError(e);
-                            }
+                            try { emitter.send(normalizedJson); }
+                            catch (IOException e) { emitter.completeWithError(e); }
                         },
-                        emitter::completeWithError,
+                        err -> {
+                            log.error("[Sensors] SSE error for {}: {}", idSensor, err.toString());
+                            emitter.completeWithError(err);
+                        },
                         emitter::complete
                 );
 
-        // 6) Nettoyage
         emitter.onCompletion(subscription::dispose);
         emitter.onTimeout(subscription::dispose);
 
         return emitter;
     }
 
-
-
     /* ===================== PRIVÉS ===================== */
-
 
     private void prepareModel(Model model) {
         List<Sensor> sensors = sensorService.findAll();
@@ -317,7 +314,6 @@ public class SensorController {
         model.addAttribute("sensors", sensors);
         model.addAttribute("gateways", gateways);
 
-        // Liste unique et triée des noms de bâtiments (strings simples)
         List<String> buildings = Stream.concat(
                         sensors.stream().map(Sensor::getBuildingName),
                         gateways.stream().map(Gateway::getBuildingName)
@@ -336,7 +332,6 @@ public class SensorController {
         }
     }
 
-
     private String redirectWithTimestamp() {
         return "redirect:/manage-sensors?_=" + System.currentTimeMillis();
     }
@@ -345,179 +340,185 @@ public class SensorController {
         return s == null || s.trim().isEmpty();
     }
 
-    // --- Utilitaire minimal de normalisation (inline pour simplicité) ---
+    // --- Normalizer simple & lisible (profil = deviceType) ---
     static class SensorEventNormalizer {
         private final com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
 
-        @SuppressWarnings("unchecked")
         public String normalizeToMonitoringSensorDataJson(String json, String appId, Sensor sensor) {
             try {
-                var root = om.readValue(json, java.util.Map.class);
-                // TTN "events" mettent l'objet dans result ; storage uplink le met directement
-                var result = (java.util.Map<String, Object>) root.getOrDefault("result", root);
-                var up = (java.util.Map<String, Object>) result.getOrDefault("uplink_message", java.util.Map.of());
-                var rx = (java.util.List<java.util.Map<String, Object>>) up.getOrDefault("rx_metadata", java.util.List.of());
-                var rx0 = rx.isEmpty() ? java.util.Map.<String, Object>of() : rx.get(0);
-                var gwIds = (java.util.Map<String, Object>) ((java.util.Map<String, Object>) rx0.getOrDefault("gateway_ids", java.util.Map.of()));
-                var settings = (java.util.Map<String, Object>) up.getOrDefault("settings", java.util.Map.of());
-                var dataRate = (java.util.Map<String, Object>) settings.getOrDefault("data_rate", java.util.Map.of());
-                var lora = (java.util.Map<String, Object>) dataRate.getOrDefault("lora", java.util.Map.of());
-                var network = (java.util.Map<String, Object>) result.getOrDefault("network_ids", java.util.Map.of());
-                var endIds = (java.util.Map<String, Object>) result.getOrDefault("end_device_ids", java.util.Map.of());
+                var root   = om.readTree(json);
+                var result = root.has("result") ? root.get("result") : root;  // events vs storage
+                var up     = result.path("uplink_message");
+                var endIds = result.path("end_device_ids");
+                var rx0    = up.path("rx_metadata").isArray() && up.path("rx_metadata").size() > 0
+                        ? up.path("rx_metadata").get(0) : null;
+                var lora   = up.path("settings").path("data_rate").path("lora");
+                var netIds = up.path("network_ids");
+                var dp     = up.path("decoded_payload");
 
-                // decoded_payload : objet OU string concaténée → parse
-                Object decodedPayloadRaw = up.get("decoded_payload");
-                java.util.Map<String, Object> dp = parseDecodedPayload(decodedPayloadRaw);
+                String deviceId = textOr(endIds.path("device_id"), sensor.getIdSensor());
+                String profile  = sensor.getDeviceType() != null ? sensor.getDeviceType().toUpperCase() : "GENERIC";
 
-                // Profil par contenu puis fallback deviceType
-                String profile = detectProfile(dp, sensor.getDeviceType());
-
-                // Construire DTO
                 var dto = com.amaris.sensorprocessor.entity.MonitoringSensorData.now();
 
                 // ids
                 var ids = new com.amaris.sensorprocessor.entity.MonitoringSensorData.Ids();
                 ids.setApplicationId(appId);
-                ids.setDeviceId(String.valueOf(endIds.getOrDefault("device_id", sensor.getIdSensor())));
-                ids.setDevEui((String) endIds.get("dev_eui"));
-                ids.setJoinEui((String) endIds.get("join_eui"));
-                ids.setDevAddr((String) endIds.get("dev_addr"));
+                ids.setDeviceId(deviceId);
+                ids.setDevEui(textOr(endIds.path("dev_eui"), null));
+                ids.setJoinEui(textOr(endIds.path("join_eui"), null));
+                ids.setDevAddr(textOr(endIds.path("dev_addr"), null));
                 ids.setProfile(profile);
                 dto.setIds(ids);
 
                 // link
                 var link = new com.amaris.sensorprocessor.entity.MonitoringSensorData.LinkInfo();
-                link.setFPort(nInt(up.get("f_port")));
-                link.setFCnt(nInt(up.get("f_cnt")));
-                link.setGatewayId((String) gwIds.get("gateway_id"));
-                link.setRssi(nDbl(rx0.get("rssi") != null ? rx0.get("rssi") : rx0.get("channel_rssi")));
-                link.setSnr(nDbl(rx0.get("snr")));
-                Integer sf = nInt(lora.get("spreading_factor"));
-                link.setSpreadingFactor(sf != null ? "SF" + sf : null);
-                Integer bw = nInt(lora.get("bandwidth"));
-                link.setBandwidthKhz(bw != null ? (int) Math.round(bw / 1000.0) : null);
-                link.setCodingRate((String) lora.get("coding_rate"));
-                Double fHz = nDbl(settings.get("frequency"));
-                link.setFrequencyMhz(fHz != null ? fHz / 1e6 : null);
-                link.setConsumedAirtime((String) up.get("consumed_airtime"));
-                link.setChannelIndex(nInt(rx0.get("channel_index")));
-                // location
-                var locRaw = (java.util.Map<String, Object>) rx0.get("location");
-                if (locRaw != null) {
-                    var loc = new com.amaris.sensorprocessor.entity.MonitoringSensorData.LinkInfo.Location();
-                    loc.setLatitude(nDbl(locRaw.get("latitude")));
-                    loc.setLongitude(nDbl(locRaw.get("longitude")));
-                    loc.setAltitude(nInt(locRaw.get("altitude")));
-                    loc.setSource((String) locRaw.get("source"));
-                    link.setLocation(loc);
+                link.setFPort(intOrNull(up.path("f_port")));
+                link.setFCnt(intOrNull(up.path("f_cnt")));
+                if (rx0 != null) {
+                    link.setGatewayId(textOr(rx0.path("gateway_ids").path("gateway_id"), null));
+                    link.setRssi(numOrNull(rx0.has("rssi") ? rx0.path("rssi") : rx0.path("channel_rssi")));
+                    link.setSnr(numOrNull(rx0.path("snr")));
+                    link.setChannelIndex(intOrNull(rx0.path("channel_index")));
+                    var loc = rx0.path("location");
+                    if (!loc.isMissingNode()) {
+                        var L = new com.amaris.sensorprocessor.entity.MonitoringSensorData.LinkInfo.Location();
+                        L.setLatitude(numOrNull(loc.path("latitude")));
+                        L.setLongitude(numOrNull(loc.path("longitude")));
+                        L.setAltitude(intOrNull(loc.path("altitude")));
+                        L.setSource(textOr(loc.path("source"), null));
+                        link.setLocation(L);
+                    }
                 }
+                Integer sf = intOrNull(lora.path("spreading_factor"));
+                link.setSpreadingFactor(sf != null ? "SF" + sf : null);
+                Integer bwHz = intOrNull(lora.path("bandwidth"));
+                link.setBandwidthKhz(bwHz != null ? bwHz / 1000 : null);
+                link.setCodingRate(textOr(lora.path("coding_rate"), null));
+                Double fHz = numOrNull(up.path("settings").path("frequency"));
+                link.setFrequencyMhz(fHz != null ? fHz / 1e6 : null);
+                link.setConsumedAirtime(textOr(up.path("consumed_airtime"), null));
                 dto.setLink(link);
 
-                // payload normalisé
+                // payload — tri manuel par type
                 var payload = new com.amaris.sensorprocessor.entity.MonitoringSensorData.Payload();
-                // presence (occupancy ou pir si présent)
-                if (dp.containsKey("occupancy")) payload.setPresence(dp.get("occupancy"));
-                else if (dp.containsKey("pir")) payload.setPresence(dp.get("pir"));
+                switch (profile) {
+                    case "COUNT" -> {
+                        payload.setBattery(firstNumber(dp, "battery"));
+                        payload.setPeriodIn(firstNumber(dp, "period_in"));
+                        payload.setPeriodOut(firstNumber(dp, "period_out"));
+                    }
+                    case "CO2" -> {
+                        payload.setCo2Ppm(firstNumber(dp, "co2"));           // 864
+                        payload.setTemperature(firstNumber(dp, "temperature")); // 23.4
+                        payload.setHumidity(firstNumber(dp, "humidity"));       // 41
+                        payload.setVdd(firstNumber(dp, "vdd"));                 // 3677
+                        payload.setLight(firstAny(dp, "light"));                // 99
+                        Object motion = firstAny(dp, "motion");
+                        payload.setPresence(motion);
+                    }
+                    case "OCCUP" -> {
+                        payload.setPresence(firstAny(dp, "occupancy"));
+                        payload.setLight(firstAny(dp, "illuminance"));
+                        payload.setBattery(firstNumber(dp, "battery"));
+                    }
+                    case "TEMPEX" -> {
+                        payload.setTemperature(firstNumber(dp, "temperature"));
+                        payload.setHumidity(firstNumber(dp, "humidity"));
+                    }
 
-                // light (illuminance ou daylight)
-                if (dp.containsKey("illuminance")) payload.setLight(dp.get("illuminance"));
-                else if (dp.containsKey("daylight")) payload.setLight(dp.get("daylight"));
+                    case "PIR_LIGHT" -> {
+                        payload.setPresence(firstAny(dp, "pir"));
+                        payload.setLight(firstAny(dp, "daylight"));
+                        payload.setBattery(firstNumber(dp, "battery"));
+                    }
+                    case "EYE_SENSOR" -> {
+                        payload.setTemperature(firstNumber(dp, "temperature"));
+                        payload.setHumidity(firstNumber(dp, "humidity"));
+                        payload.setLight(firstAny(dp, "light"));
+                        Object motion = firstAny(dp, "motion");
+                        Object occupancy = firstAny(dp, "occupancy");
+                        payload.setPresence(motion != null ? motion : occupancy);
+                        payload.setVdd(firstNumber(dp, "vdd"));
+                    }
+                    case "SON" -> {
+                        payload.setLaiDb(firstNumber(dp, "LAI"));
+                        payload.setLaiMaxDb(firstNumber(dp, "LAImax"));
+                        payload.setLaeqDb(firstNumber(dp, "LAeq"));
+                        payload.setBattery(firstNumber(dp, "battery"));
+                    }
+                    case "DESK" -> {
+                        payload.setTemperature(firstNumber(dp, "temperature"));
+                        payload.setHumidity(firstNumber(dp, "humidity"));
+                        payload.setVdd(firstNumber(dp, "vdd"));
+                        payload.setBattery(firstNumber(dp, "battery"));
+                    }
 
-                // battery
-                Double batt = nDbl(dp.get("battery"));
-                if (batt == null) {
-                    var lastBatt = (java.util.Map<String, Object>) up.get("last_battery_percentage");
-                    if (lastBatt != null) batt = nDbl(lastBatt.get("value"));
+
+
+                    default -> payload.setBattery(firstNumber(dp, "battery"));
                 }
-                payload.setBattery(batt);
-
-                // temp/hum/vdd (desk/text)
-                payload.setTemperature(nDbl(dp.get("temperature")));
-                payload.setHumidity(nDbl(dp.get("humidity")));
-                payload.setVdd(nDbl(dp.get("vdd")));
                 dto.setPayload(payload);
 
                 // network
                 var net = new com.amaris.sensorprocessor.entity.MonitoringSensorData.NetworkInfo();
-                net.setNetId((String) network.get("net_id"));
-                net.setNsId((String) network.get("ns_id"));
-                net.setTenantId((String) network.get("tenant_id"));
-                net.setClusterId((String) network.get("cluster_id"));
-                net.setClusterAddress((String) network.get("cluster_address"));
+                net.setNetId(textOr(netIds.path("net_id"), null));
+                net.setNsId(textOr(netIds.path("ns_id"), null));
+                net.setTenantId(textOr(netIds.path("tenant_id"), null));
+                net.setClusterId(textOr(netIds.path("cluster_id"), null));
+                net.setClusterAddress(textOr(netIds.path("cluster_address"), null));
                 dto.setNetwork(net);
 
-                // raw pour debug minimal
+                // raw (debug)
                 var raw = new com.amaris.sensorprocessor.entity.MonitoringSensorData.Raw();
-                raw.setDecodedPayload(dp);
-                raw.setFrmPayloadBase64((String) up.get("frm_payload"));
+                raw.setFrmPayloadBase64(textOr(up.path("frm_payload"), null));
+                if (dp != null && dp.isObject()) {
+                    raw.setDecodedPayload(om.convertValue(dp, java.util.Map.class));
+                }
                 dto.setRaw(raw);
 
-                // timestamp (received_at event ou uplink)
-                String receivedAt = (String) (result.get("received_at") != null ? result.get("received_at") : up.get("received_at"));
-                dto.setTimestamp(receivedAt != null ? receivedAt : dto.getTimestamp());
+                // timestamp
+                String receivedAt = textOr(result.path("received_at"), null);
+                if (receivedAt == null) receivedAt = textOr(up.path("received_at"), null);
+                if (receivedAt != null) dto.setTimestamp(receivedAt);
 
                 return om.writeValueAsString(dto);
             } catch (Exception e) {
-                // en cas de souci, on renvoie tel quel (pour ne pas casser l'affichage)
-                return json;
+                return json; // ne casse pas l'UI si erreur
             }
         }
 
-        private static Integer nInt(Object o) {
-            if (o instanceof Number n) return n.intValue();
-            if (o instanceof String s) try {
-                return Integer.parseInt(s);
-            } catch (Exception ignored) {
-            }
+        /* -------- Helpers -------- */
+        private static String textOr(com.fasterxml.jackson.databind.JsonNode n, String fallback) {
+            return (n != null && n.isTextual()) ? n.asText() : fallback;
+        }
+
+        private static Integer intOrNull(com.fasterxml.jackson.databind.JsonNode n) {
+            return (n != null && n.isNumber()) ? n.asInt() : null;
+        }
+
+        private static Double numOrNull(com.fasterxml.jackson.databind.JsonNode n) {
+            if (n == null) return null;
+            if (n.isNumber()) return n.asDouble();
+            if (n.isTextual()) try { return Double.parseDouble(n.asText()); } catch (Exception ignored) {}
             return null;
         }
 
-        private static Double nDbl(Object o) {
-            if (o instanceof Number n) return n.doubleValue();
-            if (o instanceof String s) try {
-                return Double.parseDouble(s);
-            } catch (Exception ignored) {
-            }
+        private static Object firstAny(com.fasterxml.jackson.databind.JsonNode dp, String key) {
+            var n = dp.path(key);
+            if (n.isMissingNode()) return null;
+            if (n.isNumber())  return n.numberValue();
+            if (n.isBoolean()) return n.booleanValue();
+            if (n.isTextual()) return n.asText();
+            return n.toString();
+        }
+
+        private static Double firstNumber(com.fasterxml.jackson.databind.JsonNode dp, String key) {
+            var n = dp.path(key);
+            if (n.isMissingNode()) return null;
+            if (n.isNumber()) return n.asDouble();
+            if (n.isTextual()) try { return Double.parseDouble(n.asText()); } catch (Exception ignored) {}
             return null;
-        }
-
-        @SuppressWarnings("unchecked")
-        private static java.util.Map<String, Object> parseDecodedPayload(Object raw) {
-            if (raw == null) return new java.util.LinkedHashMap<>();
-            if (raw instanceof java.util.Map) return new java.util.LinkedHashMap<>((java.util.Map<String, Object>) raw);
-            if (raw instanceof String s) {
-                var m = new java.util.LinkedHashMap<String, Object>();
-                var re = java.util.regex.Pattern.compile("([A-Za-z_]+)\\s*[:=]?\\s*([+-]?\\d+(?:\\.\\d+)?)");
-                var x = re.matcher(s);
-                while (x.find()) {
-                    var key = x.group(1).toLowerCase();
-                    var val = x.group(2);
-                    try {
-                        m.put(key, val.contains(".") ? Double.parseDouble(val) : Integer.parseInt(val));
-                    } catch (NumberFormatException nfe) {
-                        m.put(key, val);
-                    }
-                }
-                return m;
-            }
-            // fallback best-effort
-            return new java.util.LinkedHashMap<>();
-        }
-
-        private static String detectProfile(java.util.Map<String, Object> dp, String deviceType) {
-            if (dp.containsKey("occupancy") || dp.containsKey("illuminance")) return "VS70_OCCUPANCY";
-            if (dp.containsKey("pir") || dp.containsKey("daylight")) return "PIR_LIGHT";
-            if (dp.containsKey("temperature") || dp.containsKey("humidity") || dp.containsKey("vdd"))
-                return "DESK_TEXT";
-            if (deviceType != null) {
-                var dt = deviceType.toLowerCase();
-                if (dt.contains("occupancy")) return "VS70_OCCUPANCY";
-                if (dt.contains("pir")) return "PIR_LIGHT";
-                if (dt.contains("desk")) return "DESK_TEXT";
-            }
-            return "GENERIC";
         }
     }
 }
-
-

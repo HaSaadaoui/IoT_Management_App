@@ -93,14 +93,22 @@ INSERT INTO Sensors (
 ('dev_eui_010','device_005','2023-10-01',1,'Batiment D',1,'Bureau 110','gateway-004',
  'A1B2C3D4E5F6070A','010203040506070A','00112233445566778899AABBCCDDEEF9','US_902_928_FSB_2'),
 
-('occup-vs70-03-04','Occupancy_VS70','2025-04-01',1,'Batiment Z',3,'Bureau 333',
+('occup-vs70-03-04','OCCUP','2025-04-01',1,'Batiment Z',3,'Bureau 333',
  'leva-rpi-mantu','24E124773E474166','24E124773E474166','5572404C696E6B4C6F52613230313823','EU_863_870_TTN'),
 
-('pir-light-01-01','Pir_Light','2025-09-09',1,'Châteaudun-Mantu-Building',1,'Entrée principale',
+('pir-light-01-01','PIR_LIGHT','2025-09-09',1,'Châteaudun-Mantu-Building',1,'Entrée principale',
  'rpi-mantu','24E124538D188562','24E124C0002A0001',
  '00112233445566778899AABBCCDDEEF0','EU_863_870_TTN'),
 
-('desk-01-01','Desk_Sensor','2025-09-09',1,'Châteaudun-Mantu-Building',1,'Bureau 101',
+ ('count-03-01','COUNT','2025-09-09',1,'Châteaudun-Mantu-Building',1,'Entrée principale',
+  'leva-rpi-mantu','24E124716F198877','24E124C0002A0001',
+  '00112233445566778899AABBCCDDEEF0','EU_863_870_TTN'),
+
+ ('co2-03-03','CO2','2025-09-09',1,'Châteaudun-Mantu-Building',1,'Entrée principale',
+  'leva-rpi-mantu','A81758FFFE0D5B43','24E124C0002A0001',
+  '00112233445566778899AABBCCDDEEF0','EU_863_870_TTN'),
+
+('desk-01-01','DESK','2025-09-09',1,'Châteaudun-Mantu-Building',1,'Bureau 101',
  'rpi-mantu','A81758FFFE0BBB07','0000000000000000',
  '00112233445566778899AABBCCDDEEF0','EU_863_870_TTN');
 
