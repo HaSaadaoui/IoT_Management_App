@@ -1,0 +1,15 @@
+# Ce fichier Compose peut être utilisé pour vérifier que les scripts d'initialisation de la BDD MySQL fonctionne correctement
+# Executez les conteneur et utiliser un logiciel externe tel que mysql ou DBeaver pour vérifier le contenu des tables et colonnes
+
+services:
+  mysql:
+    image: mysql
+    environment:
+     - MYSQL_ROOT_PASSWORD=password
+     - MYSQL_DATABASE=smart_buildings
+    ports:
+      - "3306:3306"
+    volumes:
+      - "./init/schema.sql:/docker-entrypoint-initdb.d/1.sql"
+      - "./init/import.sql:/docker-entrypoint-initdb.d/2.sql"
+      - "./output/:/var/lib/mysql-files/csv/"

@@ -1,0 +1,71 @@
+-- Ce script permet d'importer les données CSV dans les tables MySQL.
+-- Ces données ont été préalablement exportées depuis sqlite via le script import.sql
+--
+-- Data_emsdesk
+-- Gateways
+-- Signal
+-- pending_users
+-- Data_pirlight
+-- Sensors
+-- Users
+
+LOAD DATA INFILE '/var/lib/mysql-files/csv/Users.csv'
+REPLACE
+INTO TABLE `Users`
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+LOAD DATA INFILE '/var/lib/mysql-files/csv/Sensors.csv'
+REPLACE
+INTO TABLE `Sensors`
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+
+LOAD DATA INFILE '/var/lib/mysql-files/csv/pending_users.csv'
+REPLACE
+INTO TABLE `pending_users`
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+
+LOAD DATA INFILE '/var/lib/mysql-files/csv/Signal.csv'
+REPLACE
+INTO TABLE `Signal`
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+
+LOAD DATA INFILE '/var/lib/mysql-files/csv/Gateways.csv'
+REPLACE
+INTO TABLE `Gateways`
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS
+(gateway_id, gateway_eui, ip_address, frequency_plan, created_at, building_name, 
+ floor_number, location_description, @antenna_latitude, @antenna_longitude, @antenna_altitude)
+SET 
+    antenna_latitude = IF(@antenna_latitude = '', 0, @antenna_latitude),
+    antenna_longitude = IF(@antenna_longitude = '', 0, @antenna_longitude),
+    antenna_altitude = IF(@antenna_altitude = '', 0, @antenna_altitude);
+
+LOAD DATA INFILE '/var/lib/mysql-files/csv/Data_emsdesk.csv'
+REPLACE
+INTO TABLE `Data_emsdesk`
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+
+LOAD DATA INFILE '/var/lib/mysql-files/csv/Data_pirlight.csv'
+REPLACE
+INTO TABLE `Data_pirlight`
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
