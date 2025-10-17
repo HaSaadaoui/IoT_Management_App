@@ -77,7 +77,7 @@ body {
 /*** *** home.html *** ***/
 .main-container {
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
     align-items: center;
     padding-top: 120px;
     padding-bottom: 120px;
