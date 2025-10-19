@@ -432,7 +432,7 @@ public class SensorController {
                         payload.setLight(firstAny(dp, "daylight"));
                         payload.setBattery(firstNumber(dp, "battery"));
                     }
-                    case "EYE_SENSOR" -> {
+                    case "EYE" -> {
                         payload.setTemperature(firstNumber(dp, "temperature"));
                         payload.setHumidity(firstNumber(dp, "humidity"));
                         payload.setLight(firstAny(dp, "light"));
@@ -451,7 +451,6 @@ public class SensorController {
                         payload.setTemperature(firstNumber(dp, "temperature"));
                         payload.setHumidity(firstNumber(dp, "humidity"));
                         payload.setVdd(firstNumber(dp, "vdd"));
-                        payload.setBattery(firstNumber(dp, "battery"));
                     }
 
 

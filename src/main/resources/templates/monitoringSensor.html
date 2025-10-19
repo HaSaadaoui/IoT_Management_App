@@ -6,16 +6,51 @@
     <link rel="stylesheet" href="/css/styles.css"/>
     <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}"/>
     <link rel="stylesheet" href="/css/monitoringGateway.css"/>
+
     <style>
         .info-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:14px; }
         .card { background:#fff; border-radius:12px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-        .badge { padding:4px 8px; border-radius:8px; background:#ddd; display:inline-block; }
-        .badge--ok { background:#1f9d55; color:white; }
-        .badge--off { background:#9ca3af; color:white; }
-        .section-title { margin-top:22px; margin-bottom:8px; font-weight:600; color:#374151; }
+        .card h4 { color:#333; }
+        .card p { color:#111; font-weight:500; }
+        .badge { padding:4px 8px; border-radius:8px; background:#f3f4f6; display:inline-block; color:#111; }
+        .badge--ok { background:#1f9d55; color:#fff; }
+        .badge--off { background:#9ca3af; color:#fff; }
+        .section-title { margin-top:12px; margin-bottom:8px; font-weight:600; color:#374151; }
+
+        .hidden { display:none !important; }
+        .tabs { display:flex; justify-content:center; gap:8px; margin:12px 0 16px; }
+        .tab-btn {
+          border:1px solid #e5e7eb; background:#fff; color:#374151;
+          padding:8px 14px; border-radius:999px; cursor:pointer;
+          transition:background .2s, box-shadow .2s;
+        }
+        .tab-btn:hover { background:#f9fafb; }
+        .tab-btn.is-active {
+          background:#662179; border-color:#662179; color:#fff; box-shadow:0 2px 6px rgba(102,33,121,.25);
+        }
+
+        .btn {
+          background:#662179; color:#fff; border:none; border-radius:8px;
+          padding:10px 14px; cursor:pointer;
+        }
+        .btn:hover { filter:brightness(.95); }
+
+        /* --- Batterie SVG --- */
+        .battery-badge {
+          display:inline-flex; align-items:center; gap:6px;
+          border:1px solid #ddd; border-radius:999px; padding:4px 8px;
+          font-weight:600; color:#111; background:#f3f4f6;
+        }
+        .battery-badge svg {
+          width:18px; height:12px; flex:0 0 auto; color:currentColor;
+        }
+        .battery--good { background:#e8f7ef; color:#1f9d55; border-color:#bbebcf; }
+        .battery--warn { background:#fff6e6; color:#d97706; border-color:#ffe2b3; }
+        .battery--low  { background:#feeaea; color:#b91c1c; border-color:#f5c2c2; }
+        .battery--crit { background:#fde8e8; color:#991b1b; border-color:#f3b6b6; }
+        .battery--unk  { background:#f3f4f6; color:#6b7280; border-color:#e5e7eb; }
     </style>
 
-    <!-- Variables servies côté serveur pour le JS (data-* sur <html>) -->
     <script th:inline="javascript">
         document.documentElement.dataset.deviceId  = /*[[${sensor.idSensor}]]*/ '';
         document.documentElement.dataset.gatewayId = /*[[${sensor.idGateway}]]*/ '';
@@ -23,257 +58,191 @@
         document.documentElement.dataset.sseToken  = /*[[${sseToken}]]*/ '';
     </script>
 
-    <!-- JS séparé -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script src="/javascript/monitoringSensor.js" defer></script>
 </head>
 
 <body data-page="monitoringSensor">
 <div th:replace="fragments/header :: appHeader(pageTitle='My profile', homeUrl=@{/})"></div>
 
-<header th:text="${sensor.deviceType} ?: ${sensor.idSensor}">Sensor</header>
-
 <main>
 
-    <!-- Infos statiques -->
-    <section class="info-grid">
-        <div class="card">
-            <h4>Status</h4>
-            <p>
-        <span class="badge" th:classappend="${sensor.status} ? ' badge--ok' : ' badge--off'">
-          <img th:src="${sensor.status} ? '/image/toggle_on.svg' : '/image/toggle_off.svg'" alt="Status"/>
-          <span th:text="${sensor.status} ? 'Active' : 'Inactive'">--</span>
-        </span>
-            </p>
-        </div>
+    <!-- Onglets -->
+    <nav class="tabs">
+        <button class="tab-btn is-active" data-pane="live">Temps réel</button>
+        <button class="tab-btn" data-pane="history">Historique</button>
+    </nav>
 
-        <div class="card"><h4>Sensor ID</h4>
-            <p th:text="${sensor.idSensor}">--</p></div>
+    <!-- ===== Panneau LIVE ===== -->
+    <section id="pane-live">
+        <!-- Infos statiques -->
+        <section class="info-grid">
+            <div class="card">
+                <h4>Status</h4>
+                <p>
+                  <span class="badge" th:classappend="${sensor.status} ? ' badge--ok' : ' badge--off'">
+                    <img th:src="${sensor.status} ? '/image/toggle_on.svg' : '/image/toggle_off.svg'" alt="Status"/>
+                    <span th:text="${sensor.status} ? 'Active' : 'Inactive'">--</span>
+                  </span>
+                </p>
+            </div>
 
-        <div class="card"><h4>Device Type</h4>
-            <p th:text="${sensor.deviceType}">--</p></div>
+            <div class="card"><h4>Sensor ID</h4><p th:text="${sensor.idSensor}">--</p></div>
+            <div class="card"><h4>Device Type</h4><p th:text="${sensor.deviceType}">--</p></div>
 
-        <div class="card"><h4>Commissioning Date</h4>
-            <p th:text="${sensor.commissioningDate} ?: '--'">--</p></div>
+            <div class="card">
+                <h4>Gateway</h4>
+                <p th:with="gid=${sensor.idGateway}, ip=${gatewayIp} ?: ''">
+                    <a class="link"
+                       th:href="@{|/manage-gateways/monitoring/${gid}/view?ip=${ip}|}"
+                       th:text="${gatewayName} ?: ${gid}">--</a>
+                </p>
+            </div>
 
-        <div class="card">
-            <h4>Gateway</h4>
-            <p th:with="gid=${sensor.idGateway}, ip=${gatewayIp} ?: ''">
-                <a class="link"
-                   th:href="@{|/manage-gateways/monitoring/${gid}/view?ip=${ip}|}"
-                   th:text="${gatewayName} ?: ${gid}">--</a>
-            </p>
-        </div>
+            <div class="card"><h4>Building</h4><p th:text="${sensor.buildingName} ?: '--'">--</p></div>
+            <div class="card"><h4>Floor</h4><p th:text="${sensor.floor} ?: '--'">--</p></div>
+        </section>
 
-        <div class="card"><h4>Building</h4>
-            <p th:text="${sensor.buildingName} ?: '--'">--</p></div>
+        <!-- Live data PAR TYPE -->
+        <h3 class="section-title">Live data</h3>
 
-        <div class="card"><h4>Floor</h4>
-            <p th:text="${sensor.floor} ?: '--'">--</p></div>
+        <!-- COUNT -->
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'COUNT')}">
+            <div class="card"><h4 class="with-icon icon-signal">Battery</h4>
+                <p><span id="s-count-batt" class="battery-badge">
+                    <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
+                    <span>--</span>
+                </span></p></div>
+            <div class="card"><h4>Period IN</h4><p><span id="s-count-in" class="badge">--</span></p></div>
+            <div class="card"><h4>Period OUT</h4><p><span id="s-count-out" class="badge">--</span></p></div>
+        </section>
 
-        <div class="card"><h4>Location</h4>
-            <p th:text="${sensor.location} ?: '--'">--</p></div>
+        <!-- OCCUP -->
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'OCCUP')}">
+            <div class="card"><h4>Occupancy</h4><p><span id="s-occup-presence" class="badge">--</span></p></div>
+            <div class="card"><h4 class="with-icon icon-hum">Illuminance</h4><p><span id="s-occup-illum" class="badge">--</span></p></div>
+            <div class="card"><h4>Battery</h4>
+                <p><span id="s-occup-batt" class="battery-badge">
+                    <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
+                    <span>--</span>
+                </span></p></div>
+        </section>
 
-        <div class="card"><h4>Frequency Plan</h4>
-            <p th:text="${sensor.frequencyPlan} ?: '--'">--</p></div>
+        <!-- TEMPEX -->
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'TEMPEX')}">
+            <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-tempex-temp" class="badge">--</span></p></div>
+            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-tempex-hum" class="badge">--</span></p></div>
+        </section>
+
+        <!-- PIR_LIGHT -->
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'PIR_LIGHT')}">
+            <div class="card"><h4>PIR</h4><p><span id="s-pir-presence" class="badge">--</span></p></div>
+            <div class="card"><h4>Daylight</h4><p><span id="s-pir-daylight" class="badge">--</span></p></div>
+            <div class="card"><h4>Battery</h4>
+                <p><span id="s-pir-batt" class="battery-badge">
+                    <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
+                    <span>--</span>
+                </span></p></div>
+        </section>
+
+        <!-- DESK -->
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'DESK')}">
+            <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-desk-temp" class="badge">--</span></p></div>
+            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-desk-hum" class="badge">--</span></p></div>
+            <div class="card"><h4>VDD</h4><p><span id="s-desk-vdd" class="badge">--</span></p></div>
+        </section>
+
+        <!-- CO2 -->
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'CO2')}">
+            <div class="card"><h4>CO₂</h4><p><span id="s-co2-ppm" class="badge">--</span></p></div>
+            <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-co2-temp" class="badge">--</span></p></div>
+            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-co2-hum" class="badge">--</span></p></div>
+            <div class="card"><h4>VDD</h4><p><span id="s-co2-vdd" class="badge">--</span></p></div>
+            <div class="card"><h4>Light</h4><p><span id="s-co2-light" class="badge">--</span></p></div>
+            <div class="card"><h4>Motion</h4><p><span id="s-co2-motion" class="badge">--</span></p></div>
+        </section>
+
+        <!-- SON -->
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'SON')}">
+            <div class="card"><h4>LAeq</h4><p><span id="s-sound-laeq" class="badge">--</span></p></div>
+            <div class="card"><h4>LAI</h4><p><span id="s-sound-lai" class="badge">--</span></p></div>
+            <div class="card"><h4>LAImax</h4><p><span id="s-sound-laimax" class="badge">--</span></p></div>
+            <div class="card"><h4>Battery</h4>
+                <p><span id="s-sound-batt" class="battery-badge">
+                    <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
+                    <span>--</span>
+                </span></p></div>
+        </section>
+
+        <!-- EYE -->
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'EYE')}">
+            <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-eye-temp" class="badge">--</span></p></div>
+            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-eye-hum" class="badge">--</span></p></div>
+            <div class="card"><h4>Light</h4><p><span id="s-eye-light" class="badge">--</span></p></div>
+            <div class="card"><h4>Presence</h4><p><span id="s-eye-presence" class="badge">--</span></p></div>
+            <div class="card"><h4>VDD</h4><p><span id="s-eye-vdd" class="badge">--</span></p></div>
+        </section>
+
+        <!-- GENERIC -->
+        <section class="info-grid" th:if="${!(#strings.equalsIgnoreCase(sensor.deviceType,'COUNT')
+          or #strings.equalsIgnoreCase(sensor.deviceType,'OCCUP')
+          or #strings.equalsIgnoreCase(sensor.deviceType,'PIR_LIGHT')
+          or #strings.equalsIgnoreCase(sensor.deviceType,'DESK')
+          or #strings.equalsIgnoreCase(sensor.deviceType,'CO2')
+          or #strings.equalsIgnoreCase(sensor.deviceType,'TEMPEX'))}">
+            <div class="card"><h4>Battery</h4>
+                <p><span id="s-gen-batt" class="battery-badge">
+                    <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
+                    <span>--</span>
+                </span></p></div>
+        </section>
+
+        <!-- Réseau / Radio -->
+        <h3 class="section-title">Network / Radio</h3>
+        <section id="net-grid" class="info-grid">
+            <div class="card"><h4>Last seen</h4><p><span id="s-last" class="badge">--</span></p></div>
+            <div class="card"><h4>Frequency Plan</h4><p th:text="${sensor.frequencyPlan} ?: '--'">--</p></div>
+            <div class="card"><h4>f_cnt / f_port</h4><p><span id="s-fcnt" class="badge">--</span> / <span id="s-fport" class="badge">--</span></p></div>
+            <div class="card"><h4 class="with-icon icon-signal">RSSI / SNR</h4><p><span id="s-rssi" class="badge">--</span> / <span id="s-snr" class="badge">--</span></p></div>
+            <div class="card"><h4>SF / BW / Freq</h4><p><span id="s-dr" class="badge">--</span></p></div>
+        </section>
     </section>
 
-    <!-- Live data PAR TYPE (structure fixe rendue côté serveur) -->
-    <h3 class="section-title">Live data</h3>
+    <!-- ===== Panneau HISTORIQUE ===== -->
+    <section id="pane-history" class="hidden">
+        <h3 class="section-title">Historique</h3>
 
-    <!-- COUNT -->
-    <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'COUNT')}">
-        <div class="card">
-            <h4>Battery</h4>
-            <p><span id="s-count-batt" class="badge">--</span></p>
+        <div class="history-filters card" style="display:grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap:12px;">
+            <div>
+                <label for="hist-from"><b>De</b></label>
+                <input type="datetime-local" id="hist-from">
+            </div>
+            <div>
+                <label for="hist-to"><b>À</b></label>
+                <input type="datetime-local" id="hist-to">
+            </div>
+            <div style="align-self:end;">
+                <button id="hist-load" class="btn">Charger</button>
+            </div>
         </div>
-        <div class="card">
-            <h4>Period IN</h4>
-            <p><span id="s-count-in" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>Period OUT</h4>
-            <p><span id="s-count-out" class="badge">--</span></p>
-        </div>
-    </section>
 
-    <!-- OCCUP -->
-    <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'OCCUP')}">
-        <div class="card">
-            <h4>Occupancy</h4>
-            <p><span id="s-occup-presence" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>Illuminance</h4>
-            <p><span id="s-occup-illum" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>Battery</h4>
-            <p><span id="s-occup-batt" class="badge">--</span></p>
-        </div>
-    </section>
+        <div class="info-grid" style="grid-template-columns: repeat(auto-fill, minmax(320px,1fr));">
+            <div class="card" style="height:280px;"><h4>Battery (%)</h4><canvas id="histBattery"></canvas></div>
+            <div class="card" style="height:280px;"><h4>RSSI (dBm)</h4><canvas id="histRssi"></canvas></div>
+            <div class="card" style="height:280px;"><h4>SNR (dB)</h4><canvas id="histSnr"></canvas></div>
 
-    <!-- TEMPEX -->
-    <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'TEMPEX')}">
-        <div class="card">
-            <h4>Temperature</h4>
-            <p><span id="s-tempex-temp" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>Humidity</h4>
-            <p><span id="s-tempex-hum" class="badge">--</span></p>
-        </div>
-    </section>
-
-    <!-- PIR_LIGHT -->
-    <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'PIR_LIGHT')}">
-        <div class="card">
-            <h4>PIR</h4>
-            <p><span id="s-pir-presence" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>Daylight</h4>
-            <p><span id="s-pir-daylight" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>Battery</h4>
-            <p><span id="s-pir-batt" class="badge">--</span></p>
-        </div>
-    </section>
-
-    <!-- DESK -->
-    <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'DESK')}">
-        <div class="card">
-            <h4>Temperature</h4>
-            <p><span id="s-desk-temp" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>Humidity</h4>
-            <p><span id="s-desk-hum" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>VDD</h4>
-            <p><span id="s-desk-vdd" class="badge">--</span></p>
-        </div>
-    </section>
-
-    <!-- CO2 -->
-    <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'CO2')}">
-        <div class="card">
-            <h4>CO₂</h4>
-            <p><span id="s-co2-ppm" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>Temperature</h4>
-            <p><span id="s-co2-temp" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>Humidity</h4>
-            <p><span id="s-co2-hum" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>VDD</h4>
-            <p><span id="s-co2-vdd" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>Light</h4>
-            <p><span id="s-co2-light" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>Motion</h4>
-            <p><span id="s-co2-motion" class="badge">--</span></p>
-        </div>
-    </section>
-
-    <!-- SON -->
-    <section class="info-grid"
-             th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'SON')}">
-        <div class="card">
-            <h4>LAeq</h4>
-            <p><span id="s-sound-laeq" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>LAI</h4>
-            <p><span id="s-sound-lai" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>LAImax</h4>
-            <p><span id="s-sound-laimax" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>Battery</h4>
-            <p><span id="s-sound-batt" class="badge">--</span></p>
-        </div>
-    </section>
-
-    <!-- EYE -->
-    <section class="info-grid"
-             th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'EYE')}">
-        <div class="card">
-            <h4>Temperature</h4>
-            <p><span id="s-eye-temp" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>Humidity</h4>
-            <p><span id="s-eye-hum" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>Light</h4>
-            <p><span id="s-eye-light" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>Presence</h4>
-            <p><span id="s-eye-presence" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>VDD</h4>
-            <p><span id="s-eye-vdd" class="badge">--</span></p>
-        </div>
-    </section>
-
-    <!-- GENERIC (fallback) -->
-    <section class="info-grid"
-             th:if="${!(#strings.equalsIgnoreCase(sensor.deviceType,'COUNT')
-                or #strings.equalsIgnoreCase(sensor.deviceType,'OCCUP')
-                or #strings.equalsIgnoreCase(sensor.deviceType,'PIR_LIGHT')
-                or #strings.equalsIgnoreCase(sensor.deviceType,'DESK')
-                or #strings.equalsIgnoreCase(sensor.deviceType,'CO2')
-                or #strings.equalsIgnoreCase(sensor.deviceType,'TEMPEX'))}">
-        <div class="card">
-            <h4>Battery</h4>
-            <p><span id="s-gen-batt" class="badge">--</span></p>
-        </div>
-    </section>
-
-    <!-- Bloc Réseau / Radio -->
-    <h3 class="section-title">Network / Radio</h3>
-    <section id="net-grid" class="info-grid">
-        <div class="card">
-            <h4>Last seen</h4>
-            <p><span id="s-last" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>App / Device</h4>
-            <p><span id="s-app" class="badge">--</span> / <span id="s-device" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>f_cnt / f_port</h4>
-            <p><span id="s-fcnt" class="badge">--</span> / <span id="s-fport" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>Gateway RX</h4>
-            <p><span id="s-rxgw" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>RSSI / SNR</h4>
-            <p><span id="s-rssi" class="badge">--</span> / <span id="s-snr" class="badge">--</span></p>
-        </div>
-        <div class="card">
-            <h4>SF / BW / Freq</h4>
-            <p><span id="s-dr" class="badge">--</span></p>
+            <div class="card" style="height:280px;" id="histMetricA-wrap">
+                <h4 id="histMetricA-title">Metric A</h4><canvas id="histMetricA"></canvas>
+            </div>
+            <div class="card" style="height:280px;" id="histMetricB-wrap">
+                <h4 id="histMetricB-title">Metric B</h4><canvas id="histMetricB"></canvas>
+            </div>
         </div>
     </section>
 
 </main>
-
 </body>
 </html>
