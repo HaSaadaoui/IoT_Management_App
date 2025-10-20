@@ -1,3 +1,4 @@
+# Copiez cette configuration pour utiliser une BDD MySQL (necessite un serveur)
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -9,3 +10,11 @@ spring:
       ddl-auto: none
     show-sql: true
     database: mysql
+
+# Copiez cette configuration pour utiliser SQLite (sans serveur)
+spring:
+  datasource:
+    driver-class-name: org.sqlite.JDBC
+    url: jdbc:sqlite:mydatabase.db
+  jpa:
+    show-sql: true
