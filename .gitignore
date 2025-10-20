@@ -51,4 +51,8 @@ AZURE-*.md
 RESEND-*.md
 VERIFICATION-*.md
 CODE-*.md
-Git-*.txt
+GIT-PUSH-*.txt
+
+### Local Configuration with Secrets ###
+application-local.properties
+*-local.properties
