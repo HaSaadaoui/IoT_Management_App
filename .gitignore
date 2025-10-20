@@ -36,5 +36,7 @@ mydatabase.db
 
 logs/**
 .env
-application.yml # Pour éviter de poussé des secret par accidents
+
+# Pour éviter de poussé des secret par accidents
+application.yml
 secret.config.yml
