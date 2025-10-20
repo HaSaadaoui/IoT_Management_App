@@ -33,3 +33,22 @@ build/
 ### VS Code ###
 .vscode/
 mydatabase.db
+
+### Documentation Files ###
+*README*.md
+*GUIDE*.md
+*SETUP*.md
+*COMPLETE*.md
+*FIXES*.md
+*EXPLAINED*.md
+*INTEGRATION*.md
+*REFACTOR*.md
+PROFILE-*.md
+ACS-*.md
+WEB-*.md
+EMAIL-*.md
+AZURE-*.md
+RESEND-*.md
+VERIFICATION-*.md
+CODE-*.md
+Git-*.txt
