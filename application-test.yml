@@ -1,0 +1,6 @@
+spring:
+  datasource:
+    driver-class-name: org.sqlite.JDBC
+    url: jdbc:sqlite:${DB_PATH}/mydatabase.db
+  jpa:
+    show-sql: true

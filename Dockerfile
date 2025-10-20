@@ -10,5 +10,8 @@ COPY target/sensorprocessor-0.0.1-SNAPSHOT.jar /sensorprocessor.jar
 ### Exposer le port de l'application (si nécessaire) ###
 EXPOSE 8080
 
+### Chemin vers le fichier de configuration (important pour la base de données)
+ENV SPRING_CONFIG_LOCATION=/opt/app/config
+
 ### Commande pour démarrer l'application ###
-CMD ["java", "-jar", "/sensorprocessor.jar"]
+CMD ["java", "-jar", "/sensorprocessor.jar", "--spring.config.additional-location=${SPRING_CONFIG_LOCATION}"]
