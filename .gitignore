@@ -33,10 +33,3 @@ build/
 ### VS Code ###
 .vscode/
 mydatabase.db
-
-logs/**
-.env
-
-# Pour éviter de poussé des secret par accidents
-application.yml
-secret.config.yml

@@ -33,14 +33,14 @@ public class SpringSecurityConfig {
             //auth.anyRequest().hasRole("ADMIN"); // aussi mettre USER et SUPERUSER
 //            auth.anyRequest
         return http
-//                .csrf(csrf -> csrf.disable()) // Désactive la protection CSRF
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/auth/**"))
 //                .cors(Customizer.withDefaults()) // Active la configuration CORS par défaut
 //                .authorizeHttpRequests(auth -> auth
 //                        .requestMatchers("/css/**", "/image/**").permitAll()
 //                        .anyRequest().hasAnyRole("ADMIN", "USER", "SUPERUSER")
 //                )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/css/**", "/image/**", "/login", "/register").permitAll()
+                        .requestMatchers("/", "/css/**", "/image/**", "/login", "/register", "/api/auth/**", "/verify", "/resend-verification").permitAll()
                         .requestMatchers("/home").authenticated()
                         .anyRequest().hasAnyRole("ADMIN", "USER", "SUPERUSER")
                 )
