@@ -124,9 +124,12 @@
 			<version>8.3.0</version>
 			<scope>runtime</scope>
 		</dependency>
+
+        <!-- Azure Communication Services Email (Only Email Provider) -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-communication-email</artifactId>
+            <version>1.0.14</version>
         </dependency>
     </dependencies>
 

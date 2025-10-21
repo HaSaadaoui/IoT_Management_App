@@ -1,6 +1,10 @@
 package com.amaris.sensorprocessor.repository;
 
+import com.amaris.sensorprocessor.config.DatabaseMigration;
 import com.amaris.sensorprocessor.entity.PendingUser;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -13,6 +17,8 @@ import java.util.Optional;
 @Repository
 public class PendingUserDao {
 
+
+    private static final Logger log = LoggerFactory.getLogger(DatabaseMigration.class);
     private final JdbcTemplate jdbcTemplate;
 
     @Autowired
@@ -56,7 +62,13 @@ public class PendingUserDao {
                         "last_resend_at DATETIME NULL" +
                         ")"
         );
-        jdbcTemplate.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_pending_users_token_hash ON pending_users(token_hash)");
+        try {
+            // Note: Cette syntaxe fonctionne pour SQLite mais pas pour MySQL
+            jdbcTemplate.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_pending_users_token_hash ON pending_users(token_hash)");
+        } catch (Exception e) {
+            // Ignorer l'index s'il existe déjà
+            log.info("Skipping 'idx_pending_users_token_hash' index creation");
+        }
     }
 
     public Optional<PendingUser> findByEmail(String email) {
