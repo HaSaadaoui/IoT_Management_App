@@ -33,3 +33,6 @@ build/
 ### VS Code ###
 .vscode/
 *.db
+
+# Ce fichier pourrait contenir des information confidentielles
+application.yml
