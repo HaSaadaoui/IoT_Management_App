@@ -15,7 +15,7 @@ public class SensorLorawanDao {
     @Value("${lorawan.baseurl}")
     private String lorawanBaseUrl;
 
-    @Value("${lorawan.token}")
+    @Value("${lorawan.service.token}")
     private String lorawanToken;
 
     private final WebClient.Builder webClientBuilder;
