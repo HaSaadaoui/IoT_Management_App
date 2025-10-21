@@ -1,0 +1,11 @@
+id_sensor,device_type,commissioning_date,status,building_name,floor,location,id_gateway
+dev_eui_001,device_001,2023-01-01,1,"Batiment A",1,"Bureau 101",gateway-001
+dev_eui_002,device_002,2023-02-01,1,"Batiment B",2,"Bureau 202",gateway-002
+dev_eui_003,device_003,2023-03-01,0,"Batiment A",3,"Bureau 303",gateway-001
+dev_eui_004,device_004,2023-04-01,1,"Batiment C",1,"Bureau 104",gateway-003
+dev_eui_005,device_005,2023-05-01,1,"Batiment D",2,"Bureau 205",gateway-004
+dev_eui_006,device_001,2023-06-01,0,"Batiment E",3,"Bureau 306",gateway-005
+dev_eui_007,device_002,2023-07-01,1,"Batiment A",1,"Bureau 107",gateway-001
+dev_eui_008,device_003,2023-08-01,1,"Batiment B",2,"Bureau 208",gateway-002
+dev_eui_009,device_004,2023-09-01,0,"Batiment C",3,"Bureau 309",gateway-003
+dev_eui_010,device_005,2023-10-01,1,"Batiment D",1,"Bureau 110",gateway-004

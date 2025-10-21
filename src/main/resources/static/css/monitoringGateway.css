@@ -140,3 +140,42 @@ th, td {
     height: 100vh;
     width: 100vw;
 }
+
+/* =========================
+   BADGE BATTERIE (icône + couleurs)
+   ========================= */
+.battery-badge{
+  display:inline-flex; align-items:center; gap:.45rem;
+  padding:.3rem .6rem; border-radius:8px; font-weight:600; font-size:.9rem;
+  background:#f3f4f6; color:#374151; border:1px solid #e5e7eb;
+}
+
+/* Couleurs selon seuils */
+.battery--good { background:#e8f7ef; color:#1f9d55; border-color:#bbebcf; } /* ≥ 60% */
+.battery--warn { background:#fff6e6; color:#d97706; border-color:#ffe2b3; } /* 30–59% */
+.battery--low  { background:#feeaea; color:#b91c1c; border-color:#f5c2c2; } /* 10–29% */
+.battery--crit { background:#fde8e8; color:#991b1b; border-color:#f3b6b6; } /* < 10%  */
+.battery--unk  { background:#f3f4f6; color:#6b7280; border-color:#e5e7eb; } /* inconnu */
+
+/* =========================
+   Icônes de titre (optionnel)
+   ========================= */
+.card h4.with-icon{ position:relative; padding-left:24px; }
+.card h4.with-icon::before{
+  content:""; position:absolute; left:0; top:2px; width:18px; height:18px; background: currentColor;
+  -webkit-mask-position:center; -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat;
+          mask-position:center;         mask-size:contain;         mask-repeat:no-repeat;
+  opacity:.9;
+}
+.card h4.icon-temp::before{
+  -webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M17 11.5V5a5 5 0 1 0-10 0v6.5a7 7 0 1 0 10 0ZM9 5a3 3 0 1 1 6 0v7.18l.59.59A5 5 0 1 1 8.41 12.77L9 12.18Zm3 5a2 2 0 0 0-2 2v4a2 2 0 1 0 4 0v-4a2 2 0 0 0-2-2Z"/></svg>');
+          mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M17 11.5V5a5 5 0 1 0-10 0v6.5a7 7 0 1 0 10 0ZM9 5a3 3 0 1 1 6 0v7.18l.59.59A5 5 0 1 1 8.41 12.77L9 12.18Zm3 5a2 2 0 0 0-2 2v4a2 2 0 1 0 4 0v-4a2 2 0 0 0-2-2Z"/></svg>');
+}
+.card h4.icon-hum::before{
+  -webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M12 2s6 6.7 6 10.5A6 6 0 0 1 6 12.5C6 8.7 12 2 12 2Z"/></svg>');
+          mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M12 2s6 6.7 6 10.5A6 6 0 0 1 6 12.5C6 8.7 12 2 12 2Z"/></svg>');
+}
+.card h4.icon-signal::before{
+  -webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M2 20h2v-6H2v6Zm4 0h2V8H6v12Zm4 0h2V4h-2v16Zm4 0h2v-9h-2v9Zm4 0h2V2h-2v18Z"/></svg>');
+          mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M2 20h2v-6H2v6Zm4 0h2V8H6v12Zm4 0h2V4h-2v16Zm4 0h2v-9h-2v9Zm4 0h2V2h-2v18Z"/></svg>');
+}

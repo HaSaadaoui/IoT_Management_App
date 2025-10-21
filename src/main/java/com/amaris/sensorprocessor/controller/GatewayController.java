@@ -261,7 +261,7 @@ public class GatewayController {
      * @param httpSession la session utilisateur
      * @return SseEmitter pour transmettre les données en continue au client
      */
-    @GetMapping("/manage-gateways/monitoring/{id}/stream")
+    @GetMapping(value = "/manage-gateways/monitoring/{id}/stream", produces = "text/event-stream")
     public SseEmitter streamMonitoringData(@PathVariable("id") String id, @RequestParam("ip") String ip, HttpSession httpSession) {
         SseEmitter emitter = new SseEmitter(3600000L);
 //        String sessionKey = id + "-" + httpSession.getId();

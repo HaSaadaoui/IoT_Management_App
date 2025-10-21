@@ -5,9 +5,12 @@ import com.amaris.sensorprocessor.entity.Sensor;
 import com.amaris.sensorprocessor.repository.SensorDao;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Flux;
 
 import java.time.Instant;
 import java.util.List;
@@ -20,15 +23,70 @@ public class SensorService {
 
     private final SensorDao sensorDao;                 // DAO JdbcTemplate
     private final SensorLorawanService lorawanService; // Intégration TTN
+    private final WebClient webClient;                 // Bean configuré (baseUrl = http://localhost:8081)
 
-    /* READ */
-    public List<Sensor> findAll() { return sensorDao.findAllSensors(); }
-    public Optional<Sensor> findByIdSensor(String idSensor) { return sensorDao.findByIdOfSensor(idSensor); }
-    public Sensor getOrThrow(String idSensor) {
-        return findByIdSensor(idSensor).orElseThrow(() -> new IllegalArgumentException("Sensor not found: " + idSensor));
+    /* ===================== MONITORING (SSE) ===================== */
+
+    /**
+     * Ouvre le flux SSE du microservice 8081 :
+     * GET /api/monitoring/sensor/{appId}/{deviceId}?threadId=...
+     * Retourne un Flux<String> (JSON brut) pour le pousser tel quel au navigateur via SseEmitter.
+     */
+    public Flux<String> getMonitoringData(String appId, String deviceId, String threadId) {
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/monitoring/sensor/{appId}/{deviceId}")
+                        .queryParam("threadId", threadId)
+                        .build(appId, deviceId))
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .retrieve()
+                .bodyToFlux(String.class)
+                .doOnError(err -> log.error(
+                        "[Sensor] SSE error appId={}, deviceId={}: {}",
+                        appId, deviceId, err.getMessage(), err
+                ));
     }
 
-    /* CREATE */
+    /**
+     * Demande l'arrêt du monitoring côté microservice 8081.
+     * GET /api/monitoring/sensor/stop/{deviceId}?threadId=...
+     */
+    public void stopMonitoring(String deviceId, String threadId) {
+        webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/monitoring/sensor/stop/{deviceId}")
+                        .queryParam("threadId", threadId)
+                        .build(deviceId))
+                .retrieve()
+                .toBodilessEntity()
+                .doOnSuccess(ok -> log.info(
+                        "[Sensor] Monitoring stopped for deviceId={}, threadId={}",
+                        deviceId, threadId
+                ))
+                .doOnError(err -> log.error(
+                        "[Sensor] Stop monitoring error for deviceId={}, threadId={}: {}",
+                        deviceId, threadId, err.getMessage(), err
+                ))
+                .subscribe();
+    }
+
+    /* ===================== READ ===================== */
+
+    public List<Sensor> findAll() {
+        return sensorDao.findAllSensors();
+    }
+
+    public Optional<Sensor> findByIdSensor(String idSensor) {
+        return sensorDao.findByIdOfSensor(idSensor);
+    }
+
+    public Sensor getOrThrow(String idSensor) {
+        return findByIdSensor(idSensor)
+                .orElseThrow(() -> new IllegalArgumentException("Sensor not found: " + idSensor));
+    }
+
+    /* ===================== CREATE ===================== */
+
     @Transactional
     public Sensor create(Sensor toCreate) {
         if (toCreate.getIdSensor() == null || toCreate.getIdSensor().isBlank())
@@ -41,6 +99,7 @@ public class SensorService {
             toCreate.setCommissioningDate(Instant.now().toString());
 
         if (toCreate.getStatus() == null) toCreate.setStatus(Boolean.TRUE);
+
         // 1) Insert BDD (transactionnel)
         int rows = sensorDao.insertSensor(toCreate);
         if (rows != 1) throw new IllegalStateException("DB insert failed for sensor " + toCreate.getIdSensor());
@@ -68,7 +127,8 @@ public class SensorService {
         return sensorDao.findByIdOfSensor(toCreate.getIdSensor()).orElse(toCreate);
     }
 
-    /* UPDATE */
+    /* ===================== UPDATE ===================== */
+
     @Transactional
     public Sensor update(String idSensor, Sensor patch) {
         Sensor existing = getOrThrow(idSensor);
@@ -85,7 +145,6 @@ public class SensorService {
         if (patch.getFloor() != null)             existing.setFloor(patch.getFloor());
         if (patch.getLocation() != null)          existing.setLocation(patch.getLocation());
 
-        // ❌ NE PAS toucher à : idGateway, frequencyPlan, buildingName, devEui, joinEui, appKey, status
 
         int rows = sensorDao.updateSensor(existing);
         if (rows != 1) throw new IllegalStateException("DB update failed for sensor " + idSensor);
@@ -93,8 +152,8 @@ public class SensorService {
         return existing;
     }
 
+    /* ===================== DELETE ===================== */
 
-    /* DELETE  */
     @Transactional
     public void delete(String idSensor) {
         Sensor existing = getOrThrow(idSensor);
@@ -121,8 +180,8 @@ public class SensorService {
         log.info("[Sensor] DB deleted idSensor={}", idSensor);
     }
 
+    /* ===================== SET STATUS ===================== */
 
-    /* SET STATUS */
     @Transactional
     public Sensor setStatus(String idSensor, boolean active) {
         Sensor existing = getOrThrow(idSensor);
