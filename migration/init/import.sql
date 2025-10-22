@@ -9,6 +9,8 @@
 -- Sensors
 -- Users
 
+SET foreign_key_checks = 0;
+
 LOAD DATA INFILE '/var/lib/mysql-files/csv/Users.csv'
 REPLACE
 INTO TABLE `Users`
@@ -16,6 +18,7 @@ FIELDS TERMINATED BY ','
 ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
 IGNORE 1 ROWS;
+
 LOAD DATA INFILE '/var/lib/mysql-files/csv/Sensors.csv'
 REPLACE
 INTO TABLE `Sensors`
