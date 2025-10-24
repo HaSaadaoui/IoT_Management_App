@@ -5,11 +5,12 @@ on:
     branches:
       - main # STAGING (PRE-PROD)
       - develop # TEST
-      - docker-compose # Remove later
+      - pipeline-test # Remove later
   workflow_dispatch:
 
 env:
   BRANCH: ${{ github.head_ref || github.ref_name }} 
+  GATEWAY_MONITORING_GIT_URL: https://github.com/HaSaadaoui/Gateway_Monitoring_Api.git
 
 jobs:
   deploy:
@@ -28,6 +29,7 @@ jobs:
             echo "HOST=${{ secrets.AZURE_HOST }}" >> $GITHUB_ENV
             echo "USER=azureuser" >> $GITHUB_ENV
             echo "PORT=80" >> $GITHUB_ENV
+            echo "GATEWAY_BRANCH=main" >> $GITHUB_ENV
           else
             echo "SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USER_TEST }}" >> $GITHUB_ENV
             echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASS_TEST }}" >> $GITHUB_ENV
@@ -35,6 +37,7 @@ jobs:
             echo "HOST=${{ secrets.AZURE_HOST_TEST }}" >> $GITHUB_ENV
             echo "USER=mantu" >> $GITHUB_ENV
             echo "PORT=8080" >> $GITHUB_ENV
+            echo "GATEWAY_BRANCH=develop" >> $GITHUB_ENV
           fi
           echo "BRANCH=${{ env.BRANCH }}" >> $GITHUB_ENV
           echo "DOCKER_REGISTRY=localhost:5000" >> $GITHUB_ENV
@@ -74,6 +77,34 @@ jobs:
           '
           echo "SSH and Docker load completed"
 
+      - name: Build and copy Gateway image to Azure Cloud
+        run: |
+          echo "Cloning repository"
+          git clone ${{ env.GATEWAY_MONITORING_GIT_URL }} tmp_gateway_monitoring_api && cd tmp_gateway_monitoring_api
+          
+          if [[ "${{ env.BRANCH }}" != "main" ]]; then
+            git checkout develop
+          fi
+
+          echo "Build the gateway docker image"
+          docker build --platform linux/amd64 -t localhost:5000/gateway:${{ env.GATEWAY_BRANCH }} .
+
+          echo "Saving gateway docker image"
+          docker save -o gateway.tar localhost:5000/gateway:${{ env.GATEWAY_BRANCH }}
+
+          echo "Compressing gateway image"
+          gzip gateway.tar
+
+          echo "Starting SCP transfer for gateway"
+          scp -o StrictHostKeyChecking=no gateway.tar.gz ${{ env.USER }}@${{ env.HOST }}:/home/${{ env.USER }}/gateway.tar.gz
+          echo "SCP transfer for gateway completed"
+          echo "Starting SSH to Azure Cloud for gateway"
+
+          ssh -o StrictHostKeyChecking=no ${{ env.USER }}@${{ env.HOST }} '
+            sudo bash -c "gunzip -f /home/${{ env.USER }}/gateway.tar.gz && docker load -i /home/${{ env.USER }}/gateway.tar"
+          '
+          echo "SSH and Docker load for gateway completed"
+
       - name: Run Docker Compose on Azure Cloud
         run: |
           echo '
@@ -88,6 +119,7 @@ jobs:
             ACS_CONNECTION_STRING="${{ env.ACS_CONNECTION_STRING }}"
             ACS_FROM_EMAIL="DoNotReply@7bcc2766-fee2-4b02-8ccf-0675ed430b8c.azurecomm.net"
             PORT=${{ env.PORT }}
+            GATEWAY_BRANCH=${{ env.GATEWAY_BRANCH }}
           ' > .env
           scp -o StrictHostKeyChecking=no .env ${{ env.USER }}@${{ env.HOST }}:/home/${{ env.USER }}/.env
           scp -o StrictHostKeyChecking=no docker-compose.yml ${{ env.USER }}@${{ env.HOST }}:/home/${{ env.USER }}/docker-compose.yml
