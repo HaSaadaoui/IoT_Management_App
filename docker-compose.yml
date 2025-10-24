@@ -27,7 +27,7 @@ services:
       - app-network
 
   gateway:
-    image: localhost:5000/gateway #:${BRANCH:-develop}
+    image: localhost:5000/gateway:${GATEWAY_BRANCH:-main}
     container_name: gateway
     # build: https://github.com/HaSaadaoui/Gateway_Monitoring_Api.git#${BRANCH:-develop} # Activer lorsque la deploy key est ajouté au repo Gateway
     ports:
