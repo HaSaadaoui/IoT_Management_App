@@ -75,7 +75,7 @@ jobs:
           '
           echo "SSH and Docker load completed"
 
-      - name: Build and copy Docker image to Azure Cloud
+      - name: Build and copy Gateway image to Azure Cloud
         run: |
           echo "Cloning repository"
           git clone ${{ env.GATEWAY_MONITORING_GIT_URL }} tmp_gateway_monitoring_api && cd tmp_gateway_monitoring_api
@@ -85,16 +85,19 @@ jobs:
           fi
 
           echo "Build the gateway docker image"
-          cd tmp_gateway_monitoring_api/
           docker build --platform linux/amd64 -t localhost:5000/gateway:${{ env.BRANCH }} .
+
           echo "Saving gateway docker image"
           docker save gateway -o gateway.tar
+
           echo "Compressing gateway image"
           gzip gateway.tar
+
           echo "Starting SCP transfer for gateway"
           scp -o StrictHostKeyChecking=no gateway.tar.gz ${{ env.USER }}@${{ env.HOST }}:/home/${{ env.USER }}/gateway.tar.gz
           echo "SCP transfer for gateway completed"
           echo "Starting SSH to Azure Cloud for gateway"
+          
           ssh -o StrictHostKeyChecking=no ${{ env.USER }}@${{ env.HOST }} '
             sudo bash -c "gunzip -f /home/${{ env.USER }}/gateway.tar.gz && docker load -i /home/${{ env.USER }}/gateway.tar"
           '
