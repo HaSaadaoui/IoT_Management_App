@@ -88,7 +88,7 @@ jobs:
           docker build --platform linux/amd64 -t localhost:5000/gateway:${{ env.BRANCH }} .
 
           echo "Saving gateway docker image"
-          docker save gateway -o gateway.tar
+          docker save -o gateway.tar localhost:5000/gateway:${{ env.BRANCH }}
 
           echo "Compressing gateway image"
           gzip gateway.tar
@@ -97,7 +97,7 @@ jobs:
           scp -o StrictHostKeyChecking=no gateway.tar.gz ${{ env.USER }}@${{ env.HOST }}:/home/${{ env.USER }}/gateway.tar.gz
           echo "SCP transfer for gateway completed"
           echo "Starting SSH to Azure Cloud for gateway"
-          
+
           ssh -o StrictHostKeyChecking=no ${{ env.USER }}@${{ env.HOST }} '
             sudo bash -c "gunzip -f /home/${{ env.USER }}/gateway.tar.gz && docker load -i /home/${{ env.USER }}/gateway.tar"
           '
