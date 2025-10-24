@@ -495,6 +495,7 @@ public class SensorController {
                         payload.setBattery(firstNumber(dp, "battery"));
                     }
                     case "DESK" -> {
+                        payload.setPresence(firstAny(dp, "occupancy"));
                         payload.setTemperature(firstNumber(dp, "temperature"));
                         payload.setHumidity(firstNumber(dp, "humidity"));
                         payload.setVdd(firstNumber(dp, "vdd"));

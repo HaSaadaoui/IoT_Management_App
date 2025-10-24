@@ -316,11 +316,11 @@ function startSSE() {
           if (typeof p['battery (%)'] === 'number' && el('#s-pir-batt')) updateBatteryBadge('#s-pir-batt', p['battery (%)']);
           break;
         case 'DESK':
-          // Occupancy
-          if (p.occupancy != null && el('#s-desk-occupancy')) {
+          // Occupancy (vient du champ "presence" du backend)
+          if (p.presence != null && el('#s-desk-occupancy')) {
             const occNode = el('#s-desk-occupancy');
             occNode.classList.remove('badge--ok', 'badge--off');
-            if (p.occupancy === 1 || p.occupancy === true || p.occupancy === 'occupied') {
+            if (p.presence === 1 || p.presence === true || p.presence === 'occupied') {
               occNode.classList.add('badge--ok');
               setText('#s-desk-occupancy', 'Occupied');
             } else {

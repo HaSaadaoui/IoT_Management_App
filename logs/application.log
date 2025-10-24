@@ -11353,3 +11353,619 @@ Caused by: io.netty.resolver.dns.DnsErrorCauseException: Query failed with NXDOM
 2025-10-24 12:57:36 - Graceful shutdown complete
 2025-10-24 12:57:38 - HikariPool-1 - Shutdown initiated...
 2025-10-24 12:57:38 - HikariPool-1 - Shutdown completed.
+2025-10-24 12:57:51 - Starting SensorprocessorApplication using Java 17.0.16 with PID 13024 (C:\Users\saifeddine.mosrati_m\Desktop\Projet_MantuV1\IoT_Management_App\target\classes started by saifeddine.mosrati_m in C:\Users\saifeddine.mosrati_m\Desktop\Projet_MantuV1\IoT_Management_App)
+2025-10-24 12:57:51 - No active profile set, falling back to 1 default profile: "default"
+2025-10-24 12:57:53 - Tomcat initialized with port 8080 (http)
+2025-10-24 12:57:53 - Starting service [Tomcat]
+2025-10-24 12:57:53 - Starting Servlet engine: [Apache Tomcat/10.1.44]
+2025-10-24 12:57:53 - Initializing Spring embedded WebApplicationContext
+2025-10-24 12:57:53 - Root WebApplicationContext: initialization completed in 1380 ms
+2025-10-24 12:57:53 - Filter 'webMvcObservationFilter' configured for use
+2025-10-24 12:57:53 - Filter 'hiddenHttpMethodFilter' configured for use
+2025-10-24 12:57:53 - HikariPool-1 - Starting...
+2025-10-24 12:57:53 - HikariPool-1 - Added connection org.sqlite.jdbc4.JDBC4Connection@66756662
+2025-10-24 12:57:53 - HikariPool-1 - Start completed.
+2025-10-24 12:57:54 - Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2025-10-24 12:57:54 - 39 mappings in 'requestMappingHandlerMapping'
+2025-10-24 12:57:54 - Patterns [/webjars/**, /**, /uploads/**, /css/**, /js/**, /image/**] in 'resourceHandlerMapping'
+2025-10-24 12:57:54 - Exposing 1 endpoint beneath base path '/actuator'
+2025-10-24 12:57:54 - ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 1 RequestBodyAdvice, 1 ResponseBodyAdvice
+2025-10-24 12:57:54 - ControllerAdvice beans: 0 @ExceptionHandler, 1 ResponseBodyAdvice
+2025-10-24 12:57:54 - Tomcat started on port 8080 (http) with context path '/'
+2025-10-24 12:57:54 - Started SensorprocessorApplication in 3.086 seconds (process running for 3.41)
+2025-10-24 12:58:03 - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-10-24 12:58:03 - Initializing Servlet 'dispatcherServlet'
+2025-10-24 12:58:03 - Detected StandardServletMultipartResolver
+2025-10-24 12:58:03 - Detected AcceptHeaderLocaleResolver
+2025-10-24 12:58:03 - Detected FixedThemeResolver
+2025-10-24 12:58:03 - Detected org.springframework.web.servlet.view.DefaultRequestToViewNameTranslator@5ea65be7
+2025-10-24 12:58:03 - Detected org.springframework.web.servlet.support.SessionFlashMapManager@7d91167a
+2025-10-24 12:58:03 - enableLoggingRequestDetails='false': request parameters and headers will be masked to prevent unsafe logging of potentially sensitive data
+2025-10-24 12:58:03 - Completed initialization in 7 ms
+2025-10-24 12:58:03 - GET "/login", parameters={}
+2025-10-24 12:58:03 - Mapped to com.amaris.sensorprocessor.controller.HomeController#loginPage()
+2025-10-24 12:58:03 - Selected 'text/html' given [text/html, application/xhtml+xml, image/avif, image/webp, image/apng, application/xml;q=0.9, */*;q=0.8, application/signed-exchange;v=b3;q=0.7]
+2025-10-24 12:58:03 - Completed 200 OK
+2025-10-24 12:58:04 - GET "/css/styles.css", parameters={}
+2025-10-24 12:58:04 - GET "/css/login-home.css", parameters={}
+2025-10-24 12:58:04 - Mapped to ResourceHttpRequestHandler [classpath [static/css/]]
+2025-10-24 12:58:04 - Mapped to ResourceHttpRequestHandler [classpath [static/css/]]
+2025-10-24 12:58:04 - GET "/image/mantu-logo.jpg", parameters={}
+2025-10-24 12:58:04 - GET "/image/cacher.svg", parameters={}
+2025-10-24 12:58:04 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:04 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:04 - Completed 200 OK
+2025-10-24 12:58:04 - Completed 200 OK
+2025-10-24 12:58:04 - GET "/image/oeil.svg", parameters={}
+2025-10-24 12:58:04 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:04 - Completed 200 OK
+2025-10-24 12:58:04 - Completed 200 OK
+2025-10-24 12:58:04 - Completed 200 OK
+2025-10-24 12:58:04 - GET "/image/mantu-background.jpg", parameters={}
+2025-10-24 12:58:04 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:04 - Completed 200 OK
+2025-10-24 12:58:11 - GET "/login?error", parameters={masked}
+2025-10-24 12:58:11 - Mapped to com.amaris.sensorprocessor.controller.HomeController#loginPage()
+2025-10-24 12:58:11 - Selected 'text/html' given [text/html, application/xhtml+xml, image/avif, image/webp, image/apng, application/xml;q=0.9, */*;q=0.8, application/signed-exchange;v=b3;q=0.7]
+2025-10-24 12:58:11 - Completed 200 OK
+2025-10-24 12:58:11 - GET "/css/styles.css", parameters={}
+2025-10-24 12:58:11 - Mapped to ResourceHttpRequestHandler [classpath [static/css/]]
+2025-10-24 12:58:11 - Completed 200 OK
+2025-10-24 12:58:11 - GET "/image/mantu-logo.jpg", parameters={}
+2025-10-24 12:58:11 - GET "/css/login-home.css", parameters={}
+2025-10-24 12:58:11 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:11 - Mapped to ResourceHttpRequestHandler [classpath [static/css/]]
+2025-10-24 12:58:11 - GET "/image/cacher.svg", parameters={}
+2025-10-24 12:58:11 - GET "/image/oeil.svg", parameters={}
+2025-10-24 12:58:11 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:11 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:11 - Completed 200 OK
+2025-10-24 12:58:11 - Completed 200 OK
+2025-10-24 12:58:11 - Completed 200 OK
+2025-10-24 12:58:11 - Completed 200 OK
+2025-10-24 12:58:11 - GET "/image/mantu-background.jpg", parameters={}
+2025-10-24 12:58:11 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:11 - Completed 200 OK
+2025-10-24 12:58:17 - GET "/home", parameters={}
+2025-10-24 12:58:17 - Mapped to com.amaris.sensorprocessor.controller.HomeController#home(Model, Principal)
+2025-10-24 12:58:17 - Selected 'text/html' given [text/html, application/xhtml+xml, image/avif, image/webp, image/apng, application/xml;q=0.9, */*;q=0.8, application/signed-exchange;v=b3;q=0.7]
+2025-10-24 12:58:17 - [THYMELEAF][http-nio-8080-exec-6][home] Deprecated unwrapped fragment expression "fragments/header :: appHeader(pageTitle='Manage Users', homeUrl=@{/})" found in template home, line 11, col 6. Please use the complete syntax of fragment expressions instead ("~{fragments/header :: appHeader(pageTitle='Manage Users', homeUrl=@{/})}"). The old, unwrapped syntax for fragment expressions will be removed in future versions of Thymeleaf.
+2025-10-24 12:58:17 - Completed 200 OK
+2025-10-24 12:58:17 - GET "/css/styles.css", parameters={}
+2025-10-24 12:58:17 - Mapped to ResourceHttpRequestHandler [classpath [static/css/]]
+2025-10-24 12:58:17 - GET "/css/header.css", parameters={}
+2025-10-24 12:58:17 - GET "/image/gateway-icon.svg", parameters={}
+2025-10-24 12:58:17 - GET "/css/login-home.css", parameters={}
+2025-10-24 12:58:17 - GET "/image/default-avatar.png", parameters={}
+2025-10-24 12:58:17 - Mapped to ResourceHttpRequestHandler [classpath [static/css/]]
+2025-10-24 12:58:17 - GET "/image/sensor-icon.svg", parameters={}
+2025-10-24 12:58:17 - Mapped to ResourceHttpRequestHandler [classpath [static/css/]]
+2025-10-24 12:58:17 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:17 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:17 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:17 - Completed 200 OK
+2025-10-24 12:58:17 - Completed 200 OK
+2025-10-24 12:58:17 - Completed 200 OK
+2025-10-24 12:58:17 - Completed 200 OK
+2025-10-24 12:58:17 - Completed 200 OK
+2025-10-24 12:58:17 - Completed 200 OK
+2025-10-24 12:58:17 - GET "/image/predictive.svg", parameters={}
+2025-10-24 12:58:17 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:17 - GET "/image/config-icon.svg", parameters={}
+2025-10-24 12:58:17 - GET "/image/alerte.svg", parameters={}
+2025-10-24 12:58:17 - GET "/image/user-icon.svg", parameters={}
+2025-10-24 12:58:17 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:17 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:17 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:17 - Completed 200 OK
+2025-10-24 12:58:17 - Completed 200 OK
+2025-10-24 12:58:17 - Completed 200 OK
+2025-10-24 12:58:17 - GET "/image/mantu-background.jpg", parameters={}
+2025-10-24 12:58:17 - Completed 200 OK
+2025-10-24 12:58:17 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:17 - Completed 200 OK
+2025-10-24 12:58:20 - GET "/manage-sensors", parameters={}
+2025-10-24 12:58:20 - Mapped to com.amaris.sensorprocessor.controller.SensorController#manageSensors(Model, Principal)
+2025-10-24 12:58:20 - Selected 'text/html' given [text/html, application/xhtml+xml, image/avif, image/webp, image/apng, application/xml;q=0.9, */*;q=0.8, application/signed-exchange;v=b3;q=0.7]
+2025-10-24 12:58:20 - [THYMELEAF][http-nio-8080-exec-3][manageSensors] Deprecated unwrapped fragment expression "fragments/header :: appHeader(pageTitle='Manage Sensors', homeUrl=@{/})" found in template manageSensors, line 15, col 10. Please use the complete syntax of fragment expressions instead ("~{fragments/header :: appHeader(pageTitle='Manage Sensors', homeUrl=@{/})}"). The old, unwrapped syntax for fragment expressions will be removed in future versions of Thymeleaf.
+2025-10-24 12:58:20 - GET "/css/styles.css", parameters={}
+2025-10-24 12:58:20 - Mapped to ResourceHttpRequestHandler [classpath [static/css/]]
+2025-10-24 12:58:20 - Completed 200 OK
+2025-10-24 12:58:20 - GET "/image/calendar-icon.svg", parameters={}
+2025-10-24 12:58:20 - GET "/css/header.css", parameters={}
+2025-10-24 12:58:20 - GET "/css/manageSensors.css", parameters={}
+2025-10-24 12:58:20 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:20 - Mapped to ResourceHttpRequestHandler [classpath [static/css/]]
+2025-10-24 12:58:20 - GET "/image/default-avatar.png", parameters={}
+2025-10-24 12:58:20 - GET "/image/mantu-logo.jpg", parameters={}
+2025-10-24 12:58:20 - Mapped to ResourceHttpRequestHandler [classpath [static/css/]]
+2025-10-24 12:58:20 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:20 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:20 - Completed 200 OK
+2025-10-24 12:58:20 - Completed 200 OK
+2025-10-24 12:58:20 - Completed 200 OK
+2025-10-24 12:58:20 - Completed 200 OK
+2025-10-24 12:58:20 - Completed 200 OK
+2025-10-24 12:58:20 - GET "/image/search-icon.svg", parameters={}
+2025-10-24 12:58:20 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:20 - Completed 200 OK
+2025-10-24 12:58:21 - Completed 200 OK
+2025-10-24 12:58:21 - GET "/javascript/manageSensors.js", parameters={}
+2025-10-24 12:58:21 - Mapped to ResourceHttpRequestHandler [classpath [static/], URL [file:uploads/], ServletContext [/]]
+2025-10-24 12:58:21 - Completed 200 OK
+2025-10-24 12:58:21 - GET "/image/delete-icon.svg", parameters={}
+2025-10-24 12:58:21 - GET "/image/monitoring-data.svg", parameters={}
+2025-10-24 12:58:21 - GET "/image/edit-icon.svg", parameters={}
+2025-10-24 12:58:21 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:21 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:21 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:21 - Completed 200 OK
+2025-10-24 12:58:21 - Completed 200 OK
+2025-10-24 12:58:21 - Completed 200 OK
+2025-10-24 12:58:24 - GET "/manage-sensors/monitoring/desk-03-01", parameters={}
+2025-10-24 12:58:24 - Mapped to com.amaris.sensorprocessor.controller.SensorController#monitorSensor(String, Model, Principal, HttpSession)
+2025-10-24 12:58:24 - Selected 'text/html' given [text/html, application/xhtml+xml, image/avif, image/webp, image/apng, application/xml;q=0.9, */*;q=0.8, application/signed-exchange;v=b3;q=0.7]
+2025-10-24 12:58:24 - Completed 200 OK
+2025-10-24 12:58:24 - GET "/css/styles.css", parameters={}
+2025-10-24 12:58:24 - Mapped to ResourceHttpRequestHandler [classpath [static/css/]]
+2025-10-24 12:58:24 - GET "/css/monitoringSensor.css", parameters={}
+2025-10-24 12:58:24 - GET "/css/header.css", parameters={}
+2025-10-24 12:58:24 - Mapped to ResourceHttpRequestHandler [classpath [static/css/]]
+2025-10-24 12:58:24 - Mapped to ResourceHttpRequestHandler [classpath [static/css/]]
+2025-10-24 12:58:24 - GET "/image/toggle_on.svg", parameters={}
+2025-10-24 12:58:24 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:24 - Completed 200 OK
+2025-10-24 12:58:24 - Completed 200 OK
+2025-10-24 12:58:24 - Completed 200 OK
+2025-10-24 12:58:24 - Completed 200 OK
+2025-10-24 12:58:24 - GET "/javascript/monitoringSensor.js", parameters={}
+2025-10-24 12:58:24 - Mapped to ResourceHttpRequestHandler [classpath [static/], URL [file:uploads/], ServletContext [/]]
+2025-10-24 12:58:24 - Completed 200 OK
+2025-10-24 12:58:24 - GET "/image/default-avatar.png", parameters={}
+2025-10-24 12:58:24 - Mapped to ResourceHttpRequestHandler [classpath [static/image/]]
+2025-10-24 12:58:24 - Completed 200 OK
+2025-10-24 12:58:24 - GET "/manage-sensors/monitoring/desk-03-01/stream?token=1eb7d162-7218-479f-adae-1ae29cb6ea5e", parameters={masked}
+2025-10-24 12:58:24 - Mapped to com.amaris.sensorprocessor.controller.SensorController#streamSensor(String, String, HttpSession)
+2025-10-24 12:58:24 - [5d7f85a] HTTP GET http://monitoring:8081/api/monitoring/sensor/lorawan-network-mantu/desk-03-01?threadId=sensor-desk-03-01-3BF2ED2DFF94F9110B93B56CD5CE2789-1761303504699
+2025-10-24 12:58:24 - Started async request for "/manage-sensors/monitoring/desk-03-01/stream"
+2025-10-24 12:58:24 - Exiting but response remains open for further handling
+2025-10-24 12:58:25 - [Sensor] SSE error appId=lorawan-network-mantu, deviceId=desk-03-01: Failed to resolve 'monitoring' [A(1), AAAA(28)] after 4 queries 
+org.springframework.web.reactive.function.client.WebClientRequestException: Failed to resolve 'monitoring' [A(1), AAAA(28)] after 4 queries 
+	at org.springframework.web.reactive.function.client.ExchangeFunctions$DefaultExchangeFunction.lambda$wrapException$9(ExchangeFunctions.java:137)
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ? Request to GET http://monitoring:8081/api/monitoring/sensor/lorawan-network-mantu/desk-03-01 [DefaultWebClient]
+Original Stack Trace:
+		at org.springframework.web.reactive.function.client.ExchangeFunctions$DefaultExchangeFunction.lambda$wrapException$9(ExchangeFunctions.java:137)
+		at reactor.core.publisher.MonoErrorSupplied.subscribe(MonoErrorSupplied.java:55)
+		at reactor.core.publisher.Mono.subscribe(Mono.java:4576)
+		at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:103)
+		at reactor.core.publisher.FluxPeek$PeekSubscriber.onError(FluxPeek.java:222)
+		at reactor.core.publisher.FluxPeek$PeekSubscriber.onError(FluxPeek.java:222)
+		at reactor.core.publisher.FluxPeek$PeekSubscriber.onError(FluxPeek.java:222)
+		at reactor.core.publisher.MonoNext$NextSubscriber.onError(MonoNext.java:93)
+		at reactor.core.publisher.MonoFlatMapMany$FlatMapManyMain.onError(MonoFlatMapMany.java:205)
+		at reactor.core.publisher.SerializedSubscriber.onError(SerializedSubscriber.java:124)
+		at reactor.core.publisher.FluxRetryWhen$RetryWhenMainSubscriber.whenError(FluxRetryWhen.java:229)
+		at reactor.core.publisher.FluxRetryWhen$RetryWhenOtherSubscriber.onError(FluxRetryWhen.java:279)
+		at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.onError(FluxContextWrite.java:121)
+		at reactor.core.publisher.FluxConcatMapNoPrefetch$FluxConcatMapNoPrefetchSubscriber.maybeOnError(FluxConcatMapNoPrefetch.java:327)
+		at reactor.core.publisher.FluxConcatMapNoPrefetch$FluxConcatMapNoPrefetchSubscriber.onNext(FluxConcatMapNoPrefetch.java:212)
+		at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.onNext(FluxContextWrite.java:107)
+		at reactor.core.publisher.SinkManyEmitterProcessor.drain(SinkManyEmitterProcessor.java:476)
+		at reactor.core.publisher.SinkManyEmitterProcessor$EmitterInner.drainParent(SinkManyEmitterProcessor.java:620)
+		at reactor.core.publisher.FluxPublish$PubSubInner.request(FluxPublish.java:874)
+		at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.request(FluxContextWrite.java:136)
+		at reactor.core.publisher.FluxConcatMapNoPrefetch$FluxConcatMapNoPrefetchSubscriber.request(FluxConcatMapNoPrefetch.java:337)
+		at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.request(FluxContextWrite.java:136)
+		at reactor.core.publisher.Operators$DeferredSubscription.request(Operators.java:1742)
+		at reactor.core.publisher.FluxRetryWhen$RetryWhenMainSubscriber.onError(FluxRetryWhen.java:196)
+		at reactor.core.publisher.MonoCreate$DefaultMonoSink.error(MonoCreate.java:205)
+		at reactor.netty.http.client.HttpClientConnect$MonoHttpConnect$ClientTransportSubscriber.onError(HttpClientConnect.java:325)
+		at reactor.core.publisher.MonoCreate$DefaultMonoSink.error(MonoCreate.java:205)
+		at reactor.netty.resources.DefaultPooledConnectionProvider$DisposableAcquire.onError(DefaultPooledConnectionProvider.java:174)
+		at reactor.netty.internal.shaded.reactor.pool.AbstractPool$Borrower.fail(AbstractPool.java:479)
+		at reactor.netty.internal.shaded.reactor.pool.SimpleDequePool.lambda$drainLoop$9(SimpleDequePool.java:443)
+		at reactor.core.publisher.FluxDoOnEach$DoOnEachSubscriber.onError(FluxDoOnEach.java:186)
+		at reactor.core.publisher.MonoCreate$DefaultMonoSink.error(MonoCreate.java:205)
+		at reactor.netty.resources.DefaultPooledConnectionProvider$PooledConnectionAllocator$PooledConnectionInitializer.onError(DefaultPooledConnectionProvider.java:593)
+		at reactor.core.publisher.MonoFlatMap$FlatMapMain.secondError(MonoFlatMap.java:241)
+		at reactor.core.publisher.MonoFlatMap$FlatMapInner.onError(MonoFlatMap.java:315)
+		at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:106)
+		at org.springframework.security.config.annotation.web.configuration.SecurityReactorContextConfiguration$SecurityReactorContextSubscriber.onError(SecurityReactorContextConfiguration.java:191)
+		at reactor.core.publisher.Operators.error(Operators.java:198)
+		at reactor.core.publisher.MonoError.subscribe(MonoError.java:53)
+		at reactor.core.publisher.Mono.subscribe(Mono.java:4576)
+		at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:103)
+		at reactor.netty.transport.TransportConnector$MonoChannelPromise.tryFailure(TransportConnector.java:600)
+		at reactor.netty.transport.TransportConnector.lambda$doResolveAndConnect$11(TransportConnector.java:376)
+		at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603)
+		at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:570)
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505)
+		at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649)
+		at io.netty.util.concurrent.DefaultPromise.setFailure0(DefaultPromise.java:642)
+		at io.netty.util.concurrent.DefaultPromise.setFailure(DefaultPromise.java:123)
+		at io.netty.resolver.InetSocketAddressResolver$2.operationComplete(InetSocketAddressResolver.java:86)
+		at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603)
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners0(DefaultPromise.java:596)
+		at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:572)
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505)
+		at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649)
+		at io.netty.util.concurrent.DefaultPromise.setFailure0(DefaultPromise.java:642)
+		at io.netty.util.concurrent.DefaultPromise.tryFailure(DefaultPromise.java:131)
+		at io.netty.resolver.dns.DnsResolveContext.finishResolve(DnsResolveContext.java:1158)
+		at io.netty.resolver.dns.DnsResolveContext.tryToFinishResolve(DnsResolveContext.java:1097)
+		at io.netty.resolver.dns.DnsResolveContext.query(DnsResolveContext.java:455)
+		at io.netty.resolver.dns.DnsResolveContext.onResponse(DnsResolveContext.java:686)
+		at io.netty.resolver.dns.DnsResolveContext.access$500(DnsResolveContext.java:70)
+		at io.netty.resolver.dns.DnsResolveContext$2.operationComplete(DnsResolveContext.java:513)
+		at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603)
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners0(DefaultPromise.java:596)
+		at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:572)
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505)
+		at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649)
+		at io.netty.util.concurrent.DefaultPromise.setSuccess0(DefaultPromise.java:638)
+		at io.netty.util.concurrent.DefaultPromise.trySuccess(DefaultPromise.java:118)
+		at io.netty.resolver.dns.DnsQueryContext.trySuccess(DnsQueryContext.java:308)
+		at io.netty.resolver.dns.DnsQueryContext.finishSuccess(DnsQueryContext.java:299)
+		at io.netty.resolver.dns.DnsNameResolver$DnsResponseHandler.channelRead(DnsNameResolver.java:1491)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:444)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+		at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:412)
+		at io.netty.handler.codec.MessageToMessageDecoder.channelRead(MessageToMessageDecoder.java:107)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:444)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+		at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:412)
+		at io.netty.channel.DefaultChannelPipeline$HeadContext.channelRead(DefaultChannelPipeline.java:1357)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:440)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+		at io.netty.channel.DefaultChannelPipeline.fireChannelRead(DefaultChannelPipeline.java:868)
+		at io.netty.channel.nio.AbstractNioMessageChannel$NioMessageUnsafe.read(AbstractNioMessageChannel.java:97)
+		at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:796)
+		at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:732)
+		at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:658)
+		at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:562)
+		at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:998)
+		at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
+		at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+		at java.base/java.lang.Thread.run(Thread.java:840)
+Caused by: java.net.UnknownHostException: Failed to resolve 'monitoring' [A(1), AAAA(28)] after 4 queries 
+	at io.netty.resolver.dns.DnsResolveContext.finishResolve(DnsResolveContext.java:1150)
+	at io.netty.resolver.dns.DnsResolveContext.tryToFinishResolve(DnsResolveContext.java:1097)
+	at io.netty.resolver.dns.DnsResolveContext.query(DnsResolveContext.java:455)
+	at io.netty.resolver.dns.DnsResolveContext.onResponse(DnsResolveContext.java:686)
+	at io.netty.resolver.dns.DnsResolveContext.access$500(DnsResolveContext.java:70)
+	at io.netty.resolver.dns.DnsResolveContext$2.operationComplete(DnsResolveContext.java:513)
+	at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603)
+	at io.netty.util.concurrent.DefaultPromise.notifyListeners0(DefaultPromise.java:596)
+	at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:572)
+	at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505)
+	at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649)
+	at io.netty.util.concurrent.DefaultPromise.setSuccess0(DefaultPromise.java:638)
+	at io.netty.util.concurrent.DefaultPromise.trySuccess(DefaultPromise.java:118)
+	at io.netty.resolver.dns.DnsQueryContext.trySuccess(DnsQueryContext.java:308)
+	at io.netty.resolver.dns.DnsQueryContext.finishSuccess(DnsQueryContext.java:299)
+	at io.netty.resolver.dns.DnsNameResolver$DnsResponseHandler.channelRead(DnsNameResolver.java:1491)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:444)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:412)
+	at io.netty.handler.codec.MessageToMessageDecoder.channelRead(MessageToMessageDecoder.java:107)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:444)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:412)
+	at io.netty.channel.DefaultChannelPipeline$HeadContext.channelRead(DefaultChannelPipeline.java:1357)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:440)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+	at io.netty.channel.DefaultChannelPipeline.fireChannelRead(DefaultChannelPipeline.java:868)
+	at io.netty.channel.nio.AbstractNioMessageChannel$NioMessageUnsafe.read(AbstractNioMessageChannel.java:97)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:796)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:732)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:658)
+	at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:562)
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:998)
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+Caused by: io.netty.resolver.dns.DnsErrorCauseException: Query failed with NXDOMAIN
+	at io.netty.resolver.dns.DnsResolveContext.onResponse(..)(Unknown Source)
+2025-10-24 12:58:25 - [Sensors] SSE error for desk-03-01: org.springframework.web.reactive.function.client.WebClientRequestException: Failed to resolve 'monitoring' [A(1), AAAA(28)] after 4 queries 
+2025-10-24 12:58:25 - Async result set for "/manage-sensors/monitoring/desk-03-01/stream"
+2025-10-24 12:58:25 - Performing async dispatch for "/manage-sensors/monitoring/desk-03-01/stream"
+2025-10-24 12:58:25 - "ASYNC" dispatch for GET "/manage-sensors/monitoring/desk-03-01/stream?token=1eb7d162-7218-479f-adae-1ae29cb6ea5e", parameters={masked}
+2025-10-24 12:58:25 - Resume with async result [org.springframework.web.reactive.function.client.WebClientRequestException: Failed to resolve 'monit (truncated)...]
+2025-10-24 12:58:25 - Unresolved failure from "ASYNC" dispatch: org.springframework.web.reactive.function.client.WebClientRequestException: Failed to resolve 'monitoring' [A(1), AAAA(28)] after 4 queries 
+2025-10-24 12:58:25 - Servlet.service() for servlet [dispatcherServlet] threw exception
+io.netty.resolver.dns.DnsErrorCauseException: Query failed with NXDOMAIN
+	at io.netty.resolver.dns.DnsResolveContext.onResponse(..)(Unknown Source)
+2025-10-24 12:58:25 - Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: org.springframework.web.reactive.function.client.WebClientRequestException: Failed to resolve 'monitoring' [A(1), AAAA(28)] after 4 queries ] with root cause
+io.netty.resolver.dns.DnsErrorCauseException: Query failed with NXDOMAIN
+	at io.netty.resolver.dns.DnsResolveContext.onResponse(..)(Unknown Source)
+2025-10-24 12:58:25 - "ERROR" dispatch for GET "/error?token=1eb7d162-7218-479f-adae-1ae29cb6ea5e", parameters={masked}
+2025-10-24 12:58:25 - Mapped to org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController#error(HttpServletRequest)
+2025-10-24 12:58:25 - No match for [text/event-stream], supported: [application/json, application/*+json, application/cbor]
+2025-10-24 12:58:25 - Using @ExceptionHandler org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController#mediaTypeNotAcceptable(HttpServletRequest)
+2025-10-24 12:58:25 - Using 'text/event-stream', given [text/event-stream] and supported [text/plain, */*, application/json, application/*+json, application/cbor]
+2025-10-24 12:58:25 - Nothing to write: null body
+2025-10-24 12:58:25 - Resolved [org.springframework.web.HttpMediaTypeNotAcceptableException: No acceptable representation]
+2025-10-24 12:58:25 - Exiting from "ERROR" dispatch, status 500
+2025-10-24 12:58:25 - Servlet container error notification for "/error"
+2025-10-24 12:58:25 - [6c5fb37c] HTTP GET http://monitoring:8081/api/monitoring/sensor/stop/desk-03-01?threadId=sensor-desk-03-01-3BF2ED2DFF94F9110B93B56CD5CE2789-1761303504699
+2025-10-24 12:58:25 - [Sensor] Stop monitoring error for deviceId=desk-03-01, threadId=sensor-desk-03-01-3BF2ED2DFF94F9110B93B56CD5CE2789-1761303504699: Failed to resolve 'monitoring' [A(1), AAAA(28)] after 4 queries 
+org.springframework.web.reactive.function.client.WebClientRequestException: Failed to resolve 'monitoring' [A(1), AAAA(28)] after 4 queries 
+	at org.springframework.web.reactive.function.client.ExchangeFunctions$DefaultExchangeFunction.lambda$wrapException$9(ExchangeFunctions.java:137)
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ? Request to GET http://monitoring:8081/api/monitoring/sensor/stop/desk-03-01 [DefaultWebClient]
+Original Stack Trace:
+		at org.springframework.web.reactive.function.client.ExchangeFunctions$DefaultExchangeFunction.lambda$wrapException$9(ExchangeFunctions.java:137)
+		at reactor.core.publisher.MonoErrorSupplied.subscribe(MonoErrorSupplied.java:55)
+		at reactor.core.publisher.Mono.subscribe(Mono.java:4576)
+		at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:103)
+		at reactor.core.publisher.FluxPeek$PeekSubscriber.onError(FluxPeek.java:222)
+		at reactor.core.publisher.FluxPeek$PeekSubscriber.onError(FluxPeek.java:222)
+		at reactor.core.publisher.FluxPeek$PeekSubscriber.onError(FluxPeek.java:222)
+		at reactor.core.publisher.MonoNext$NextSubscriber.onError(MonoNext.java:93)
+		at reactor.core.publisher.MonoFlatMapMany$FlatMapManyMain.onError(MonoFlatMapMany.java:205)
+		at reactor.core.publisher.SerializedSubscriber.onError(SerializedSubscriber.java:124)
+		at reactor.core.publisher.FluxRetryWhen$RetryWhenMainSubscriber.whenError(FluxRetryWhen.java:229)
+		at reactor.core.publisher.FluxRetryWhen$RetryWhenOtherSubscriber.onError(FluxRetryWhen.java:279)
+		at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.onError(FluxContextWrite.java:121)
+		at reactor.core.publisher.FluxConcatMapNoPrefetch$FluxConcatMapNoPrefetchSubscriber.maybeOnError(FluxConcatMapNoPrefetch.java:327)
+		at reactor.core.publisher.FluxConcatMapNoPrefetch$FluxConcatMapNoPrefetchSubscriber.onNext(FluxConcatMapNoPrefetch.java:212)
+		at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.onNext(FluxContextWrite.java:107)
+		at reactor.core.publisher.SinkManyEmitterProcessor.drain(SinkManyEmitterProcessor.java:476)
+		at reactor.core.publisher.SinkManyEmitterProcessor$EmitterInner.drainParent(SinkManyEmitterProcessor.java:620)
+		at reactor.core.publisher.FluxPublish$PubSubInner.request(FluxPublish.java:874)
+		at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.request(FluxContextWrite.java:136)
+		at reactor.core.publisher.FluxConcatMapNoPrefetch$FluxConcatMapNoPrefetchSubscriber.request(FluxConcatMapNoPrefetch.java:337)
+		at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.request(FluxContextWrite.java:136)
+		at reactor.core.publisher.Operators$DeferredSubscription.request(Operators.java:1742)
+		at reactor.core.publisher.FluxRetryWhen$RetryWhenMainSubscriber.onError(FluxRetryWhen.java:196)
+		at reactor.core.publisher.MonoCreate$DefaultMonoSink.error(MonoCreate.java:205)
+		at reactor.netty.http.client.HttpClientConnect$MonoHttpConnect$ClientTransportSubscriber.onError(HttpClientConnect.java:325)
+		at reactor.core.publisher.MonoCreate$DefaultMonoSink.error(MonoCreate.java:205)
+		at reactor.netty.resources.DefaultPooledConnectionProvider$DisposableAcquire.onError(DefaultPooledConnectionProvider.java:174)
+		at reactor.netty.internal.shaded.reactor.pool.AbstractPool$Borrower.fail(AbstractPool.java:479)
+		at reactor.netty.internal.shaded.reactor.pool.SimpleDequePool.lambda$drainLoop$9(SimpleDequePool.java:443)
+		at reactor.core.publisher.FluxDoOnEach$DoOnEachSubscriber.onError(FluxDoOnEach.java:186)
+		at reactor.core.publisher.MonoCreate$DefaultMonoSink.error(MonoCreate.java:205)
+		at reactor.netty.resources.DefaultPooledConnectionProvider$PooledConnectionAllocator$PooledConnectionInitializer.onError(DefaultPooledConnectionProvider.java:593)
+		at reactor.core.publisher.MonoFlatMap$FlatMapMain.secondError(MonoFlatMap.java:241)
+		at reactor.core.publisher.MonoFlatMap$FlatMapInner.onError(MonoFlatMap.java:315)
+		at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:106)
+		at org.springframework.security.config.annotation.web.configuration.SecurityReactorContextConfiguration$SecurityReactorContextSubscriber.onError(SecurityReactorContextConfiguration.java:191)
+		at reactor.core.publisher.Operators.error(Operators.java:198)
+		at reactor.core.publisher.MonoError.subscribe(MonoError.java:53)
+		at reactor.core.publisher.Mono.subscribe(Mono.java:4576)
+		at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:103)
+		at reactor.netty.transport.TransportConnector$MonoChannelPromise.tryFailure(TransportConnector.java:600)
+		at reactor.netty.transport.TransportConnector.lambda$doResolveAndConnect$11(TransportConnector.java:376)
+		at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603)
+		at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:570)
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505)
+		at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649)
+		at io.netty.util.concurrent.DefaultPromise.setFailure0(DefaultPromise.java:642)
+		at io.netty.util.concurrent.DefaultPromise.setFailure(DefaultPromise.java:123)
+		at io.netty.resolver.InetSocketAddressResolver$2.operationComplete(InetSocketAddressResolver.java:86)
+		at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603)
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners0(DefaultPromise.java:596)
+		at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:572)
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505)
+		at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649)
+		at io.netty.util.concurrent.DefaultPromise.setFailure0(DefaultPromise.java:642)
+		at io.netty.util.concurrent.DefaultPromise.tryFailure(DefaultPromise.java:131)
+		at io.netty.resolver.dns.DnsResolveContext.finishResolve(DnsResolveContext.java:1158)
+		at io.netty.resolver.dns.DnsResolveContext.tryToFinishResolve(DnsResolveContext.java:1097)
+		at io.netty.resolver.dns.DnsResolveContext.query(DnsResolveContext.java:455)
+		at io.netty.resolver.dns.DnsResolveContext.onResponse(DnsResolveContext.java:686)
+		at io.netty.resolver.dns.DnsResolveContext.access$500(DnsResolveContext.java:70)
+		at io.netty.resolver.dns.DnsResolveContext$2.operationComplete(DnsResolveContext.java:513)
+		at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603)
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners0(DefaultPromise.java:596)
+		at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:572)
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505)
+		at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649)
+		at io.netty.util.concurrent.DefaultPromise.setSuccess0(DefaultPromise.java:638)
+		at io.netty.util.concurrent.DefaultPromise.trySuccess(DefaultPromise.java:118)
+		at io.netty.resolver.dns.DnsQueryContext.trySuccess(DnsQueryContext.java:308)
+		at io.netty.resolver.dns.DnsQueryContext.finishSuccess(DnsQueryContext.java:299)
+		at io.netty.resolver.dns.DnsNameResolver$DnsResponseHandler.channelRead(DnsNameResolver.java:1491)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:444)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+		at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:412)
+		at io.netty.handler.codec.MessageToMessageDecoder.channelRead(MessageToMessageDecoder.java:107)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:444)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+		at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:412)
+		at io.netty.channel.DefaultChannelPipeline$HeadContext.channelRead(DefaultChannelPipeline.java:1357)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:440)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+		at io.netty.channel.DefaultChannelPipeline.fireChannelRead(DefaultChannelPipeline.java:868)
+		at io.netty.channel.nio.AbstractNioMessageChannel$NioMessageUnsafe.read(AbstractNioMessageChannel.java:97)
+		at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:796)
+		at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:732)
+		at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:658)
+		at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:562)
+		at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:998)
+		at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
+		at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+		at java.base/java.lang.Thread.run(Thread.java:840)
+Caused by: java.net.UnknownHostException: Failed to resolve 'monitoring' [A(1), AAAA(28)] after 4 queries 
+	at io.netty.resolver.dns.DnsResolveContext.finishResolve(DnsResolveContext.java:1150)
+	at io.netty.resolver.dns.DnsResolveContext.tryToFinishResolve(DnsResolveContext.java:1097)
+	at io.netty.resolver.dns.DnsResolveContext.query(DnsResolveContext.java:455)
+	at io.netty.resolver.dns.DnsResolveContext.onResponse(DnsResolveContext.java:686)
+	at io.netty.resolver.dns.DnsResolveContext.access$500(DnsResolveContext.java:70)
+	at io.netty.resolver.dns.DnsResolveContext$2.operationComplete(DnsResolveContext.java:513)
+	at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603)
+	at io.netty.util.concurrent.DefaultPromise.notifyListeners0(DefaultPromise.java:596)
+	at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:572)
+	at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505)
+	at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649)
+	at io.netty.util.concurrent.DefaultPromise.setSuccess0(DefaultPromise.java:638)
+	at io.netty.util.concurrent.DefaultPromise.trySuccess(DefaultPromise.java:118)
+	at io.netty.resolver.dns.DnsQueryContext.trySuccess(DnsQueryContext.java:308)
+	at io.netty.resolver.dns.DnsQueryContext.finishSuccess(DnsQueryContext.java:299)
+	at io.netty.resolver.dns.DnsNameResolver$DnsResponseHandler.channelRead(DnsNameResolver.java:1491)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:444)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:412)
+	at io.netty.handler.codec.MessageToMessageDecoder.channelRead(MessageToMessageDecoder.java:107)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:444)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:412)
+	at io.netty.channel.DefaultChannelPipeline$HeadContext.channelRead(DefaultChannelPipeline.java:1357)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:440)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+	at io.netty.channel.DefaultChannelPipeline.fireChannelRead(DefaultChannelPipeline.java:868)
+	at io.netty.channel.nio.AbstractNioMessageChannel$NioMessageUnsafe.read(AbstractNioMessageChannel.java:97)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:796)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:732)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:658)
+	at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:562)
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:998)
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+Caused by: io.netty.resolver.dns.DnsErrorCauseException: Query failed with NXDOMAIN
+	at io.netty.resolver.dns.DnsResolveContext.onResponse(..)(Unknown Source)
+2025-10-24 12:58:25 - Operator called default onErrorDropped
+reactor.core.Exceptions$ErrorCallbackNotImplemented: org.springframework.web.reactive.function.client.WebClientRequestException: Failed to resolve 'monitoring' [A(1), AAAA(28)] after 4 queries 
+Caused by: org.springframework.web.reactive.function.client.WebClientRequestException: Failed to resolve 'monitoring' [A(1), AAAA(28)] after 4 queries 
+	at org.springframework.web.reactive.function.client.ExchangeFunctions$DefaultExchangeFunction.lambda$wrapException$9(ExchangeFunctions.java:137)
+	Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException: 
+Error has been observed at the following site(s):
+	*__checkpoint ? Request to GET http://monitoring:8081/api/monitoring/sensor/stop/desk-03-01 [DefaultWebClient]
+Original Stack Trace:
+		at org.springframework.web.reactive.function.client.ExchangeFunctions$DefaultExchangeFunction.lambda$wrapException$9(ExchangeFunctions.java:137)
+		at reactor.core.publisher.MonoErrorSupplied.subscribe(MonoErrorSupplied.java:55)
+		at reactor.core.publisher.Mono.subscribe(Mono.java:4576)
+		at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:103)
+		at reactor.core.publisher.FluxPeek$PeekSubscriber.onError(FluxPeek.java:222)
+		at reactor.core.publisher.FluxPeek$PeekSubscriber.onError(FluxPeek.java:222)
+		at reactor.core.publisher.FluxPeek$PeekSubscriber.onError(FluxPeek.java:222)
+		at reactor.core.publisher.MonoNext$NextSubscriber.onError(MonoNext.java:93)
+		at reactor.core.publisher.MonoFlatMapMany$FlatMapManyMain.onError(MonoFlatMapMany.java:205)
+		at reactor.core.publisher.SerializedSubscriber.onError(SerializedSubscriber.java:124)
+		at reactor.core.publisher.FluxRetryWhen$RetryWhenMainSubscriber.whenError(FluxRetryWhen.java:229)
+		at reactor.core.publisher.FluxRetryWhen$RetryWhenOtherSubscriber.onError(FluxRetryWhen.java:279)
+		at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.onError(FluxContextWrite.java:121)
+		at reactor.core.publisher.FluxConcatMapNoPrefetch$FluxConcatMapNoPrefetchSubscriber.maybeOnError(FluxConcatMapNoPrefetch.java:327)
+		at reactor.core.publisher.FluxConcatMapNoPrefetch$FluxConcatMapNoPrefetchSubscriber.onNext(FluxConcatMapNoPrefetch.java:212)
+		at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.onNext(FluxContextWrite.java:107)
+		at reactor.core.publisher.SinkManyEmitterProcessor.drain(SinkManyEmitterProcessor.java:476)
+		at reactor.core.publisher.SinkManyEmitterProcessor$EmitterInner.drainParent(SinkManyEmitterProcessor.java:620)
+		at reactor.core.publisher.FluxPublish$PubSubInner.request(FluxPublish.java:874)
+		at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.request(FluxContextWrite.java:136)
+		at reactor.core.publisher.FluxConcatMapNoPrefetch$FluxConcatMapNoPrefetchSubscriber.request(FluxConcatMapNoPrefetch.java:337)
+		at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.request(FluxContextWrite.java:136)
+		at reactor.core.publisher.Operators$DeferredSubscription.request(Operators.java:1742)
+		at reactor.core.publisher.FluxRetryWhen$RetryWhenMainSubscriber.onError(FluxRetryWhen.java:196)
+		at reactor.core.publisher.MonoCreate$DefaultMonoSink.error(MonoCreate.java:205)
+		at reactor.netty.http.client.HttpClientConnect$MonoHttpConnect$ClientTransportSubscriber.onError(HttpClientConnect.java:325)
+		at reactor.core.publisher.MonoCreate$DefaultMonoSink.error(MonoCreate.java:205)
+		at reactor.netty.resources.DefaultPooledConnectionProvider$DisposableAcquire.onError(DefaultPooledConnectionProvider.java:174)
+		at reactor.netty.internal.shaded.reactor.pool.AbstractPool$Borrower.fail(AbstractPool.java:479)
+		at reactor.netty.internal.shaded.reactor.pool.SimpleDequePool.lambda$drainLoop$9(SimpleDequePool.java:443)
+		at reactor.core.publisher.FluxDoOnEach$DoOnEachSubscriber.onError(FluxDoOnEach.java:186)
+		at reactor.core.publisher.MonoCreate$DefaultMonoSink.error(MonoCreate.java:205)
+		at reactor.netty.resources.DefaultPooledConnectionProvider$PooledConnectionAllocator$PooledConnectionInitializer.onError(DefaultPooledConnectionProvider.java:593)
+		at reactor.core.publisher.MonoFlatMap$FlatMapMain.secondError(MonoFlatMap.java:241)
+		at reactor.core.publisher.MonoFlatMap$FlatMapInner.onError(MonoFlatMap.java:315)
+		at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:106)
+		at org.springframework.security.config.annotation.web.configuration.SecurityReactorContextConfiguration$SecurityReactorContextSubscriber.onError(SecurityReactorContextConfiguration.java:191)
+		at reactor.core.publisher.Operators.error(Operators.java:198)
+		at reactor.core.publisher.MonoError.subscribe(MonoError.java:53)
+		at reactor.core.publisher.Mono.subscribe(Mono.java:4576)
+		at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:103)
+		at reactor.netty.transport.TransportConnector$MonoChannelPromise.tryFailure(TransportConnector.java:600)
+		at reactor.netty.transport.TransportConnector.lambda$doResolveAndConnect$11(TransportConnector.java:376)
+		at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603)
+		at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:570)
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505)
+		at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649)
+		at io.netty.util.concurrent.DefaultPromise.setFailure0(DefaultPromise.java:642)
+		at io.netty.util.concurrent.DefaultPromise.setFailure(DefaultPromise.java:123)
+		at io.netty.resolver.InetSocketAddressResolver$2.operationComplete(InetSocketAddressResolver.java:86)
+		at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603)
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners0(DefaultPromise.java:596)
+		at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:572)
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505)
+		at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649)
+		at io.netty.util.concurrent.DefaultPromise.setFailure0(DefaultPromise.java:642)
+		at io.netty.util.concurrent.DefaultPromise.tryFailure(DefaultPromise.java:131)
+		at io.netty.resolver.dns.DnsResolveContext.finishResolve(DnsResolveContext.java:1158)
+		at io.netty.resolver.dns.DnsResolveContext.tryToFinishResolve(DnsResolveContext.java:1097)
+		at io.netty.resolver.dns.DnsResolveContext.query(DnsResolveContext.java:455)
+		at io.netty.resolver.dns.DnsResolveContext.onResponse(DnsResolveContext.java:686)
+		at io.netty.resolver.dns.DnsResolveContext.access$500(DnsResolveContext.java:70)
+		at io.netty.resolver.dns.DnsResolveContext$2.operationComplete(DnsResolveContext.java:513)
+		at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603)
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners0(DefaultPromise.java:596)
+		at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:572)
+		at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505)
+		at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649)
+		at io.netty.util.concurrent.DefaultPromise.setSuccess0(DefaultPromise.java:638)
+		at io.netty.util.concurrent.DefaultPromise.trySuccess(DefaultPromise.java:118)
+		at io.netty.resolver.dns.DnsQueryContext.trySuccess(DnsQueryContext.java:308)
+		at io.netty.resolver.dns.DnsQueryContext.finishSuccess(DnsQueryContext.java:299)
+		at io.netty.resolver.dns.DnsNameResolver$DnsResponseHandler.channelRead(DnsNameResolver.java:1491)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:444)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+		at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:412)
+		at io.netty.handler.codec.MessageToMessageDecoder.channelRead(MessageToMessageDecoder.java:107)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:444)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+		at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:412)
+		at io.netty.channel.DefaultChannelPipeline$HeadContext.channelRead(DefaultChannelPipeline.java:1357)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:440)
+		at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+		at io.netty.channel.DefaultChannelPipeline.fireChannelRead(DefaultChannelPipeline.java:868)
+		at io.netty.channel.nio.AbstractNioMessageChannel$NioMessageUnsafe.read(AbstractNioMessageChannel.java:97)
+		at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:796)
+		at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:732)
+		at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:658)
+		at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:562)
+		at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:998)
+		at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
+		at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+		at java.base/java.lang.Thread.run(Thread.java:840)
+Caused by: java.net.UnknownHostException: Failed to resolve 'monitoring' [A(1), AAAA(28)] after 4 queries 
+	at io.netty.resolver.dns.DnsResolveContext.finishResolve(DnsResolveContext.java:1150)
+	at io.netty.resolver.dns.DnsResolveContext.tryToFinishResolve(DnsResolveContext.java:1097)
+	at io.netty.resolver.dns.DnsResolveContext.query(DnsResolveContext.java:455)
+	at io.netty.resolver.dns.DnsResolveContext.onResponse(DnsResolveContext.java:686)
+	at io.netty.resolver.dns.DnsResolveContext.access$500(DnsResolveContext.java:70)
+	at io.netty.resolver.dns.DnsResolveContext$2.operationComplete(DnsResolveContext.java:513)
+	at io.netty.util.concurrent.DefaultPromise.notifyListener0(DefaultPromise.java:603)
+	at io.netty.util.concurrent.DefaultPromise.notifyListeners0(DefaultPromise.java:596)
+	at io.netty.util.concurrent.DefaultPromise.notifyListenersNow(DefaultPromise.java:572)
+	at io.netty.util.concurrent.DefaultPromise.notifyListeners(DefaultPromise.java:505)
+	at io.netty.util.concurrent.DefaultPromise.setValue0(DefaultPromise.java:649)
+	at io.netty.util.concurrent.DefaultPromise.setSuccess0(DefaultPromise.java:638)
+	at io.netty.util.concurrent.DefaultPromise.trySuccess(DefaultPromise.java:118)
+	at io.netty.resolver.dns.DnsQueryContext.trySuccess(DnsQueryContext.java:308)
+	at io.netty.resolver.dns.DnsQueryContext.finishSuccess(DnsQueryContext.java:299)
+	at io.netty.resolver.dns.DnsNameResolver$DnsResponseHandler.channelRead(DnsNameResolver.java:1491)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:444)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:412)
+	at io.netty.handler.codec.MessageToMessageDecoder.channelRead(MessageToMessageDecoder.java:107)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:444)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:412)
+	at io.netty.channel.DefaultChannelPipeline$HeadContext.channelRead(DefaultChannelPipeline.java:1357)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:440)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:420)
+	at io.netty.channel.DefaultChannelPipeline.fireChannelRead(DefaultChannelPipeline.java:868)
+	at io.netty.channel.nio.AbstractNioMessageChannel$NioMessageUnsafe.read(AbstractNioMessageChannel.java:97)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:796)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:732)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:658)
+	at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:562)
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:998)
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+Caused by: io.netty.resolver.dns.DnsErrorCauseException: Query failed with NXDOMAIN
+	at io.netty.resolver.dns.DnsResolveContext.onResponse(..)(Unknown Source)
