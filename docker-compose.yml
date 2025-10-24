@@ -26,9 +26,9 @@ services:
     networks:
       - app-network
 
-  monitoring:
-    image: localhost:5000/app-monitoring #:${BRANCH:-develop}
-    container_name: monitoring
+  gateway:
+    image: localhost:5000/gateway #:${BRANCH:-develop}
+    container_name: gateway
     # build: https://github.com/HaSaadaoui/Gateway_Monitoring_Api.git#${BRANCH:-develop} # Activer lorsque la deploy key est ajouté au repo Gateway
     ports:
       - 8081:8080

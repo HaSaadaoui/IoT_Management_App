@@ -5,11 +5,12 @@ on:
     branches:
       - main # STAGING (PRE-PROD)
       - develop # TEST
-      - docker-compose # Remove later
+      - pipeline-test # Remove later
   workflow_dispatch:
 
 env:
   BRANCH: ${{ github.head_ref || github.ref_name }} 
+  GATEWAY_MONITORING_GIT_URL: https://github.com/HaSaadaoui/Gateway_Monitoring_Api.git
 
 jobs:
   deploy:
@@ -73,6 +74,26 @@ jobs:
             sudo bash -c "gunzip -f /home/${{ env.USER }}/sensorprocessor.tar.gz && docker load -i /home/${{ env.USER }}/sensorprocessor.tar"
           '
           echo "SSH and Docker load completed"
+
+      - name: Fetch the container for the Gateway Monitoring API
+        run: |
+          echo "Cloning repository"
+          git clone ${{ env.GATEWAY_MONITORING_GIT_URL }} tmp_gateway_monitoring_api
+          echo "Build the gateway docker image"
+          cd tmp_gateway_monitoring_api/
+          docker build --platform linux/amd64 -t localhost:5000/gateway:${{ env.BRANCH }} .
+          echo "Saving gateway docker image"
+          docker save gateway -o gateway.tar
+          echo "Compressing gateway image"
+          gzip gateway.tar
+          echo "Starting SCP transfer for gateway"
+          scp -o StrictHostKeyChecking=no gateway.tar.gz ${{ env.USER }}@${{ env.HOST }}:/home/${{ env.USER }}/gateway.tar.gz
+          echo "SCP transfer for gateway completed"
+          echo "Starting SSH to Azure Cloud for gateway"
+          ssh -o StrictHostKeyChecking=no ${{ env.USER }}@${{ env.HOST }} '
+            sudo bash -c "gunzip -f /home/${{ env.USER }}/gateway.tar.gz && docker load -i /home/${{ env.USER }}/gateway.tar"
+          '
+          echo "SSH and Docker load for gateway completed"
 
       - name: Run Docker Compose on Azure Cloud
         run: |
