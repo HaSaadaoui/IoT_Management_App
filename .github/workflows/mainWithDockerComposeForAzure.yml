@@ -29,6 +29,8 @@ jobs:
             echo "HOST=${{ secrets.AZURE_HOST }}" >> $GITHUB_ENV
             echo "USER=azureuser" >> $GITHUB_ENV
             echo "PORT=80" >> $GITHUB_ENV
+            echo "GATEWAY_BRANCH=main" >> $GITHUB_ENV
+          elif
           else
             echo "SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USER_TEST }}" >> $GITHUB_ENV
             echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASS_TEST }}" >> $GITHUB_ENV
@@ -36,6 +38,7 @@ jobs:
             echo "HOST=${{ secrets.AZURE_HOST_TEST }}" >> $GITHUB_ENV
             echo "USER=mantu" >> $GITHUB_ENV
             echo "PORT=8080" >> $GITHUB_ENV
+            echo "GATEWAY_BRANCH=develop" >> $GITHUB_ENV
           fi
           echo "BRANCH=${{ env.BRANCH }}" >> $GITHUB_ENV
           echo "DOCKER_REGISTRY=localhost:5000" >> $GITHUB_ENV
@@ -85,10 +88,10 @@ jobs:
           fi
 
           echo "Build the gateway docker image"
-          docker build --platform linux/amd64 -t localhost:5000/gateway:${{ env.BRANCH }} .
+          docker build --platform linux/amd64 -t localhost:5000/gateway:${{ env.GATEWAY_BRANCH }} .
 
           echo "Saving gateway docker image"
-          docker save -o gateway.tar localhost:5000/gateway:${{ env.BRANCH }}
+          docker save -o gateway.tar localhost:5000/gateway:${{ env.GATEWAY_BRANCH }}
 
           echo "Compressing gateway image"
           gzip gateway.tar
@@ -117,6 +120,7 @@ jobs:
             ACS_CONNECTION_STRING="${{ env.ACS_CONNECTION_STRING }}"
             ACS_FROM_EMAIL="DoNotReply@7bcc2766-fee2-4b02-8ccf-0675ed430b8c.azurecomm.net"
             PORT=${{ env.PORT }}
+            GATEWAY_BRANCH=${{ env.GATEWAY_BRANCH }}
           ' > .env
           scp -o StrictHostKeyChecking=no .env ${{ env.USER }}@${{ env.HOST }}:/home/${{ env.USER }}/.env
           scp -o StrictHostKeyChecking=no docker-compose.yml ${{ env.USER }}@${{ env.HOST }}:/home/${{ env.USER }}/docker-compose.yml
