@@ -3,14 +3,14 @@
 # À n'exécuter qu'une seule fois
 
 services:
-  gateway:
+  sensorprocessor:
     image: localhost:5000/sensorprocessor:${BRANCH:-develop}
     container_name: sensorprocessor
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - 80:8080
+      - "${PORT:-8080}:8080"
     volumes:
       - /opt/app/uploads:${UPLOADS_PATH:-/opt/app/uploads}
     environment:
@@ -27,9 +27,9 @@ services:
       - app-network
 
   monitoring:
-    image: localhost:5000/app-monitoring # TODO: ':${BRANCH:-develop}'
+    image: localhost:5000/app-monitoring #:${BRANCH:-develop}
     container_name: monitoring
-    build: https://github.com/HaSaadaoui/Gateway_Monitoring_Api.git#develop
+    # build: https://github.com/HaSaadaoui/Gateway_Monitoring_Api.git#${BRANCH:-develop} # Activer lorsque la deploy key est ajouté au repo Gateway
     ports:
       - 8081:8080
     networks:
