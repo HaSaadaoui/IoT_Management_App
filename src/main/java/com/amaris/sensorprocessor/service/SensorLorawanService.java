@@ -17,16 +17,57 @@ public class SensorLorawanService {
     private static final String LORAWAN_VERSION = "1.0.3";
     private static final String LORAWAN_PHY_VERSION = "1.0.3-a";
 
+    /**
+     * Mapper les gateways aux applications TTN
+     * Basé sur la logique de Gateway_Monitoring_Api
+     */
+    private String getApplicationIdForGateway(String gatewayId) {
+        if (gatewayId == null) return null;
+        
+        switch (gatewayId.toLowerCase()) {
+            case "rpi-mantu":
+                // Châteaudun-Mantu-Building (3 devices)
+                return "rpi-mantu-appli";
+            case "leva-rpi-mantu":
+                // Levallois-Mantu-Building (114 devices)
+                return "lorawan-network-mantu";
+            case "lil-rpi-mantu":
+                // Lille-Mantu-Building (0 devices)
+                return "lil-rpi-mantu-appli";
+            default:
+                // Par défaut, ajouter "-appli" au gateway ID
+                return gatewayId + "-appli";
+        }
+    }
+
     public void createDevice(String idGateway, LorawanSensorData body) {
-        String applicationId = idGateway + "-appli";
+        String applicationId = getApplicationIdForGateway(idGateway);
         sensorLorawanDao.insertSensorInLorawan(applicationId, body);
         log.info("[LoRaWAN] created end-device in application {}", applicationId);
     }
 
     public void deleteDevice(String idGateway, String sensorId) {
-        String applicationId = idGateway + "-appli";
+        String applicationId = getApplicationIdForGateway(idGateway);
         sensorLorawanDao.deleteSensorInLorawan(applicationId, sensorId);
         log.info("[LoRaWAN] deleted end-device {} in application {}", sensorId, applicationId);
+    }
+
+    public void updateDevice(String idGateway, String sensorId, LorawanSensorData body) {
+        String applicationId = getApplicationIdForGateway(idGateway);
+        sensorLorawanDao.updateSensorInLorawan(applicationId, sensorId, body);
+        log.info("[LoRaWAN] updated end-device {} in application {}", sensorId, applicationId);
+    }
+
+    /**
+     * Récupère tous les devices d'une gateway depuis TTN
+     * @param idGateway ID de la gateway
+     * @return JSON avec la liste des devices
+     */
+    public String fetchDevicesForGateway(String idGateway) {
+        String applicationId = getApplicationIdForGateway(idGateway);
+        String devicesJson = sensorLorawanDao.fetchDevicesFromTTN(applicationId);
+        log.info("[LoRaWAN] fetched devices for gateway {} (app: {})", idGateway, applicationId);
+        return devicesJson;
     }
 
     public LorawanSensorData toLorawanCreate(Sensor s) {

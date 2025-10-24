@@ -4,7 +4,6 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 *.log
-logs/
 
 ### STS ###
 .apt_generated
@@ -33,4 +32,38 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Database ###
 mydatabase.db
+*.db
+Userssaifeddine.mosrati_mDesktopmydatabase.db
+
+### Logs ###
+logs/*.gz
+logs/application.log
+
+### Documentation & Scripts (local only) ###
+docs/
+*.bat
+*.ps1
+*_IMPROVEMENTS.md
+*_GUIDE.md
+*_DOCUMENTATION.md
+*_QUICK_TEST.md
+*_NOW.md
+*_START.md
+*_APPLIED.md
+*_TESTS.md
+MIGRATION_GUIDE.md
+HISTORIQUE_IMPROVEMENTS.md
+TEST_NOW.md
+SENSOR_*.md
+QUICK_START_*.md
+POWERSHELL_*.md
+FIX_*.md
+migration_add_lorawan_fields.sql
+execute_migration.bat
+verify_migration.bat
+run_migration.ps1
+DEPLOYMENT.md
+README.md

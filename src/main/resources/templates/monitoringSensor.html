@@ -5,51 +5,8 @@
     <title th:text="'Sensor Monitoring - ' + ${sensor.idSensor}">Sensor Monitoring</title>
     <link rel="stylesheet" href="/css/styles.css"/>
     <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}"/>
-    <link rel="stylesheet" href="/css/monitoringGateway.css"/>
+    <link rel="stylesheet" href="/css/monitoringSensor.css"/>
 
-    <style>
-        .info-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:14px; }
-        .card { background:#fff; border-radius:12px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
-        .card h4 { color:#333; }
-        .card p { color:#111; font-weight:500; }
-        .badge { padding:4px 8px; border-radius:8px; background:#f3f4f6; display:inline-block; color:#111; }
-        .badge--ok { background:#1f9d55; color:#fff; }
-        .badge--off { background:#9ca3af; color:#fff; }
-        .section-title { margin-top:12px; margin-bottom:8px; font-weight:600; color:#374151; }
-
-        .hidden { display:none !important; }
-        .tabs { display:flex; justify-content:center; gap:8px; margin:12px 0 16px; }
-        .tab-btn {
-          border:1px solid #e5e7eb; background:#fff; color:#374151;
-          padding:8px 14px; border-radius:999px; cursor:pointer;
-          transition:background .2s, box-shadow .2s;
-        }
-        .tab-btn:hover { background:#f9fafb; }
-        .tab-btn.is-active {
-          background:#662179; border-color:#662179; color:#fff; box-shadow:0 2px 6px rgba(102,33,121,.25);
-        }
-
-        .btn {
-          background:#662179; color:#fff; border:none; border-radius:8px;
-          padding:10px 14px; cursor:pointer;
-        }
-        .btn:hover { filter:brightness(.95); }
-
-        /* --- Batterie SVG --- */
-        .battery-badge {
-          display:inline-flex; align-items:center; gap:6px;
-          border:1px solid #ddd; border-radius:999px; padding:4px 8px;
-          font-weight:600; color:#111; background:#f3f4f6;
-        }
-        .battery-badge svg {
-          width:18px; height:12px; flex:0 0 auto; color:currentColor;
-        }
-        .battery--good { background:#e8f7ef; color:#1f9d55; border-color:#bbebcf; }
-        .battery--warn { background:#fff6e6; color:#d97706; border-color:#ffe2b3; }
-        .battery--low  { background:#feeaea; color:#b91c1c; border-color:#f5c2c2; }
-        .battery--crit { background:#fde8e8; color:#991b1b; border-color:#f3b6b6; }
-        .battery--unk  { background:#f3f4f6; color:#6b7280; border-color:#e5e7eb; }
-    </style>
 
     <script th:inline="javascript">
         document.documentElement.dataset.deviceId  = /*[[${sensor.idSensor}]]*/ '';
@@ -66,7 +23,30 @@
 </head>
 
 <body data-page="monitoringSensor">
-<div th:replace="fragments/header :: appHeader(pageTitle='My profile', homeUrl=@{/})"></div>
+<header class="app-header">
+    <a href="javascript:history.back()" class="back-btn" title="Back to list" style="margin-right: 20px">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="30" height="30" role="img"
+             aria-label="Flèche arrière violette">
+            <circle cx="15" cy="15" r="13" fill="none" stroke="#662179" stroke-width="2"/>
+            <path d="M17 9 L11 15 L17 21" fill="none" stroke="#662179" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round"/>
+            <line x1="11" y1="15" x2="22" y2="15" stroke="#662179" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+    </a>
+    <div class="header-title-gateway">
+        <span id="sensorDeviceId" th:text="${sensor.idSensor}">--</span>
+    </div>
+    <div class="header-right">
+        <div class="header-user">
+            <a th:href="@{/users/{username}(username=${loggedUsername})}" class="header-link">
+                <img th:src="${user.icon}"
+                     class="header-avatar"
+                     alt="User Avatar"
+                     width="32" height="32">
+            </a>
+        </div>
+    </div>
+</header>
 
 <main>
 
@@ -91,7 +71,7 @@
             </div>
 
             <div class="card"><h4>Sensor ID</h4><p th:text="${sensor.idSensor}">--</p></div>
-            <div class="card"><h4>Device Type</h4><p th:text="${sensor.deviceType}">--</p></div>
+            <div class="card"><h4>DevEUI</h4><p th:text="${sensor.devEui} ?: '--'">--</p></div>
 
             <div class="card">
                 <h4>Gateway</h4>
@@ -150,19 +130,30 @@
 
         <!-- DESK -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'DESK')}">
-            <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-desk-temp" class="badge">--</span></p></div>
-            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-desk-hum" class="badge">--</span></p></div>
-            <div class="card"><h4>VDD</h4><p><span id="s-desk-vdd" class="badge">--</span></p></div>
+            <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-desk-temp" class="temp-badge temp--normal">--</span></p></div>
+            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-desk-hum" class="badge">-- %</span></p></div>
+            <div class="card"><h4>Battery</h4>
+                <p><span id="s-desk-vdd" class="battery-badge">
+                    <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
+                    <span>--</span>
+                </span></p></div>
         </section>
 
         <!-- CO2 -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'CO2')}">
-            <div class="card"><h4>CO₂</h4><p><span id="s-co2-ppm" class="badge">--</span></p></div>
-            <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-co2-temp" class="badge">--</span></p></div>
+            <div class="card" style="grid-column: span 2;">
+                <h4>💨 CO₂ Level</h4>
+                <p><span id="s-co2-ppm" class="co2-badge co2--good">-- ppm</span></p>
+            </div>
+            <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-co2-temp" class="temp-badge temp--normal">--</span></p></div>
             <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-co2-hum" class="badge">--</span></p></div>
-            <div class="card"><h4>VDD</h4><p><span id="s-co2-vdd" class="badge">--</span></p></div>
-            <div class="card"><h4>Light</h4><p><span id="s-co2-light" class="badge">--</span></p></div>
-            <div class="card"><h4>Motion</h4><p><span id="s-co2-motion" class="badge">--</span></p></div>
+            <div class="card"><h4>Battery</h4>
+                <p><span id="s-co2-vdd" class="battery-badge">
+                    <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
+                    <span>--</span>
+                </span></p></div>
+            <div class="card"><h4>💡 Light</h4><p><span id="s-co2-light" class="badge">--</span></p></div>
+            <div class="card"><h4>👤 Motion</h4><p><span id="s-co2-motion" class="badge">--</span></p></div>
         </section>
 
         <!-- SON -->
@@ -183,7 +174,11 @@
             <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-eye-hum" class="badge">--</span></p></div>
             <div class="card"><h4>Light</h4><p><span id="s-eye-light" class="badge">--</span></p></div>
             <div class="card"><h4>Presence</h4><p><span id="s-eye-presence" class="badge">--</span></p></div>
-            <div class="card"><h4>VDD</h4><p><span id="s-eye-vdd" class="badge">--</span></p></div>
+            <div class="card"><h4>Battery</h4>
+                <p><span id="s-eye-vdd" class="battery-badge">
+                    <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
+                    <span>--</span>
+                </span></p></div>
         </section>
 
         <!-- GENERIC -->
@@ -213,32 +208,138 @@
 
     <!-- ===== Panneau HISTORIQUE ===== -->
     <section id="pane-history" class="hidden">
-        <h3 class="section-title">Historique</h3>
+        <h3 class="section-title">📊 Historique & Analyse</h3>
 
-        <div class="history-filters card" style="display:grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap:12px;">
-            <div>
-                <label for="hist-from"><b>De</b></label>
-                <input type="datetime-local" id="hist-from">
-            </div>
-            <div>
-                <label for="hist-to"><b>À</b></label>
-                <input type="datetime-local" id="hist-to">
-            </div>
-            <div style="align-self:end;">
-                <button id="hist-load" class="btn">Charger</button>
+        <!-- Filtres de période -->
+        <div class="history-filters card">
+            <div class="filter-grid">
+                <div class="filter-item">
+                    <label for="hist-from">📅 Date de début</label>
+                    <input type="datetime-local" id="hist-from">
+                </div>
+                <div class="filter-item">
+                    <label for="hist-to">📅 Date de fin</label>
+                    <input type="datetime-local" id="hist-to">
+                </div>
+                <div class="filter-item" style="align-self:end;">
+                    <button id="hist-load" class="btn btn-primary">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 0.5rem;">
+                            <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5z"/>
+                        </svg>
+                        Charger les données
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="info-grid" style="grid-template-columns: repeat(auto-fill, minmax(320px,1fr));">
-            <div class="card" style="height:280px;"><h4>Battery (%)</h4><canvas id="histBattery"></canvas></div>
-            <div class="card" style="height:280px;"><h4>RSSI (dBm)</h4><canvas id="histRssi"></canvas></div>
-            <div class="card" style="height:280px;"><h4>SNR (dB)</h4><canvas id="histSnr"></canvas></div>
-
-            <div class="card" style="height:280px;" id="histMetricA-wrap">
-                <h4 id="histMetricA-title">Metric A</h4><canvas id="histMetricA"></canvas>
+        <!-- KPI Cards - Statistiques clés -->
+        <div class="kpi-grid">
+            <div class="kpi-card kpi-card--primary">
+                <div class="kpi-icon">📊</div>
+                <div class="kpi-content">
+                    <div class="kpi-label">Total de mesures</div>
+                    <div class="kpi-value" id="kpi-total">--</div>
+                </div>
             </div>
-            <div class="card" style="height:280px;" id="histMetricB-wrap">
-                <h4 id="histMetricB-title">Metric B</h4><canvas id="histMetricB"></canvas>
+            <div class="kpi-card kpi-card--success">
+                <div class="kpi-icon">🔋</div>
+                <div class="kpi-content">
+                    <div class="kpi-label">Batterie moyenne</div>
+                    <div class="kpi-value" id="kpi-battery">--</div>
+                </div>
+            </div>
+            <div class="kpi-card kpi-card--info">
+                <div class="kpi-icon">📡</div>
+                <div class="kpi-content">
+                    <div class="kpi-label">Signal moyen (RSSI)</div>
+                    <div class="kpi-value" id="kpi-rssi">--</div>
+                </div>
+            </div>
+            <div class="kpi-card kpi-card--warning">
+                <div class="kpi-icon">⏱️</div>
+                <div class="kpi-content">
+                    <div class="kpi-label">Période analysée</div>
+                    <div class="kpi-value" id="kpi-period">--</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graphiques principaux -->
+        <div class="charts-section">
+            <h4 class="subsection-title">📈 Évolution temporelle</h4>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <span class="chart-icon" style="background: linear-gradient(135deg, #10b981, #059669);">🔋</span>
+                            <span>Niveau de batterie</span>
+                        </div>
+                        <div class="chart-legend">
+                            <span class="legend-item legend-good">Bon</span>
+                            <span class="legend-item legend-warn">Moyen</span>
+                            <span class="legend-item legend-low">Faible</span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="histBattery"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <span class="chart-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">📡</span>
+                            <span>Qualité du signal (RSSI)</span>
+                        </div>
+                        <div class="chart-info">dBm</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="histRssi"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <span class="chart-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">📶</span>
+                            <span>Rapport signal/bruit (SNR)</span>
+                        </div>
+                        <div class="chart-info">dB</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="histSnr"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Métriques spécifiques au capteur -->
+        <div class="charts-section" id="sensor-metrics-section">
+            <h4 class="subsection-title">🎯 Métriques du capteur</h4>
+            <div class="charts-grid charts-grid--2col">
+                <div class="chart-card" id="histMetricA-wrap">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <span class="chart-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">📊</span>
+                            <span id="histMetricA-title">Métrique A</span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="histMetricA"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card" id="histMetricB-wrap">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <span class="chart-icon" style="background: linear-gradient(135deg, #ec4899, #db2777);">📊</span>
+                            <span id="histMetricB-title">Métrique B</span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="histMetricB"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
     </section>

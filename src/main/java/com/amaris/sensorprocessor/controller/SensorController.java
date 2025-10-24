@@ -50,12 +50,18 @@ public class SensorController {
     private final SensorService sensorService;
     private final GatewayService gatewayService;
     private final UserService userService;
+    private final com.amaris.sensorprocessor.service.SensorLorawanService sensorLorawanService;
+    private final com.amaris.sensorprocessor.service.SensorSyncService sensorSyncService;
 
     @Autowired
-    public SensorController(SensorService sensorService, GatewayService gatewayService, UserService userService) {
+    public SensorController(SensorService sensorService, GatewayService gatewayService, UserService userService,
+                           com.amaris.sensorprocessor.service.SensorLorawanService sensorLorawanService,
+                           com.amaris.sensorprocessor.service.SensorSyncService sensorSyncService) {
         this.sensorService = sensorService;
         this.gatewayService = gatewayService;
         this.userService = userService;
+        this.sensorLorawanService = sensorLorawanService;
+        this.sensorSyncService = sensorSyncService;
     }
 
     /* ===================== LISTE ===================== */
@@ -238,6 +244,47 @@ public class SensorController {
     }
 
     /* ===================== DELETE ===================== */
+
+    /**
+     * Endpoint REST pour récupérer les sensors depuis TTN par gateway
+     * GET /api/sensors/gateway/{gatewayId}/devices
+     */
+    @GetMapping("/api/sensors/gateway/{gatewayId}/devices")
+    @ResponseBody
+    public String getDevicesFromTTN(@PathVariable String gatewayId) {
+        try {
+            return sensorLorawanService.fetchDevicesForGateway(gatewayId);
+        } catch (Exception e) {
+            log.error("[API] Error fetching devices for gateway {}: {}", gatewayId, e.getMessage());
+            return "{\"error\":\"" + e.getMessage() + "\"}";
+        }
+    }
+
+    /**
+     * Endpoint REST pour synchroniser les sensors depuis TTN vers la DB
+     * POST /api/sensors/gateway/{gatewayId}/sync
+     */
+    @PostMapping("/api/sensors/gateway/{gatewayId}/sync")
+    @ResponseBody
+    public String syncSensorsFromTTN(@PathVariable String gatewayId) {
+        try {
+            int syncCount = sensorSyncService.syncSensorsFromTTN(gatewayId);
+            return "{\"success\":true,\"syncCount\":" + syncCount + ",\"message\":\"Synchronized " + syncCount + " sensors from TTN\"}";
+        } catch (Exception e) {
+            log.error("[API] Error syncing sensors for gateway {}: {}", gatewayId, e.getMessage());
+            return "{\"success\":false,\"error\":\"" + e.getMessage() + "\"}";
+        }
+    }
+
+    /**
+     * Endpoint REST pour comparer les sensors DB vs TTN
+     * GET /api/sensors/gateway/{gatewayId}/compare
+     */
+    @GetMapping("/api/sensors/gateway/{gatewayId}/compare")
+    @ResponseBody
+    public com.amaris.sensorprocessor.service.SensorSyncService.SyncReport compareSensorsWithTTN(@PathVariable String gatewayId) {
+        return sensorSyncService.compareWithTTN(gatewayId);
+    }
 
     @PostMapping("/manage-sensors/delete/{idSensor}")
     public String deleteSensor(@PathVariable String idSensor, Model model) {
