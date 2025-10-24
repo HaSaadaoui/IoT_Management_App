@@ -3,8 +3,13 @@ name: Deploy to Azure Cloud with Docker Compose
 on:
   push:
     branches:
-      - main
+      - main # STAGING (PRE-PROD)
+      - develop # TEST
+      - docker-compose # Remove later
   workflow_dispatch:
+
+env:
+  BRANCH: ${{ github.head_ref || github.ref_name }} 
 
 jobs:
   deploy:
@@ -14,41 +19,84 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set environment variables based on branch
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USER_STAGING }}" >> $GITHUB_ENV
+            echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASS_STAGING }}" >> $GITHUB_ENV
+            echo "SPRING_DATASOURCE_URL=${{ secrets.MYSQL_DB_URL_STAGING }}" >> $GITHUB_ENV
+            echo "HOST=${{ secrets.AZURE_HOST }}" >> $GITHUB_ENV
+            echo "USER=azureuser" >> $GITHUB_ENV
+            echo "PORT=80" >> $GITHUB_ENV
+          else
+            echo "SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USER_TEST }}" >> $GITHUB_ENV
+            echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASS_TEST }}" >> $GITHUB_ENV
+            echo "SPRING_DATASOURCE_URL=${{ secrets.MYSQL_DB_URL_TEST }}" >> $GITHUB_ENV
+            echo "HOST=${{ secrets.AZURE_HOST_TEST }}" >> $GITHUB_ENV
+            echo "USER=mantu" >> $GITHUB_ENV
+            echo "PORT=8080" >> $GITHUB_ENV
+          fi
+          echo "BRANCH=${{ env.BRANCH }}" >> $GITHUB_ENV
+          echo "DOCKER_REGISTRY=localhost:5000" >> $GITHUB_ENV
+          echo "SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver" >> $GITHUB_ENV
+          echo "ACS_CONNECTION_STRING=${{ secrets.ACS_CONNECTION_STRING }}" >> $GITHUB_ENV
+          
+      - name: ssh-agent setup
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.AZURE_PRIVATE_KEY }}
+      
       - name: Give execute permission to mvnw
         run: chmod +x ./mvnw
 
       - name: Build project
         run: ./mvnw clean package -DskipTests
 
+
       - name: Build and tag Docker image
         run: |
-          docker build --platform linux/amd64 --no-cache -t localhost:5000/sensorprocessor:latest .
-
-      - name: Stop and remove existing Docker container and image
-        run: |
-          sshpass -p "${{ secrets.AZURE_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }} '
-            echo "${{ secrets.AZURE_PASSWORD }}" | sudo -S docker stop sensorprocessor || true && \
-            echo "${{ secrets.AZURE_PASSWORD }}" | sudo -S docker rm sensorprocessor || true && \
-            echo "${{ secrets.AZURE_PASSWORD }}" | sudo -S docker rmi localhost:5000/sensorprocessor:latest || true
-            '
+          docker build --platform linux/amd64 -t localhost:5000/sensorprocessor:${{ env.BRANCH }} .
 
       - name: Copy Docker image to Azure Cloud
         run: |
           echo "Starting Docker save"
-          docker save localhost:5000/sensorprocessor:latest -o image.tar
+          docker save localhost:5000/sensorprocessor:${{ env.BRANCH }} -o sensorprocessor.tar
           echo "Docker save completed"
           echo "Compressing image"
-          gzip image.tar
+          gzip sensorprocessor.tar
           echo "Compression completed"
           echo "Starting SCP transfer"
-          sshpass -p "${{ secrets.AZURE_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }} 'if [ -e /home/azureuser/appPrincipal/image.tar.gz ]; then echo ${{ secrets.AZURE_PASSWORD }} | sudo -S rm -f /home/azureuser/appPrincipal/image.tar.gz; fi'
-          sshpass -p "${{ secrets.AZURE_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }} 'if [ -e /home/azureuser/appPrincipal/image.tar ]; then echo ${{ secrets.AZURE_PASSWORD }} | sudo -S rm -f /home/azureuser/appPrincipal/image.tar; fi'
-          sshpass -p "${{ secrets.AZURE_PASSWORD }}" scp -o StrictHostKeyChecking=no image.tar.gz ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }}:/home/azureuser/appPrincipal
+          scp -o StrictHostKeyChecking=no sensorprocessor.tar.gz ${{ env.USER }}@${{ env.HOST }}:/home/${{ env.USER }}/sensorprocessor.tar.gz
           echo "SCP transfer completed"
           echo "Starting SSH to Azure Cloud"
-          sshpass -p "${{ secrets.AZURE_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }} 'echo ${{ secrets.AZURE_PASSWORD }} | sudo -S bash -c "gunzip -f /home/azureuser/appPrincipal/image.tar.gz && docker load -i /home/azureuser/appPrincipal/image.tar"'
+          ssh -o StrictHostKeyChecking=no ${{ env.USER }}@${{ env.HOST }} '
+            sudo bash -c "gunzip -f /home/${{ env.USER }}/sensorprocessor.tar.gz && docker load -i /home/${{ env.USER }}/sensorprocessor.tar"
+          '
           echo "SSH and Docker load completed"
 
       - name: Run Docker Compose on Azure Cloud
         run: |
-          sshpass -p "${{ secrets.AZURE_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.AZURE_USER }}@${{ secrets.AZURE_HOST }} 'echo "${{ secrets.AZURE_PASSWORD }}" | sudo -S docker compose -f /opt/app/docker-compose.yml up -d'
+          echo '
+            SPRING_DATASOURCE_USERNAME=${{ env.SPRING_DATASOURCE_USERNAME }}
+            SPRING_DATASOURCE_PASSWORD=${{ env.SPRING_DATASOURCE_PASSWORD }}
+            SPRING_DATASOURCE_URL=${{ env.SPRING_DATASOURCE_URL }}
+            HOST=${{ env.HOST }}
+            USER=${{ env.USER }}
+            BRANCH=${{ env.BRANCH }}
+            DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
+            SPRING_DATASOURCE_DRIVER_CLASS_NAME=${{ env.SPRING_DATASOURCE_DRIVER_CLASS_NAME }}
+            ACS_CONNECTION_STRING="${{ env.ACS_CONNECTION_STRING }}"
+            ACS_FROM_EMAIL="DoNotReply@7bcc2766-fee2-4b02-8ccf-0675ed430b8c.azurecomm.net"
+            PORT=${{ env.PORT }}
+          ' > .env
+          scp -o StrictHostKeyChecking=no .env ${{ env.USER }}@${{ env.HOST }}:/home/${{ env.USER }}/.env
+          scp -o StrictHostKeyChecking=no docker-compose.yml ${{ env.USER }}@${{ env.HOST }}:/home/${{ env.USER }}/docker-compose.yml
+          ssh -o StrictHostKeyChecking=no ${{ env.USER }}@${{ env.HOST }} '
+            cd /opt/app/ &&
+            sudo mv -f /home/${{ env.USER }}/.env ./ &&
+            sudo mv -f /home/${{ env.USER }}/docker-compose.yml ./ &&
+            sudo docker compose -f docker-compose.yml up -d
+          '
+
+
+          

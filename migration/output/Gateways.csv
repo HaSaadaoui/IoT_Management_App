@@ -1,4 +1,4 @@
 gateway_id,gateway_eui,ip_address,frequency_plan,created_at,building_name,floor_number,location_description,antenna_latitude,antenna_longitude,antenna_altitude
+lil-rpi-mantu,1122334455667789,10.243.127.5,EU_863_870_TTN,2025-09-02,Lille,4,"Open space U",,,
 leva-rpi-mantu,0016C001F10527BB,10.243.128.3,EU_863_870_TTN,2025-04-14,Levallois,3,"Bureau 333",,,
 rpi-mantu,0016C001F1054209,10.243.129.10,EU_863_870_TTN,2024-07-25,"Châteaudun",3,"Bureau 333",,,
-lil-rpi-mantu,1122334455667789,10.243.127.5,EU_863_870_TTN,2025-09-02,Lille,4,"Open space U",,,
