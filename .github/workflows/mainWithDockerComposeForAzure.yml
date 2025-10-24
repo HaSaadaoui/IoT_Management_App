@@ -56,7 +56,7 @@ jobs:
 
       - name: Build and tag Docker image
         run: |
-          docker build --platform linux/amd64 -t localhost:5000/sensorprocessor:${{ env.BRANCH }} .
+          docker build --no-cache --platform linux/amd64 -t localhost:5000/sensorprocessor:${{ env.BRANCH }} .
 
       - name: Copy Docker image to Azure Cloud
         run: |
@@ -81,7 +81,7 @@ jobs:
           git clone ${{ env.GATEWAY_MONITORING_GIT_URL }} tmp_gateway_monitoring_api
           echo "Build the gateway docker image"
           cd tmp_gateway_monitoring_api/
-          docker build --platform linux/amd64 -t localhost:5000/gateway:${{ env.BRANCH }} .
+          docker build --no-cache --platform linux/amd64 -t localhost:5000/gateway:${{ env.BRANCH }} .
           echo "Saving gateway docker image"
           docker save gateway -o gateway.tar
           echo "Compressing gateway image"
