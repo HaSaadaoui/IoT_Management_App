@@ -11349,3 +11349,7 @@ Caused by: java.net.UnknownHostException: Failed to resolve 'monitoring' [A(1), 
 	at java.base/java.lang.Thread.run(Thread.java:840)
 Caused by: io.netty.resolver.dns.DnsErrorCauseException: Query failed with NXDOMAIN
 	at io.netty.resolver.dns.DnsResolveContext.onResponse(..)(Unknown Source)
+2025-10-24 12:57:36 - Commencing graceful shutdown. Waiting for active requests to complete
+2025-10-24 12:57:36 - Graceful shutdown complete
+2025-10-24 12:57:38 - HikariPool-1 - Shutdown initiated...
+2025-10-24 12:57:38 - HikariPool-1 - Shutdown completed.

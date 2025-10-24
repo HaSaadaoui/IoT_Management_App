@@ -316,6 +316,18 @@ function startSSE() {
           if (typeof p['battery (%)'] === 'number' && el('#s-pir-batt')) updateBatteryBadge('#s-pir-batt', p['battery (%)']);
           break;
         case 'DESK':
+          // Occupancy
+          if (p.occupancy != null && el('#s-desk-occupancy')) {
+            const occNode = el('#s-desk-occupancy');
+            occNode.classList.remove('badge--ok', 'badge--off');
+            if (p.occupancy === 1 || p.occupancy === true || p.occupancy === 'occupied') {
+              occNode.classList.add('badge--ok');
+              setText('#s-desk-occupancy', 'Occupied');
+            } else {
+              occNode.classList.add('badge--off');
+              setText('#s-desk-occupancy', 'Free');
+            }
+          }
           if (typeof p['temperature (°C)'] === 'number' && el('#s-desk-temp')) updateTempBadge('#s-desk-temp', p['temperature (°C)']);
           if (typeof p['humidity (%)']     === 'number' && el('#s-desk-hum'))  setText('#s-desk-hum',  fmt.hum(p['humidity (%)']));
           // VDD → Battery %
@@ -372,6 +384,7 @@ function setupHistoryTitles() {
   if (!A || !B) return;
   switch (devType) {
     case 'CO2':       A.textContent = "CO₂ (ppm)";       B.textContent = "Température (°C)"; break;
+    case 'DESK':      A.textContent = "Occupancy";       B.textContent = "Température (°C)"; break;
     case 'EYE':
     case 'TEMPEX':    A.textContent = "Température (°C)"; B.textContent = "Humidité (%)";     break;
     case 'SON':       A.textContent = "LAeq (dB)";       B.textContent = "LAI (dB)";         break;

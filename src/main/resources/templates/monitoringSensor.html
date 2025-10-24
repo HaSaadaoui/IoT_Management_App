@@ -130,6 +130,7 @@
 
         <!-- DESK -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'DESK')}">
+            <div class="card"><h4>👤 Occupancy</h4><p><span id="s-desk-occupancy" class="badge">--</span></p></div>
             <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-desk-temp" class="temp-badge temp--normal">--</span></p></div>
             <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-desk-hum" class="badge">-- %</span></p></div>
             <div class="card"><h4>Battery</h4>
