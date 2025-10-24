@@ -30,7 +30,6 @@ jobs:
             echo "USER=azureuser" >> $GITHUB_ENV
             echo "PORT=80" >> $GITHUB_ENV
             echo "GATEWAY_BRANCH=main" >> $GITHUB_ENV
-          elif
           else
             echo "SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USER_TEST }}" >> $GITHUB_ENV
             echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASS_TEST }}" >> $GITHUB_ENV
