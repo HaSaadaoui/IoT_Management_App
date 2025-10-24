@@ -23,8 +23,6 @@ services:
       SPRING_JPA_HIBERNATE_DIALECT: ${SPRING_JPA_HIBERNATE_DIALECT:-org.hibernate.dialect.MySQL8Dialect}
       SPRING_JPA_DATABASE: ${SPRING_JPA_DATABASE:-mysql}
       DB_PATH: ${DB_PATH:-/opt/app} # Uniquement pour la base SQLite
-    depends_on:
-      - monitoring
     networks:
       - app-network
 
