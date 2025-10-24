@@ -78,7 +78,7 @@ jobs:
       - name: Build and copy Docker image to Azure Cloud
         run: |
           echo "Cloning repository"
-          git clone ${{ env.GATEWAY_MONITORING_GIT_URL }} tmp_gateway_monitoring_api
+          git clone ${{ env.GATEWAY_MONITORING_GIT_URL }} tmp_gateway_monitoring_api && cd tmp_gateway_monitoring_api
           
           if [[ "${{ env.BRANCH }}" != "main" ]]; then
             git checkout develop
