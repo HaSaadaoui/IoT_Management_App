@@ -139,16 +139,51 @@ public class SensorService {
             throw new IllegalArgumentException("Renaming idSensor is not supported by current DAO");
         }
 
-        // ⚠️ On n’édite QUE ces champs (DB-only)
+        // Détection des changements critiques (DevEUI, JoinEUI, AppKey)
+        boolean ttnUpdateNeeded = false;
+        if (patch.getDevEui() != null && !patch.getDevEui().equals(existing.getDevEui())) {
+            existing.setDevEui(patch.getDevEui());
+            ttnUpdateNeeded = true;
+        }
+        if (patch.getJoinEui() != null && !patch.getJoinEui().equals(existing.getJoinEui())) {
+            existing.setJoinEui(patch.getJoinEui());
+            ttnUpdateNeeded = true;
+        }
+        if (patch.getAppKey() != null && !patch.getAppKey().equals(existing.getAppKey())) {
+            existing.setAppKey(patch.getAppKey());
+            ttnUpdateNeeded = true;
+        }
+
+        // Champs DB-only
         if (patch.getDeviceType() != null)        existing.setDeviceType(patch.getDeviceType());
         if (patch.getCommissioningDate() != null) existing.setCommissioningDate(patch.getCommissioningDate());
         if (patch.getFloor() != null)             existing.setFloor(patch.getFloor());
         if (patch.getLocation() != null)          existing.setLocation(patch.getLocation());
+        if (patch.getBuildingName() != null)      existing.setBuildingName(patch.getBuildingName());
 
-
+        // 1) Update DB
         int rows = sensorDao.updateSensor(existing);
         if (rows != 1) throw new IllegalStateException("DB update failed for sensor " + idSensor);
-        log.info("[Sensor] DB updated idSensor={} (DB-only, no TTN update)", idSensor);
+        log.info("[Sensor] DB updated idSensor={}", idSensor);
+
+        // 2) Update TTN si nécessaire
+        if (ttnUpdateNeeded) {
+            try {
+                if (existing.getIdGateway() == null || existing.getIdGateway().isBlank()) {
+                    log.warn("[Sensor] No idGateway for {} → skipping TTN update", idSensor);
+                } else {
+                    LorawanSensorData lorawan = lorawanService.toLorawanCreate(existing);
+                    lorawanService.updateDevice(existing.getIdGateway(), idSensor, lorawan);
+                    log.info("[Sensor] TTN updated device {} (app={}-app)", idSensor, existing.getIdGateway());
+                }
+            } catch (WebClientResponseException e) {
+                log.error("[Sensor] TTN update failed for {}: {}", idSensor, e.getMessage(), e);
+                // On ne rollback pas la transaction DB, juste un warning
+            } catch (Exception e) {
+                log.error("[Sensor] TTN update unexpected error for {}: {}", idSensor, e.getMessage(), e);
+            }
+        }
+
         return existing;
     }
 

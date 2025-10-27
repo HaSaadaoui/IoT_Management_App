@@ -73,7 +73,7 @@
             <thead>
             <tr>
                 <th>Sensor ID</th>
-                <th>Device Type</th>
+                <th>DevEUI</th>
                 <th>Commissioning Date</th>
                 <th>Status</th>
                 <th>Building</th>
@@ -254,8 +254,8 @@
 
     <script th:inline="javascript">
         /*<![CDATA[*/
-        window.SENSORS  = [[${sensors}]];
-        window.GATEWAYS = [[${gateways}]];
+        window.SENSORS  = /*[[${sensors}]]*/ [];
+        window.GATEWAYS = /*[[${gateways}]]*/ [];
         /*]]>*/
     </script>
 

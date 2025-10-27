@@ -45,14 +45,13 @@ public class SensorDao {
         );
     }
 
-    /** Insère un capteur (avec EUIs, AppKey et Frequency Plan). */
+    /** Insère un capteur (colonnes de base uniquement). */
     public int insertSensor(Sensor sensor) {
         return jdbcTemplate.update(
                 "INSERT INTO SENSORS (" +
                         "ID_SENSOR, DEVICE_TYPE, COMMISSIONING_DATE, STATUS, " +
-                        "BUILDING_NAME, FLOOR, LOCATION, ID_GATEWAY, " +
-                        "DEV_EUI, JOIN_EUI, APP_KEY, FREQUENCY_PLAN" +
-                        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "BUILDING_NAME, FLOOR, LOCATION, ID_GATEWAY" +
+                        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 sensor.getIdSensor(),
                 sensor.getDeviceType(),
                 sensor.getCommissioningDate(),
@@ -60,15 +59,11 @@ public class SensorDao {
                 sensor.getBuildingName(),
                 sensor.getFloor(),
                 sensor.getLocation(),
-                sensor.getIdGateway(),
-                sensor.getDevEui(),
-                sensor.getJoinEui(),
-                sensor.getAppKey(),
-                sensor.getFrequencyPlan()
+                sensor.getIdGateway()
         );
     }
 
-    /** Met à jour TOUTES les colonnes (sauf la PK). */
+    /** Met à jour les colonnes de base (sauf la PK). */
     public int updateSensor(Sensor sensor) {
         return jdbcTemplate.update(
                 "UPDATE SENSORS SET " +
@@ -78,11 +73,7 @@ public class SensorDao {
                         "BUILDING_NAME = ?, " +
                         "FLOOR = ?, " +
                         "LOCATION = ?, " +
-                        "ID_GATEWAY = ?, " +
-                        "DEV_EUI = ?, " +
-                        "JOIN_EUI = ?, " +
-                        "APP_KEY = ?, " +
-                        "FREQUENCY_PLAN = ? " +
+                        "ID_GATEWAY = ? " +
                         "WHERE ID_SENSOR = ?",
                 sensor.getDeviceType(),
                 sensor.getCommissioningDate(),
@@ -91,10 +82,6 @@ public class SensorDao {
                 sensor.getFloor(),
                 sensor.getLocation(),
                 sensor.getIdGateway(),
-                sensor.getDevEui(),
-                sensor.getJoinEui(),
-                sensor.getAppKey(),
-                sensor.getFrequencyPlan(),
                 sensor.getIdSensor()
         );
     }

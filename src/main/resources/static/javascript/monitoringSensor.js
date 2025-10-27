@@ -13,7 +13,8 @@ function updateBatteryBadge(selector, pct) {
 
   if (pct == null || Number.isNaN(Number(pct))) {
     node.classList.add('battery--unk');
-    node.textContent = '--';
+    const span = node.querySelector('span') || node;
+    span.textContent = '--';
     return;
   }
   const p = Math.max(0, Math.min(100, Math.round(Number(pct))));
@@ -23,7 +24,59 @@ function updateBatteryBadge(selector, pct) {
   else if (p >= 10) cls = 'battery--low';
 
   node.classList.add(cls);
-  node.textContent = p + ' %';
+  const span = node.querySelector('span') || node;
+  span.textContent = p + ' %';
+}
+
+// --- CO2 helper (couleur selon niveau)
+function updateCO2Badge(selector, ppm) {
+  const node = typeof selector === 'string' ? el(selector) : selector;
+  if (!node) return;
+  node.classList.remove('co2--good','co2--warn','co2--danger');
+
+  if (ppm == null || Number.isNaN(Number(ppm))) {
+    node.classList.add('co2--good');
+    node.textContent = '-- ppm';
+    return;
+  }
+  const p = Math.round(Number(ppm));
+  let cls = 'co2--good';
+  if (p > 1000) cls = 'co2--danger';
+  else if (p > 800) cls = 'co2--warn';
+
+  node.classList.add(cls);
+  node.textContent = p + ' ppm';
+}
+
+// --- VDD to Battery % converter (règle de trois: 2500mV=0%, 3600mV=100%)
+function vddToBatteryPercent(vddMv) {
+  if (vddMv == null || Number.isNaN(Number(vddMv))) return null;
+  const v = Number(vddMv);
+  const MIN_VDD = 2500; // 0%
+  const MAX_VDD = 3600; // 100%
+  const pct = ((v - MIN_VDD) / (MAX_VDD - MIN_VDD)) * 100;
+  return Math.max(0, Math.min(100, Math.round(pct)));
+}
+
+// --- Temperature helper (couleur selon température)
+function updateTempBadge(selector, temp) {
+  const node = typeof selector === 'string' ? el(selector) : selector;
+  if (!node) return;
+  node.classList.remove('temp--cold','temp--normal','temp--warm','temp--hot');
+
+  if (temp == null || Number.isNaN(Number(temp))) {
+    node.classList.add('temp--normal');
+    node.textContent = '--';
+    return;
+  }
+  const t = Number(temp);
+  let cls = 'temp--normal';
+  if (t < 18) cls = 'temp--cold';
+  else if (t > 26) cls = 'temp--hot';
+  else if (t > 24) cls = 'temp--warm';
+
+  node.classList.add(cls);
+  node.textContent = t.toFixed(1) + ' °C';
 }
 
 // ===== Leaflet (optionnel) =====
@@ -216,7 +269,7 @@ function startSSE() {
           if (p['period_out'] != null && el('#s-count-out')) setText('#s-count-out', p['period_out']);
           break;
         case 'TEMPEX':
-          if (typeof p['temperature (°C)'] === 'number' && el('#s-tempex-temp')) setText('#s-tempex-temp', fmt.temp(p['temperature (°C)']));
+          if (typeof p['temperature (°C)'] === 'number' && el('#s-tempex-temp')) updateTempBadge('#s-tempex-temp', p['temperature (°C)']);
           if (typeof p['humidity (%)']     === 'number' && el('#s-tempex-hum'))  setText('#s-tempex-hum',  fmt.hum(p['humidity (%)']));
           break;
         case 'SON':
@@ -226,11 +279,18 @@ function startSSE() {
           if (typeof p['battery (%)'] === 'number' && el('#s-sound-batt'))   updateBatteryBadge('#s-sound-batt', p['battery (%)']);
           break;
         case 'CO2':
-          if (typeof p['co2 (ppm)']        === 'number' && el('#s-co2-ppm'))  setText('#s-co2-ppm',  p['co2 (ppm)']);
-          if (typeof p['temperature (°C)'] === 'number' && el('#s-co2-temp')) setText('#s-co2-temp', fmt.temp(p['temperature (°C)']));
+          if (typeof p['co2 (ppm)']        === 'number' && el('#s-co2-ppm'))  updateCO2Badge('#s-co2-ppm',  p['co2 (ppm)']);
+          if (typeof p['temperature (°C)'] === 'number' && el('#s-co2-temp')) updateTempBadge('#s-co2-temp', p['temperature (°C)']);
           if (typeof p['humidity (%)']     === 'number' && el('#s-co2-hum'))  setText('#s-co2-hum',  fmt.hum(p['humidity (%)']));
-          if (typeof p['vdd (v)']          === 'number' && el('#s-co2-vdd'))  setText('#s-co2-vdd',  fmt.vdd(Math.round(p['vdd (v)'] * 1000)));
-          if (typeof p['vdd (mV)']         === 'number' && el('#s-co2-vdd'))  setText('#s-co2-vdd',  fmt.vdd(p['vdd (mV)']));
+          // VDD → Battery %
+          if (typeof p['vdd (v)']  === 'number') {
+            const vddMv = Math.round(p['vdd (v)'] * 1000);
+            const battPct = vddToBatteryPercent(vddMv);
+            if (battPct != null && el('#s-co2-vdd')) updateBatteryBadge('#s-co2-vdd', battPct);
+          } else if (typeof p['vdd (mV)'] === 'number') {
+            const battPct = vddToBatteryPercent(p['vdd (mV)']);
+            if (battPct != null && el('#s-co2-vdd')) updateBatteryBadge('#s-co2-vdd', battPct);
+          }
           if (p.light    != null && el('#s-co2-light'))   setText('#s-co2-light',   p.light);
           if (p.presence != null && el('#s-co2-motion'))  setText('#s-co2-motion',  p.presence);
           break;
@@ -240,11 +300,15 @@ function startSSE() {
           if (typeof p['battery (%)'] === 'number' && el('#s-occup-batt')) updateBatteryBadge('#s-occup-batt', p['battery (%)']);
           break;
         case 'EYE':
-          if (typeof p['temperature (°C)'] === 'number' && el('#s-eye-temp')) setText('#s-eye-temp', fmt.temp(p['temperature (°C)']));
+          if (typeof p['temperature (°C)'] === 'number' && el('#s-eye-temp')) updateTempBadge('#s-eye-temp', p['temperature (°C)']);
           if (typeof p['humidity (%)'] === 'number' && el('#s-eye-hum'))      setText('#s-eye-hum',  fmt.hum(p['humidity (%)']));
           if (p.light != null && el('#s-eye-light')) setText('#s-eye-light', p.light);
           if (p.presence != null && el('#s-eye-presence')) setText('#s-eye-presence', p.presence);
-          if (typeof p['vdd (mV)'] === 'number' && el('#s-eye-vdd')) setText('#s-eye-vdd', fmt.vdd(p['vdd (mV)']));
+          // VDD → Battery %
+          if (typeof p['vdd (mV)'] === 'number') {
+            const battPct = vddToBatteryPercent(p['vdd (mV)']);
+            if (battPct != null && el('#s-eye-vdd')) updateBatteryBadge('#s-eye-vdd', battPct);
+          }
           break;
         case 'PIR_LIGHT':
           if (p.presence != null && el('#s-pir-presence')) setText('#s-pir-presence', p.presence);
@@ -252,9 +316,25 @@ function startSSE() {
           if (typeof p['battery (%)'] === 'number' && el('#s-pir-batt')) updateBatteryBadge('#s-pir-batt', p['battery (%)']);
           break;
         case 'DESK':
-          if (typeof p['temperature (°C)'] === 'number' && el('#s-desk-temp')) setText('#s-desk-temp', fmt.temp(p['temperature (°C)']));
+          // Occupancy (vient du champ "presence" du backend)
+          if (p.presence != null && el('#s-desk-occupancy')) {
+            const occNode = el('#s-desk-occupancy');
+            occNode.classList.remove('badge--ok', 'badge--off');
+            if (p.presence === 1 || p.presence === true || p.presence === 'occupied') {
+              occNode.classList.add('badge--ok');
+              setText('#s-desk-occupancy', 'Occupied');
+            } else {
+              occNode.classList.add('badge--off');
+              setText('#s-desk-occupancy', 'Free');
+            }
+          }
+          if (typeof p['temperature (°C)'] === 'number' && el('#s-desk-temp')) updateTempBadge('#s-desk-temp', p['temperature (°C)']);
           if (typeof p['humidity (%)']     === 'number' && el('#s-desk-hum'))  setText('#s-desk-hum',  fmt.hum(p['humidity (%)']));
-          if (typeof p['vdd (mV)']         === 'number' && el('#s-desk-vdd'))  setText('#s-desk-vdd',  fmt.vdd(p['vdd (mV)']));
+          // VDD → Battery %
+          if (typeof p['vdd (mV)'] === 'number') {
+            const battPct = vddToBatteryPercent(p['vdd (mV)']);
+            if (battPct != null && el('#s-desk-vdd')) updateBatteryBadge('#s-desk-vdd', battPct);
+          }
           break;
         default:
           if (typeof p['battery (%)'] === 'number' && el('#s-gen-batt')) updateBatteryBadge('#s-gen-batt', p['battery (%)']);
@@ -304,6 +384,7 @@ function setupHistoryTitles() {
   if (!A || !B) return;
   switch (devType) {
     case 'CO2':       A.textContent = "CO₂ (ppm)";       B.textContent = "Température (°C)"; break;
+    case 'DESK':      A.textContent = "Occupancy";       B.textContent = "Température (°C)"; break;
     case 'EYE':
     case 'TEMPEX':    A.textContent = "Température (°C)"; B.textContent = "Humidité (%)";     break;
     case 'SON':       A.textContent = "LAeq (dB)";       B.textContent = "LAI (dB)";         break;
@@ -336,6 +417,49 @@ async function loadHistory(fromISO, toISO) {
   if (j.metrics?.B && histMetricB) {
     document.getElementById("histMetricB-title").textContent = j.metrics.B.label || document.getElementById("histMetricB-title").textContent;
     setSeries(histMetricB, labels, j.metrics.B.values || []);
+  }
+
+  // Update KPI cards
+  updateKPICards(j, fromISO, toISO);
+}
+
+// Update KPI Cards with statistics
+function updateKPICards(data, fromISO, toISO) {
+  // Total measurements
+  const totalEl = document.getElementById('kpi-total');
+  if (totalEl) {
+    const total = data.timestamps?.length || 0;
+    totalEl.textContent = total.toLocaleString();
+  }
+
+  // Average battery
+  const batteryEl = document.getElementById('kpi-battery');
+  if (batteryEl && data.battery_pct?.length > 0) {
+    const avg = data.battery_pct.reduce((a, b) => a + b, 0) / data.battery_pct.length;
+    batteryEl.textContent = `${Math.round(avg)}%`;
+  }
+
+  // Average RSSI
+  const rssiEl = document.getElementById('kpi-rssi');
+  if (rssiEl && data.rssi_dbm?.length > 0) {
+    const avg = data.rssi_dbm.reduce((a, b) => a + b, 0) / data.rssi_dbm.length;
+    rssiEl.textContent = `${Math.round(avg)} dBm`;
+  }
+
+  // Period
+  const periodEl = document.getElementById('kpi-period');
+  if (periodEl && fromISO && toISO) {
+    const from = new Date(fromISO);
+    const to = new Date(toISO);
+    const diffMs = to - from;
+    const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.round(diffHours / 24);
+    
+    if (diffDays > 0) {
+      periodEl.textContent = `${diffDays} jour${diffDays > 1 ? 's' : ''}`;
+    } else {
+      periodEl.textContent = `${diffHours} heure${diffHours > 1 ? 's' : ''}`;
+    }
   }
 }
 
