@@ -31,7 +31,7 @@ services:
     container_name: monitoring
     # build: https://github.com/HaSaadaoui/Gateway_Monitoring_Api.git#${BRANCH:-develop} # Activer lorsque la deploy key est ajouté au repo Gateway
     ports:
-      - 8081:8080
+      - 8081:8081
     networks:
       - app-network
 
