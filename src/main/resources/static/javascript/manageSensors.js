@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td>${s.idSensor ?? ''}</td>
-        <td>${s.deviceType ?? ''}</td>
+        <td>${s.devEui ?? ''}</td>
         <td>${s.commissioningDate ?? ''}</td>
         <td>
           <span class="${s.status ? 'badge badge--ok' : 'badge badge--off'}">

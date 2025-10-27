@@ -25,7 +25,22 @@ INTO TABLE `Sensors`
 FIELDS TERMINATED BY ','
 ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
-IGNORE 1 ROWS;
+IGNORE 1 ROWS
+(
+    id_sensor,
+    device_type,
+    @date_string,
+    status,
+    building_name,
+    floor,
+    location,
+    id_gateway,
+    dev_eui,
+    join_eui,
+    app_key,
+    frequency_plan
+)
+SET commissioning_date = STR_TO_DATE(@date_string, '%Y-%m-%dT%H:%i:%s.%fZ');
 
 LOAD DATA INFILE '/var/lib/mysql-files/csv/pending_users.csv'
 REPLACE

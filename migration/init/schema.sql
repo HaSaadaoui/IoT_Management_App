@@ -17,13 +17,19 @@ CREATE TABLE Gateways (
 CREATE TABLE Sensors (
     id_sensor VARCHAR(50) PRIMARY KEY NOT NULL,
     device_type VARCHAR(50) NOT NULL,
-    commissioning_date DATE NOT NULL,
+    commissioning_date TIMESTAMP(6) NOT NULL,
     status BOOLEAN NOT NULL,
     building_name VARCHAR(100) NOT NULL,
-    floor INT NOT NULL,
+    floor INTEGER NOT NULL,
     location VARCHAR(50) NULL,
     id_gateway VARCHAR(50) NULL,
-    FOREIGN KEY (id_gateway) REFERENCES Gateways(gateway_id) ON DELETE SET NULL
+    dev_eui TEXT NULL,
+    join_eui TEXT NULL,
+    app_key TEXT NULL,
+    frequency_plan VARCHAR(50) NULL,
+    FOREIGN KEY (id_gateway) REFERENCES Gateways(gateway_id) ON DELETE
+    SET
+        NULL
 );
 
 -- Création de la table Data_emsdesk
