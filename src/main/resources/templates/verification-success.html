@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Email Verified</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/verification-success.css}"/>
+    <script th:if="${success}">
+        setTimeout(function() {
+            window.location.href = '/login?verified';
+        }, 5000);
+    </script>
+</head>
+<body>
+<div class="verification-container">
+    <div class="verification-box">
+        <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
+        
+        <!-- Success State -->
+        <div th:if="${success}">
+            <div class="success-checkmark">
+                <div class="check-icon">
+                    <span class="icon-line line-tip"></span>
+                    <span class="icon-line line-long"></span>
+                    <div class="icon-circle"></div>
+                    <div class="icon-fix"></div>
+                </div>
+            </div>
+            
+            <h2>Email Verified!</h2>
+            <p class="message">
+                Your email has been successfully verified.<br>
+                You can now log in to your account.
+            </p>
+            <a th:href="@{/login?verified}" class="login-btn">Go to Login</a>
+            <p class="redirect-info">Redirecting automatically in 5 seconds...</p>
+        </div>
+        
+        <!-- Error State -->
+        <div th:unless="${success}">
+            <div class="error-icon"></div>
+            
+            <h2 class="error">Verification Failed</h2>
+            <p class="message" th:text="${error}">
+                The verification link is invalid or has expired.
+            </p>
+            <p class="message">
+                Please request a new verification email.
+            </p>
+            <a th:href="@{/resend-verification}" class="login-btn">Resend Verification Email</a>
+            <div style="margin-top: 20px;">
+                <a th:href="@{/login}" style="color: #662179; text-decoration: none;">← Back to Login</a>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

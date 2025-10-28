@@ -1,0 +1,69 @@
+name: Deploy to VM Test with Docker Compose
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Récupérer le code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Autoriser l'exécution de mvnw
+      - name: Give execute permission to mvnw
+        run: chmod +x ./mvnw
+
+      # Build Maven projects
+      - name: Build project main-app
+        run: ./mvnw clean package -DskipTests -f main-app
+
+      - name: Build project api-rest
+        run: ./mvnw clean package -DskipTests -f api-rest
+
+      # Build Docker images
+      - name: Build Docker images
+        run: |
+          docker build --platform linux/amd64 -t localhost:5000/main-app:develop ./main-app
+          docker build --platform linux/amd64 -t localhost:5000/api-rest:develop ./api-rest
+
+      # Stop et supprimer les conteneurs existants sur la VM test
+      - name: Stop existing containers on VM test
+        run: |
+          sshpass -p "${{ secrets.TEST_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.TEST_VM_USER }}@${{ secrets.TEST_VM_HOST }} '
+            echo "${{ secrets.TEST_VM_PASSWORD }}" | sudo -S docker stop main-app || true
+            echo "${{ secrets.TEST_VM_PASSWORD }}" | sudo -S docker rm main-app || true
+            echo "${{ secrets.TEST_VM_PASSWORD }}" | sudo -S docker stop api-rest || true
+            echo "${{ secrets.TEST_VM_PASSWORD }}" | sudo -S docker rm api-rest || true
+          '
+
+      # Sauvegarder et transférer les images vers la VM test
+      - name: Transfer Docker images to VM test
+        run: |
+          docker save localhost:5000/main-app:develop -o main-app.tar
+          docker save localhost:5000/api-rest:develop -o api-rest.tar
+          gzip main-app.tar api-rest.tar
+          scp -o StrictHostKeyChecking=no main-app.tar.gz ${{ secrets.TEST_VM_USER }}@${{ secrets.TEST_VM_HOST }}:/home/${{ secrets.TEST_VM_USER }}/
+          scp -o StrictHostKeyChecking=no api-rest.tar.gz ${{ secrets.TEST_VM_USER }}@${{ secrets.TEST_VM_HOST }}:/home/${{ secrets.TEST_VM_USER }}/
+
+      # Charger les images sur la VM test
+      - name: Load Docker images on VM test
+        run: |
+          sshpass -p "${{ secrets.TEST_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.TEST_VM_USER }}@${{ secrets.TEST_VM_HOST }} '
+            echo "${{ secrets.TEST_VM_PASSWORD }}" | sudo -S gunzip -f /home/${{ secrets.TEST_VM_USER }}/main-app.tar.gz
+            echo "${{ secrets.TEST_VM_PASSWORD }}" | sudo -S gunzip -f /home/${{ secrets.TEST_VM_USER }}/api-rest.tar.gz
+            echo "${{ secrets.TEST_VM_PASSWORD }}" | sudo -S docker load -i /home/${{ secrets.TEST_VM_USER }}/main-app.tar
+            echo "${{ secrets.TEST_VM_PASSWORD }}" | sudo -S docker load -i /home/${{ secrets.TEST_VM_USER }}/api-rest.tar
+          '
+
+      # Déployer via Docker Compose sur la VM test
+      - name: Run Docker Compose on VM test
+        run: |
+          sshpass -p "${{ secrets.TEST_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.TEST_VM_USER }}@${{ secrets.TEST_VM_HOST }} '
+            echo "${{ secrets.TEST_VM_PASSWORD }}" | sudo -S docker compose -f /opt/app/docker-compose.yaml up -d
+          '

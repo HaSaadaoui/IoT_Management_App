@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    driver-class-name: org.sqlite.JDBC
+    url: jdbc:sqlite:test.db
+  sql:
+    init:
+      mode: always
+      continue-on-error: true
+  jpa:
+    show-sql: true

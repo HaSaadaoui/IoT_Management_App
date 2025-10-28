@@ -33,8 +33,8 @@ build/
 ### VS Code ###
 .vscode/
 
-### Database ###
-mydatabase.db
+# Ces fichier pourraient contenir des information confidentielles
+application.yml
 *.db
 Userssaifeddine.mosrati_mDesktopmydatabase.db
 

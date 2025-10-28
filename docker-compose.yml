@@ -1,0 +1,40 @@
+# Ce fichier nécessite qu'un régistre docker soit installé sur la machine qui l'exécute.
+# ex. docker run -d -p 5000:5000 --name registry registry:2.7
+# À n'exécuter qu'une seule fois
+
+services:
+  sensorprocessor:
+    image: localhost:5000/sensorprocessor:${BRANCH:-develop}
+    container_name: sensorprocessor
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-8080}:8080"
+    volumes:
+      - /opt/app/uploads:${UPLOADS_PATH:-/opt/app/uploads}
+    environment:
+      ACS_CONNECTION_STRING: ${ACS_CONNECTION_STRING}
+      ACS_FROM_EMAIL: ${ACS_FROM_EMAIL}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:-com.mysql.cj.jdbc.Driver}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_JPA_HIBERNATE_DIALECT: ${SPRING_JPA_HIBERNATE_DIALECT:-org.hibernate.dialect.MySQL8Dialect}
+      SPRING_JPA_DATABASE: ${SPRING_JPA_DATABASE:-mysql}
+      DB_PATH: ${DB_PATH:-/opt/app} # Uniquement pour la base SQLite
+    networks:
+      - app-network
+
+  monitoring:
+    image: localhost:5000/gateway:${GATEWAY_BRANCH:-main}
+    container_name: monitoring
+    # build: https://github.com/HaSaadaoui/Gateway_Monitoring_Api.git#${BRANCH:-develop} # Activer lorsque la deploy key est ajouté au repo Gateway
+    ports:
+      - 8081:8081
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

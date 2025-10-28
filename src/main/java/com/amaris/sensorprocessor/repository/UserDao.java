@@ -26,7 +26,7 @@ public class UserDao {
      */
     public List<User> findAllUsers() {
         return jdbcTemplate.query(
-                "SELECT * FROM USERS ORDER BY LOWER(lastname) ASC;",
+                "SELECT * FROM users ORDER BY LOWER(lastname) ASC;",
                 new BeanPropertyRowMapper<User>(User.class));
     }
 
@@ -38,7 +38,7 @@ public class UserDao {
      */
     public Optional<User> findByUsername(String username) {
         List<User> users = jdbcTemplate.query(
-                "SELECT * FROM USERS WHERE USERNAME=?",
+                "SELECT * FROM users WHERE USERNAME=?",
                 new BeanPropertyRowMapper<>(User.class),
                 username
         );
@@ -54,7 +54,7 @@ public class UserDao {
      */
     public int deleteByIdOfUser(String username) {
         return jdbcTemplate.update(
-                "DELETE FROM USERS WHERE USERNAME=?",
+                "DELETE FROM users WHERE USERNAME=?",
                 username);
     }
 
@@ -66,7 +66,7 @@ public class UserDao {
      */
     public int insertUser(User user) {
         return jdbcTemplate.update(
-                "INSERT INTO USERS (" +
+                "INSERT INTO users (" +
                         "USERNAME, FIRSTNAME, LASTNAME, " +
                         "PASSWORD, ROLE, EMAIL, ICON) " +
                         "VALUES(?, ?, ?, ?, ?, ?, ?)",
@@ -83,7 +83,7 @@ public class UserDao {
      */
     public int updateUser(User user) {
         return jdbcTemplate.update(
-                "UPDATE USERS SET " +
+                "UPDATE users SET " +
                         "FIRSTNAME = ?, LASTNAME = ?, " +
                         "EMAIL = ?, ROLE = ? " +
                         "WHERE USERNAME = ?",
@@ -101,7 +101,7 @@ public class UserDao {
 
     public int updateUserProfile(User user) {
         return jdbcTemplate.update(
-                "UPDATE USERS SET FIRSTNAME = ?, LASTNAME = ?, EMAIL = ? WHERE USERNAME = ?",
+                "UPDATE users SET FIRSTNAME = ?, LASTNAME = ?, EMAIL = ? WHERE USERNAME = ?",
                 user.getFirstname(),
                 user.getLastname(),
                 user.getEmail(),
@@ -117,7 +117,7 @@ public class UserDao {
      */
     public int updatePassword(String username, String newPasswordHash) {
         return jdbcTemplate.update(
-                "UPDATE USERS SET PASSWORD = ? WHERE USERNAME = ?",
+                "UPDATE users SET PASSWORD = ? WHERE USERNAME = ?",
                 newPasswordHash, username
         );
     }
@@ -130,7 +130,7 @@ public class UserDao {
      */
     public int updateAvatar(String username, String avatar) {
         return jdbcTemplate.update(
-                "UPDATE USERS SET ICON = ? WHERE USERNAME = ?",
+                "UPDATE users SET ICON = ? WHERE USERNAME = ?",
                 avatar, username
         );
     }

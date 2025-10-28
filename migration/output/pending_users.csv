@@ -1,0 +1,3 @@
+email,username,firstname,lastname,password,role,icon,token_hash,expires_at,resend_count,last_resend_at
+test-signup@example.com,tester,Test,User,$2a$10$z35cw4dHczG8cE09TMmHLuwkq.OOmzV0ZUQMlkwzkQ9XKP6UYDCgy,USER,/image/default-avatar.png,734b326de93d6a6f7f8d38e950a27577b0811d50f8c48449d2310225403b14da,2025-10-17T16:00:04.786546800Z,0,
+sayfmosrati20@gmail.com,hana,hana,hana,$2a$10$2sJkntPv3Av5N3pxPdVC0eDECGAPWJIjnniM/0FCehPTN976FIClq,USER,/image/default-avatar.png,c897fe65836785ec8311491d12851804336c42be1ec18e46bd1e2e58c1035786,2025-10-18T08:12:19.831444100Z,0,

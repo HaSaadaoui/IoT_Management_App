@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Resend Verification Email</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/resend-verification.css}"/>
+</head>
+<body>
+<div class="verification-container">
+    <div class="verification-box">
+        <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
+        
+        <h2>Resend Verification Email</h2>
+        
+        <div th:if="${error}" class="error-message">
+            <p th:text="${error}"></p>
+        </div>
+        
+        <div class="instructions">
+            <p>Enter your email address and we'll send you a new verification link.</p>
+        </div>
+        
+        <form th:action="@{/resend-verification}" method="post">
+            <div class="form-group">
+                <input type="email" name="email" placeholder="Enter your email address" required/>
+            </div>
+            
+            <button type="submit" class="submit-btn">Send Verification Email</button>
+        </form>
+        
+        <div class="back-to-login">
+            <a th:href="@{/login}">← Back to Login</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>
