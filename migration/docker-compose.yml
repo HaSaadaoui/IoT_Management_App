@@ -13,3 +13,4 @@ services:
       - "./init/schema.sql:/docker-entrypoint-initdb.d/1.sql:ro"
       - "./init/import.sql:/docker-entrypoint-initdb.d/2.sql:ro"
       - "./output/:/var/lib/mysql-files/csv/:rw"
+    command: mysqld --lower_case_table_names=1

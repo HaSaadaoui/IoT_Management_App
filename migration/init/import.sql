@@ -13,7 +13,7 @@ SET foreign_key_checks = 0;
 
 LOAD DATA INFILE '/var/lib/mysql-files/csv/Users.csv'
 REPLACE
-INTO TABLE `Users`
+INTO TABLE `users`
 FIELDS TERMINATED BY ','
 ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
@@ -21,7 +21,7 @@ IGNORE 1 ROWS;
 
 LOAD DATA INFILE '/var/lib/mysql-files/csv/Sensors.csv'
 REPLACE
-INTO TABLE `Sensors`
+INTO TABLE `sensors`
 FIELDS TERMINATED BY ','
 ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
@@ -52,7 +52,7 @@ IGNORE 1 ROWS;
 
 LOAD DATA INFILE '/var/lib/mysql-files/csv/Signal.csv'
 REPLACE
-INTO TABLE `Signal`
+INTO TABLE `signal`
 FIELDS TERMINATED BY ','
 ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
@@ -60,7 +60,7 @@ IGNORE 1 ROWS;
 
 LOAD DATA INFILE '/var/lib/mysql-files/csv/Gateways.csv'
 REPLACE
-INTO TABLE `Gateways`
+INTO TABLE `gateways`
 FIELDS TERMINATED BY ','
 ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
@@ -74,7 +74,7 @@ SET
 
 LOAD DATA INFILE '/var/lib/mysql-files/csv/Data_emsdesk.csv'
 REPLACE
-INTO TABLE `Data_emsdesk`
+INTO TABLE `data_emsdesk`
 FIELDS TERMINATED BY ','
 ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
@@ -82,7 +82,7 @@ IGNORE 1 ROWS;
 
 LOAD DATA INFILE '/var/lib/mysql-files/csv/Data_pirlight.csv'
 REPLACE
-INTO TABLE `Data_pirlight`
+INTO TABLE `data_pirlight`
 FIELDS TERMINATED BY ','
 ENCLOSED BY '"'
 LINES TERMINATED BY '\n'

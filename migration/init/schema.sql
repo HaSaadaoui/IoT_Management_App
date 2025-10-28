@@ -1,5 +1,5 @@
 -- Création de la table Gateways
-CREATE TABLE Gateways (
+CREATE TABLE gateways (
     gateway_id VARCHAR(50) PRIMARY KEY NOT NULL,
     gateway_eui VARCHAR(50) NOT NULL,
     ip_address VARCHAR(50) NOT NULL,
@@ -14,10 +14,10 @@ CREATE TABLE Gateways (
 );
 
 -- Création de la table Sensors
-CREATE TABLE Sensors (
+CREATE TABLE sensors (
     id_sensor VARCHAR(50) PRIMARY KEY NOT NULL,
     device_type VARCHAR(50) NOT NULL,
-    commissioning_date TIMESTAMP(6) NOT NULL,
+    commissioning_date VARCHAR(32) NOT NULL,
     status BOOLEAN NOT NULL,
     building_name VARCHAR(100) NOT NULL,
     floor INTEGER NOT NULL,
@@ -32,8 +32,8 @@ CREATE TABLE Sensors (
         NULL
 );
 
--- Création de la table Data_emsdesk
-CREATE TABLE Data_emsdesk (
+-- Création de la table data_emsdesk
+CREATE TABLE data_emsdesk (
     id_sensor VARCHAR(50),
     timestamp DATE,
     humidity INTEGER,
@@ -43,8 +43,8 @@ CREATE TABLE Data_emsdesk (
     FOREIGN KEY (id_sensor) REFERENCES Sensors(id_sensor) ON DELETE CASCADE
 );
 
--- Création de la table Data_pirlight
-CREATE TABLE Data_pirlight (
+-- Création de la table data_pirlight
+CREATE TABLE data_pirlight (
     id_sensor VARCHAR(50),
     timestamp DATE,
     light_statut INT,
@@ -54,7 +54,7 @@ CREATE TABLE Data_pirlight (
 );
 
 -- Création de la table Signal
-CREATE TABLE `Signal` (
+CREATE TABLE `signal` (
     id_sensor VARCHAR(50),
     timestamp DATE,
     value_battery FLOAT,
@@ -70,7 +70,7 @@ CREATE TABLE `Signal` (
 );
 
 -- Création de la table Users
-CREATE TABLE Users (
+CREATE TABLE users (
     username VARCHAR(50) PRIMARY KEY NOT NULL,
     firstname VARCHAR(50) NOT NULL,
     lastname VARCHAR(50) NOT NULL,

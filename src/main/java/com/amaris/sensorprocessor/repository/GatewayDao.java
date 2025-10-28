@@ -26,7 +26,7 @@ public class GatewayDao {
      */
     public List<Gateway> findAllGateways() {
         return jdbcTemplate.query(
-            "SELECT * FROM GATEWAYS ORDER BY LOWER(GATEWAY_ID) ASC;",
+            "SELECT * FROM gateways ORDER BY LOWER(GATEWAY_ID) ASC;",
             new BeanPropertyRowMapper<Gateway>(Gateway.class));
     }
 
@@ -38,7 +38,7 @@ public class GatewayDao {
      */
     public Optional<Gateway> findGatewayById(String gatewayId) {
         List<Gateway> gateways = jdbcTemplate.query(
-            "SELECT * FROM GATEWAYS WHERE GATEWAY_ID=?",
+            "SELECT * FROM gateways WHERE GATEWAY_ID=?",
             new BeanPropertyRowMapper<>(Gateway.class),
             gatewayId);
 
@@ -53,7 +53,7 @@ public class GatewayDao {
      */
     public int deleteGatewayById(String gatewayId) {
         return jdbcTemplate.update(
-            "DELETE FROM GATEWAYS WHERE GATEWAY_ID=?",
+            "DELETE FROM gateways WHERE GATEWAY_ID=?",
             gatewayId);
     }
 
@@ -64,7 +64,7 @@ public class GatewayDao {
      */
     public void insertGatewayInDatabase(Gateway gateway) {
         jdbcTemplate.update(
-            "INSERT INTO GATEWAYS (" +
+            "INSERT INTO gateways (" +
                     "GATEWAY_ID, GATEWAY_EUI, IP_ADDRESS, FREQUENCY_PLAN, CREATED_AT, " +
                     "BUILDING_NAME, FLOOR_NUMBER, LOCATION_DESCRIPTION, " +
                     "ANTENNA_LATITUDE, ANTENNA_LONGITUDE, ANTENNA_ALTITUDE) " +
@@ -83,7 +83,7 @@ public class GatewayDao {
      */
     public int updateGatewayInDatabase(Gateway gateway) {
         return jdbcTemplate.update(
-            "UPDATE GATEWAYS SET " +
+            "UPDATE gateways SET " +
                     "IP_ADDRESS = ?, FREQUENCY_PLAN = ?, BUILDING_NAME = ?, FLOOR_NUMBER = ?, " +
                     "LOCATION_DESCRIPTION = ?, ANTENNA_LATITUDE = ?, ANTENNA_LONGITUDE = ?, " +
                     "ANTENNA_ALTITUDE = ? " +
