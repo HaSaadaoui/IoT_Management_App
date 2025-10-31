@@ -35,7 +35,7 @@ CREATE TABLE sensors (
 -- Création de la table data_emsdesk
 CREATE TABLE data_emsdesk (
     id_sensor VARCHAR(50),
-    timestamp DATE,
+    timestamp TIMESTAMP(6),
     humidity INTEGER,
     occupancy INTEGER,
     temperature REAL,
@@ -46,7 +46,7 @@ CREATE TABLE data_emsdesk (
 -- Création de la table data_pirlight
 CREATE TABLE data_pirlight (
     id_sensor VARCHAR(50),
-    timestamp DATE,
+    timestamp TIMESTAMP(6),
     light_statut INT,
     pir_statut INT,
     PRIMARY KEY (id_sensor, timestamp),

@@ -1,20 +1,41 @@
 package com.amaris.sensorprocessor.service;
 
-import com.amaris.sensorprocessor.entity.Gateway;
-import com.amaris.sensorprocessor.entity.Sensor;
-import com.amaris.sensorprocessor.entity.TtnDeviceInfo;
-import com.amaris.sensorprocessor.repository.SensorDao;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.Local;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import com.amaris.sensorprocessor.entity.Gateway;
+import com.amaris.sensorprocessor.entity.MonitoringGatewayData;
+import com.amaris.sensorprocessor.entity.MonitoringSensorData;
+import com.amaris.sensorprocessor.entity.MonitoringSensorData.Payload;
+import com.amaris.sensorprocessor.entity.Sensor;
+import com.amaris.sensorprocessor.entity.SensorData;
+import com.amaris.sensorprocessor.entity.TtnDeviceInfo;
+import com.amaris.sensorprocessor.repository.SensorDao;
+import com.amaris.sensorprocessor.repository.SensorDataDao;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
 /**
  * Service pour synchroniser les sensors depuis TTN vers la DB locale
@@ -25,11 +46,12 @@ import java.util.stream.Collectors;
 public class SensorSyncService {
 
     private final SensorLorawanService lorawanService;
+    private final SensorService sensorService;
+    private final SensorDataDao sensorDataDao;
     private final SensorDao sensorDao;
     private final ObjectMapper objectMapper;
     private final GatewayService gatewayService;
-
-
+    private final WebClient webClient;
 
     /**
      * Récupère tous les devices d'une gateway depuis TTN et retourne la liste
@@ -93,7 +115,7 @@ public class SensorSyncService {
             }
 
             String deviceId = device.getIds().getDeviceId();
-            
+
             // Vérifier si le sensor existe déjà en DB
             Optional<Sensor> existing = sensorDao.findByIdOfSensor(deviceId);
             
@@ -141,9 +163,36 @@ public class SensorSyncService {
                     log.error("[SensorSync] Failed to create sensor {} from TTN: {}", 
                         deviceId, e.getMessage());
                 }
+                existing = Optional.of(newSensor);
             }
+            
         }
 
+        // Fetch latest data from monitoring API
+
+        String appId = "leva-rpi-mantu".equalsIgnoreCase(gatewayId) ? "lorawan-network-mantu" : gatewayId + "-appli";
+
+        String threadId = "gateway-" + gatewayId;
+
+        PayloadDecoder payloadDecoder = new PayloadDecoder();
+        
+        //TimeUnit.MILLISECONDS.sleep(10); // TODO: remove timer
+        sensorService.getMonitoringData(appId, "", threadId)
+        .map(
+            (String json) -> {
+                Instant currentInstant = Instant.now();
+                SensorData decodedSensorData = payloadDecoder.decodePayload(json, appId, currentInstant);
+                try {
+                    sensorDataDao.insertSensorData(decodedSensorData);
+                } catch (Exception e) {
+                    log.error("[SensorSync] Failed to create sensor data {} from TTN: {}", 
+                        decodedSensorData.getIdSensor(), e.getMessage());
+                }
+                return decodedSensorData;
+            }
+        )
+        .subscribe(); // TODO: implement subscribe
+    
         log.info("[SensorSync] Synchronized {} sensors from TTN for gateway {}", 
             syncCount, gatewayId);
         return syncCount;
@@ -216,5 +265,103 @@ public class SensorSyncService {
         private int dbSensorCount;
         private List<String> missingInDb;
         private List<String> missingInTtn;
+    }
+
+    // TODO: refactor in its own class file with normalizeToMonitoringSensorDataJson
+    
+    // --- Normalizer simple & lisible (profil = deviceType) ---
+    static class PayloadDecoder {
+        private final com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+
+        public SensorData decodePayload(String json, String appId, Instant currentInstant) {
+            try {
+                var root = om.readTree(json);
+                
+                JsonNode deviceId = root
+                    .path("result")
+                    .path("end_device_ids")
+                    .path("device_id");
+
+                JsonNode payloadOccupancy = root
+                    .path("result")
+                    .path("uplink_message")
+                    .path("decoded_payload")
+                    .path("occupancy");
+
+                JsonNode payloadHumidity = root
+                    .path("result")
+                    .path("uplink_message")
+                    .path("decoded_payload")
+                    .path("humidity");
+
+                JsonNode payloadTemperature = root
+                    .path("result")
+                    .path("uplink_message")
+                    .path("decoded_payload")
+                    .path("temperature");
+
+                JsonNode payloadTimestamp = root
+                    .path("result")
+                    .path("uplink_message")
+                    .path("rx_metadata")
+                    .path("0")
+                    .path("timestamp");
+
+                    
+
+                // TODO: implement light, motion, vdd
+
+
+
+                SensorData newSensorData = new SensorData();
+                newSensorData.setIdSensor(deviceId.asText());
+                newSensorData.setHumidity(payloadHumidity.asInt());
+                newSensorData.setTemperature(payloadTemperature.asDouble());
+                newSensorData.setOccupancy(payloadOccupancy.asInt());
+
+                LocalDateTime ldt = LocalDateTime.ofInstant(currentInstant, ZoneId.systemDefault());
+                ZonedDateTime zdt = ldt.atZone(ZoneId.systemDefault());
+                newSensorData.setTimestamp(ldt);
+
+
+                return newSensorData;
+            } catch (Exception e) {
+                log.error("[SensorSync] Error decoding payload: {}", e.getMessage(), e);
+                return null;
+            }
+        }
+
+        /* -------- Helpers -------- */
+        private static String textOr(com.fasterxml.jackson.databind.JsonNode n, String fallback) {
+            return (n != null && n.isTextual()) ? n.asText() : fallback;
+        }
+
+        private static Integer intOrNull(com.fasterxml.jackson.databind.JsonNode n) {
+            return (n != null && n.isNumber()) ? n.asInt() : null;
+        }
+
+        private static Double numOrNull(com.fasterxml.jackson.databind.JsonNode n) {
+            if (n == null) return null;
+            if (n.isNumber()) return n.asDouble();
+            if (n.isTextual()) try { return Double.parseDouble(n.asText()); } catch (Exception ignored) {}
+            return null;
+        }
+
+        private static Object firstAny(com.fasterxml.jackson.databind.JsonNode dp, String key) {
+            var n = dp.path(key);
+            if (n.isMissingNode()) return null;
+            if (n.isNumber())  return n.numberValue();
+            if (n.isBoolean()) return n.booleanValue();
+            if (n.isTextual()) return n.asText();
+            return n.toString();
+        }
+
+        private static Double firstNumber(com.fasterxml.jackson.databind.JsonNode dp, String key) {
+            var n = dp.path(key);
+            if (n.isMissingNode()) return null;
+            if (n.isNumber()) return n.asDouble();
+            if (n.isTextual()) try { return Double.parseDouble(n.asText()); } catch (Exception ignored) {}
+            return null;
+        }
     }
 }
