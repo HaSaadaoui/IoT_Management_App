@@ -7,6 +7,7 @@ import com.amaris.sensorprocessor.repository.SensorDao;
 import io.netty.channel.ChannelOption;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -31,7 +32,8 @@ public class SensorService {
 
     private final SensorDao sensorDao;                 // DAO JdbcTemplate
     private final SensorLorawanService lorawanService; // Intégration TTN
-    private final WebClient webClient;                 // Bean configuré (baseUrl = http://localhost:8081)
+    private final WebClient webClient;                 // Generic WebClient
+    private final WebClient webClientSse;              // SSE-specific WebClient
 
     @Value("${api.base.url}")
     private String baseUrl; // ex: http://localhost:8081
@@ -44,25 +46,7 @@ public class SensorService {
      * Retourne un Flux<String> (JSON brut) pour le pousser tel quel au navigateur via SseEmitter.
      */
     public Flux<String> getMonitoringData(String appId, String deviceId, String threadId) {
-        //this.stopMonitoring(deviceId, threadId);
-        ExchangeStrategies sseStrategies = ExchangeStrategies.builder()
-                .codecs(c -> c.defaultCodecs().maxInMemorySize(64 * 1024)) // petits chunks
-                .build();
-
-        // IMPORTANT: pas de responseTimeout -> Duration.ZERO = infini
-        HttpClient httpClient = HttpClient.create()
-                .keepAlive(true)
-                .responseTimeout(Duration.ZERO) // laisse couler le flux indéfiniment
-                .option(ChannelOption.SO_KEEPALIVE, true);
-
-        var customWebClient = WebClient.builder()
-                .baseUrl(baseUrl)
-                .defaultHeaders(h -> h.setAccept(List.of(MediaType.TEXT_EVENT_STREAM, MediaType.APPLICATION_JSON)))
-                .exchangeStrategies(sseStrategies)
-                .clientConnector(new ReactorClientHttpConnector(httpClient))
-                .build();
-
-        return customWebClient.get()
+        return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/api/monitoring/sensor/{appId}/{deviceId}")
                         .queryParam("threadId", threadId)
@@ -73,6 +57,20 @@ public class SensorService {
                 .doOnError(err -> log.error(
                         "[Sensor] SSE error appId={}, deviceId={}: {}",
                         appId, deviceId, err.getMessage(), err));
+    }
+
+    public Flux<String> getGatewayDevices(String appId) {
+        // Use the pre-configured SSE WebClient bean
+        return webClientSse.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/monitoring/sensor/{appId}")
+                        .build(appId))
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .retrieve()
+                .bodyToFlux(String.class)
+                .doOnError(err -> {
+                    log.error("[Sensor] SSE error appId={}: {}", appId, err.getMessage(), err);
+                });
     }
 
     /**

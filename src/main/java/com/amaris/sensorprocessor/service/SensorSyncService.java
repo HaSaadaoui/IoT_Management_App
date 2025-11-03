@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cglib.core.Local;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -29,7 +30,6 @@ import com.amaris.sensorprocessor.entity.TtnDeviceInfo;
 import com.amaris.sensorprocessor.repository.SensorDao;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
 import org.springframework.web.reactive.function.client.WebClient;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -51,7 +51,6 @@ public class SensorSyncService {
     private final SensorDao sensorDao;
     private final ObjectMapper objectMapper;
     private final GatewayService gatewayService;
-    private final WebClient webClient;
 
     /**
      * Récupère tous les devices d'une gateway depuis TTN et retourne la liste
@@ -168,19 +167,31 @@ public class SensorSyncService {
             
         }
 
+        syncSensorsData(gatewayId);
+    
+        log.info("[SensorSync] Synchronized {} sensors from TTN for gateway {}", syncCount, gatewayId);
+        return syncCount;
+    }
+
+    /**
+     * Récupère les données de monitoring d'une gateway et les enregistre dans la base de données.
+     * Cette méthode s'abonne à un flux SSE de données de monitoring, décode chaque payload
+     * et insère les données de capteur résultantes dans la base de données. La fonction est exécuté une seule fois.
+     *
+     * @param gatewayId L'identifiant de la gateway pour laquelle synchroniser les données.
+     */
+    private void syncSensorsData(String gatewayId) {
         // Fetch latest data from monitoring API
+        Instant currentInstant = Instant.now();
 
         String appId = "leva-rpi-mantu".equalsIgnoreCase(gatewayId) ? "lorawan-network-mantu" : gatewayId + "-appli";
-
-        String threadId = "gateway-" + gatewayId;
 
         PayloadDecoder payloadDecoder = new PayloadDecoder();
         
         //TimeUnit.MILLISECONDS.sleep(10); // TODO: remove timer
-        sensorService.getMonitoringData(appId, "", threadId)
+        sensorService.getGatewayDevices(appId)
         .map(
             (String json) -> {
-                Instant currentInstant = Instant.now();
                 SensorData decodedSensorData = payloadDecoder.decodePayload(json, appId, currentInstant);
                 try {
                     sensorDataDao.insertSensorData(decodedSensorData);
@@ -190,12 +201,7 @@ public class SensorSyncService {
                 }
                 return decodedSensorData;
             }
-        )
-        .subscribe(); // TODO: implement subscribe
-    
-        log.info("[SensorSync] Synchronized {} sensors from TTN for gateway {}", 
-            syncCount, gatewayId);
-        return syncCount;
+        ).subscribe();
     }
 
     /**
@@ -282,45 +288,40 @@ public class SensorSyncService {
                     .path("end_device_ids")
                     .path("device_id");
 
-                JsonNode payloadOccupancy = root
+                JsonNode occupancyNode = root
                     .path("result")
                     .path("uplink_message")
                     .path("decoded_payload")
                     .path("occupancy");
 
-                JsonNode payloadHumidity = root
+                JsonNode humidityNode = root
                     .path("result")
                     .path("uplink_message")
                     .path("decoded_payload")
                     .path("humidity");
 
-                JsonNode payloadTemperature = root
+                JsonNode temperatureNode = root
                     .path("result")
                     .path("uplink_message")
                     .path("decoded_payload")
                     .path("temperature");
+                
+                // JsonNode receivedAtNode = root
+                //     .path("result")
+                //     .path("received_at"); // Example: 2025-11-01T00:00:04.411180937Z
 
-                JsonNode payloadTimestamp = root
-                    .path("result")
-                    .path("uplink_message")
-                    .path("rx_metadata")
-                    .path("0")
-                    .path("timestamp");
+                // LocalDateTime ldt = convertTimestampToLocalDateTime(receivedAtNode.asText());
 
-                    
+                LocalDateTime ldt = convertTimestampToLocalDateTime(currentInstant.toString());
+
 
                 // TODO: implement light, motion, vdd
 
-
-
                 SensorData newSensorData = new SensorData();
                 newSensorData.setIdSensor(deviceId.asText());
-                newSensorData.setHumidity(payloadHumidity.asInt());
-                newSensorData.setTemperature(payloadTemperature.asDouble());
-                newSensorData.setOccupancy(payloadOccupancy.asInt());
-
-                LocalDateTime ldt = LocalDateTime.ofInstant(currentInstant, ZoneId.systemDefault());
-                ZonedDateTime zdt = ldt.atZone(ZoneId.systemDefault());
+                newSensorData.setHumidity(humidityNode.asInt());
+                newSensorData.setTemperature(temperatureNode.asDouble());
+                newSensorData.setOccupancy(occupancyNode.asInt());
                 newSensorData.setTimestamp(ldt);
 
 
@@ -332,6 +333,17 @@ public class SensorSyncService {
         }
 
         /* -------- Helpers -------- */
+        private static LocalDateTime convertTimestampToLocalDateTime(String receivedAtNode) {
+            if (receivedAtNode == null || receivedAtNode.isEmpty()) {
+                log.warn(receivedAtNode);
+                return LocalDateTime.now();
+            }
+            // Parse the ISO 8601 timestamp string
+            Instant instant = Instant.parse(receivedAtNode);
+            // Convert to LocalDateTime in the system's default time zone
+            return LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+        }
+        
         private static String textOr(com.fasterxml.jackson.databind.JsonNode n, String fallback) {
             return (n != null && n.isTextual()) ? n.asText() : fallback;
         }
