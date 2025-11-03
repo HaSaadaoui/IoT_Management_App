@@ -344,36 +344,5 @@ public class SensorSyncService {
             return LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
         }
         
-        private static String textOr(com.fasterxml.jackson.databind.JsonNode n, String fallback) {
-            return (n != null && n.isTextual()) ? n.asText() : fallback;
-        }
-
-        private static Integer intOrNull(com.fasterxml.jackson.databind.JsonNode n) {
-            return (n != null && n.isNumber()) ? n.asInt() : null;
-        }
-
-        private static Double numOrNull(com.fasterxml.jackson.databind.JsonNode n) {
-            if (n == null) return null;
-            if (n.isNumber()) return n.asDouble();
-            if (n.isTextual()) try { return Double.parseDouble(n.asText()); } catch (Exception ignored) {}
-            return null;
-        }
-
-        private static Object firstAny(com.fasterxml.jackson.databind.JsonNode dp, String key) {
-            var n = dp.path(key);
-            if (n.isMissingNode()) return null;
-            if (n.isNumber())  return n.numberValue();
-            if (n.isBoolean()) return n.booleanValue();
-            if (n.isTextual()) return n.asText();
-            return n.toString();
-        }
-
-        private static Double firstNumber(com.fasterxml.jackson.databind.JsonNode dp, String key) {
-            var n = dp.path(key);
-            if (n.isMissingNode()) return null;
-            if (n.isNumber()) return n.asDouble();
-            if (n.isTextual()) try { return Double.parseDouble(n.asText()); } catch (Exception ignored) {}
-            return null;
-        }
     }
 }
