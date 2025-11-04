@@ -10,7 +10,7 @@ COPY . .
 RUN chmod +x mvnw && ./mvnw clean install -DskipTests
 
 ### Copier le fichier JAR dans le conteneur ###
-COPY ./target/sensorprocessor-0.0.1-SNAPSHOT.jar /sensorprocessor.jar
+RUN cp ./target/sensorprocessor-0.0.1-SNAPSHOT.jar /sensorprocessor.jar
 
 ### Exposer le port de l'application (si nécessaire) ###
 EXPOSE 8080
