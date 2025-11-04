@@ -22,7 +22,7 @@ public class SensorDao {
     /** Récupère tous les capteurs. */
     public List<Sensor> findAllSensors() {
         return jdbcTemplate.query(
-                "SELECT * FROM SENSORS",
+                "SELECT * FROM sensors",
                 new BeanPropertyRowMapper<>(Sensor.class)
         );
     }
@@ -30,7 +30,7 @@ public class SensorDao {
     /** Récupère un capteur par son ID. */
     public Optional<Sensor> findByIdOfSensor(String id) {
         List<Sensor> sensors = jdbcTemplate.query(
-                "SELECT * FROM SENSORS WHERE ID_SENSOR = ?",
+                "SELECT * FROM sensors WHERE ID_SENSOR = ?",
                 new BeanPropertyRowMapper<>(Sensor.class),
                 id
         );
@@ -40,7 +40,7 @@ public class SensorDao {
     /** Supprime un capteur par son ID. */
     public int deleteByIdOfSensor(String id) {
         return jdbcTemplate.update(
-                "DELETE FROM SENSORS WHERE ID_SENSOR = ?",
+                "DELETE FROM sensors WHERE ID_SENSOR = ?",
                 id
         );
     }
@@ -48,10 +48,10 @@ public class SensorDao {
     /** Insère un capteur (colonnes de base uniquement). */
     public int insertSensor(Sensor sensor) {
         return jdbcTemplate.update(
-                "INSERT INTO SENSORS (" +
+                "INSERT INTO sensors (" +
                         "ID_SENSOR, DEVICE_TYPE, COMMISSIONING_DATE, STATUS, " +
-                        "BUILDING_NAME, FLOOR, LOCATION, ID_GATEWAY" +
-                        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        "BUILDING_NAME, FLOOR, LOCATION, ID_GATEWAY, DEV_EUI, FREQUENCY_PLAN" +
+                        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 sensor.getIdSensor(),
                 sensor.getDeviceType(),
                 sensor.getCommissioningDate(),
@@ -59,14 +59,16 @@ public class SensorDao {
                 sensor.getBuildingName(),
                 sensor.getFloor(),
                 sensor.getLocation(),
-                sensor.getIdGateway()
+                sensor.getIdGateway(),
+                sensor.getDevEui(),
+                sensor.getFrequencyPlan()
         );
     }
 
     /** Met à jour les colonnes de base (sauf la PK). */
     public int updateSensor(Sensor sensor) {
         return jdbcTemplate.update(
-                "UPDATE SENSORS SET " +
+                "UPDATE sensors SET " +
                         "DEVICE_TYPE = ?, " +
                         "COMMISSIONING_DATE = ?, " +
                         "STATUS = ?, " +
@@ -74,6 +76,8 @@ public class SensorDao {
                         "FLOOR = ?, " +
                         "LOCATION = ?, " +
                         "ID_GATEWAY = ? " +
+                        "DEV_EUI = ? " +
+                        "FREQUENCY_PLAN = ? " +
                         "WHERE ID_SENSOR = ?",
                 sensor.getDeviceType(),
                 sensor.getCommissioningDate(),
@@ -82,6 +86,8 @@ public class SensorDao {
                 sensor.getFloor(),
                 sensor.getLocation(),
                 sensor.getIdGateway(),
+                sensor.getDevEui(),
+                sensor.getFrequencyPlan(),
                 sensor.getIdSensor()
         );
     }

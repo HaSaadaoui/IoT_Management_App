@@ -38,6 +38,7 @@ public class SpringSecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/css/**", "/image/**", "/login", "/register").permitAll()
+                        // .requestMatchers("/api/auth/**", "/verify", "/resend-verification").permitAll() // TODO: vérifier
                         .requestMatchers("/api/sensors/**").permitAll() // API REST publique
                         .requestMatchers("/home").authenticated()
                         .anyRequest().hasAnyRole("ADMIN", "USER", "SUPERUSER")

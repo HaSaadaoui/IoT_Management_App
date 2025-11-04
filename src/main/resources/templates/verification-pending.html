@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Verify Your Email</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/verification-pending.css}"/>
+</head>
+<body>
+<div class="verification-container">
+    <div class="verification-box">
+        <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
+        
+        <div th:if="${success}" class="success-message">
+            <p th:text="${message}"></p>
+        </div>
+        
+        <div class="email-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+            </svg>
+        </div>
+        
+        <h2>Check Your Email!</h2>
+        
+        <p class="email-address" th:text="${email}">your-email@example.com</p>
+        
+        <div class="instructions">
+            <p>We've sent a verification link to your email address.</p>
+            <p>Please check your inbox and click the link to verify your account.</p>
+            <p><strong>Don't forget to check your spam folder!</strong></p>
+        </div>
+        
+        <div class="resend-section">
+            <p class="resend-text">Didn't receive the email?</p>
+            <form th:action="@{/resend-verification}" method="post" style="display: inline;">
+                <input type="hidden" name="email" th:value="${email}"/>
+                <button type="submit" class="resend-btn">Resend Verification Email</button>
+            </form>
+        </div>
+        
+        <div class="back-to-login">
+            <a th:href="@{/login}">← Back to Login</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

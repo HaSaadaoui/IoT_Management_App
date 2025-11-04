@@ -62,7 +62,7 @@
                 </div>
             </div>
             <div class="header-user">
-                <a th:href="@{/users/{username}(username=${loggedUsername})}" class="header-link">
+                <a th:if="${user}" th:href="@{/users/{username}(username=${loggedUsername})}" class="header-link">
                     <img th:src="${user.icon}"
                          class="header-avatar"
                          alt="User Avatar"

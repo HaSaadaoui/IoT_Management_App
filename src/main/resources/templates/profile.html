@@ -14,15 +14,26 @@
 
         <!-- Bloc avatar à gauche -->
         <div class="profile-left">
-            <img th:src="${user.icon}"
-                 alt="User Avatar" class="user-avatar">
-
-            <div class="avatar-edit-icon" th:if="${user.username == loggedUsername}" onclick="openAvatarModal()"
-                 title="Change avatar">
-                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px">
-                    <path fill="#662179"
-                          d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/>
+            <div class="avatar-wrapper">
+                <img th:src="${user.icon}"
+                     alt="User Avatar" class="user-avatar">
+                
+                <!-- Edit icon overlay on avatar -->
+                <div class="avatar-edit-overlay" th:if="${user.username == loggedUsername}" 
+                     onclick="openAvatarModal()" title="Change profile picture">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="28px" viewBox="0 -960 960 960" width="28px">
+                        <path fill="#ffffff"
+                              d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/>
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- Email below avatar -->
+            <div class="profile-email">
+                <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#662179">
+                    <path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm320-280L160-640v400h640v-400L480-440Zm0-80 320-200H160l320 200ZM160-640v-80 480-400Z"/>
                 </svg>
+                <span th:text="${user.email}"></span>
             </div>
         </div>
 
@@ -30,21 +41,49 @@
         <div class="profile-right">
             <h2>My Profile</h2>
 
-            <div class="profile-info">
-                <p><strong>Username:</strong> <span th:text="${user.username}"></span></p>
-                <p><strong>Firstname:</strong> <span th:text="${user.firstname}"></span></p>
-                <p><strong>Lastname:</strong> <span th:text="${user.lastname}"></span></p>
-                <p><strong>Email:</strong> <span th:text="${user.email}"></span></p>
-                <p><strong>Role:</strong> <span th:text="${user.role}"></span></p>
+            <!-- Personal Information Section -->
+            <div class="info-section">
+                <h3 class="section-title">Personal Information</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>First Name</label>
+                        <p th:text="${user.firstname}"></p>
+                    </div>
+                    <div class="info-item">
+                        <label>Last Name</label>
+                        <p th:text="${user.lastname}"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Information Section -->
+            <div class="info-section">
+                <h3 class="section-title">Account Information</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Username</label>
+                        <p th:text="${user.username}"></p>
+                    </div>
+                    <div class="info-item">
+                        <label>Role</label>
+                        <p class="role-badge" th:text="${user.role}"></p>
+                    </div>
+                </div>
             </div>
 
             <!-- Boutons actions -->
             <div class="profile-actions" th:if="${user.username == loggedUsername}">
-                <button onclick="openModal()" class="btn-change-password">
-                    Change password
+                <button onclick="openModal()" class="btn-action btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
+                        <path d="M240-80q-33 0-56.5-23.5T160-160v-400q0-33 23.5-56.5T240-640h40v-80q0-83 58.5-141.5T480-920q83 0 141.5 58.5T680-720v80h40q33 0 56.5 23.5T800-560v400q0 33-23.5 56.5T720-80H240Zm0-80h480v-400H240v400Zm240-120q33 0 56.5-23.5T560-360q0-33-23.5-56.5T480-440q-33 0-56.5 23.5T400-360q0 33 23.5 56.5T480-280ZM360-640h240v-80q0-50-35-85t-85-35q-50 0-85 35t-35 85v80ZM240-160v-400 400Z"/>
+                    </svg>
+                    <span>Change Password</span>
                 </button>
-                <button onclick="openEditModal()" class="btn-edit-user">
-                    Update my details
+                <button onclick="openEditModal()" class="btn-action btn-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
+                        <path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/>
+                    </svg>
+                    <span>Update Details</span>
                 </button>
             </div>
 
