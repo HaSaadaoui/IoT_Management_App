@@ -48,13 +48,6 @@ jobs:
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.AZURE_PRIVATE_KEY }}
-      
-      - name: Give execute permission to mvnw
-        run: chmod +x ./mvnw
-
-      - name: Build project
-        run: ./mvnw clean package -DskipTests
-
 
       - name: Build and tag Docker image
         run: |
