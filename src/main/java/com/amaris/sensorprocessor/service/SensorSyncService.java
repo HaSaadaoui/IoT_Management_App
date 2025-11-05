@@ -1,5 +1,7 @@
 package com.amaris.sensorprocessor.service;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -9,6 +11,10 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -51,6 +57,9 @@ public class SensorSyncService {
     private final SensorDao sensorDao;
     private final ObjectMapper objectMapper;
     private final GatewayService gatewayService;
+    
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2));
+    private final Map<String, ScheduledFuture<?>> scheduledSyncTasks = new ConcurrentHashMap<>();
 
     /**
      * Récupère tous les devices d'une gateway depuis TTN et retourne la liste
@@ -166,12 +175,17 @@ public class SensorSyncService {
             }
             
         }
-
-        syncSensorsData(gatewayId);
     
         log.info("[SensorSync] Synchronized {} sensors from TTN for gateway {}", syncCount, gatewayId);
         return syncCount;
     }
+
+    public int syncGateway(String gatewayId) {
+        int syncCount = syncSensorsFromTTN(gatewayId);
+        syncSensorsData(gatewayId);
+        return syncCount;
+    }
+
 
     /**
      * Récupère les données de monitoring d'une gateway et les enregistre dans la base de données.
@@ -180,7 +194,8 @@ public class SensorSyncService {
      *
      * @param gatewayId L'identifiant de la gateway pour laquelle synchroniser les données.
      */
-    private void syncSensorsData(String gatewayId) {
+    @Transactional
+    public void syncSensorsData(String gatewayId) {
         // Fetch latest data from monitoring API
         Instant currentInstant = Instant.now();
 
@@ -203,6 +218,77 @@ public class SensorSyncService {
                 return decodedSensorData;
             }
         ).subscribe();
+    }
+
+    /**
+     * Schedules a periodic background task to synchronize sensor data for a given gateway.
+     * The task will run every 15 minutes.
+     *
+     * @param gatewayId The ID of the gateway for which to schedule the periodic sync.
+     */
+    public void startPeriodicSync(String gatewayId) {
+        if (scheduledSyncTasks.containsKey(gatewayId)) {
+            log.info("[SensorSync] Periodic sync for gateway {} is already running.", gatewayId);
+            return;
+        }
+
+        Runnable syncTask = () -> {
+            log.info("[SensorSync] Starting periodic data sync for gateway: {}", gatewayId);
+            try {
+                syncSensorsData(gatewayId);
+                log.info("[SensorSync] Completed periodic data sync for gateway: {}", gatewayId);
+            } catch (Exception e) {
+                log.error("[SensorSync] Error during periodic data sync for gateway {}: {}", gatewayId, e.getMessage(), e);
+            }
+        };
+
+        // Schedule to run every 15 minutes
+        ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(syncTask, 0, 15, TimeUnit.MINUTES);
+        scheduledSyncTasks.put(gatewayId, future);
+        log.info("[SensorSync] Scheduled periodic data sync for gateway {} to run every 15 minutes.", gatewayId);
+    }
+
+    /**
+     * Stops the periodic background task for a given gateway.
+     *
+     * @param gatewayId The ID of the gateway for which to stop the periodic sync.
+     */
+    public void stopPeriodicSync(String gatewayId) {
+        ScheduledFuture<?> future = scheduledSyncTasks.remove(gatewayId);
+        if (future != null) {
+            future.cancel(true);
+            log.info("[SensorSync] Stopped periodic data sync for gateway: {}", gatewayId);
+        } else {
+            log.warn("[SensorSync] No periodic sync task found for gateway: {}", gatewayId);
+        }
+    }
+
+    /**
+     * Initializes periodic synchronization tasks for all active gateways on application startup.
+     */
+    @PostConstruct
+    public void initPeriodicSyncs() {
+        log.info("[SensorSync] Initializing periodic syncs for all active gateways...");
+        List<Gateway> allGateways = gatewayService.getAllGateways();
+        for (Gateway gateway : allGateways) {
+            startPeriodicSync(gateway.getGatewayId());
+        }
+        log.info("[SensorSync] Finished initializing periodic syncs. {} tasks scheduled.", allGateways.size());
+    }
+
+    @PreDestroy
+    public void shutdownScheduler() {
+        log.info("[SensorSync] Shutting down periodic sync scheduler...");
+        scheduler.shutdownNow();
+        try {
+            if (!scheduler.awaitTermination(30, TimeUnit.SECONDS)) {
+                log.warn("[SensorSync] Scheduler did not terminate in time.");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("[SensorSync] Scheduler shutdown interrupted.", e);
+        }
+        log.info("[SensorSync] Periodic sync scheduler shut down.");
     }
 
     /**

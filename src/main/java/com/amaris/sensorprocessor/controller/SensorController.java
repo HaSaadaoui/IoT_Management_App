@@ -268,7 +268,7 @@ public class SensorController {
     @ResponseBody
     public String syncSensorsFromTTN(@PathVariable String gatewayId) {
         try {
-            int syncCount = sensorSyncService.syncSensorsFromTTN(gatewayId);
+            int syncCount = sensorSyncService.syncGateway(gatewayId);
             return "{\"success\":true,\"syncCount\":" + syncCount + ",\"message\":\"Synchronized " + syncCount + " sensors from TTN\"}";
         } catch (Exception e) {
             log.error("[API] Error syncing sensors for gateway {}: {}", gatewayId, e.getMessage());
