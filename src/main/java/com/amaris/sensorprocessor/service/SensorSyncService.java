@@ -190,6 +190,7 @@ public class SensorSyncService {
         
         //TimeUnit.MILLISECONDS.sleep(10); // TODO: remove timer
         sensorService.getGatewayDevices(appId)
+        .takeWhile(json -> !"".equalsIgnoreCase(json))
         .map(
             (String json) -> {
                 SensorData decodedSensorData = payloadDecoder.decodePayload(json, appId, currentInstant);
@@ -306,13 +307,13 @@ public class SensorSyncService {
                     .path("decoded_payload")
                     .path("temperature");
                 
-                // JsonNode receivedAtNode = root
-                //     .path("result")
-                //     .path("received_at"); // Example: 2025-11-01T00:00:04.411180937Z
+                JsonNode receivedAtNode = root
+                    .path("result")
+                    .path("received_at"); // Example: 2025-11-01T00:00:04.411180937Z
 
-                // LocalDateTime ldt = convertTimestampToLocalDateTime(receivedAtNode.asText());
+                LocalDateTime ldt = convertTimestampToLocalDateTime(receivedAtNode.asText());
 
-                LocalDateTime ldt = convertTimestampToLocalDateTime(currentInstant.toString());
+                // LocalDateTime ldt = convertTimestampToLocalDateTime(currentInstant.toString());
 
 
                 // TODO: implement light, motion, vdd

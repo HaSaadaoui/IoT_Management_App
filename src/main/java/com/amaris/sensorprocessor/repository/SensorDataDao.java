@@ -32,7 +32,7 @@ public class SensorDataDao {
 
     public List<SensorData> findSensorDataBySensorId(String idSensor) {
         return jdbcTemplate.query(
-                "SELECT * FROM data_emsdesk WHERE id_sensor = ? ORDER BY timestamp DESC",
+                "SELECT (id_sensor, timestamp, humidity, temperature, occupancy) FROM data_emsdesk WHERE id_sensor = ? ORDER BY timestamp DESC",
                 new BeanPropertyRowMapper<>(SensorData.class),
                 idSensor
         );
@@ -40,7 +40,7 @@ public class SensorDataDao {
 
     public Optional<SensorData> findLatestSensorDataBySensorId(String idSensor) {
         List<SensorData> sensorDataList = jdbcTemplate.query(
-                "SELECT * FROM data_emsdesk WHERE id_sensor = ? ORDER BY timestamp DESC LIMIT 1",
+                "SELECT (id_sensor, timestamp, humidity, temperature, occupancy) FROM data_emsdesk WHERE id_sensor = ? ORDER BY timestamp DESC LIMIT 1",
                 new BeanPropertyRowMapper<>(SensorData.class),
                 idSensor
         );
