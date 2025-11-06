@@ -31,13 +31,15 @@ import com.amaris.sensorprocessor.entity.MonitoringGatewayData;
 import com.amaris.sensorprocessor.entity.MonitoringSensorData;
 import com.amaris.sensorprocessor.entity.MonitoringSensorData.Payload;
 import com.amaris.sensorprocessor.entity.Sensor;
-import com.amaris.sensorprocessor.entity.SensorData;
+import com.amaris.sensorprocessor.entity.EmsDeskData;
 import com.amaris.sensorprocessor.entity.TtnDeviceInfo;
 import com.amaris.sensorprocessor.repository.SensorDao;
-import com.amaris.sensorprocessor.repository.SensorDataDao;
+import com.amaris.sensorprocessor.repository.EmsDeskDataDao;
 import org.springframework.web.reactive.function.client.WebClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,7 +55,7 @@ public class SensorSyncService {
 
     private final SensorLorawanService lorawanService;
     private final SensorService sensorService;
-    private final SensorDataDao sensorDataDao;
+    private final EmsDeskDataDao sensorDataDao;
     private final SensorDao sensorDao;
     private final ObjectMapper objectMapper;
     private final GatewayService gatewayService;
@@ -208,7 +210,7 @@ public class SensorSyncService {
         .takeWhile(json -> !"".equalsIgnoreCase(json))
         .map(
             (String json) -> {
-                SensorData decodedSensorData = payloadDecoder.decodePayload(json, appId, currentInstant);
+                EmsDeskData decodedSensorData = payloadDecoder.decodePayload(json, appId, currentInstant);
                 try {
                     sensorDataDao.insertSensorData(decodedSensorData);
                 } catch (Exception e) {
@@ -366,53 +368,98 @@ public class SensorSyncService {
     static class PayloadDecoder {
         private final com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
 
-        public SensorData decodePayload(String json, String appId, Instant currentInstant) {
+        public EmsDeskData decodePayload(String json, String appId, Instant currentInstant) {
             try {
-                var root = om.readTree(json);
+                // var root = om.readTree(json);
+
+                /*
+                 * result.end_device_ids
+                 * result.end_device_ids.application_ids
+                 * result.end_device_ids.application_ids.application_id
+                 * result.end_device_ids.dev_addr
+                 * result.end_device_ids.dev_eui
+                 * result.end_device_ids.device_id
+                 * result.received_at
+                 * result.uplink_message
+                 * result.uplink_message.confirmed
+                 * result.uplink_message.consumed_airtime
+                 * result.uplink_message.decoded_payload
+                 * result.uplink_message.decoded_payload.LAI
+                 * result.uplink_message.decoded_payload.LAImax
+                 * result.uplink_message.decoded_payload.LAeq
+                 * result.uplink_message.decoded_payload.battery
+                 * result.uplink_message.decoded_payload.co2
+                 * result.uplink_message.decoded_payload.distance
+                 * result.uplink_message.decoded_payload.humidity
+                 * result.uplink_message.decoded_payload.illuminance
+                 * result.uplink_message.decoded_payload.light
+                 * result.uplink_message.decoded_payload.motion
+                 * result.uplink_message.decoded_payload.occupancy
+                 * result.uplink_message.decoded_payload.period_in
+                 * result.uplink_message.decoded_payload.period_out
+                 * result.uplink_message.decoded_payload.temperature
+                 * result.uplink_message.decoded_payload.vdd
+                 * result.uplink_message.f_cnt
+                 * result.uplink_message.f_port
+                 * result.uplink_message.frm_payload
+                 * result.uplink_message.last_battery_percentage
+                 * result.uplink_message.last_battery_percentage.f_cnt
+                 * result.uplink_message.last_battery_percentage.received_at
+                 * result.uplink_message.last_battery_percentage.value
+                 * result.uplink_message.network_ids
+                 * result.uplink_message.network_ids.cluster_address
+                 * result.uplink_message.network_ids.cluster_id
+                 * result.uplink_message.network_ids.net_id
+                 * result.uplink_message.network_ids.ns_id
+                 * result.uplink_message.network_ids.tenant_id
+                 * result.uplink_message.packet_error_rate
+                 * result.uplink_message.received_at
+                 * result.uplink_message.rx_metadata
+                 * result.uplink_message.rx_metadata.0
+                 * result.uplink_message.rx_metadata.0.channel_index
+                 * result.uplink_message.rx_metadata.0.channel_rssi
+                 * result.uplink_message.rx_metadata.0.frequency_offset
+                 * result.uplink_message.rx_metadata.0.gateway_ids
+                 * result.uplink_message.rx_metadata.0.gateway_ids.eui
+                 * result.uplink_message.rx_metadata.0.gateway_ids.gateway_id
+                 * result.uplink_message.rx_metadata.0.gps_time
+                 * result.uplink_message.rx_metadata.0.location
+                 * result.uplink_message.rx_metadata.0.location.altitude
+                 * result.uplink_message.rx_metadata.0.location.latitude
+                 * result.uplink_message.rx_metadata.0.location.longitude
+                 * result.uplink_message.rx_metadata.0.location.source
+                 * result.uplink_message.rx_metadata.0.received_at
+                 * result.uplink_message.rx_metadata.0.rssi
+                 * result.uplink_message.rx_metadata.0.snr
+                 * result.uplink_message.rx_metadata.0.time
+                 * result.uplink_message.rx_metadata.0.timestamp
+                 * result.uplink_message.settings
+                 * result.uplink_message.settings.data_rate
+                 * result.uplink_message.settings.data_rate.lora
+                 * result.uplink_message.settings.data_rate.lora.bandwidth
+                 * result.uplink_message.settings.data_rate.lora.coding_rate
+                 * result.uplink_message.settings.data_rate.lora.spreading_factor
+                 * result.uplink_message.settings.frequency
+                 * result.uplink_message.settings.time
+                 * result.uplink_message.settings.timestamp
+                 */
+
+                DocumentContext context = JsonPath.parse(json);
                 
-                JsonNode deviceId = root
-                    .path("result")
-                    .path("end_device_ids")
-                    .path("device_id");
+                String deviceId = context.read("$.result.end_device_ids.device_id");
+                Integer humidity = context.read("$.result.uplink_message.decoded_payload.humidity");
+                Double temperature = context.read("$.result.uplink_message.decoded_payload.temperature");
+                Integer occupancy = context.read("$.result.uplink_message.decoded_payload.occupancy");
+                String receivedAt = context.read("$.result.received_at");
 
-                JsonNode occupancyNode = root
-                    .path("result")
-                    .path("uplink_message")
-                    .path("decoded_payload")
-                    .path("occupancy");
-
-                JsonNode humidityNode = root
-                    .path("result")
-                    .path("uplink_message")
-                    .path("decoded_payload")
-                    .path("humidity");
-
-                JsonNode temperatureNode = root
-                    .path("result")
-                    .path("uplink_message")
-                    .path("decoded_payload")
-                    .path("temperature");
-                
-                JsonNode receivedAtNode = root
-                    .path("result")
-                    .path("received_at"); // Example: 2025-11-01T00:00:04.411180937Z
-
-                LocalDateTime ldt = convertTimestampToLocalDateTime(receivedAtNode.asText());
+                LocalDateTime ldt = convertTimestampToLocalDateTime(receivedAt);
 
                 // LocalDateTime ldt = convertTimestampToLocalDateTime(currentInstant.toString());
 
+                // TODO: implement light, motion, vdd, etc...
 
-                // TODO: implement light, motion, vdd
-
-                SensorData newSensorData = new SensorData();
-                newSensorData.setIdSensor(deviceId.asText());
-                newSensorData.setHumidity(humidityNode.asInt());
-                newSensorData.setTemperature(temperatureNode.asDouble());
-                newSensorData.setOccupancy(occupancyNode.asInt());
-                newSensorData.setTimestamp(ldt);
-
-
-                return newSensorData;
+                EmsDeskData data = new EmsDeskData(deviceId, ldt, humidity, temperature, occupancy);
+                return data;
             } catch (Exception e) {
                 log.error("[SensorSync] Error decoding payload: {}", e.getMessage(), e);
                 return null;
