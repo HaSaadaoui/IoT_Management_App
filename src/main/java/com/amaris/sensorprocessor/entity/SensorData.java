@@ -1,4 +1,4 @@
-package com.amaris.sensorprocessor.entity.SensorData;
+package com.amaris.sensorprocessor.entity;
 
 
 import lombok.AllArgsConstructor;
@@ -11,8 +11,6 @@ import java.time.LocalDateTime;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
-
-import com.amaris.sensorprocessor.entity.Sensor;
 
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -27,7 +25,7 @@ public class SensorData {
         this.idSensor = idSensor;
         this.createdAt = createdAt;
         this.asString = asString;
-        this.valueType = EnumValueType.valueOf(valueType);
+        this.valueType = PayloadValueType.valueOf(valueType);
     }
 
     @Id
@@ -43,7 +41,7 @@ public class SensorData {
 
     @Column("value_type")
     @Enumerated(EnumType.STRING)
-    private EnumValueType valueType;
+    private PayloadValueType valueType;
 
     @ManyToOne
     private Sensor sensor;

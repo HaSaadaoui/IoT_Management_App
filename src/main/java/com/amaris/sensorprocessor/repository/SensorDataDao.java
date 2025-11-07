@@ -1,16 +1,11 @@
 package com.amaris.sensorprocessor.repository;
 
-import com.amaris.sensorprocessor.entity.SensorData.SensorData;
-
 import lombok.AllArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Optional;
+import com.amaris.sensorprocessor.entity.SensorData;
 
 @AllArgsConstructor
 @Repository

@@ -68,3 +68,6 @@ verify_migration.bat
 run_migration.ps1
 DEPLOYMENT.md
 
+json
+.env
+secret.config.yml
