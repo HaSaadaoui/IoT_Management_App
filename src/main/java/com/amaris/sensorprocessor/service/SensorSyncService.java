@@ -20,33 +20,19 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static java.util.Map.entry;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.cglib.core.Local;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.amaris.sensorprocessor.entity.Gateway;
-import com.amaris.sensorprocessor.entity.MonitoringGatewayData;
-import com.amaris.sensorprocessor.entity.MonitoringSensorData;
-import com.amaris.sensorprocessor.entity.MonitoringSensorData.Payload;
-import com.amaris.sensorprocessor.entity.SensorData.EmsDeskData;
 import com.amaris.sensorprocessor.entity.SensorData.EnumValueType;
-import com.amaris.sensorprocessor.entity.SensorData.PirLightData;
 import com.amaris.sensorprocessor.entity.SensorData.SensorData;
 import com.amaris.sensorprocessor.entity.Sensor;
 import com.amaris.sensorprocessor.entity.TtnDeviceInfo;
 import com.amaris.sensorprocessor.repository.SensorDao;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
-import com.amaris.sensorprocessor.repository.SensorData.EmsDeskDataDao;
-import com.amaris.sensorprocessor.repository.SensorData.PirLightDataDao;
 
-import org.springframework.web.reactive.function.client.WebClient;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
@@ -55,7 +41,6 @@ import com.jayway.jsonpath.Option;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
 
 /**
  * Service pour synchroniser les sensors depuis TTN vers la DB locale
@@ -512,17 +497,18 @@ public class SensorSyncService {
             sensorDataMap.put(EnumValueType.TIMESTAMP, context.read("$.result.uplink_message.rx_metadata.[0].timestamp"));
             sensorDataMap.put(EnumValueType.VDD, context.read("$.result.uplink_message.decoded_payload.vdd"));
             
-
             for (Map.Entry<EnumValueType, Object> entry : sensorDataMap.entrySet()) {
                 EnumValueType key = entry.getKey();
                 Object value = entry.getValue();
 
                 if (value != null) {
-                    sensorDataDao.insertSensorData(new SensorData(deviceId, receivedAt, value.toString(), key.toString()));
+                    SensorData sd = new SensorData(deviceId, receivedAt, value.toString(), key.toString());
+                    sensorDataDao.insertSensorData(sd);
                 } else {
                     log.debug("[SensorSync] Skipping null value for key {} for device {}", key, deviceId);
                 }
             }
+
         } catch (Exception e) {
             if (e instanceof DuplicateKeyException) {
                 log.warn("[SensorSync] Duplicate key exception, likely a retry or already processed data for device {}", deviceId);

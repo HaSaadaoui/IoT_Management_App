@@ -41,14 +41,11 @@ public class SensorData {
     @Column("string_value")
     private String asString;
 
-    // @Column("numeric_value")
-    // private Number asNumber;
-
     @Column("value_type")
     @Enumerated(EnumType.STRING)
     private EnumValueType valueType;
 
-    // @ManyToOne
-    // private Sensor sensor;
+    @ManyToOne
+    private Sensor sensor;
 
 }
