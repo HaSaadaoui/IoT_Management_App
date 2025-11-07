@@ -32,43 +32,6 @@ CREATE TABLE sensors (
         NULL
 );
 
--- Création de la table data_emsdesk
-CREATE TABLE data_emsdesk (
-    id_sensor VARCHAR(50),
-    timestamp TIMESTAMP(6),
-    humidity INTEGER,
-    occupancy INTEGER,
-    temperature REAL,
-    PRIMARY KEY (id_sensor, timestamp),
-    FOREIGN KEY (id_sensor) REFERENCES Sensors(id_sensor) ON DELETE CASCADE
-);
-
--- Création de la table data_pirlight
-CREATE TABLE data_pirlight (
-    id_sensor VARCHAR(50),
-    timestamp TIMESTAMP(6),
-    light_statut INT,
-    pir_statut INT,
-    PRIMARY KEY (id_sensor, timestamp),
-    FOREIGN KEY (id_sensor) REFERENCES Sensors(id_sensor) ON DELETE CASCADE
-);
-
--- Création de la table Signal
-CREATE TABLE `signal` (
-    id_sensor VARCHAR(50),
-    timestamp DATE,
-    value_battery FLOAT,
-    rssi INT,
-    fport INT,
-    fcntup INT,
-    snr FLOAT,
-    fcntdown INT,
-    sf INT,
-    frequency_offset FLOAT,
-    PRIMARY KEY (id_sensor, timestamp),
-    FOREIGN KEY (id_sensor) REFERENCES Sensors(id_sensor) ON DELETE CASCADE
-);
-
 -- Création de la table Users
 CREATE TABLE users (
     username VARCHAR(50) PRIMARY KEY NOT NULL,
@@ -94,3 +57,73 @@ CREATE TABLE pending_users (
     resend_count INTEGER DEFAULT 0,
     last_resend_at TEXT
 );
+
+-- Création de la table des valeurs senseurs
+CREATE TABLE sensor_data (
+    id_sensor VARCHAR(50),
+    created_at TIMESTAMP(6),
+    string_value TEXT,
+    value_type ENUM(
+        'UNKNOWN',
+        'APPLICATION_ID',
+        'BATTERY',
+        'CHANNEL_INDEX',
+        'CHANNEL_RSSI',
+        'CO2',
+        'CONFIRMED',
+        'CONSUMED_AIRTIME',
+        'DEV_ADDR',
+        'DEV_EUI',
+        'DEVICE_ID',
+        'DISTANCE',
+        'F_CNT',
+        'F_PORT',
+        'FREQUENCY_OFFSET',
+        'FRM_PAYLOAD',
+        'GATEWAY_EUI',
+        'GATEWAY_ID',
+        'GPS_TIME',
+        'HUMIDITY',
+        'ILLUMINANCE',
+        'LAEQ',
+        'LAI',
+        'LAIMAX',
+        'LAST_BATTERY_PERCENTAGE_F_CNT',
+        'LAST_BATTERY_PERCENTAGE_RECEIVED_AT',
+        'LAST_BATTERY_PERCENTAGE_VALUE',
+        'LAST_BATTERY_PERCENTAGE',
+        'LIGHT',
+        'LOCATION_ALTITUDE',
+        'LOCATION_LATITUDE',
+        'LOCATION_LONGITUDE',
+        'LOCATION_SOURCE',
+        'LORA_BANDWIDTH',
+        'LORA_CODING_RATE',
+        'LORA_SPREADING_FACTOR',
+        'MOTION',
+        'NETWORK_CLUSTER_ADDRESS',
+        'NETWORK_CLUSTER_ID',
+        'NETWORK_NET_ID',
+        'NETWORK_NS_ID',
+        'NETWORK_TENANT_ID',
+        'OCCUPANCY',
+        'PACKET_ERROR_RATE',
+        'PERIOD_IN',
+        'PERIOD_OUT',
+        'RECEIVED_AT',
+        'RSSI',
+        'SETTINGS_FREQUENCY',
+        'SETTINGS_TIME',
+        'SETTINGS_TIMESTAMP',
+        'SNR',
+        'TEMPERATURE',
+        'TIME',
+        'TIMESTAMP',
+        'VDD'
+    ) NOT NULL,
+    PRIMARY KEY (id_sensor, created_at, value_type),
+    FOREIGN KEY (id_sensor) REFERENCES Sensors(id_sensor) ON DELETE CASCADE
+);
+
+
+
