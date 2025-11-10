@@ -37,6 +37,7 @@ build/
 application.yml
 *.db
 Userssaifeddine.mosrati_mDesktopmydatabase.db
+uploads/
 
 ### Logs ###
 logs/*.gz
@@ -66,4 +67,7 @@ execute_migration.bat
 verify_migration.bat
 run_migration.ps1
 DEPLOYMENT.md
-README.md
+
+json
+.env
+secret.config.yml

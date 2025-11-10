@@ -3,15 +3,24 @@ package com.amaris.sensorprocessor.service;
 import com.amaris.sensorprocessor.entity.LorawanSensorData;
 import com.amaris.sensorprocessor.entity.Sensor;
 import com.amaris.sensorprocessor.repository.SensorDao;
+
+import io.netty.channel.ChannelOption;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
+import reactor.netty.http.client.HttpClient;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +33,10 @@ public class SensorService {
     private final SensorDao sensorDao;                 // DAO JdbcTemplate
     private final SensorLorawanService lorawanService; // Intégration TTN
     private final WebClient webClient;                 // Bean configuré (baseUrl = http://localhost:8081)
+    private final WebClient webClientSse;              // SSE-specific WebClient
+
+    @Value("${api.base.url}")
+    private String baseUrl; // ex: http://localhost:8081
 
     /* ===================== MONITORING (SSE) ===================== */
 
@@ -43,8 +56,21 @@ public class SensorService {
                 .bodyToFlux(String.class)
                 .doOnError(err -> log.error(
                         "[Sensor] SSE error appId={}, deviceId={}: {}",
-                        appId, deviceId, err.getMessage(), err
-                ));
+                        appId, deviceId, err.getMessage(), err));
+    }
+
+    public Flux<String> getGatewayDevices(String appId) {
+        // Use the pre-configured SSE WebClient bean
+        return webClientSse.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/monitoring/sensor/{appId}")
+                        .build(appId))
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .retrieve()
+                .bodyToFlux(String.class)
+                .doOnError(err -> {
+                    log.error("[Sensor] SSE error appId={}: {}", appId, err.getMessage(), err);
+                });
     }
 
     /**

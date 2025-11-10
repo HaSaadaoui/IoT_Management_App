@@ -1,20 +1,46 @@
 package com.amaris.sensorprocessor.service;
 
-import com.amaris.sensorprocessor.entity.Gateway;
-import com.amaris.sensorprocessor.entity.Sensor;
-import com.amaris.sensorprocessor.entity.TtnDeviceInfo;
-import com.amaris.sensorprocessor.repository.SensorDao;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import java.io.IOException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.Optional;
+import java.util.EnumMap;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import com.amaris.sensorprocessor.entity.Gateway;
+import com.amaris.sensorprocessor.entity.PayloadValueType;
+import com.amaris.sensorprocessor.entity.Sensor;
+import com.amaris.sensorprocessor.entity.SensorData;
+import com.amaris.sensorprocessor.entity.TtnDeviceInfo;
+import com.amaris.sensorprocessor.repository.SensorDao;
+import com.amaris.sensorprocessor.repository.SensorDataDao;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.Option;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Service pour synchroniser les sensors depuis TTN vers la DB locale
@@ -25,11 +51,30 @@ import java.util.stream.Collectors;
 public class SensorSyncService {
 
     private final SensorLorawanService lorawanService;
+    private final SensorService sensorService;
+
+    private final SensorDataDao sensorDataDao;
+
     private final SensorDao sensorDao;
+
     private final ObjectMapper objectMapper;
     private final GatewayService gatewayService;
+    
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2));
+    private final Map<String, ScheduledFuture<?>> scheduledSyncTasks = new ConcurrentHashMap<>();
 
+    private static final Map<PayloadValueType, String> JSON_PATH_MAP;
 
+    static {
+        JSON_PATH_MAP = Arrays.stream(PayloadValueType.values())
+            .filter(e -> e.getJsonPath() != null)
+            .collect(Collectors.toMap(
+                e -> e,
+                PayloadValueType::getJsonPath,
+                (v1, v2) -> v2, // In case of duplicates, keep the last one
+                () -> new EnumMap<>(PayloadValueType.class)
+            ));
+    }
 
     /**
      * Récupère tous les devices d'une gateway depuis TTN et retourne la liste
@@ -93,7 +138,7 @@ public class SensorSyncService {
             }
 
             String deviceId = device.getIds().getDeviceId();
-            
+
             // Vérifier si le sensor existe déjà en DB
             Optional<Sensor> existing = sensorDao.findByIdOfSensor(deviceId);
             
@@ -141,12 +186,118 @@ public class SensorSyncService {
                     log.error("[SensorSync] Failed to create sensor {} from TTN: {}", 
                         deviceId, e.getMessage());
                 }
+                existing = Optional.of(newSensor);
             }
+            
+        }
+    
+        log.info("[SensorSync] Synchronized {} sensors from TTN for gateway {}", syncCount, gatewayId);
+        return syncCount;
+    }
+
+    public int syncGateway(String gatewayId) {
+        int syncCount = syncSensorsFromTTN(gatewayId);
+        syncSensorsData(gatewayId);
+        return syncCount;
+    }
+
+
+    /**
+     * Récupère les données de monitoring d'une gateway et les enregistre dans la base de données.
+     * Cette méthode s'abonne à un flux SSE de données de monitoring, décode chaque payload
+     * et insère les données de capteur résultantes dans la base de données. La fonction est exécuté une seule fois.
+     *
+     * @param gatewayId L'identifiant de la gateway pour laquelle synchroniser les données.
+     */
+    @Transactional
+    public void syncSensorsData(String gatewayId) {
+        // Fetch latest data from monitoring API
+        String appId = "leva-rpi-mantu".equalsIgnoreCase(gatewayId) ? "lorawan-network-mantu" : gatewayId + "-appli";
+
+        sensorService.getGatewayDevices(appId)
+        .takeWhile(json -> !"".equalsIgnoreCase(json))
+        .map(
+            (String json) -> {
+                try {
+                    storeDataFromPayload(json, appId);
+                    return true;
+                } catch (Exception e) {
+                    log.error("[SensorSync] Error inserting sensor data: {}", e.getMessage(), e);
+                }
+                return false;
+            }
+        ).subscribe();
+    }
+
+    /**
+     * Schedules a periodic background task to synchronize sensor data for a given gateway.
+     * The task will run every 15 minutes.
+     *
+     * @param gatewayId The ID of the gateway for which to schedule the periodic sync.
+     */
+    public void startPeriodicSync(String gatewayId) {
+        if (scheduledSyncTasks.containsKey(gatewayId)) {
+            log.info("[SensorSync] Periodic sync for gateway {} is already running.", gatewayId);
+            return;
         }
 
-        log.info("[SensorSync] Synchronized {} sensors from TTN for gateway {}", 
-            syncCount, gatewayId);
-        return syncCount;
+        Runnable syncTask = () -> {
+            log.info("[SensorSync] Starting periodic data sync for gateway: {}", gatewayId);
+            try {
+                syncSensorsData(gatewayId);
+                log.info("[SensorSync] Completed periodic data sync for gateway: {}", gatewayId);
+            } catch (Exception e) {
+                log.error("[SensorSync] Error during periodic data sync for gateway {}: {}", gatewayId, e.getMessage(), e);
+            }
+        };
+
+        // Schedule to run every 15 minutes
+        ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(syncTask, 0, 15, TimeUnit.MINUTES);
+        scheduledSyncTasks.put(gatewayId, future);
+        log.info("[SensorSync] Scheduled periodic data sync for gateway {} to run every 15 minutes.", gatewayId);
+    }
+
+    /**
+     * Stops the periodic background task for a given gateway.
+     *
+     * @param gatewayId The ID of the gateway for which to stop the periodic sync.
+     */
+    public void stopPeriodicSync(String gatewayId) {
+        ScheduledFuture<?> future = scheduledSyncTasks.remove(gatewayId);
+        if (future != null) {
+            future.cancel(true);
+            log.info("[SensorSync] Stopped periodic data sync for gateway: {}", gatewayId);
+        } else {
+            log.warn("[SensorSync] No periodic sync task found for gateway: {}", gatewayId);
+        }
+    }
+
+    /**
+     * Initializes periodic synchronization tasks for all active gateways on application startup.
+     */
+    @PostConstruct
+    public void initPeriodicSyncs() {
+        log.info("[SensorSync] Initializing periodic syncs for all active gateways...");
+        List<Gateway> allGateways = gatewayService.getAllGateways();
+        for (Gateway gateway : allGateways) {
+            startPeriodicSync(gateway.getGatewayId());
+        }
+        log.info("[SensorSync] Finished initializing periodic syncs. {} tasks scheduled.", allGateways.size());
+    }
+
+    @PreDestroy
+    public void shutdownScheduler() {
+        log.info("[SensorSync] Shutting down periodic sync scheduler...");
+        scheduler.shutdownNow();
+        try {
+            if (!scheduler.awaitTermination(30, TimeUnit.SECONDS)) {
+                log.warn("[SensorSync] Scheduler did not terminate in time.");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("[SensorSync] Scheduler shutdown interrupted.", e);
+        }
+        log.info("[SensorSync] Periodic sync scheduler shut down.");
     }
 
     /**
@@ -217,4 +368,54 @@ public class SensorSyncService {
         private List<String> missingInDb;
         private List<String> missingInTtn;
     }
+
+    // TODO: refactor in its own class file with normalizeToMonitoringSensorDataJson
+    public void storeDataFromPayload(String json, String appId) {
+       
+
+        Configuration conf = Configuration
+            .defaultConfiguration()
+            .addOptions(Option.DEFAULT_PATH_LEAF_TO_NULL)
+            .addOptions(Option.SUPPRESS_EXCEPTIONS);
+
+        DocumentContext context = JsonPath.using(conf).parse(json);
+        String receivedAtString = context.read("$.result.received_at");
+        LocalDateTime receivedAt = convertTimestampToLocalDateTime(receivedAtString);
+        String deviceId = context.read("$.result.end_device_ids.device_id");
+        try {
+
+            JSON_PATH_MAP.forEach((key, jsonPath) -> {
+                // The enum itself holds the path
+                Object value = context.read(key.getJsonPath());
+
+                if (value != null) {
+                    SensorData sd = new SensorData(deviceId, receivedAt, value.toString(), key.toString());
+                    sensorDataDao.insertSensorData(sd);
+                } else {
+                    log.debug("[SensorSync] Skipping null value for key {} for device {}", key, deviceId);
+                }
+            });
+
+        } catch (Exception e) {
+            if (e instanceof DuplicateKeyException) {
+                log.warn("[SensorSync] Duplicate key exception, likely a retry or already processed data for device {}", deviceId);
+            } else {
+                log.error("[SensorSync] Error decoding payload: {}", e.getMessage(), e);
+            }
+        }
+    }
+
+    /* -------- Helpers -------- */
+    private static LocalDateTime convertTimestampToLocalDateTime(String receivedAtNode) {
+        if (receivedAtNode == null || receivedAtNode.isEmpty()) {
+            log.warn(receivedAtNode);
+            return LocalDateTime.now();
+        }
+        // Parse the ISO 8601 timestamp string
+        Instant instant = Instant.parse(receivedAtNode);
+        // Convert to LocalDateTime in the system's default time zone
+        return LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+    }
+        
+
 }
