@@ -212,7 +212,16 @@ public class SensorSyncService {
     @Transactional
     public void syncSensorsData(String gatewayId) {
         // Fetch latest data from monitoring API
-        String appId = "leva-rpi-mantu".equalsIgnoreCase(gatewayId) ? "lorawan-network-mantu" : gatewayId + "-appli";
+        final String appId;
+        if (gatewayId.toLowerCase().contains("leva-rpi")) {
+            appId = "lorawan-network-mantu";
+        } else if (gatewayId.contains("lil")) {
+            appId = "lil-rpi-mantu-appli";
+        } else if (gatewayId.contains("rpi")) {
+            appId = "rpi-mantu-appli";
+        } else {
+            appId = gatewayId + "-mantu-appli";
+        }
 
         sensorService.getGatewayDevices(appId)
         .takeWhile(json -> !"".equalsIgnoreCase(json))
