@@ -22,8 +22,6 @@ public enum PayloadValueType {
     F_PORT("$.result.uplink_message.f_port"),
     FREQUENCY_OFFSET("$.result.uplink_message.rx_metadata.[0].frequency_offset"),
     FRM_PAYLOAD("$.result.uplink_message.frm_payload"),
-    GATEWAY_EUI(null), // Not in the original map
-    GATEWAY_ID(null), // Not in the original map
     GPS_TIME("$.result.uplink_message.rx_metadata.[0].gps_time"),
     HUMIDITY("$.result.uplink_message.decoded_payload.humidity"),
     ILLUMINANCE("$.result.uplink_message.decoded_payload.illuminance"),
