@@ -1,4 +1,4 @@
-FROM amazoncorretto:17-alpine
+FROM amazoncorretto:21-alpine
 
 ### Définir le répertoire de travail ###
 WORKDIR /opt/app
