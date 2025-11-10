@@ -60,9 +60,10 @@ CREATE TABLE pending_users (
 
 -- Création de la table des valeurs senseurs
 CREATE TABLE sensor_data (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     id_sensor VARCHAR(50),
-    created_at TIMESTAMP(6),
-    string_value TEXT,
+    received_at TIMESTAMP(6),
+    string_value TEXT, -- TODO: ajouter une limit
     value_type ENUM(
         'UNKNOWN',
         'APPLICATION_ID',
@@ -121,8 +122,8 @@ CREATE TABLE sensor_data (
         'TIMESTAMP',
         'VDD'
     ) NOT NULL,
-    PRIMARY KEY (id_sensor, created_at, value_type),
-    FOREIGN KEY (id_sensor) REFERENCES Sensors(id_sensor) ON DELETE CASCADE
+    FOREIGN KEY (id_sensor) REFERENCES Sensors(id_sensor) ON DELETE CASCADE,
+    CONSTRAINT unique_id_received_at UNIQUE (id_sensor, received_at, value_type)
 );
 
 
