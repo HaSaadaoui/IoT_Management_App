@@ -32,7 +32,7 @@ public class SensorService {
 
     private final SensorDao sensorDao;                 // DAO JdbcTemplate
     private final SensorLorawanService lorawanService; // Intégration TTN
-    private final WebClient webClient;                 // Generic WebClient
+    private final WebClient webClient;                 // Bean configuré (baseUrl = http://localhost:8081)
     private final WebClient webClientSse;              // SSE-specific WebClient
 
     @Value("${api.base.url}")

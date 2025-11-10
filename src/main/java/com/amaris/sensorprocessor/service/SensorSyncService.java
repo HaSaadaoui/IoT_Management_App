@@ -371,77 +371,7 @@ public class SensorSyncService {
 
     // TODO: refactor in its own class file with normalizeToMonitoringSensorDataJson
     public void storeDataFromPayload(String json, String appId) {
-        /*
-            * result.end_device_ids
-            * result.end_device_ids.application_ids
-            * result.end_device_ids.application_ids.application_id
-            * result.end_device_ids.dev_addr
-            * result.end_device_ids.dev_eui
-            * result.end_device_ids.device_id
-            * result.received_at
-            * result.uplink_message
-            * result.uplink_message.confirmed
-            * result.uplink_message.consumed_airtime
-            * result.uplink_message.decoded_payload
-            * result.uplink_message.decoded_payload.LAI
-            * result.uplink_message.decoded_payload.LAImax
-            * result.uplink_message.decoded_payload.LAeq
-            * result.uplink_message.decoded_payload.battery
-            * result.uplink_message.decoded_payload.co2
-            * result.uplink_message.decoded_payload.distance
-            * result.uplink_message.decoded_payload.humidity
-            * result.uplink_message.decoded_payload.illuminance
-            * result.uplink_message.decoded_payload.light
-            * result.uplink_message.decoded_payload.motion
-            * result.uplink_message.decoded_payload.occupancy
-            * result.uplink_message.decoded_payload.period_in
-            * result.uplink_message.decoded_payload.period_out
-            * result.uplink_message.decoded_payload.temperature
-            * result.uplink_message.decoded_payload.vdd
-            * result.uplink_message.f_cnt
-            * result.uplink_message.f_port
-            * result.uplink_message.frm_payload
-            * result.uplink_message.last_battery_percentage
-            * result.uplink_message.last_battery_percentage.f_cnt
-            * result.uplink_message.last_battery_percentage.received_at
-            * result.uplink_message.last_battery_percentage.value
-            * result.uplink_message.network_ids
-            * result.uplink_message.network_ids.cluster_address
-            * result.uplink_message.network_ids.cluster_id
-            * result.uplink_message.network_ids.net_id
-            * result.uplink_message.network_ids.ns_id
-            * result.uplink_message.network_ids.tenant_id
-            * result.uplink_message.packet_error_rate
-            * result.uplink_message.received_at
-            * result.uplink_message.rx_metadata
-            * result.uplink_message.rx_metadata.[0]
-            * result.uplink_message.rx_metadata.[0].channel_index
-            * result.uplink_message.rx_metadata.[0].channel_rssi
-            * result.uplink_message.rx_metadata.[0].frequency_offset
-            * result.uplink_message.rx_metadata.[0].gateway_ids
-            * result.uplink_message.rx_metadata.[0].gateway_ids.eui
-            * result.uplink_message.rx_metadata.[0].gateway_ids.gateway_id
-            * result.uplink_message.rx_metadata.[0].gps_time
-            * result.uplink_message.rx_metadata.[0].location
-            * result.uplink_message.rx_metadata.[0].location.altitude
-            * result.uplink_message.rx_metadata.[0].location.latitude
-            * result.uplink_message.rx_metadata.[0].location.longitude
-            * result.uplink_message.rx_metadata.[0].location.source
-            * result.uplink_message.rx_metadata.[0].received_at
-            * result.uplink_message.rx_metadata.[0].rssi
-            * result.uplink_message.rx_metadata.[0].snr
-            * result.uplink_message.rx_metadata.[0].time
-            * result.uplink_message.rx_metadata.[0].timestamp
-            * result.uplink_message.settings
-            * result.uplink_message.settings.data_rate
-            * result.uplink_message.settings.data_rate.lora
-            * result.uplink_message.settings.data_rate.lora.bandwidth
-            * result.uplink_message.settings.data_rate.lora.coding_rate
-            * result.uplink_message.settings.data_rate.lora.spreading_factor
-            * result.uplink_message.settings.frequency
-            * result.uplink_message.settings.time
-            * result.uplink_message.settings.timestamp
-            */
+       
 
         Configuration conf = Configuration
             .defaultConfiguration()
