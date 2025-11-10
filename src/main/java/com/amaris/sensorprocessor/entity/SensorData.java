@@ -15,6 +15,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.ManyToOne;
 
+/**
+ * TODO: Add error types and exception handling
+ */
 @Data
 @Table("sensor_data")
 public class SensorData {
@@ -47,7 +50,42 @@ public class SensorData {
     @Enumerated(EnumType.STRING)
     private PayloadValueType valueType;
 
-    @ManyToOne
-    private Sensor sensor;
+    // Getters for the string value
+    
+    public String getValueAsString() {
+        return asString;
+    }
 
+    public Integer getValueAsInt() {
+        try {
+            return Integer.parseInt(asString);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    public Double getValueAsDouble() {
+        try {
+            return Double.parseDouble(asString);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+    
+    public Boolean getValueAsBoolean() {
+        try {
+            return "true".equalsIgnoreCase(asString) || "1".equals(asString);
+        } catch (Exception e) { // Catch all exceptions for robustness
+            return null;
+        }
+    }
+
+    public Float getValueAsFloat() {
+        try {
+            return Float.parseFloat(asString);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+    
 }

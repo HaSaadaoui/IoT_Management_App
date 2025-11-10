@@ -1,8 +1,11 @@
 package com.amaris.sensorprocessor.service;
 
 import com.amaris.sensorprocessor.entity.LorawanSensorData;
+import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.Sensor;
+import com.amaris.sensorprocessor.entity.SensorData;
 import com.amaris.sensorprocessor.repository.SensorDao;
+import com.amaris.sensorprocessor.repository.SensorDataDao;
 
 import io.netty.channel.ChannelOption;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +25,7 @@ import reactor.netty.http.client.HttpClient;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,6 +35,7 @@ import java.util.Optional;
 public class SensorService {
 
     private final SensorDao sensorDao;                 // DAO JdbcTemplate
+    private final SensorDataDao sensorDataDao;            // Sensor Data DAO JdbcTemplate
     private final SensorLorawanService lorawanService; // Intégration TTN
     private final WebClient webClient;                 // Bean configuré (baseUrl = http://localhost:8081)
     private final WebClient webClientSse;              // SSE-specific WebClient
@@ -110,6 +115,24 @@ public class SensorService {
         return findByIdSensor(idSensor)
                 .orElseThrow(() -> new IllegalArgumentException("Sensor not found: " + idSensor));
     }
+
+    /**
+     * Retrieves the latest sensor data for a given sensor ID.
+     * Example usage:
+     * <pre>{@code
+     *   Double temperature = sensorService
+     *     .getSensorData(sensor.getIdSensor())
+     *     .get(PayloadValueType.TEMPERATURE)
+     *     .getValueAsDouble();
+     * }</pre>
+     * 
+     * TODO: test
+     * 
+     */
+    public HashMap<PayloadValueType, SensorData> getSensorData(String idSensor) {
+        return sensorDataDao.getSensorData(idSensor);
+    }
+
 
     /* ===================== CREATE ===================== */
 

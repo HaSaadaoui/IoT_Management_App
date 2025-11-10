@@ -3,6 +3,15 @@ package com.amaris.sensorprocessor.entity;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * 
+ * Les enums dans cette liste doivent concorder avec les enums
+ * de MySQL sensor_data.value_type.
+ * 
+ * jsonPath permet au décodeur de payload d'associer dynamiquement le type de
+ * donnée avec le chemin JSON lors de l'ingestion depuis TTN
+ *
+ */
 @Getter
 @RequiredArgsConstructor
 public enum PayloadValueType {
@@ -133,5 +142,9 @@ public enum PayloadValueType {
     TIMESTAMP("$.result.uplink_message.rx_metadata.[0].timestamp"),
     VDD("$.result.uplink_message.decoded_payload.vdd");
 
+    /**
+     * jsonPath permet au décodeur de payload d'associer dynamiquement le type de
+     * donnée avec le chemin JSON lors de l'ingestion depuis TTN
+     */
     private final String jsonPath;
 }

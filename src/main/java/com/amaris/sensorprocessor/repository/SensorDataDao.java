@@ -2,6 +2,7 @@ package com.amaris.sensorprocessor.repository;
 
 import lombok.AllArgsConstructor;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.SensorData;
+import com.amaris.sensorprocessor.entity.MonitoringSensorData.Payload;
 
 @AllArgsConstructor
 @Repository
@@ -26,7 +28,7 @@ public class SensorDataDao {
         );
     }
 
-    public List<SensorData> getSensorData(String idSensor) {
+    public HashMap<PayloadValueType, SensorData> getSensorData(String idSensor) {
         int limit = 100;
         String query = "SELECT * FROM sensor_data WHERE id_sensor = ? ORDER BY received_at DESC, value_type, id_sensor LIMIT ?";
         var result = jdbcTemplate.query(query, (rs, rowNum) -> {
@@ -38,7 +40,12 @@ public class SensorDataDao {
             );
             return sensorData;
         }, idSensor, limit);
-        return result;
+        
+        HashMap<PayloadValueType, SensorData> datas = new HashMap<>();
+        for (SensorData sensorData : result) {
+            datas.put(sensorData.getValueType(), sensorData);
+        }
+        return datas;
     }
 
 }
