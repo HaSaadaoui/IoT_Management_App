@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Optional;
 import java.util.EnumMap;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +43,7 @@ import com.jayway.jsonpath.Option;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import static com.amaris.sensorprocessor.constant.Constants.SENSOR_DATA_SYNC_PERIOD_MINUTE;
 /**
  * Service pour synchroniser les sensors depuis TTN vers la DB locale
  */
@@ -62,6 +64,7 @@ public class SensorSyncService {
     
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2));
     private final Map<String, ScheduledFuture<?>> scheduledSyncTasks = new ConcurrentHashMap<>();
+    private final Map<String, AtomicBoolean> initialSyncCompleted = new ConcurrentHashMap<>();
 
     private static final Map<PayloadValueType, String> JSON_PATH_MAP;
 
@@ -223,7 +226,7 @@ public class SensorSyncService {
             appId = gatewayId + "-mantu-appli";
         }
 
-        sensorService.getGatewayDevices(appId)
+        sensorService.getGatewayDevices(appId, null)
         .takeWhile(json -> !"".equalsIgnoreCase(json))
         .map(
             (String json) -> {
@@ -239,8 +242,43 @@ public class SensorSyncService {
     }
 
     /**
+     * Récupère les données de monitoring d'une gateway et les enregistre dans la base de données.
+     * Cette méthode s'abonne à un flux SSE de données de monitoring, décode chaque payload
+     * et insère les données de capteur résultantes dans la base de données.
+     *
+     * @param gatewayId L'identifiant de la gateway pour laquelle synchroniser les données.
+     * @param after     Timestamp pour ne récupérer que les données après ce moment.
+     */
+    @Transactional
+    public void syncSensorsData(String gatewayId, Instant after) {
+        // Fetch latest data from monitoring API
+        final String appId;
+        if (gatewayId.toLowerCase().contains("leva-rpi")) {
+            appId = "lorawan-network-mantu";
+        } else if (gatewayId.contains("lil")) {
+            appId = "lil-rpi-mantu-appli";
+        } else if (gatewayId.contains("rpi")) {
+            appId = "rpi-mantu-appli";
+        } else {
+            appId = gatewayId + "-mantu-appli";
+        }
+
+        sensorService.getGatewayDevices(appId, after)
+            .takeWhile(json -> !"".equalsIgnoreCase(json))
+            .map(json -> {
+                try {
+                    storeDataFromPayload(json, appId);
+                    return true;
+                } catch (Exception e) {
+                    log.error("[SensorSync] Error inserting sensor data: {}", e.getMessage(), e);
+                    return false;
+                }
+            }).subscribe();
+    }
+
+    /**
      * Schedules a periodic background task to synchronize sensor data for a given gateway.
-     * The task will run every 15 minutes.
+     * The task will run every SENSOR_DATA_SYNC_PERIOD minutes.
      *
      * @param gatewayId The ID of the gateway for which to schedule the periodic sync.
      */
@@ -249,21 +287,31 @@ public class SensorSyncService {
             log.info("[SensorSync] Periodic sync for gateway {} is already running.", gatewayId);
             return;
         }
+        initialSyncCompleted.putIfAbsent(gatewayId, new AtomicBoolean(false));
 
         Runnable syncTask = () -> {
             log.info("[SensorSync] Starting periodic data sync for gateway: {}", gatewayId);
             try {
-                syncSensorsData(gatewayId);
+                boolean isInitialSync = !initialSyncCompleted.get(gatewayId).getAndSet(true);
+                if (isInitialSync) {
+                    log.info("[SensorSync] Performing initial full data sync for gateway: {}", gatewayId);
+                    syncSensorsData(gatewayId);
+                }
+                // else {
+                //     Instant after = Instant.now().minus(15, TimeUnit.MINUTES.toChronoUnit());
+                //     log.info("[SensorSync] Performing periodic data sync for gateway: {} with after={}", gatewayId, after);
+                //     syncSensorsData(gatewayId, after);
+                // }
                 log.info("[SensorSync] Completed periodic data sync for gateway: {}", gatewayId);
             } catch (Exception e) {
                 log.error("[SensorSync] Error during periodic data sync for gateway {}: {}", gatewayId, e.getMessage(), e);
             }
         };
 
-        // Schedule to run every 15 minutes
-        ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(syncTask, 0, 15, TimeUnit.MINUTES);
+        // Schedule to run every SENSOR_DATA_SYNC_PERIOD minutes
+        ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(syncTask, 0, SENSOR_DATA_SYNC_PERIOD_MINUTE, TimeUnit.MINUTES);
         scheduledSyncTasks.put(gatewayId, future);
-        log.info("[SensorSync] Scheduled periodic data sync for gateway {} to run every 15 minutes.", gatewayId);
+        log.info("[SensorSync] Scheduled periodic data sync for gateway {} to run every {} minutes.", SENSOR_DATA_SYNC_PERIOD_MINUTE, gatewayId);
     }
 
     /**
@@ -274,6 +322,7 @@ public class SensorSyncService {
     public void stopPeriodicSync(String gatewayId) {
         ScheduledFuture<?> future = scheduledSyncTasks.remove(gatewayId);
         if (future != null) {
+            initialSyncCompleted.remove(gatewayId);
             future.cancel(true);
             log.info("[SensorSync] Stopped periodic data sync for gateway: {}", gatewayId);
         } else {
@@ -407,7 +456,8 @@ public class SensorSyncService {
 
         } catch (Exception e) {
             if (e instanceof DuplicateKeyException) {
-                log.warn("[SensorSync] Duplicate key exception, likely a retry or already processed data for device {}", deviceId);
+                // We can skip and ignore already existing items
+                // log.warn("[SensorSync] Duplicate key exception, likely a retry or already processed data for device {}", deviceId);
             } else {
                 log.error("[SensorSync] Error decoding payload: {}", e.getMessage(), e);
             }

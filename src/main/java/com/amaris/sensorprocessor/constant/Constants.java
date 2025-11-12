@@ -75,4 +75,10 @@ public final class Constants {
     public static final String BINDING_SENSOR_ADD  = "org.springframework.validation.BindingResult.sensorAdd";
     public static final String BINDING_SENSOR_EDIT = "org.springframework.validation.BindingResult.sensorEdit";
 
+    /* Paramètres de la synchronisation des métriques capteurs (SensorData)
+     * TTN stocke en ligne des données jusqu'à plusieurs jours. Elles peuvent être récupéré sans
+     * avoir à les "attraper" au moment meme où elles sont générées.
+     */
+    public static final Integer SENSOR_DATA_SYNC_PERIOD_MINUTE = 15; // Executer la synchro toutes les 15 minutes
+
 }

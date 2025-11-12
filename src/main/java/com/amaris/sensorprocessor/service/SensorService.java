@@ -10,25 +10,21 @@ import com.amaris.sensorprocessor.repository.SensorDataDao;
 import io.netty.channel.ChannelOption;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
-import reactor.netty.http.client.HttpClient;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -65,12 +61,21 @@ public class SensorService {
                         appId, deviceId, err.getMessage(), err));
     }
 
-    public Flux<String> getGatewayDevices(String appId) {
+    public Flux<String> getGatewayDevices(String appId, Instant after) {
         // Use the pre-configured SSE WebClient bean
         return webClientSse.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/api/monitoring/sensor/{appId}")
-                        .build(appId))
+                .uri(uriBuilder -> {
+                    uriBuilder.path("/api/monitoring/sensor/{appId}");
+                    if (after != null) {
+                        uriBuilder.queryParam("after", after.toString());
+                    }
+                    // else {
+                    //     // Now minus 7 days
+                    //     Instant i = Instant.now().minus(7, TimeUnit.DAYS.toChronoUnit());
+                    //     uriBuilder.queryParam("after", i.toString());
+                    // }
+                    return uriBuilder.build(appId);
+                })
                 .accept(MediaType.TEXT_EVENT_STREAM)
                 .retrieve()
                 .bodyToFlux(String.class)

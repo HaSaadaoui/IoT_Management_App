@@ -59,7 +59,7 @@ public class WebClientConfig {
     @Bean
     public WebClient webClientSse() {
         ExchangeStrategies sseStrategies = ExchangeStrategies.builder()
-                .codecs(c -> c.defaultCodecs().maxInMemorySize(64 * 1024)) // petits chunks
+                .codecs(c -> c.defaultCodecs().maxInMemorySize(512 * 1024)) // petits chunks, TODO: check que ca ne plante pas
                 .build();
 
         // IMPORTANT: pas de responseTimeout -> Duration.ZERO = infini
