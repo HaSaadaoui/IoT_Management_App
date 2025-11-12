@@ -538,6 +538,8 @@ document.getElementById('hist-load')?.addEventListener('click', async () => {
 
 // ===== Energy Consumption Functions =====
 function updateEnergyConsumption(data) {
+  console.log('Energy data received:', data);
+  
   // Groupes de canaux selon votre spécification
   const channelGroups = {
     'red-outlets': { channels: [0, 1, 2], name: '🔴 Prises rouges', color: '#ef4444' },
@@ -556,7 +558,12 @@ function updateEnergyConsumption(data) {
       const value = channelData.value || 0;
       const unit = channelData.unit || 'Wh';
       
-      totalConsumption += value;
+      // Ajouter au total seulement si c'est un nombre valide
+      if (typeof value === 'number' && value > 0) {
+        totalConsumption += value;
+      }
+      
+      console.log(`Canal ${channel}: ${value} ${unit}`);
       
       // Mise à jour de l'affichage du canal individuel
       const channelEl = el(`#energy-channel-${channel}`);
@@ -579,11 +586,14 @@ function updateEnergyConsumption(data) {
   Object.entries(channelGroups).forEach(([groupId, group]) => {
     let groupTotal = 0;
     group.channels.forEach(channel => {
-      const channelData = data[channel];
-      if (channelData && channelData.value) {
+      // Accès aux données avec la clé string du canal
+      const channelData = data[channel.toString()];
+      if (channelData && typeof channelData.value === 'number') {
         groupTotal += channelData.value;
       }
     });
+
+    console.log(`Groupe ${groupId} (${group.name}): ${groupTotal} Wh`);
 
     const groupEl = el(`#energy-group-${groupId}`);
     if (groupEl) {
@@ -603,6 +613,8 @@ function updateEnergyConsumption(data) {
   });
 
   // Mise à jour du total général
+  console.log(`Total consommation: ${totalConsumption} Wh`);
+  
   const totalEl = el('#energy-total');
   if (totalEl) {
     const totalKWh = (totalConsumption / 1000).toFixed(2);
