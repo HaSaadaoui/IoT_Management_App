@@ -94,9 +94,87 @@ body, html {
     font-size: 14px;
     cursor: pointer;
     text-decoration: none;
-    transition: background-color 0.2s ease-in-out;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-back:hover {
     background-color: #50185c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 33, 121, 0.3);
+}
+
+.btn-back:active {
+    transform: translateY(0);
+}
+
+/* ===== ENHANCED INTERACTIVITY ===== */
+.register-box {
+    transition: all 0.3s ease;
+}
+
+.register-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.form-register input {
+    transition: all 0.3s ease;
+}
+
+.form-register input:hover {
+    border-color: #8b2fa3;
+    transform: translateY(-1px);
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+    .register-container {
+        margin-top: 30px;
+        padding: 0 15px;
+    }
+    
+    .register-box {
+        width: 90%;
+        max-width: 400px;
+        padding: 18px;
+    }
+    
+    .mantu-logo {
+        width: 250px;
+    }
+    
+    .register-header {
+        padding: 8px 12px;
+    }
+    
+    .btn-back {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 480px) {
+    .register-container {
+        margin-top: 20px;
+        padding: 0 10px;
+    }
+    
+    .register-box {
+        width: 95%;
+        padding: 15px;
+    }
+    
+    .mantu-logo {
+        width: 200px;
+    }
+    
+    .form-register input {
+        padding: 10px;
+        font-size: 14px;
+    }
+    
+    .submit-btn {
+        padding: 10px;
+        font-size: 14px;
+    }
 }

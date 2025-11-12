@@ -179,3 +179,74 @@ th, td {
   -webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M2 20h2v-6H2v6Zm4 0h2V8H6v12Zm4 0h2V4h-2v16Zm4 0h2v-9h-2v9Zm4 0h2V2h-2v18Z"/></svg>');
           mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M2 20h2v-6H2v6Zm4 0h2V8H6v12Zm4 0h2V4h-2v16Zm4 0h2v-9h-2v9Zm4 0h2V2h-2v18Z"/></svg>');
 }
+
+/* ===== ENHANCED INTERACTIVITY ===== */
+.card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.badge {
+    transition: all 0.3s ease;
+}
+
+.badge:hover {
+    transform: scale(1.05);
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+    main {
+        margin: 1rem auto;
+        padding: 0.5rem;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .chart-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .card {
+        padding: 0.75rem;
+    }
+    
+    .card h4 {
+        font-size: 0.85rem;
+    }
+    
+    .card p {
+        font-size: 1rem;
+    }
+    
+    canvas {
+        height: 220px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-title-gateway {
+        font-size: 16px;
+    }
+    
+    .badge {
+        font-size: 0.8rem;
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .badge img {
+        height: 1.4em;
+    }
+    
+    th, td {
+        padding: 0.4rem 0.5rem;
+        font-size: 0.8rem;
+    }
+}

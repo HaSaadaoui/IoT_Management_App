@@ -279,3 +279,42 @@ form button:hover, .formButton:hover {
   cursor: not-allowed;
 }
 
+/* Sensor Count Display Responsive */
+#sensorCountContainer {
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .filters-container {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+  
+  #sensorCountContainer {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-top: 10px;
+    justify-content: center;
+    font-size: 14px;
+    padding: 6px 12px !important;
+  }
+  
+  #sensorCountContainer img {
+    width: 16px !important;
+    height: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  #sensorCountContainer {
+    font-size: 12px;
+    padding: 4px 8px !important;
+  }
+  
+  #sensorCountContainer img {
+    width: 14px !important;
+    height: 14px !important;
+    margin-right: 6px !important;
+  }
+}
+

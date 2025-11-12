@@ -101,3 +101,81 @@
 .show {
     display: block;
 }
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+    .app-header {
+        padding: 8px 12px;
+        flex-wrap: wrap;
+    }
+    
+    .header-right {
+        gap: 8px;
+    }
+    
+    .header-user {
+        gap: 6px;
+        font-size: 14px;
+    }
+    
+    .header-avatar {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .dropdown-content {
+        min-width: 160px;
+        right: -10px;
+    }
+    
+    .dropdown-content a,
+    .dropdown-content .logout-link {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 480px) {
+    .app-header {
+        padding: 6px 8px;
+    }
+    
+    .header-user {
+        font-size: 12px;
+    }
+    
+    .header-avatar {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .dropdown-content {
+        min-width: 140px;
+        font-size: 12px;
+    }
+}
+
+/* ===== ENHANCED INTERACTIVITY ===== */
+.header-avatar:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(102, 33, 121, 0.3);
+}
+
+.dropdown-content {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(-10px);
+    opacity: 0;
+}
+
+.dropdown-content.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.menu-btn {
+    transition: all 0.3s ease;
+}
+
+.menu-btn:active {
+    transform: scale(0.95);
+}

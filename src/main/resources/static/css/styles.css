@@ -6,6 +6,7 @@
 
 body {
     font-family: var(--font-family-sans-serif);
+    margin-bottom: 60px;
 }
 
 .login-container {
@@ -77,11 +78,20 @@ body {
 /*** *** home.html *** ***/
 .main-container {
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
     align-items: center;
-    padding-top: 120px;
-    padding-bottom: 120px;
     padding-right: 70px; 
+    height: calc(100vh - 120px); /* Account for header + footer */
+    overflow: hidden; /* Prevent scroll */
+}
+
+/* Responsive design for mobile */
+@media (max-width: 768px) {
+    .main-container {
+        justify-content: center;
+        padding-right: 20px;
+        padding-left: 20px;
+    }
 }
 
 .dashboard-container {
@@ -91,6 +101,15 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     color: #662179;
     padding: 50px 65px;
+    margin-right: 50px;
+}
+
+/* Mobile responsive for dashboard */
+@media (max-width: 768px) {
+    .dashboard-container {
+        margin-right: 0;
+        padding: 30px 40px;
+    }
 }
 
 .dashboard-container h1 {
@@ -149,5 +168,34 @@ body {
 .dashboard-card:hover {
     background-color: rgba(102, 33, 121, 0.2);
     transform: translateY(-5px);
+}
+
+/* Footer styling */
+.footer-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background-color: white;
+    border-top: 2px solid #662179;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Body margin adjusted for footer */
+
+/* Responsive footer */
+@media (max-width: 768px) {
+    .footer-bar {
+        height: 50px;
+    }
+    
+    body {
+        margin-bottom: 50px;
+    }
 }
 
