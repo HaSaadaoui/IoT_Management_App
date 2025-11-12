@@ -500,8 +500,14 @@ public class SensorController {
                         payload.setHumidity(firstNumber(dp, "humidity"));
                         payload.setVdd(firstNumber(dp, "vdd"));
                     }
-
-
+                    case "ENERGY", "CONSO" -> {
+                        // Pour les capteurs d'énergie, on passe tout le decoded_payload
+                        // car il contient la structure complexe avec les canaux
+                        if (dp != null && dp.isObject()) {
+                            payload.setEnergyData(om.convertValue(dp, java.util.Map.class));
+                        }
+                        payload.setBattery(firstNumber(dp, "battery"));
+                    }
 
                     default -> payload.setBattery(firstNumber(dp, "battery"));
                 }

@@ -129,6 +129,9 @@ public class MonitoringSensorData {
 
         @JsonProperty("period_out")
         private Double periodOut;
+
+        @JsonProperty("energy_data")
+        private Map<String, Object> energyData;
     }
 
     @Data

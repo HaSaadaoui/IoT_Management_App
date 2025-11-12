@@ -347,8 +347,12 @@ function startSSE() {
         case 'ENERGY':
         case 'CONSO':
           // Gestion des données de consommation énergétique
-          if (p && typeof p === 'object') {
-            updateEnergyConsumption(p);
+          console.log('ENERGY/CONSO case triggered with payload:', p);
+          if (p && p.energy_data && typeof p.energy_data === 'object') {
+            console.log('Energy data found:', p.energy_data);
+            updateEnergyConsumption(p.energy_data);
+          } else {
+            console.log('No energy_data in payload:', p);
           }
           break;
         default:
