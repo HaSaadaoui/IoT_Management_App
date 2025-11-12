@@ -713,27 +713,27 @@ function initRealtimeCharts() {
   const chartConfigs = {
     'CO2': {
       main: { label: 'CO₂ (ppm)', color: '#ef4444', title: '🌬️ CO₂ Level' },
-      secondary: { label: 'Battery (%)', color: '#10b981', title: '🔋 Battery Level' }
+      secondary: { label: 'Température (°C)', color: '#f59e0b', title: '🌡️ Temperature' }
     },
     'TEMPEX': {
       main: { label: 'Température (°C)', color: '#f59e0b', title: '🌡️ Temperature' },
-      secondary: { label: 'Battery (%)', color: '#10b981', title: '🔋 Battery Level' }
+      secondary: { label: 'Humidité (%)', color: '#3b82f6', title: '💧 Humidity' }
     },
     'DESK': {
       main: { label: 'Occupancy', color: '#10b981', title: '👤 Desk Occupancy' },
-      secondary: { label: 'Battery (%)', color: '#10b981', title: '🔋 Battery Level' }
+      secondary: { label: 'Température (°C)', color: '#f59e0b', title: '🌡️ Temperature' }
     },
     'SON': {
       main: { label: 'LAeq (dB)', color: '#8b5cf6', title: '🔊 Sound Level' },
-      secondary: { label: 'Battery (%)', color: '#10b981', title: '🔋 Battery Level' }
+      secondary: { label: 'LAI (dB)', color: '#ec4899', title: '📢 Sound Impact' }
     },
     'ENERGY': {
       main: { label: 'Consommation (kWh)', color: '#f59e0b', title: '⚡ Energy Consumption' },
-      secondary: { label: 'Battery (%)', color: '#10b981', title: '🔋 Battery Level' }
+      secondary: { label: 'Puissance (W)', color: '#ef4444', title: '🔌 Power Usage' }
     },
     'CONSO': {
       main: { label: 'Consommation (kWh)', color: '#f59e0b', title: '⚡ Energy Consumption' },
-      secondary: { label: 'Battery (%)', color: '#10b981', title: '🔋 Battery Level' }
+      secondary: { label: 'Puissance (W)', color: '#ef4444', title: '🔌 Power Usage' }
     }
   };
 
@@ -919,19 +919,19 @@ function updateRealtimeCharts(data) {
   switch (devType) {
     case 'CO2':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['co2 (ppm)']);
-      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, getBatteryLevel(data));
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['temperature (°C)']);
       break;
     case 'TEMPEX':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['temperature (°C)']);
-      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, getBatteryLevel(data));
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['humidity (%)']);
       break;
     case 'DESK':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data.presence ? 1 : 0);
-      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, getBatteryLevel(data));
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['temperature (°C)']);
       break;
     case 'SON':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['LAeq (dB)']);
-      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, getBatteryLevel(data));
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['LAI (dB)']);
       break;
     case 'ENERGY':
     case 'CONSO':
@@ -945,8 +945,15 @@ function updateRealtimeCharts(data) {
         });
       }
       updateChart(realtimeCharts.main, chartData.main, timestamp, totalWh / 1000); // kWh
-      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, getBatteryLevel(data));
+      // Pour Power Usage, calculer la puissance instantanée (approximation)
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, totalWh * 0.1); // W approximation
       break;
+  }
+  
+  // Mise à jour de la courbe Battery Level pour tous les capteurs
+  const batteryLevel = getBatteryLevel(data);
+  if (batteryLevel > 0) {
+    updateBatteryChart(batteryLevel);
   }
 }
 
