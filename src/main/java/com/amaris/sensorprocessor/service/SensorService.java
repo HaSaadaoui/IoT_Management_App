@@ -25,6 +25,7 @@ import reactor.netty.http.client.HttpClient;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -118,21 +119,36 @@ public class SensorService {
 
     /**
      * Retrieves the latest sensor data for a given sensor ID.
-     * Example usage:
-     * <pre>{@code
-     *   Double temperature = sensorService
-     *     .getSensorData(sensor.getIdSensor())
-     *     .get(PayloadValueType.TEMPERATURE)
-     *     .getValueAsDouble();
-     * }</pre>
      * 
-     * TODO: test
+     * <pre>
+     * {@code
+     * // Example usage
+     * var data = sensorService.getSensorData("co2-03-03");
+     * Double temp = data.get(PayloadValueType.TEMPERATURE).getValueAsDouble();
+     * }
+     * </pre>
      * 
+     * @param idSensor ID of thte TTN Sensor. Available in the TTN gateway admin console.
+     * 
+     * @return A hash map 
      */
     public HashMap<PayloadValueType, SensorData> getSensorData(String idSensor) {
-        return sensorDataDao.getSensorData(idSensor);
+        return sensorDataDao.findLatestDataBySensor(idSensor);
     }
 
+    /**
+     * Start and End dates are inclusive
+     * 
+     * @param idSensor
+     * @param startDate
+     * @param endDate
+     * @param valueType
+     * @return
+     */
+    public List<SensorData> findSensorDataByPeriod(String idSensor, Date startDate, Date endDate, PayloadValueType valueType) {
+        // TODO implement error and validation
+        return sensorDataDao.findSensorDataByPeriod(idSensor, startDate, endDate, valueType);
+    }
 
     /* ===================== CREATE ===================== */
 
