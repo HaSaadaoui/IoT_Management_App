@@ -1630,3 +1630,11 @@ canvas {
         padding: 0.25rem 0.5rem;
     }
 }
+
+/* Smaller badges for SF/BW/Freq display */
+#s-sf, #s-bw, #s-cr, #s-freq {
+    font-size: 0.75rem !important;
+    padding: 0.2rem 0.4rem !important;
+    min-width: auto !important;
+    white-space: nowrap;
+}

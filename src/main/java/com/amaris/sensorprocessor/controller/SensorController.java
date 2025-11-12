@@ -504,7 +504,9 @@ public class SensorController {
                         // Pour les capteurs d'énergie, on passe tout le decoded_payload
                         // car il contient la structure complexe avec les canaux
                         if (dp != null && dp.isObject()) {
-                            payload.setEnergyData(om.convertValue(dp, java.util.Map.class));
+                            @SuppressWarnings("unchecked")
+                            java.util.Map<String, Object> energyMap = om.convertValue(dp, java.util.Map.class);
+                            payload.setEnergyData(energyMap);
                         }
                         payload.setBattery(firstNumber(dp, "battery"));
                     }

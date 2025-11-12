@@ -213,12 +213,11 @@ function startSSE() {
         if (el("#s-fcnt")  && data.link.f_cnt  != null) setText("#s-fcnt",  data.link.f_cnt);
         if (el("#s-fport") && data.link.f_port != null) setText("#s-fport", data.link.f_port);
         if (el("#s-rxgw")  && data.link.gateway_id)     setText("#s-rxgw",  data.link.gateway_id);
-        const drParts = [];
-        if (data.link.sf) drParts.push(data.link.sf);
-        if (data.link["bw (kHz)"] != null) drParts.push(`${data.link["bw (kHz)"]} kHz`);
-        if (data.link.coding_rate) drParts.push(data.link.coding_rate);
-        if (data.link["frequency (MHz)"] != null) drParts.push(`${data.link["frequency (MHz)"]} MHz`);
-        if (drParts.length && el("#s-dr")) setText("#s-dr", drParts.join(" / "));
+        // Remplir les badges séparés pour SF / BW / Coding Rate / Frequency
+        if (el("#s-sf") && data.link.sf) setText("#s-sf", data.link.sf);
+        if (el("#s-bw") && data.link["bw (kHz)"] != null) setText("#s-bw", `${data.link["bw (kHz)"]} kHz`);
+        if (el("#s-cr") && data.link.coding_rate) setText("#s-cr", data.link.coding_rate);
+        if (el("#s-freq") && data.link["frequency (MHz)"] != null) setText("#s-freq", `${data.link["frequency (MHz)"]} MHz`);
       }
 
       // COUNT → periods
@@ -714,27 +713,27 @@ function initRealtimeCharts() {
   const chartConfigs = {
     'CO2': {
       main: { label: 'CO₂ (ppm)', color: '#ef4444', title: '🌬️ CO₂ Level' },
-      secondary: { label: 'Température (°C)', color: '#f59e0b', title: '🌡️ Temperature' }
+      secondary: { label: 'Battery (%)', color: '#10b981', title: '🔋 Battery Level' }
     },
     'TEMPEX': {
       main: { label: 'Température (°C)', color: '#f59e0b', title: '🌡️ Temperature' },
-      secondary: { label: 'Humidité (%)', color: '#3b82f6', title: '💧 Humidity' }
+      secondary: { label: 'Battery (%)', color: '#10b981', title: '🔋 Battery Level' }
     },
     'DESK': {
       main: { label: 'Occupancy', color: '#10b981', title: '👤 Desk Occupancy' },
-      secondary: { label: 'Température (°C)', color: '#f59e0b', title: '🌡️ Temperature' }
+      secondary: { label: 'Battery (%)', color: '#10b981', title: '🔋 Battery Level' }
     },
     'SON': {
       main: { label: 'LAeq (dB)', color: '#8b5cf6', title: '🔊 Sound Level' },
-      secondary: { label: 'LAI (dB)', color: '#ec4899', title: '📢 Sound Impact' }
+      secondary: { label: 'Battery (%)', color: '#10b981', title: '🔋 Battery Level' }
     },
     'ENERGY': {
       main: { label: 'Consommation (kWh)', color: '#f59e0b', title: '⚡ Energy Consumption' },
-      secondary: { label: 'Puissance (W)', color: '#ef4444', title: '🔌 Power Usage' }
+      secondary: { label: 'Battery (%)', color: '#10b981', title: '🔋 Battery Level' }
     },
     'CONSO': {
       main: { label: 'Consommation (kWh)', color: '#f59e0b', title: '⚡ Energy Consumption' },
-      secondary: { label: 'Puissance (W)', color: '#ef4444', title: '🔌 Power Usage' }
+      secondary: { label: 'Battery (%)', color: '#10b981', title: '🔋 Battery Level' }
     }
   };
 
@@ -896,34 +895,57 @@ function updateRealtimeCharts(data) {
   const timestamp = new Date().toLocaleTimeString();
   const devType = (document.documentElement.dataset.devType || '').toUpperCase();
   
+  // Fonction helper pour obtenir le niveau de batterie
+  function getBatteryLevel(data) {
+    // Priorité 1: battery (%) direct
+    if (typeof data['battery (%)'] === 'number') {
+      return data['battery (%)'];
+    }
+    // Priorité 2: conversion VDD → Battery %
+    if (typeof data['vdd (mV)'] === 'number') {
+      const battPct = vddToBatteryPercent(data['vdd (mV)']);
+      if (battPct != null) return battPct;
+    }
+    // Priorité 3: conversion VDD (V) → Battery %
+    if (typeof data['vdd (v)'] === 'number') {
+      const vddMv = Math.round(data['vdd (v)'] * 1000);
+      const battPct = vddToBatteryPercent(vddMv);
+      if (battPct != null) return battPct;
+    }
+    return 0; // Valeur par défaut
+  }
+
   // Mise à jour selon le type de capteur
   switch (devType) {
     case 'CO2':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['co2 (ppm)']);
-      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['temperature (°C)']);
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, getBatteryLevel(data));
       break;
     case 'TEMPEX':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['temperature (°C)']);
-      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['humidity (%)']);
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, getBatteryLevel(data));
       break;
     case 'DESK':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data.presence ? 1 : 0);
-      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['temperature (°C)']);
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, getBatteryLevel(data));
       break;
     case 'SON':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['LAeq (dB)']);
-      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['LAI (dB)']);
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, getBatteryLevel(data));
       break;
     case 'ENERGY':
     case 'CONSO':
       // Pour l'énergie, on calcule la consommation totale
       let totalWh = 0;
-      Object.values(data).forEach(channelData => {
-        if (channelData && channelData.value) {
-          totalWh += channelData.value;
-        }
-      });
+      if (data.energy_data && typeof data.energy_data === 'object') {
+        Object.values(data.energy_data).forEach(channelData => {
+          if (channelData && channelData.value) {
+            totalWh += channelData.value;
+          }
+        });
+      }
       updateChart(realtimeCharts.main, chartData.main, timestamp, totalWh / 1000); // kWh
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, getBatteryLevel(data));
       break;
   }
 }
