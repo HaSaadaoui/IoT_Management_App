@@ -174,6 +174,9 @@ function startSSE() {
         if (sPirBatt)   updateBatteryBadge(sPirBatt,   battery);
         if (sDeskBatt)  updateBatteryBadge(sDeskBatt,  battery);
         if (sSoundBatt) updateBatteryBadge(sSoundBatt, battery);
+        
+        // Mise à jour du graphique batterie
+        updateBatteryChart(battery);
       }
 
       // RSSI/SNR
@@ -193,6 +196,11 @@ function startSSE() {
       if (snr != null && !Number.isNaN(snr)) {
         if (snrNowEl) setText(snrNowEl, snr.toFixed(1));
         const sSnr = el("#s-snr"); if (sSnr) setText(sSnr, `${snr.toFixed(1)} dB`);
+      }
+      
+      // Mise à jour du graphique signal
+      if (rssi != null && snr != null && !Number.isNaN(rssi) && !Number.isNaN(snr)) {
+        updateSignalChart(rssi, snr);
       }
 
       // Compteurs uplinks (ancien)
@@ -336,9 +344,21 @@ function startSSE() {
             if (battPct != null && el('#s-desk-vdd')) updateBatteryBadge('#s-desk-vdd', battPct);
           }
           break;
+        case 'ENERGY':
+        case 'CONSO':
+          // Gestion des données de consommation énergétique
+          if (p && typeof p === 'object') {
+            updateEnergyConsumption(p);
+          }
+          break;
         default:
           if (typeof p['battery (%)'] === 'number' && el('#s-gen-batt')) updateBatteryBadge('#s-gen-batt', p['battery (%)']);
           break;
+      }
+      
+      // Mise à jour des graphiques en temps réel pour tous les capteurs
+      if (isNormalized && p && typeof p === 'object') {
+        updateRealtimeCharts(p);
       }
     } catch (e) {
       console.error("Sensor SSE parse error:", e);
@@ -516,5 +536,480 @@ document.getElementById('hist-load')?.addEventListener('click', async () => {
   }
 });
 
+// ===== Energy Consumption Functions =====
+function updateEnergyConsumption(data) {
+  // Groupes de canaux selon votre spécification
+  const channelGroups = {
+    'red-outlets': { channels: [0, 1, 2], name: '🔴 Prises rouges', color: '#ef4444' },
+    'white-outlets': { channels: [3, 4, 5], name: '⚪ Prises blanches & éclairage', color: '#64748b' },
+    'ventilation': { channels: [6, 7, 8], name: '🌬️ Ventilation & convecteurs', color: '#3b82f6' },
+    'other': { channels: [9, 10, 11], name: '🔧 Autres circuits', color: '#f59e0b' }
+  };
+
+  let totalConsumption = 0;
+  
+  // Mise à jour des canaux individuels
+  Object.keys(data).forEach(key => {
+    const channelData = data[key];
+    if (channelData && typeof channelData === 'object') {
+      const channel = channelData.hardwareData?.channel;
+      const value = channelData.value || 0;
+      const unit = channelData.unit || 'Wh';
+      
+      totalConsumption += value;
+      
+      // Mise à jour de l'affichage du canal individuel
+      const channelEl = el(`#energy-channel-${channel}`);
+      if (channelEl) {
+        channelEl.innerHTML = `
+          <div class="energy-channel-header">
+            <span class="channel-number">Canal ${channel}</span>
+            <span class="channel-uuid">${channelData.uuid || ''}</span>
+          </div>
+          <div class="energy-value">
+            <span class="value">${formatEnergyValue(value)}</span>
+            <span class="unit">${unit}</span>
+          </div>
+        `;
+      }
+    }
+  });
+
+  // Mise à jour des groupes
+  Object.entries(channelGroups).forEach(([groupId, group]) => {
+    let groupTotal = 0;
+    group.channels.forEach(channel => {
+      const channelData = data[channel];
+      if (channelData && channelData.value) {
+        groupTotal += channelData.value;
+      }
+    });
+
+    const groupEl = el(`#energy-group-${groupId}`);
+    if (groupEl) {
+      const kWh = (groupTotal / 1000).toFixed(2);
+      groupEl.innerHTML = `
+        <div class="energy-group-header">
+          <span class="group-name">${group.name}</span>
+          <span class="group-channels">Canaux ${group.channels.join(', ')}</span>
+        </div>
+        <div class="energy-group-values">
+          <div class="wh-value">${formatEnergyValue(groupTotal)} Wh</div>
+          <div class="kwh-value">${kWh} kWh</div>
+        </div>
+      `;
+      groupEl.style.borderLeftColor = group.color;
+    }
+  });
+
+  // Mise à jour du total général
+  const totalEl = el('#energy-total');
+  if (totalEl) {
+    const totalKWh = (totalConsumption / 1000).toFixed(2);
+    totalEl.innerHTML = `
+      <div class="total-consumption">
+        <div class="total-label">Consommation Totale</div>
+        <div class="total-values">
+          <div class="total-wh">${formatEnergyValue(totalConsumption)} Wh</div>
+          <div class="total-kwh">${totalKWh} kWh</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Mise à jour du graphique en temps réel
+  updateEnergyChart(channelGroups, data);
+}
+
+function formatEnergyValue(value) {
+  if (value >= 1000000) {
+    return (value / 1000000).toFixed(1) + 'M';
+  } else if (value >= 1000) {
+    return (value / 1000).toFixed(1) + 'k';
+  }
+  return value.toLocaleString();
+}
+
+function updateEnergyChart(groups, data) {
+  const chartEl = el('#energy-chart');
+  if (!chartEl) return;
+
+  // Données pour le graphique en barres
+  const groupData = Object.entries(groups).map(([groupId, group]) => {
+    let total = 0;
+    group.channels.forEach(channel => {
+      const channelData = data[channel];
+      if (channelData && channelData.value) {
+        total += channelData.value;
+      }
+    });
+    return {
+      name: group.name,
+      value: total,
+      color: group.color
+    };
+  });
+
+  // Création/mise à jour du graphique simple avec CSS
+  chartEl.innerHTML = groupData.map(item => {
+    const maxValue = Math.max(...groupData.map(g => g.value));
+    const percentage = maxValue > 0 ? (item.value / maxValue) * 100 : 0;
+    
+    return `
+      <div class="chart-bar">
+        <div class="bar-label">${item.name}</div>
+        <div class="bar-container">
+          <div class="bar-fill" style="width: ${percentage}%; background-color: ${item.color}"></div>
+          <span class="bar-value">${(item.value / 1000).toFixed(1)} kWh</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ===== Real-time Charts =====
+let realtimeCharts = {
+  main: null,
+  secondary: null,
+  signal: null,
+  battery: null
+};
+
+let chartData = {
+  main: { labels: [], data: [] },
+  secondary: { labels: [], data: [] },
+  signal: { rssi: [], snr: [], labels: [] },
+  battery: { labels: [], data: [] }
+};
+
+let chartsPaused = false;
+const MAX_CHART_POINTS = 50;
+
+function initRealtimeCharts() {
+  // Vérifier si Chart.js est disponible
+  if (typeof Chart === 'undefined') {
+    console.warn('Chart.js not loaded, skipping chart initialization');
+    return;
+  }
+  
+  const devType = (document.documentElement.dataset.devType || '').toUpperCase();
+  
+  // Configuration des couleurs par type de capteur
+  const chartConfigs = {
+    'CO2': {
+      main: { label: 'CO₂ (ppm)', color: '#ef4444', title: '🌬️ CO₂ Level' },
+      secondary: { label: 'Température (°C)', color: '#f59e0b', title: '🌡️ Temperature' }
+    },
+    'TEMPEX': {
+      main: { label: 'Température (°C)', color: '#f59e0b', title: '🌡️ Temperature' },
+      secondary: { label: 'Humidité (%)', color: '#3b82f6', title: '💧 Humidity' }
+    },
+    'DESK': {
+      main: { label: 'Occupancy', color: '#10b981', title: '👤 Desk Occupancy' },
+      secondary: { label: 'Température (°C)', color: '#f59e0b', title: '🌡️ Temperature' }
+    },
+    'SON': {
+      main: { label: 'LAeq (dB)', color: '#8b5cf6', title: '🔊 Sound Level' },
+      secondary: { label: 'LAI (dB)', color: '#ec4899', title: '📢 Sound Impact' }
+    },
+    'ENERGY': {
+      main: { label: 'Consommation (kWh)', color: '#f59e0b', title: '⚡ Energy Consumption' },
+      secondary: { label: 'Puissance (W)', color: '#ef4444', title: '🔌 Power Usage' }
+    },
+    'CONSO': {
+      main: { label: 'Consommation (kWh)', color: '#f59e0b', title: '⚡ Energy Consumption' },
+      secondary: { label: 'Puissance (W)', color: '#ef4444', title: '🔌 Power Usage' }
+    }
+  };
+
+  const config = chartConfigs[devType] || {
+    main: { label: 'Metric A', color: '#6366f1', title: '📊 Primary Metric' },
+    secondary: { label: 'Metric B', color: '#8b5cf6', title: '📈 Secondary Metric' }
+  };
+
+  // Mise à jour des titres
+  const mainTitle = el('#realtime-chart-title');
+  const secondaryTitle = el('#realtime-chart-secondary-title');
+  if (mainTitle) mainTitle.textContent = config.main.title;
+  if (secondaryTitle) secondaryTitle.textContent = config.secondary.title;
+
+  // Création des graphiques
+  const mainCtx = el('#realtime-chart-main')?.getContext('2d');
+  const secondaryCtx = el('#realtime-chart-secondary')?.getContext('2d');
+  const signalCtx = el('#realtime-chart-signal')?.getContext('2d');
+  const batteryCtx = el('#realtime-chart-battery')?.getContext('2d');
+
+  if (mainCtx) {
+    realtimeCharts.main = new Chart(mainCtx, createChartConfig(config.main.label, config.main.color));
+  }
+  
+  if (secondaryCtx) {
+    realtimeCharts.secondary = new Chart(secondaryCtx, createChartConfig(config.secondary.label, config.secondary.color));
+  }
+  
+  if (signalCtx) {
+    realtimeCharts.signal = new Chart(signalCtx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'RSSI (dBm)',
+            data: [],
+            borderColor: '#ef4444',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 2
+          },
+          {
+            label: 'SNR (dB)',
+            data: [],
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 2
+          }
+        ]
+      },
+      options: getChartOptions()
+    });
+  }
+  
+  if (batteryCtx) {
+    realtimeCharts.battery = new Chart(batteryCtx, createChartConfig('Battery (%)', '#10b981'));
+  }
+
+  // Event listeners pour les contrôles
+  const pauseBtn = el('#chart-pause');
+  const clearBtn = el('#chart-clear');
+  
+  if (pauseBtn) {
+    pauseBtn.addEventListener('click', () => {
+      chartsPaused = !chartsPaused;
+      pauseBtn.textContent = chartsPaused ? '▶️ Resume' : '⏸️ Pause';
+    });
+  }
+  
+  if (clearBtn) {
+    clearBtn.addEventListener('click', clearAllCharts);
+  }
+}
+
+function createChartConfig(label, color) {
+  return {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: label,
+        data: [],
+        borderColor: color,
+        backgroundColor: color.replace('1)', '0.1)').replace('rgb', 'rgba'),
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2,
+        pointHoverRadius: 4
+      }]
+    },
+    options: getChartOptions()
+  };
+}
+
+function getChartOptions() {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    resizeDelay: 0,
+    interaction: {
+      intersect: false,
+      mode: 'index'
+    },
+    plugins: {
+      legend: {
+        display: false
+      }
+    },
+    scales: {
+      x: {
+        display: true,
+        grid: {
+          color: 'rgba(0,0,0,0.1)',
+          drawBorder: false
+        },
+        ticks: {
+          maxTicksLimit: 8,
+          font: {
+            size: 11
+          }
+        }
+      },
+      y: {
+        display: true,
+        grid: {
+          color: 'rgba(0,0,0,0.1)',
+          drawBorder: false
+        },
+        ticks: {
+          maxTicksLimit: 6,
+          font: {
+            size: 11
+          }
+        }
+      }
+    },
+    animation: {
+      duration: 0
+    },
+    elements: {
+      point: {
+        radius: 2,
+        hoverRadius: 4
+      },
+      line: {
+        tension: 0.3
+      }
+    }
+  };
+}
+
+function updateRealtimeCharts(data) {
+  if (chartsPaused) return;
+  
+  const timestamp = new Date().toLocaleTimeString();
+  const devType = (document.documentElement.dataset.devType || '').toUpperCase();
+  
+  // Mise à jour selon le type de capteur
+  switch (devType) {
+    case 'CO2':
+      updateChart(realtimeCharts.main, chartData.main, timestamp, data['co2 (ppm)']);
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['temperature (°C)']);
+      break;
+    case 'TEMPEX':
+      updateChart(realtimeCharts.main, chartData.main, timestamp, data['temperature (°C)']);
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['humidity (%)']);
+      break;
+    case 'DESK':
+      updateChart(realtimeCharts.main, chartData.main, timestamp, data.presence ? 1 : 0);
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['temperature (°C)']);
+      break;
+    case 'SON':
+      updateChart(realtimeCharts.main, chartData.main, timestamp, data['LAeq (dB)']);
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['LAI (dB)']);
+      break;
+    case 'ENERGY':
+    case 'CONSO':
+      // Pour l'énergie, on calcule la consommation totale
+      let totalWh = 0;
+      Object.values(data).forEach(channelData => {
+        if (channelData && channelData.value) {
+          totalWh += channelData.value;
+        }
+      });
+      updateChart(realtimeCharts.main, chartData.main, timestamp, totalWh / 1000); // kWh
+      break;
+  }
+}
+
+function updateChart(chart, dataStore, timestamp, value) {
+  if (!chart || value == null || isNaN(value)) return;
+  
+  dataStore.labels.push(timestamp);
+  dataStore.data.push(Number(value));
+  
+  // Limiter le nombre de points
+  if (dataStore.labels.length > MAX_CHART_POINTS) {
+    dataStore.labels.shift();
+    dataStore.data.shift();
+  }
+  
+  // Mise à jour efficace sans animation
+  chart.data.labels = dataStore.labels;
+  chart.data.datasets[0].data = dataStore.data;
+  chart.update('none');
+}
+
+function updateSignalChart(rssi, snr) {
+  if (chartsPaused || !realtimeCharts.signal) return;
+  
+  const timestamp = new Date().toLocaleTimeString();
+  
+  chartData.signal.labels.push(timestamp);
+  chartData.signal.rssi.push(rssi);
+  chartData.signal.snr.push(snr);
+  
+  // Limiter le nombre de points
+  if (chartData.signal.labels.length > MAX_CHART_POINTS) {
+    chartData.signal.labels.shift();
+    chartData.signal.rssi.shift();
+    chartData.signal.snr.shift();
+  }
+  
+  realtimeCharts.signal.data.labels = [...chartData.signal.labels];
+  realtimeCharts.signal.data.datasets[0].data = [...chartData.signal.rssi];
+  realtimeCharts.signal.data.datasets[1].data = [...chartData.signal.snr];
+  realtimeCharts.signal.update('none');
+}
+
+function updateBatteryChart(batteryPct) {
+  if (chartsPaused || !realtimeCharts.battery) return;
+  
+  const timestamp = new Date().toLocaleTimeString();
+  
+  chartData.battery.labels.push(timestamp);
+  chartData.battery.data.push(batteryPct);
+  
+  // Limiter le nombre de points
+  if (chartData.battery.labels.length > MAX_CHART_POINTS) {
+    chartData.battery.labels.shift();
+    chartData.battery.data.shift();
+  }
+  
+  realtimeCharts.battery.data.labels = [...chartData.battery.labels];
+  realtimeCharts.battery.data.datasets[0].data = [...chartData.battery.data];
+  realtimeCharts.battery.update('none');
+  
+  // Mise à jour du statut de la batterie
+  const batteryStatus = el('#battery-status');
+  if (batteryStatus) {
+    batteryStatus.textContent = `${Math.round(batteryPct)}%`;
+    batteryStatus.className = 'battery-status';
+    if (batteryPct >= 60) batteryStatus.classList.add('good');
+    else if (batteryPct >= 30) batteryStatus.classList.add('warning');
+    else batteryStatus.classList.add('critical');
+  }
+}
+
+function clearAllCharts() {
+  Object.keys(chartData).forEach(key => {
+    if (key === 'signal') {
+      chartData[key] = { rssi: [], snr: [], labels: [] };
+    } else {
+      chartData[key] = { labels: [], data: [] };
+    }
+  });
+  
+  Object.values(realtimeCharts).forEach(chart => {
+    if (chart) {
+      chart.data.labels = [];
+      chart.data.datasets.forEach(dataset => {
+        dataset.data = [];
+      });
+      chart.update();
+    }
+  });
+}
+
 // Boot
+document.addEventListener("DOMContentLoaded", () => {
+  if (LIVE_MODE) startSSE();
+  loadHistory();
+  
+  // Initialiser les graphiques en temps réel
+  if (window.Chart) {
+    initRealtimeCharts();
+  }
+});
+
 showPane('live');

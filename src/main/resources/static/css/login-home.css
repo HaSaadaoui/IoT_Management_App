@@ -1,10 +1,11 @@
 body {
     background-image: url('/image/mantu-background.jpg');
-    background-size: cover;
+    background-size: 100% 120vh;
     height: 100vh;
     margin: 0;
     background-repeat: no-repeat;
-    background-position: center -50px;
+    background-position: center calc(50% + 0px);
+    background-attachment: fixed;
 }
 
 .password-container {
@@ -56,8 +57,8 @@ body.home-page .app-footer {
 /* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 768px) {
     body {
-        background-position: center top;
-        background-size: cover;
+        background-position: center calc(50% + 0px);
+        background-size: 100% 110vh;
     }
     
     .password-container {

@@ -442,16 +442,398 @@ main {
     font-size: 1rem;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 12px rgba(102, 33, 121, 0.3);
 }
 
-.btn:hover {
+/* ===== ENERGY CONSUMPTION STYLES ===== */
+.energy-dashboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.energy-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.energy-group {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1rem;
+    border-left: 4px solid var(--primary);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.energy-group:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 33, 121, 0.4);
+    box-shadow: var(--shadow-md);
 }
 
-.btn:active {
-    transform: translateY(0);
+.energy-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.group-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.group-channels {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    background: var(--bg-main);
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+}
+
+.energy-group-values {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.wh-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.kwh-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.energy-total {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: var(--shadow-glow);
+}
+
+.total-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin-bottom: 0.5rem;
+}
+
+.total-values {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.total-wh {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.total-kwh {
+    font-size: 2rem;
+    font-weight: 800;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.energy-chart {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.chart-bar {
+    margin-bottom: 1rem;
+}
+
+.bar-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.bar-container {
+    position: relative;
+    background: var(--bg-main);
+    border-radius: 8px;
+    height: 32px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    border-radius: 8px;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.bar-value {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    z-index: 2;
+}
+
+.energy-channels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.energy-channel {
+    background: var(--bg-card);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+}
+
+.energy-channel:hover {
+    border-color: var(--primary-light);
+    box-shadow: var(--shadow-sm);
+}
+
+.energy-channel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.channel-number {
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 0.85rem;
+}
+
+.channel-uuid {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-family: monospace;
+}
+
+.energy-value {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+}
+
+.energy-value .value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.energy-value .unit {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* ===== REAL-TIME CHARTS ===== */
+.realtime-charts {
+    margin: 2rem 0;
+}
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Real-time chart containers */
+.realtime-charts .chart-container {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+    min-height: 280px;
+    max-height: 350px;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Keep original styling for history chart containers */
+#pane-history .chart-container,
+.chart-grid .chart-container:not(.realtime-charts .chart-container) {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+}
+
+.chart-container:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-light);
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.chart-header h4 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.chart-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.chart-btn {
+    background: var(--bg-main);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-secondary);
+}
+
+.chart-btn:hover {
+    background: var(--primary-light);
+    color: white;
+    border-color: var(--primary-light);
+}
+
+.chart-legend {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    display: inline-block;
+}
+
+.battery-status {
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    background: var(--bg-main);
+    color: var(--text-primary);
+}
+
+.battery-status.good {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.battery-status.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.battery-status.critical {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+/* Canvas wrapper and styling - ONLY for real-time charts */
+.realtime-charts .chart-canvas-wrapper {
+    position: relative;
+    height: 200px;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.realtime-charts .chart-container canvas {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 200px !important;
+    border-radius: 8px;
+    display: block;
+}
+
+/* Keep original canvas styling for history charts */
+#pane-history canvas,
+.chart-card canvas,
+.charts-grid canvas {
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    position: static !important;
+    border-radius: 8px;
+}
+
+/* Ensure history chart containers maintain their original behavior */
+.chart-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+/* ===== ENHANCED INTERACTIVITY ===== */
+.card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.badge {
+    transition: all 0.3s ease;
+}
+
+.badge:hover {
+    transform: scale(1.05);
 }
 
 /* ===== HISTORIQUE ===== */
@@ -511,6 +893,64 @@ main {
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 1.5rem;
     margin: 2rem 0;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+/* Ensure all cards have uniform size and layout */
+.info-grid .card {
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Specific height for Status section (first info-grid) */
+.info-grid:first-of-type .card {
+    min-height: 122.4px;
+}
+
+/* Uniform card title styling */
+.info-grid .card h4 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+    min-height: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Uniform card content styling */
+.info-grid .card p {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex: 1;
+}
+
+/* Ensure badges have consistent sizing */
+.info-grid .card .badge,
+.info-grid .card .co2-badge,
+.info-grid .card .temp-badge,
+.info-grid .card .battery-badge {
+    font-size: 1rem;
+    font-weight: 600;
+    min-height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
 }
 
 .kpi-card {
@@ -985,5 +1425,208 @@ canvas {
     50% {
         opacity: 0.7;
         transform: scale(1.1);
+    }
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+    main {
+        margin: 1rem auto;
+        padding: 0.5rem;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .chart-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .card {
+        padding: 0.75rem;
+    }
+    
+    .card h4 {
+        font-size: 0.85rem;
+    }
+    
+    .card p {
+        font-size: 1rem;
+    }
+    
+    canvas {
+        height: 220px !important;
+    }
+    
+    /* Energy responsive */
+    .energy-dashboard {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .energy-channels {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+    
+    .total-kwh {
+        font-size: 1.5rem;
+    }
+    
+    /* Real-time charts responsive */
+    .realtime-charts .chart-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .realtime-charts .chart-container {
+        padding: 1rem;
+        min-height: 250px;
+        max-height: 300px;
+    }
+    
+    .realtime-charts .chart-canvas-wrapper {
+        height: 180px;
+    }
+    
+    .realtime-charts .chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .realtime-charts .chart-header h4 {
+        font-size: 0.9rem;
+    }
+    
+    /* Uniform card sizing on tablet */
+    .info-grid .card {
+        min-height: 100px;
+    }
+    
+    /* Specific height for Status section on tablet */
+    .info-grid:first-of-type .card {
+        min-height: 122.4px;
+    }
+    
+    .info-grid .card h4 {
+        font-size: 0.8rem;
+        min-height: 1.2rem;
+    }
+    
+    .info-grid .card .badge,
+    .info-grid .card .co2-badge,
+    .info-grid .card .temp-badge,
+    .info-grid .card .battery-badge {
+        font-size: 0.9rem;
+        min-height: 1.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-title-gateway {
+        font-size: 16px;
+    }
+    
+    .badge {
+        font-size: 0.8rem;
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .badge img {
+        height: 1.4em;
+    }
+    
+    th, td {
+        padding: 0.4rem 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    /* Energy mobile */
+    .energy-group {
+        padding: 0.75rem;
+    }
+    
+    .energy-group-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .energy-channels {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .energy-channel {
+        padding: 0.75rem;
+    }
+    
+    .total-kwh {
+        font-size: 1.2rem;
+    }
+    
+    /* Real-time charts mobile */
+    .realtime-charts .chart-container {
+        padding: 0.75rem;
+        min-height: 220px;
+        max-height: 250px;
+    }
+    
+    .realtime-charts .chart-canvas-wrapper {
+        height: 150px;
+    }
+    
+    .realtime-charts .chart-header h4 {
+        font-size: 0.85rem;
+    }
+    
+    .realtime-charts .chart-controls {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .realtime-charts .chart-btn {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .realtime-charts .chart-legend {
+        gap: 0.5rem;
+    }
+    
+    .realtime-charts .legend-item {
+        font-size: 0.75rem;
+    }
+    
+    /* Uniform card sizing on mobile */
+    .info-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+    
+    .info-grid .card {
+        min-height: 90px;
+        padding: 1rem;
+    }
+    
+    /* Specific height for Status section on mobile */
+    .info-grid:first-of-type .card {
+        min-height: 122.4px;
+    }
+    
+    .info-grid .card h4 {
+        font-size: 0.75rem;
+        min-height: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-grid .card .badge,
+    .info-grid .card .co2-badge,
+    .info-grid .card .temp-badge,
+    .info-grid .card .battery-badge {
+        font-size: 0.8rem;
+        min-height: 1.5rem;
+        padding: 0.25rem 0.5rem;
     }
 }

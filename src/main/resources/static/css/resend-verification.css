@@ -1,0 +1,105 @@
+/* Resend Verification Page Styles */
+
+body {
+    background-image: url('/image/mantu-background.jpg');
+    background-size: 100% 120vh;
+    min-height: 100vh;
+    margin: 0;
+    background-repeat: no-repeat;
+    background-position: center top;
+}
+
+.verification-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.verification-box {
+    background: white;
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+}
+
+.mantu-logo {
+    width: 150px;
+    margin-bottom: 20px;
+}
+
+h2 {
+    color: #662179;
+    margin: 20px 0;
+    font-size: 28px;
+}
+
+.instructions {
+    color: #666;
+    line-height: 1.6;
+    margin: 20px 0;
+}
+
+.form-group {
+    margin: 25px 0;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #662179;
+}
+
+.submit-btn {
+    background: #662179;
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 100%;
+    transition: all 0.3s;
+    margin-top: 10px;
+}
+
+.submit-btn:hover {
+    background: #4a1858;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 33, 121, 0.3);
+}
+
+.error-message {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #f5c6cb;
+}
+
+.back-to-login {
+    margin-top: 20px;
+}
+
+.back-to-login a {
+    color: #662179;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.back-to-login a:hover {
+    text-decoration: underline;
+}

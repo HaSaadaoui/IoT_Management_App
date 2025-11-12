@@ -1,5 +1,6 @@
 package com.amaris.sensorprocessor.service;
 
+import com.amaris.sensorprocessor.entity.Gateway;
 import com.amaris.sensorprocessor.entity.Sensor;
 import com.amaris.sensorprocessor.entity.TtnDeviceInfo;
 import com.amaris.sensorprocessor.repository.SensorDao;
@@ -26,6 +27,9 @@ public class SensorSyncService {
     private final SensorLorawanService lorawanService;
     private final SensorDao sensorDao;
     private final ObjectMapper objectMapper;
+    private final GatewayService gatewayService;
+
+
 
     /**
      * Récupère tous les devices d'une gateway depuis TTN et retourne la liste
@@ -49,6 +53,27 @@ public class SensorSyncService {
                 gatewayId, e.getMessage(), e);
             return new ArrayList<>();
         }
+    }
+
+    public String deduceFrequencyPlanFromGateway(String gatewayId, String deviceId) {
+        try {
+            Optional<Gateway> gateway = gatewayService.findById(gatewayId);
+            if (gateway.isPresent()) {
+                return gateway.get().getFrequencyPlan();
+            } else {
+                log.warn("[SensorSync] Gateway {} not found for device {}", gatewayId, deviceId);
+                return null;
+            }
+        }
+        catch (Exception e) {
+            log.error("[SensorSync] Error deducing frequency plan for device {} from gateway {}: {}",
+                deviceId, gatewayId, e.getMessage(), e);
+            return null;
+        }
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
     }
 
     /**
@@ -81,10 +106,17 @@ public class SensorSyncService {
                 newSensor.setCommissioningDate(
                     device.getCreatedAt() != null ? device.getCreatedAt() : Instant.now().toString()
                 );
-                
-                // Utiliser DEV_EUI comme deviceType pour l'affichage
+                        
                 String devEui = device.getIds().getDevEui();
-                newSensor.setDeviceType(devEui != null ? devEui : detectDeviceType(deviceId));
+                if (devEui != null) {
+                    newSensor.setDevEui(devEui);
+                }
+
+                String frequencyPlan = deduceFrequencyPlanFromGateway(gatewayId, deviceId);
+                newSensor.setFrequencyPlan(frequencyPlan);
+
+                // Utiliser DEV_EUI comme deviceType pour l'affichage seulement si l'on a pas pu détecter le deviceType
+                newSensor.setDeviceType(devEui == null ? devEui : detectDeviceType(deviceId));
                 
                 // Définir building_name et floor selon la gateway
                 if ("leva-rpi-mantu".equals(gatewayId)) {

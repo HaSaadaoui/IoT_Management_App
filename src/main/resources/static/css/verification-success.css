@@ -1,0 +1,225 @@
+/* Verification Success Page Styles */
+
+body {
+    background-image: url('/image/mantu-background.jpg');
+    background-size: 100% 120vh;
+    min-height: 100vh;
+    margin: 0;
+    background-repeat: no-repeat;
+    background-position: center top;
+}
+
+.verification-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.verification-box {
+    background: white;
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+}
+
+.mantu-logo {
+    width: 150px;
+    margin-bottom: 20px;
+}
+
+/* Success Checkmark Animation */
+.success-checkmark {
+    width: 140px;
+    height: 140px;
+    margin: 30px auto;
+    position: relative;
+}
+
+.check-icon {
+    width: 140px;
+    height: 140px;
+    position: relative;
+    border-radius: 50%;
+    box-sizing: border-box;
+    border: 5px solid #4CAF50;
+    background: white;
+}
+
+.check-icon::before {
+    top: 3px;
+    left: -2px;
+    width: 50px;
+    transform-origin: 100% 50%;
+    border-radius: 100px 0 0 100px;
+}
+
+.check-icon::after {
+    top: 0;
+    left: 50px;
+    width: 90px;
+    transform-origin: 0 50%;
+    border-radius: 0 100px 100px 0;
+    animation: rotate-circle 4.25s ease-in;
+}
+
+.check-icon::before, .check-icon::after {
+    content: '';
+    height: 140px;
+    position: absolute;
+    background: #FFFFFF;
+    transform: rotate(-45deg);
+}
+
+.icon-line {
+    height: 8px;
+    background-color: #4CAF50;
+    display: block;
+    border-radius: 3px;
+    position: absolute;
+    z-index: 10;
+}
+
+.icon-line.line-tip {
+    top: 65px;
+    left: 25px;
+    width: 35px;
+    transform: rotate(45deg);
+    animation: icon-line-tip 0.75s;
+}
+
+.icon-line.line-long {
+    top: 56px;
+    right: 15px;
+    width: 70px;
+    transform: rotate(-45deg);
+    animation: icon-line-long 0.75s;
+}
+
+.icon-circle {
+    top: -5px;
+    left: -5px;
+    z-index: 10;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    position: absolute;
+    box-sizing: border-box;
+    border: 5px solid rgba(76, 175, 80, .5);
+}
+
+.icon-fix {
+    top: 10px;
+    width: 5px;
+    left: 40px;
+    z-index: 1;
+    height: 105px;
+    position: absolute;
+    transform: rotate(-45deg);
+    background-color: #FFFFFF;
+}
+
+@keyframes rotate-circle {
+    0% { transform: rotate(-45deg); }
+    5% { transform: rotate(-45deg); }
+    12% { transform: rotate(-405deg); }
+    100% { transform: rotate(-405deg); }
+}
+
+@keyframes icon-line-tip {
+    0% { width: 0; left: 1px; top: 22px; }
+    54% { width: 0; left: 1px; top: 22px; }
+    70% { width: 55px; left: -8px; top: 42px; }
+    84% { width: 20px; left: 25px; top: 56px; }
+    100% { width: 35px; left: 25px; top: 65px; }
+}
+
+@keyframes icon-line-long {
+    0% { width: 0; right: 52px; top: 62px; }
+    65% { width: 0; right: 52px; top: 62px; }
+    84% { width: 65px; right: 0px; top: 40px; }
+    100% { width: 70px; right: 15px; top: 56px; }
+}
+
+/* Error styles */
+.error-icon {
+    width: 120px;
+    height: 120px;
+    margin: 30px auto;
+    border-radius: 50%;
+    border: 4px solid #f44336;
+    position: relative;
+}
+
+.error-icon::before,
+.error-icon::after {
+    content: '';
+    position: absolute;
+    width: 60px;
+    height: 5px;
+    background: #f44336;
+    border-radius: 2px;
+    top: 50%;
+    left: 50%;
+}
+
+.error-icon::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+    animation: error-line 0.75s;
+}
+
+.error-icon::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+    animation: error-line 0.75s;
+}
+
+@keyframes error-line {
+    0% { width: 0; }
+    100% { width: 60px; }
+}
+
+h2 {
+    color: #662179;
+    margin: 20px 0;
+    font-size: 28px;
+}
+
+h2.error {
+    color: #f44336;
+}
+
+.message {
+    color: #666;
+    line-height: 1.6;
+    margin: 20px 0;
+    font-size: 16px;
+}
+
+.login-btn {
+    background: #662179;
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 16px;
+    text-decoration: none;
+    display: inline-block;
+    margin-top: 20px;
+    transition: all 0.3s;
+}
+
+.login-btn:hover {
+    background: #4a1858;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 33, 121, 0.3);
+}
+
+.redirect-info {
+    color: #999;
+    font-size: 14px;
+    margin-top: 15px;
+}

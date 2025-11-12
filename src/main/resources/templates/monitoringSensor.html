@@ -70,7 +70,6 @@
                 </p>
             </div>
 
-            <div class="card"><h4>Sensor ID</h4><p th:text="${sensor.idSensor}">--</p></div>
             <div class="card"><h4>DevEUI</h4><p th:text="${sensor.devEui} ?: '--'">--</p></div>
 
             <div class="card">
@@ -78,7 +77,7 @@
                 <p th:with="gid=${sensor.idGateway}, ip=${gatewayIp} ?: ''">
                     <a class="link"
                        th:href="@{|/manage-gateways/monitoring/${gid}/view?ip=${ip}|}"
-                       th:text="${gatewayName} ?: ${gid}">--</a>
+                       th:text="${gid}">--</a>
                 </p>
             </div>
 
@@ -115,6 +114,11 @@
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'TEMPEX')}">
             <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-tempex-temp" class="badge">--</span></p></div>
             <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-tempex-hum" class="badge">--</span></p></div>
+            <div class="card"><h4>Battery</h4>
+                <p><span id="s-tempex-batt" class="battery-badge">
+                    <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
+                    <span>--</span>
+                </span></p></div>
         </section>
 
         <!-- PIR_LIGHT -->
@@ -142,7 +146,7 @@
 
         <!-- CO2 -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'CO2')}">
-            <div class="card" style="grid-column: span 2;">
+            <div class="card">
                 <h4>💨 CO₂ Level</h4>
                 <p><span id="s-co2-ppm" class="co2-badge co2--good">-- ppm</span></p>
             </div>
@@ -188,7 +192,11 @@
           or #strings.equalsIgnoreCase(sensor.deviceType,'PIR_LIGHT')
           or #strings.equalsIgnoreCase(sensor.deviceType,'DESK')
           or #strings.equalsIgnoreCase(sensor.deviceType,'CO2')
-          or #strings.equalsIgnoreCase(sensor.deviceType,'TEMPEX'))}">
+          or #strings.equalsIgnoreCase(sensor.deviceType,'TEMPEX')
+          or #strings.equalsIgnoreCase(sensor.deviceType,'SON')
+          or #strings.equalsIgnoreCase(sensor.deviceType,'EYE')
+          or #strings.equalsIgnoreCase(sensor.deviceType,'ENERGY')
+          or #strings.equalsIgnoreCase(sensor.deviceType,'CONSO'))}">
             <div class="card"><h4>Battery</h4>
                 <p><span id="s-gen-batt" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
@@ -196,11 +204,273 @@
                 </span></p></div>
         </section>
 
+        <!-- ENERGY/CONSO - Consommation énergétique -->
+        <section th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'ENERGY') or #strings.equalsIgnoreCase(sensor.deviceType,'CONSO')}">
+            <h3 class="section-title">⚡ Consommation Énergétique</h3>
+            
+            <!-- Dashboard principal -->
+            <div class="energy-dashboard">
+                <!-- Groupes de consommation -->
+                <div class="energy-groups">
+                    <div id="energy-group-red-outlets" class="energy-group">
+                        <div class="energy-group-header">
+                            <span class="group-name">🔴 Prises rouges</span>
+                            <span class="group-channels">Canaux 0, 1, 2</span>
+                        </div>
+                        <div class="energy-group-values">
+                            <div class="wh-value">-- Wh</div>
+                            <div class="kwh-value">-- kWh</div>
+                        </div>
+                    </div>
+                    
+                    <div id="energy-group-white-outlets" class="energy-group">
+                        <div class="energy-group-header">
+                            <span class="group-name">⚪ Prises blanches & éclairage</span>
+                            <span class="group-channels">Canaux 3, 4, 5</span>
+                        </div>
+                        <div class="energy-group-values">
+                            <div class="wh-value">-- Wh</div>
+                            <div class="kwh-value">-- kWh</div>
+                        </div>
+                    </div>
+                    
+                    <div id="energy-group-ventilation" class="energy-group">
+                        <div class="energy-group-header">
+                            <span class="group-name">🌬️ Ventilation & convecteurs</span>
+                            <span class="group-channels">Canaux 6, 7, 8</span>
+                        </div>
+                        <div class="energy-group-values">
+                            <div class="wh-value">-- Wh</div>
+                            <div class="kwh-value">-- kWh</div>
+                        </div>
+                    </div>
+                    
+                    <div id="energy-group-other" class="energy-group">
+                        <div class="energy-group-header">
+                            <span class="group-name">🔧 Autres circuits</span>
+                            <span class="group-channels">Canaux 9, 10, 11</span>
+                        </div>
+                        <div class="energy-group-values">
+                            <div class="wh-value">-- Wh</div>
+                            <div class="kwh-value">-- kWh</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Total et graphique -->
+                <div>
+                    <div id="energy-total" class="energy-total">
+                        <div class="total-consumption">
+                            <div class="total-label">Consommation Totale</div>
+                            <div class="total-values">
+                                <div class="total-wh">-- Wh</div>
+                                <div class="total-kwh">-- kWh</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="energy-chart" class="energy-chart" style="margin-top: 1.5rem;">
+                        <div style="text-align: center; color: #64748b; padding: 2rem;">
+                            📊 Graphique en temps réel<br>
+                            <small>Les données apparaîtront automatiquement</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Détail par canal -->
+            <h4 class="section-title" style="font-size: 1.1rem; margin-top: 2rem;">Détail par Canal</h4>
+            <div class="energy-channels">
+                <div id="energy-channel-0" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Canal 0</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-1" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Canal 1</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-2" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Canal 2</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-3" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Canal 3</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-4" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Canal 4</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-5" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Canal 5</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-6" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Canal 6</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-7" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Canal 7</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-8" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Canal 8</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-9" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Canal 9</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-10" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Canal 10</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-11" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Canal 11</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Graphiques en temps réel -->
+        <h3 class="section-title">📈 Données en Temps Réel</h3>
+        <section class="realtime-charts">
+            <div class="chart-grid">
+                <!-- Graphique principal selon le type de capteur -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h4 id="realtime-chart-title">Données Principales</h4>
+                        <div class="chart-controls">
+                            <button id="chart-pause" class="chart-btn">⏸️ Pause</button>
+                            <button id="chart-clear" class="chart-btn">🗑️ Clear</button>
+                        </div>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="realtime-chart-main"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Graphique secondaire -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h4 id="realtime-chart-secondary-title">Données Secondaires</h4>
+                        <div class="chart-legend" id="secondary-legend"></div>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="realtime-chart-secondary"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Graphique RSSI/SNR -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h4>📶 Signal Quality</h4>
+                        <div class="chart-legend">
+                            <span class="legend-item"><span class="legend-color" style="background: #ef4444;"></span> RSSI</span>
+                            <span class="legend-item"><span class="legend-color" style="background: #3b82f6;"></span> SNR</span>
+                        </div>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="realtime-chart-signal"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Graphique Batterie -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h4>🔋 Battery Level</h4>
+                        <div class="battery-status" id="battery-status">--</div>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="realtime-chart-battery"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Réseau / Radio -->
         <h3 class="section-title">Network / Radio</h3>
         <section id="net-grid" class="info-grid">
             <div class="card"><h4>Last seen</h4><p><span id="s-last" class="badge">--</span></p></div>
-            <div class="card"><h4>Frequency Plan</h4><p th:text="${sensor.frequencyPlan} ?: '--'">--</p></div>
+            <div class="card"><h4>Frequency Plan</h4><p th:text="${
+                sensor.frequencyPlan == 'EU_863_870_TTN' ? 'Europe' :
+                sensor.frequencyPlan == 'US_902_928_FSB_2' ? 'United States' :
+                sensor.frequencyPlan == 'AU_915_928_FSB_2' ? 'Australia' :
+                sensor.frequencyPlan == 'CN_470_510_FSB_11' ? 'China' :
+                sensor.frequencyPlan == 'AS_920_923' ? 'Asia' : (sensor.frequencyPlan ?: '--')
+            }">--</p></div>
             <div class="card"><h4>f_cnt / f_port</h4><p><span id="s-fcnt" class="badge">--</span> / <span id="s-fport" class="badge">--</span></p></div>
             <div class="card"><h4 class="with-icon icon-signal">RSSI / SNR</h4><p><span id="s-rssi" class="badge">--</span> / <span id="s-snr" class="badge">--</span></p></div>
             <div class="card"><h4>SF / BW / Freq</h4><p><span id="s-dr" class="badge">--</span></p></div>

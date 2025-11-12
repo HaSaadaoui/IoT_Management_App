@@ -1,9 +1,10 @@
 body, html {
     background-image: url('/image/mantu-background.jpg');
-    background-size: cover;
-    height: 100vh;
+    background-size: 100% 120vh;
+    min-height: 100vh;
     margin: 0;
     background-repeat: no-repeat;
+    background-position: center top;
 }
 
 .register-container {
