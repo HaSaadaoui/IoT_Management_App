@@ -44,6 +44,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import static com.amaris.sensorprocessor.constant.Constants.SENSOR_DATA_SYNC_PERIOD_MINUTE;
+import static com.amaris.sensorprocessor.constant.Constants.SENSOR_DATA_SYNC_ROLLBACK_TIME_MINUTE;
 /**
  * Service pour synchroniser les sensors depuis TTN vers la DB locale
  */
@@ -297,11 +298,12 @@ public class SensorSyncService {
                     log.info("[SensorSync] Performing initial full data sync for gateway: {}", gatewayId);
                     syncSensorsData(gatewayId);
                 }
-                // else {
-                //     Instant after = Instant.now().minus(15, TimeUnit.MINUTES.toChronoUnit());
-                //     log.info("[SensorSync] Performing periodic data sync for gateway: {} with after={}", gatewayId, after);
-                //     syncSensorsData(gatewayId, after);
-                // }
+                else {
+                    Instant after = Instant.now().minus(
+                            SENSOR_DATA_SYNC_ROLLBACK_TIME_MINUTE, TimeUnit.MINUTES.toChronoUnit());
+                    log.info("[SensorSync] Performing periodic data sync for gateway: {} with after={}", gatewayId, after);
+                    syncSensorsData(gatewayId, after);
+                }
                 log.info("[SensorSync] Completed periodic data sync for gateway: {}", gatewayId);
             } catch (Exception e) {
                 log.error("[SensorSync] Error during periodic data sync for gateway {}: {}", gatewayId, e.getMessage(), e);

@@ -20,8 +20,10 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Flux;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -69,11 +71,6 @@ public class SensorService {
                     if (after != null) {
                         uriBuilder.queryParam("after", after.toString());
                     }
-                    // else {
-                    //     // Now minus 7 days
-                    //     Instant i = Instant.now().minus(7, TimeUnit.DAYS.toChronoUnit());
-                    //     uriBuilder.queryParam("after", i.toString());
-                    // }
                     return uriBuilder.build(appId);
                 })
                 .accept(MediaType.TEXT_EVENT_STREAM)
@@ -142,17 +139,29 @@ public class SensorService {
     }
 
     /**
-     * Start and End dates are inclusive
+     * Récupère toutes les données d'une métrique associée à un
+     * capteur (Sensor) pour une période donnée.
+     * Les dates de début et de fin sont *inclus* dans la recherche.
      * 
-     * @param idSensor
-     * @param startDate
-     * @param endDate
+     * <pre>
+     * // Example
+     * 
+     * </pre>
+     * 
+     * @param idSensor ID du Sensor ou Device ID
+     * @param startDate Date de début (inclusive)
+     * @param endDate Date de fin (inclusive)
      * @param valueType
-     * @return
+     * @return LinkedHashMap de SensorData triés par date du plus anciens au plus récent.
      */
-    public List<SensorData> findSensorDataByPeriod(String idSensor, Date startDate, Date endDate, PayloadValueType valueType) {
-        // TODO implement error and validation
-        return sensorDataDao.findSensorDataByPeriod(idSensor, startDate, endDate, valueType);
+    public LinkedHashMap<LocalDateTime, String> findSensorDataByPeriodAndType(String idSensor, Date startDate, Date endDate, PayloadValueType valueType) {
+        var datas = sensorDataDao.findSensorDataByPeriodAndType(idSensor, startDate, endDate, valueType);
+        LinkedHashMap<LocalDateTime, String> timeToStringValueMap = new LinkedHashMap<>();
+        for (SensorData data : datas) {
+            var receivedDate = data.getReceivedAt();
+            timeToStringValueMap.put(receivedDate, data.getValueAsString());
+        }
+        return timeToStringValueMap;
     }
 
     /* ===================== CREATE ===================== */

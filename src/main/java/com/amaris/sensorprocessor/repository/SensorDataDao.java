@@ -50,7 +50,26 @@ public class SensorDataDao {
         return datas;
     }
 
-    public List<SensorData> findSensorDataByPeriod(String idSensor, Date startDate, Date endDate, PayloadValueType valueType) {
+    public List<SensorData> findSensorDataByPeriodAndType(String idSensor, Date startDate, Date endDate, PayloadValueType valueType) {
+        String query = "SELECT * FROM sensor_data WHERE id_sensor = ? AND value_type = ? AND received_at BETWEEN ? AND ? ORDER BY received_at ASC";
+
+        try {
+            return jdbcTemplate.query(query, (rs, rowNum) -> {
+                SensorData sensorData = new SensorData(
+                    rs.getString("id_sensor"),
+                    rs.getTimestamp("received_at").toLocalDateTime(),
+                    rs.getString("string_value"),
+                    rs.getString("value_type")
+                );
+                return sensorData;
+            }, idSensor, valueType.toString(), startDate, endDate);
+        } catch (Exception e) {
+            // Log the exception if necessary
+            return new ArrayList<>();
+        }
+    }
+
+    public List<SensorData> findSensorDataByPeriod(String idSensor, Date startDate, Date endDate) {
         String query = "SELECT * FROM sensor_data WHERE id_sensor = ? AND received_at BETWEEN ? AND ? ORDER BY received_at ASC";
 
         try {
