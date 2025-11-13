@@ -278,6 +278,7 @@ function startSSE() {
         case 'TEMPEX':
           if (typeof p['temperature (°C)'] === 'number' && el('#s-tempex-temp')) updateTempBadge('#s-tempex-temp', p['temperature (°C)']);
           if (typeof p['humidity (%)']     === 'number' && el('#s-tempex-hum'))  setText('#s-tempex-hum',  fmt.hum(p['humidity (%)']));
+          if (typeof p['battery (%)'] === 'number' && el('#s-tempex-batt')) updateBatteryBadge('#s-tempex-batt', p['battery (%)']);
           break;
         case 'SON':
           if (typeof p['LAeq (dB)']   === 'number' && el('#s-sound-laeq'))   setText('#s-sound-laeq',   fmt.db(p['LAeq (dB)']));
@@ -723,6 +724,18 @@ function initRealtimeCharts() {
       main: { label: 'Occupancy', color: '#10b981', title: '👤 Desk Occupancy' },
       secondary: { label: 'Température (°C)', color: '#f59e0b', title: '🌡️ Temperature' }
     },
+    'EYE': {
+      main: { label: 'Température (°C)', color: '#f59e0b', title: '🌡️ Temperature' },
+      secondary: { label: 'Humidité (%)', color: '#3b82f6', title: '💧 Humidity' }
+    },
+    'OCCUP': {
+      main: { label: 'Occupancy', color: '#10b981', title: '👤 Occupancy Status' },
+      secondary: { label: 'Illuminance', color: '#fbbf24', title: '💡 Light Level' }
+    },
+    'PIR_LIGHT': {
+      main: { label: 'Presence', color: '#10b981', title: '👤 Motion Detection' },
+      secondary: { label: 'Daylight', color: '#fbbf24', title: '☀️ Daylight Level' }
+    },
     'SON': {
       main: { label: 'LAeq (dB)', color: '#8b5cf6', title: '🔊 Sound Level' },
       secondary: { label: 'LAI (dB)', color: '#ec4899', title: '📢 Sound Impact' }
@@ -929,6 +942,18 @@ function updateRealtimeCharts(data) {
       updateChart(realtimeCharts.main, chartData.main, timestamp, data.presence ? 1 : 0);
       updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['temperature (°C)']);
       break;
+    case 'EYE':
+      updateChart(realtimeCharts.main, chartData.main, timestamp, data['temperature (°C)']);
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['humidity (%)']);
+      break;
+    case 'OCCUP':
+      updateChart(realtimeCharts.main, chartData.main, timestamp, data.presence ? 1 : 0);
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data.light || 0);
+      break;
+    case 'PIR_LIGHT':
+      updateChart(realtimeCharts.main, chartData.main, timestamp, data.presence ? 1 : 0);
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data.light || 0);
+      break;
     case 'SON':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['LAeq (dB)']);
       updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['LAI (dB)']);
@@ -950,10 +975,12 @@ function updateRealtimeCharts(data) {
       break;
   }
   
-  // Mise à jour de la courbe Battery Level pour tous les capteurs
-  const batteryLevel = getBatteryLevel(data);
-  if (batteryLevel > 0) {
-    updateBatteryChart(batteryLevel);
+  // Mise à jour de la courbe Battery Level pour tous les capteurs sauf ENERGY/CONSO
+  if (devType !== 'ENERGY' && devType !== 'CONSO') {
+    const batteryLevel = getBatteryLevel(data);
+    if (batteryLevel > 0) {
+      updateBatteryChart(batteryLevel);
+    }
   }
 }
 

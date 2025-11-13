@@ -472,6 +472,7 @@ public class SensorController {
                     case "TEMPEX" -> {
                         payload.setTemperature(firstNumber(dp, "temperature"));
                         payload.setHumidity(firstNumber(dp, "humidity"));
+                        payload.setBattery(firstNumber(dp, "battery"));
                     }
 
                     case "PIR_LIGHT" -> {
@@ -508,7 +509,7 @@ public class SensorController {
                             java.util.Map<String, Object> energyMap = om.convertValue(dp, java.util.Map.class);
                             payload.setEnergyData(energyMap);
                         }
-                        payload.setBattery(firstNumber(dp, "battery"));
+                        // Pas de battery pour CONSO car connecté à un générateur
                     }
 
                     default -> payload.setBattery(firstNumber(dp, "battery"));
