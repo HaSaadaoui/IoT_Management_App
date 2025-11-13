@@ -405,13 +405,13 @@
         </section>
 
         <!-- Graphiques en temps réel -->
-        <h3 class="section-title">📈 Données en Temps Réel</h3>
+        <h3 class="section-title">📈 Real-Time Data</h3>
         <section class="realtime-charts">
             <div class="chart-grid">
                 <!-- Graphique principal selon le type de capteur -->
                 <div class="chart-container">
                     <div class="chart-header">
-                        <h4 id="realtime-chart-title">Données Principales</h4>
+                        <h4 id="realtime-chart-title">Primary Data</h4>
                         <div class="chart-controls">
                             <button id="chart-pause" class="chart-btn">⏸️ Pause</button>
                             <button id="chart-clear" class="chart-btn">🗑️ Clear</button>
@@ -425,7 +425,7 @@
                 <!-- Graphique secondaire -->
                 <div class="chart-container">
                     <div class="chart-header">
-                        <h4 id="realtime-chart-secondary-title">Données Secondaires</h4>
+                        <h4 id="realtime-chart-secondary-title">Secondary Data</h4>
                         <div class="chart-legend" id="secondary-legend"></div>
                     </div>
                     <div class="chart-canvas-wrapper">
@@ -433,35 +433,12 @@
                     </div>
                 </div>
                 
-                <!-- Graphique RSSI/SNR -->
-                <div class="chart-container">
-                    <div class="chart-header">
-                        <h4>📶 Signal Quality</h4>
-                        <div class="chart-legend">
-                            <span class="legend-item"><span class="legend-color" style="background: #ef4444;"></span> RSSI</span>
-                            <span class="legend-item"><span class="legend-color" style="background: #3b82f6;"></span> SNR</span>
-                        </div>
-                    </div>
-                    <div class="chart-canvas-wrapper">
-                        <canvas id="realtime-chart-signal"></canvas>
-                    </div>
-                </div>
-                
-                <!-- Graphique Batterie (pas pour ENERGY/CONSO car connecté à générateur) -->
-                <div class="chart-container" th:unless="${#strings.equalsIgnoreCase(sensor.deviceType,'ENERGY') or #strings.equalsIgnoreCase(sensor.deviceType,'CONSO')}">
-                    <div class="chart-header">
-                        <h4>🔋 Battery Level</h4>
-                        <div class="battery-status" id="battery-status">--</div>
-                    </div>
-                    <div class="chart-canvas-wrapper">
-                        <canvas id="realtime-chart-battery"></canvas>
-                    </div>
-                </div>
             </div>
         </section>
 
-        <!-- Réseau / Radio -->
-        <h3 class="section-title">Network / Radio</h3>
+        <!-- Network / Radio -->
+        <h3 class="section-title">📡 Network / Radio</h3>
+        
         <section id="net-grid" class="info-grid">
             <div class="card"><h4>Last seen</h4><p><span id="s-last" class="badge">--</span></p></div>
             <div class="card"><h4>Frequency Plan</h4><p th:text="${
@@ -479,6 +456,24 @@
                 <span id="s-cr" class="badge">--</span> / 
                 <span id="s-freq" class="badge">--</span>
             </p></div>
+        </section>
+        
+        <!-- Signal Quality Chart -->
+        <section class="realtime-charts">
+            <div class="chart-grid">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h4>📶 Signal Quality</h4>
+                        <div class="chart-legend">
+                            <span class="legend-item"><span class="legend-color" style="background: #ef4444;"></span> RSSI (dBm)</span>
+                            <span class="legend-item"><span class="legend-color" style="background: #3b82f6;"></span> SNR (dB)</span>
+                        </div>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="realtime-chart-signal"></canvas>
+                    </div>
+                </div>
+            </div>
         </section>
     </section>
 

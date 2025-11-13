@@ -713,40 +713,40 @@ function initRealtimeCharts() {
   // Configuration des couleurs par type de capteur
   const chartConfigs = {
     'CO2': {
-      main: { label: 'CO₂ (ppm)', color: '#ef4444', title: '🌬️ CO₂ Level' },
-      secondary: { label: 'Température (°C)', color: '#f59e0b', title: '🌡️ Temperature' }
+      main: { label: 'CO₂ (ppm)', color: '#ef4444', title: '🌬️ CO₂ Level', unit: 'ppm' },
+      secondary: { label: 'Temperature (°C)', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' }
     },
     'TEMPEX': {
-      main: { label: 'Température (°C)', color: '#f59e0b', title: '🌡️ Temperature' },
-      secondary: { label: 'Humidité (%)', color: '#3b82f6', title: '💧 Humidity' }
+      main: { label: 'Temperature (°C)', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
+      secondary: { label: 'Humidity (%)', color: '#3b82f6', title: '💧 Humidity', unit: '%' }
     },
     'DESK': {
-      main: { label: 'Occupancy', color: '#10b981', title: '👤 Desk Occupancy' },
-      secondary: { label: 'Température (°C)', color: '#f59e0b', title: '🌡️ Temperature' }
+      main: { label: 'Occupancy', color: '#10b981', title: '👤 Desk Occupancy', unit: 'Status' },
+      secondary: { label: 'Temperature (°C)', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' }
     },
     'EYE': {
-      main: { label: 'Température (°C)', color: '#f59e0b', title: '🌡️ Temperature' },
-      secondary: { label: 'Humidité (%)', color: '#3b82f6', title: '💧 Humidity' }
+      main: { label: 'Temperature (°C)', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
+      secondary: { label: 'Humidity (%)', color: '#3b82f6', title: '💧 Humidity', unit: '%' }
     },
     'OCCUP': {
-      main: { label: 'Occupancy', color: '#10b981', title: '👤 Occupancy Status' },
-      secondary: { label: 'Illuminance', color: '#fbbf24', title: '💡 Light Level' }
+      main: { label: 'Occupancy', color: '#10b981', title: '👤 Occupancy Status', unit: 'Status' },
+      secondary: { label: 'Illuminance', color: '#fbbf24', title: '💡 Light Level', unit: 'lux' }
     },
     'PIR_LIGHT': {
-      main: { label: 'Presence', color: '#10b981', title: '👤 Motion Detection' },
-      secondary: { label: 'Daylight', color: '#fbbf24', title: '☀️ Daylight Level' }
+      main: { label: 'Presence', color: '#10b981', title: '👤 Motion Detection', unit: 'Status' },
+      secondary: { label: 'Daylight', color: '#fbbf24', title: '☀️ Daylight Level', unit: 'Level' }
     },
     'SON': {
-      main: { label: 'LAeq (dB)', color: '#8b5cf6', title: '🔊 Sound Level' },
-      secondary: { label: 'LAI (dB)', color: '#ec4899', title: '📢 Sound Impact' }
+      main: { label: 'LAeq (dB)', color: '#8b5cf6', title: '🔊 Sound Level', unit: 'dB' },
+      secondary: { label: 'LAI (dB)', color: '#ec4899', title: '📢 Sound Impact', unit: 'dB' }
     },
     'ENERGY': {
-      main: { label: 'Consommation (kWh)', color: '#f59e0b', title: '⚡ Energy Consumption' },
-      secondary: { label: 'Puissance (W)', color: '#ef4444', title: '🔌 Power Usage' }
+      main: { label: 'Consumption (kWh)', color: '#f59e0b', title: '⚡ Energy Consumption', unit: 'kWh' },
+      secondary: { label: 'Power (W)', color: '#ef4444', title: '🔌 Power Usage', unit: 'W' }
     },
     'CONSO': {
-      main: { label: 'Consommation (kWh)', color: '#f59e0b', title: '⚡ Energy Consumption' },
-      secondary: { label: 'Puissance (W)', color: '#ef4444', title: '🔌 Power Usage' }
+      main: { label: 'Consumption (kWh)', color: '#f59e0b', title: '⚡ Energy Consumption', unit: 'kWh' },
+      secondary: { label: 'Power (W)', color: '#ef4444', title: '🔌 Power Usage', unit: 'W' }
     }
   };
 
@@ -765,14 +765,13 @@ function initRealtimeCharts() {
   const mainCtx = el('#realtime-chart-main')?.getContext('2d');
   const secondaryCtx = el('#realtime-chart-secondary')?.getContext('2d');
   const signalCtx = el('#realtime-chart-signal')?.getContext('2d');
-  const batteryCtx = el('#realtime-chart-battery')?.getContext('2d');
 
   if (mainCtx) {
-    realtimeCharts.main = new Chart(mainCtx, createChartConfig(config.main.label, config.main.color));
+    realtimeCharts.main = new Chart(mainCtx, createChartConfig(config.main.label, config.main.color, config.main.unit || ''));
   }
   
   if (secondaryCtx) {
-    realtimeCharts.secondary = new Chart(secondaryCtx, createChartConfig(config.secondary.label, config.secondary.color));
+    realtimeCharts.secondary = new Chart(secondaryCtx, createChartConfig(config.secondary.label, config.secondary.color, config.secondary.unit || ''));
   }
   
   if (signalCtx) {
@@ -785,29 +784,34 @@ function initRealtimeCharts() {
             label: 'RSSI (dBm)',
             data: [],
             borderColor: '#ef4444',
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            backgroundColor: 'transparent',
             fill: false,
-            tension: 0.3,
-            pointRadius: 2
+            tension: 0.1,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            pointBackgroundColor: '#ef4444',
+            pointBorderColor: '#ef4444',
+            pointBorderWidth: 2
           },
           {
             label: 'SNR (dB)',
             data: [],
             borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            backgroundColor: 'transparent',
             fill: false,
-            tension: 0.3,
-            pointRadius: 2
+            tension: 0.1,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            pointBackgroundColor: '#3b82f6',
+            pointBorderColor: '#3b82f6',
+            pointBorderWidth: 2
           }
         ]
       },
-      options: getChartOptions()
+      options: getChartOptionsWithUnits('Signal Strength', new Date().toLocaleDateString('en-CA'))
     });
   }
   
-  if (batteryCtx) {
-    realtimeCharts.battery = new Chart(batteryCtx, createChartConfig('Battery (%)', '#10b981'));
-  }
 
   // Event listeners pour les contrôles
   const pauseBtn = el('#chart-pause');
@@ -825,7 +829,9 @@ function initRealtimeCharts() {
   }
 }
 
-function createChartConfig(label, color) {
+function createChartConfig(label, color, yAxisUnit = '') {
+  const currentDate = new Date().toLocaleDateString('en-CA'); // Format: 2025-11-13
+  
   return {
     type: 'line',
     data: {
@@ -834,18 +840,21 @@ function createChartConfig(label, color) {
         label: label,
         data: [],
         borderColor: color,
-        backgroundColor: color.replace('1)', '0.1)').replace('rgb', 'rgba'),
-        fill: true,
-        tension: 0.3,
-        pointRadius: 2,
-        pointHoverRadius: 4
+        backgroundColor: 'transparent',
+        fill: false,
+        tension: 0.1,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        pointBackgroundColor: color,
+        pointBorderColor: color,
+        pointBorderWidth: 2
       }]
     },
-    options: getChartOptions()
+    options: getChartOptionsWithUnits(yAxisUnit, currentDate)
   };
 }
 
-function getChartOptions() {
+function getChartOptionsWithUnits(yAxisUnit = '', currentDate = '') {
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -857,11 +866,33 @@ function getChartOptions() {
     plugins: {
       legend: {
         display: false
+      },
+      title: {
+        display: true,
+        text: currentDate,
+        position: 'top',
+        align: 'end',
+        font: {
+          size: 12,
+          weight: 'normal'
+        },
+        color: '#666',
+        padding: {
+          bottom: 10
+        }
       }
     },
     scales: {
       x: {
         display: true,
+        title: {
+          display: true,
+          text: 'Time',
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
+        },
         grid: {
           color: 'rgba(0,0,0,0.1)',
           drawBorder: false
@@ -875,6 +906,14 @@ function getChartOptions() {
       },
       y: {
         display: true,
+        title: {
+          display: yAxisUnit !== '',
+          text: yAxisUnit,
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
+        },
         grid: {
           color: 'rgba(0,0,0,0.1)',
           drawBorder: false
@@ -900,6 +939,10 @@ function getChartOptions() {
       }
     }
   };
+}
+
+function getChartOptions() {
+  return getChartOptionsWithUnits();
 }
 
 function updateRealtimeCharts(data) {
@@ -975,13 +1018,6 @@ function updateRealtimeCharts(data) {
       break;
   }
   
-  // Mise à jour de la courbe Battery Level pour tous les capteurs sauf ENERGY/CONSO
-  if (devType !== 'ENERGY' && devType !== 'CONSO') {
-    const batteryLevel = getBatteryLevel(data);
-    if (batteryLevel > 0) {
-      updateBatteryChart(batteryLevel);
-    }
-  }
 }
 
 function updateChart(chart, dataStore, timestamp, value) {
