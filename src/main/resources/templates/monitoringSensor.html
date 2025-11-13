@@ -447,8 +447,8 @@
                     </div>
                 </div>
                 
-                <!-- Graphique Batterie -->
-                <div class="chart-container">
+                <!-- Graphique Batterie (pas pour ENERGY/CONSO car connecté à générateur) -->
+                <div class="chart-container" th:unless="${#strings.equalsIgnoreCase(sensor.deviceType,'ENERGY') or #strings.equalsIgnoreCase(sensor.deviceType,'CONSO')}">
                     <div class="chart-header">
                         <h4>🔋 Battery Level</h4>
                         <div class="battery-status" id="battery-status">--</div>
