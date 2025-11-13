@@ -687,14 +687,16 @@ function updateEnergyChart(groups, data) {
 let realtimeCharts = {
   main: null,
   secondary: null,
-  signal: null,
+  rssi: null,
+  snr: null,
   battery: null
 };
 
 let chartData = {
   main: { labels: [], data: [] },
   secondary: { labels: [], data: [] },
-  signal: { rssi: [], snr: [], labels: [] },
+  rssi: { labels: [], data: [] },
+  snr: { labels: [], data: [] },
   battery: { labels: [], data: [] }
 };
 
@@ -713,20 +715,20 @@ function initRealtimeCharts() {
   // Configuration des couleurs par type de capteur
   const chartConfigs = {
     'CO2': {
-      main: { label: 'CO₂ (ppm)', color: '#ef4444', title: '🌬️ CO₂ Level', unit: 'ppm' },
-      secondary: { label: 'Temperature (°C)', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' }
+      main: { label: 'CO₂', color: '#ef4444', title: '🌬️ CO₂ Level', unit: 'ppm' },
+      secondary: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' }
     },
     'TEMPEX': {
-      main: { label: 'Temperature (°C)', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
-      secondary: { label: 'Humidity (%)', color: '#3b82f6', title: '💧 Humidity', unit: '%' }
+      main: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
+      secondary: { label: 'Humidity', color: '#3b82f6', title: '💧 Humidity', unit: '%' }
     },
     'DESK': {
       main: { label: 'Occupancy', color: '#10b981', title: '👤 Desk Occupancy', unit: 'Status' },
-      secondary: { label: 'Temperature (°C)', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' }
+      secondary: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' }
     },
     'EYE': {
-      main: { label: 'Temperature (°C)', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
-      secondary: { label: 'Humidity (%)', color: '#3b82f6', title: '💧 Humidity', unit: '%' }
+      main: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
+      secondary: { label: 'Humidity', color: '#3b82f6', title: '💧 Humidity', unit: '%' }
     },
     'OCCUP': {
       main: { label: 'Occupancy', color: '#10b981', title: '👤 Occupancy Status', unit: 'Status' },
@@ -737,16 +739,16 @@ function initRealtimeCharts() {
       secondary: { label: 'Daylight', color: '#fbbf24', title: '☀️ Daylight Level', unit: 'Level' }
     },
     'SON': {
-      main: { label: 'LAeq (dB)', color: '#8b5cf6', title: '🔊 Sound Level', unit: 'dB' },
-      secondary: { label: 'LAI (dB)', color: '#ec4899', title: '📢 Sound Impact', unit: 'dB' }
+      main: { label: 'Sound Level', color: '#8b5cf6', title: '🔊 Sound Level', unit: 'dB' },
+      secondary: { label: 'Sound Impact', color: '#ec4899', title: '📢 Sound Impact', unit: 'dB' }
     },
     'ENERGY': {
-      main: { label: 'Consumption (kWh)', color: '#f59e0b', title: '⚡ Energy Consumption', unit: 'kWh' },
-      secondary: { label: 'Power (W)', color: '#ef4444', title: '🔌 Power Usage', unit: 'W' }
+      main: { label: 'Energy Consumption', color: '#f59e0b', title: '⚡ Energy Consumption', unit: 'kWh' },
+      secondary: { label: 'Power Usage', color: '#ef4444', title: '🔌 Power Usage', unit: 'W' }
     },
     'CONSO': {
-      main: { label: 'Consumption (kWh)', color: '#f59e0b', title: '⚡ Energy Consumption', unit: 'kWh' },
-      secondary: { label: 'Power (W)', color: '#ef4444', title: '🔌 Power Usage', unit: 'W' }
+      main: { label: 'Energy Consumption', color: '#f59e0b', title: '⚡ Energy Consumption', unit: 'kWh' },
+      secondary: { label: 'Power Usage', color: '#ef4444', title: '🔌 Power Usage', unit: 'W' }
     }
   };
 
@@ -764,7 +766,8 @@ function initRealtimeCharts() {
   // Création des graphiques
   const mainCtx = el('#realtime-chart-main')?.getContext('2d');
   const secondaryCtx = el('#realtime-chart-secondary')?.getContext('2d');
-  const signalCtx = el('#realtime-chart-signal')?.getContext('2d');
+  const rssiCtx = el('#realtime-chart-rssi')?.getContext('2d');
+  const snrCtx = el('#realtime-chart-snr')?.getContext('2d');
 
   if (mainCtx) {
     realtimeCharts.main = new Chart(mainCtx, createChartConfig(config.main.label, config.main.color, config.main.unit || ''));
@@ -774,42 +777,12 @@ function initRealtimeCharts() {
     realtimeCharts.secondary = new Chart(secondaryCtx, createChartConfig(config.secondary.label, config.secondary.color, config.secondary.unit || ''));
   }
   
-  if (signalCtx) {
-    realtimeCharts.signal = new Chart(signalCtx, {
-      type: 'line',
-      data: {
-        labels: [],
-        datasets: [
-          {
-            label: 'RSSI (dBm)',
-            data: [],
-            borderColor: '#ef4444',
-            backgroundColor: 'transparent',
-            fill: false,
-            tension: 0.1,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: '#ef4444',
-            pointBorderColor: '#ef4444',
-            pointBorderWidth: 2
-          },
-          {
-            label: 'SNR (dB)',
-            data: [],
-            borderColor: '#3b82f6',
-            backgroundColor: 'transparent',
-            fill: false,
-            tension: 0.1,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: '#3b82f6',
-            pointBorderColor: '#3b82f6',
-            pointBorderWidth: 2
-          }
-        ]
-      },
-      options: getChartOptionsWithUnits('Signal Strength', new Date().toLocaleDateString('en-CA'))
-    });
+  if (rssiCtx) {
+    realtimeCharts.rssi = new Chart(rssiCtx, createChartConfig('RSSI (dBm)', '#ef4444', 'dBm'));
+  }
+  
+  if (snrCtx) {
+    realtimeCharts.snr = new Chart(snrCtx, createChartConfig('SNR (dB)', '#3b82f6', 'dB'));
   }
   
 
@@ -832,6 +805,12 @@ function initRealtimeCharts() {
 function createChartConfig(label, color, yAxisUnit = '') {
   const currentDate = new Date().toLocaleDateString('en-CA'); // Format: 2025-11-13
   
+  // Create Y-axis label with metric name and unit
+  let yAxisLabel = label;
+  if (yAxisUnit && yAxisUnit !== 'Status' && yAxisUnit !== 'Level') {
+    yAxisLabel += ' (' + yAxisUnit + ')';
+  }
+  
   return {
     type: 'line',
     data: {
@@ -850,11 +829,11 @@ function createChartConfig(label, color, yAxisUnit = '') {
         pointBorderWidth: 2
       }]
     },
-    options: getChartOptionsWithUnits(yAxisUnit, currentDate)
+    options: getChartOptionsWithUnits(yAxisLabel, yAxisUnit, currentDate)
   };
 }
 
-function getChartOptionsWithUnits(yAxisUnit = '', currentDate = '') {
+function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate = '') {
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -879,6 +858,23 @@ function getChartOptionsWithUnits(yAxisUnit = '', currentDate = '') {
         color: '#666',
         padding: {
           bottom: 10
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            let label = context.dataset.label || '';
+            if (label) {
+              label += ': ';
+            }
+            if (context.parsed.y !== null) {
+              label += context.parsed.y;
+              if (yAxisUnit) {
+                label += ' ' + yAxisUnit;
+              }
+            }
+            return label;
+          }
         }
       }
     },
@@ -907,8 +903,8 @@ function getChartOptionsWithUnits(yAxisUnit = '', currentDate = '') {
       y: {
         display: true,
         title: {
-          display: yAxisUnit !== '',
-          text: yAxisUnit,
+          display: yAxisLabel !== '',
+          text: yAxisLabel,
           font: {
             size: 14,
             weight: 'bold'
@@ -942,7 +938,7 @@ function getChartOptionsWithUnits(yAxisUnit = '', currentDate = '') {
 }
 
 function getChartOptions() {
-  return getChartOptionsWithUnits();
+  return getChartOptionsWithUnits('', '', '');
 }
 
 function updateRealtimeCharts(data) {
@@ -1039,25 +1035,19 @@ function updateChart(chart, dataStore, timestamp, value) {
 }
 
 function updateSignalChart(rssi, snr) {
-  if (chartsPaused || !realtimeCharts.signal) return;
+  if (chartsPaused) return;
   
   const timestamp = new Date().toLocaleTimeString();
   
-  chartData.signal.labels.push(timestamp);
-  chartData.signal.rssi.push(rssi);
-  chartData.signal.snr.push(snr);
-  
-  // Limiter le nombre de points
-  if (chartData.signal.labels.length > MAX_CHART_POINTS) {
-    chartData.signal.labels.shift();
-    chartData.signal.rssi.shift();
-    chartData.signal.snr.shift();
+  // Update RSSI chart
+  if (realtimeCharts.rssi) {
+    updateChart(realtimeCharts.rssi, chartData.rssi, timestamp, rssi);
   }
   
-  realtimeCharts.signal.data.labels = [...chartData.signal.labels];
-  realtimeCharts.signal.data.datasets[0].data = [...chartData.signal.rssi];
-  realtimeCharts.signal.data.datasets[1].data = [...chartData.signal.snr];
-  realtimeCharts.signal.update('none');
+  // Update SNR chart
+  if (realtimeCharts.snr) {
+    updateChart(realtimeCharts.snr, chartData.snr, timestamp, snr);
+  }
 }
 
 function updateBatteryChart(batteryPct) {
@@ -1091,11 +1081,7 @@ function updateBatteryChart(batteryPct) {
 
 function clearAllCharts() {
   Object.keys(chartData).forEach(key => {
-    if (key === 'signal') {
-      chartData[key] = { rssi: [], snr: [], labels: [] };
-    } else {
-      chartData[key] = { labels: [], data: [] };
-    }
+    chartData[key] = { labels: [], data: [] };
   });
   
   Object.values(realtimeCharts).forEach(chart => {

@@ -33,6 +33,30 @@ main {
     padding: 1rem;
     border-radius: 10px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #662179, #8b2fa3);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.card:hover::before {
+    opacity: 1;
 }
 
 .card h4 {
@@ -113,32 +137,43 @@ th, td {
     display: flex;
     gap: 20px;
     flex-wrap: wrap;
+    align-items: stretch;
+}
+
+#sensorsTable {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 #sensorsTable .card {
     flex: 1;
     display: flex;
     flex-direction: column;
+    height: 100%;
+    min-height: 500px;
 }
 
-#sensorsTable, #mapContainer {
-    margin-top: 20px;
+#mapContainer {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-height: 500px;
+    height: 100%;
 }
 
 #table-container {
     flex: 1;
     height: auto;
-    max-height: 60vh;
+    max-height: 400px;
     overflow-y: auto;
     margin-top: 1rem;
 }
 
 #map {
-    height: 100vh;
-    width: 100vw;
+    height: 400px;
+    width: 100%;
+    flex: 1;
 }
 
 /* =========================
@@ -228,6 +263,19 @@ th, td {
     
     canvas {
         height: 220px !important;
+    }
+    
+    #dashboard {
+        flex-direction: column;
+    }
+    
+    #sensorsTable .card,
+    #mapContainer {
+        min-height: 300px;
+    }
+    
+    #map {
+        height: 250px;
     }
 }
 

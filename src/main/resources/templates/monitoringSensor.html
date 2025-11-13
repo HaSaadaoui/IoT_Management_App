@@ -448,29 +448,48 @@
                 sensor.frequencyPlan == 'CN_470_510_FSB_11' ? 'China' :
                 sensor.frequencyPlan == 'AS_920_923' ? 'Asia' : (sensor.frequencyPlan ?: '--')
             }">--</p></div>
-            <div class="card"><h4>f_cnt / f_port</h4><p><span id="s-fcnt" class="badge">--</span> / <span id="s-fport" class="badge">--</span></p></div>
-            <div class="card"><h4 class="with-icon icon-signal">RSSI / SNR</h4><p><span id="s-rssi" class="badge">--</span> / <span id="s-snr" class="badge">--</span></p></div>
-            <div class="card"><h4>SF / BW / Freq</h4><p>
-                <span id="s-sf" class="badge">--</span> / 
-                <span id="s-bw" class="badge">--</span> / 
-                <span id="s-cr" class="badge">--</span> / 
-                <span id="s-freq" class="badge">--</span>
+            <div class="card"><h4>Frame Counter / Port</h4><p class="labeled-values">
+                <span class="value-line">f_cnt: <span id="s-fcnt" class="badge">--</span></span>
+                <span class="value-line">f_port: <span id="s-fport" class="badge">--</span></span>
+            </p></div>
+            <div class="card"><h4 class="with-icon icon-signal">Signal Quality</h4><p class="labeled-values">
+                <span class="value-line">RSSI: <span id="s-rssi" class="badge">--</span></span>
+                <span class="value-line">SNR: <span id="s-snr" class="badge">--</span></span>
+            </p></div>
+            <div class="card"><h4>Radio Parameters</h4><p class="labeled-values">
+                <span class="value-line">SF: <span id="s-sf" class="badge">--</span></span>
+                <span class="value-line">BW: <span id="s-bw" class="badge">--</span></span>
+                <span class="value-line">CR: <span id="s-cr" class="badge">--</span></span>
+                <span class="value-line">Freq: <span id="s-freq" class="badge">--</span></span>
             </p></div>
         </section>
         
-        <!-- Signal Quality Chart -->
+        <!-- Signal Quality Charts -->
         <section class="realtime-charts">
             <div class="chart-grid">
+                <!-- RSSI Chart -->
                 <div class="chart-container">
                     <div class="chart-header">
-                        <h4>📶 Signal Quality</h4>
+                        <h4>📶 RSSI Signal Strength</h4>
                         <div class="chart-legend">
                             <span class="legend-item"><span class="legend-color" style="background: #ef4444;"></span> RSSI (dBm)</span>
+                        </div>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="realtime-chart-rssi"></canvas>
+                    </div>
+                </div>
+                
+                <!-- SNR Chart -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h4>📡 SNR Signal Quality</h4>
+                        <div class="chart-legend">
                             <span class="legend-item"><span class="legend-color" style="background: #3b82f6;"></span> SNR (dB)</span>
                         </div>
                     </div>
                     <div class="chart-canvas-wrapper">
-                        <canvas id="realtime-chart-signal"></canvas>
+                        <canvas id="realtime-chart-snr"></canvas>
                     </div>
                 </div>
             </div>

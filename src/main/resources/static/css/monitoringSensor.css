@@ -31,7 +31,7 @@
 }
 
 body {
-    background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+    background: #f4f6f8;
     min-height: 100vh;
     margin: 0;
     padding: 0;
@@ -136,11 +136,10 @@ main {
 
 /* ===== CARDS MODERNES ===== */
 .card {
-    background: var(--bg-card);
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border);
+    background: white;
+    padding: 1rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
@@ -155,7 +154,7 @@ main {
     height: 4px;
     background: linear-gradient(90deg, var(--primary), var(--primary-light));
     opacity: 0;
-    transition: opacity 0.3s;
+    transition: opacity 0.3s ease;
 }
 
 .card:hover {
@@ -168,27 +167,18 @@ main {
 }
 
 .card h4 {
-    margin: 0 0 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    margin: 0;
+    font-size: 0.95rem;
+    color: #666;
+    text-transform: capitalize;
+    font-weight: normal;
 }
 
 .card p {
-    margin: 0;
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1.2;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    word-break: break-word;
-    max-width: 100%;
+    margin: 0.4rem 0 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #222;
 }
 
 /* Textes longs (DevEUI, etc.) - taille réduite */
@@ -904,7 +894,7 @@ main {
 
 /* Ensure all cards have uniform size and layout */
 .info-grid .card {
-    min-height: 120px;
+    max-height: 116px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -912,7 +902,7 @@ main {
 
 /* Specific height for Status section (first info-grid) */
 .info-grid:first-of-type .card {
-    min-height: 122.4px;
+    max-height: 116px;
 }
 
 /* Uniform card title styling */
@@ -1637,4 +1627,28 @@ canvas {
     padding: 0.2rem 0.4rem !important;
     min-width: auto !important;
     white-space: nowrap;
+}
+
+/* Labeled values layout for network cards */
+.labeled-values {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+}
+
+.labeled-values .value-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #555;
+}
+
+.labeled-values .value-line .badge {
+    margin: 0;
+    font-size: 0.8rem;
+    padding: 0.2rem 0.5rem;
+    min-width: auto;
 }
