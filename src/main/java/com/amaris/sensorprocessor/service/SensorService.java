@@ -1,29 +1,32 @@
 package com.amaris.sensorprocessor.service;
 
 import com.amaris.sensorprocessor.entity.LorawanSensorData;
+import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.Sensor;
+import com.amaris.sensorprocessor.entity.SensorData;
 import com.amaris.sensorprocessor.repository.SensorDao;
+import com.amaris.sensorprocessor.repository.SensorDataDao;
 
 import io.netty.channel.ChannelOption;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
-import reactor.netty.http.client.HttpClient;
 
-import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -31,6 +34,7 @@ import java.util.Optional;
 public class SensorService {
 
     private final SensorDao sensorDao;                 // DAO JdbcTemplate
+    private final SensorDataDao sensorDataDao;            // Sensor Data DAO JdbcTemplate
     private final SensorLorawanService lorawanService; // Intégration TTN
     private final WebClient webClient;                 // Bean configuré (baseUrl = http://localhost:8081)
     private final WebClient webClientSse;              // SSE-specific WebClient
@@ -59,12 +63,16 @@ public class SensorService {
                         appId, deviceId, err.getMessage(), err));
     }
 
-    public Flux<String> getGatewayDevices(String appId) {
+    public Flux<String> getGatewayDevices(String appId, Instant after) {
         // Use the pre-configured SSE WebClient bean
         return webClientSse.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/api/monitoring/sensor/{appId}")
-                        .build(appId))
+                .uri(uriBuilder -> {
+                    uriBuilder.path("/api/monitoring/sensor/{appId}");
+                    if (after != null) {
+                        uriBuilder.queryParam("after", after.toString());
+                    }
+                    return uriBuilder.build(appId);
+                })
                 .accept(MediaType.TEXT_EVENT_STREAM)
                 .retrieve()
                 .bodyToFlux(String.class)
@@ -109,6 +117,51 @@ public class SensorService {
     public Sensor getOrThrow(String idSensor) {
         return findByIdSensor(idSensor)
                 .orElseThrow(() -> new IllegalArgumentException("Sensor not found: " + idSensor));
+    }
+
+    /**
+     * Retrieves the latest sensor data for a given sensor ID.
+     * 
+     * <pre>
+     * {@code
+     * // Example usage
+     * var data = sensorService.getSensorData("co2-03-03");
+     * Double temp = data.get(PayloadValueType.TEMPERATURE).getValueAsDouble();
+     * }
+     * </pre>
+     * 
+     * @param idSensor ID of thte TTN Sensor. Available in the TTN gateway admin console.
+     * 
+     * @return A hash map 
+     */
+    public HashMap<PayloadValueType, SensorData> getSensorData(String idSensor) {
+        return sensorDataDao.findLatestDataBySensor(idSensor);
+    }
+
+    /**
+     * Récupère toutes les données d'une métrique associée à un
+     * capteur (Sensor) pour une période donnée.
+     * Les dates de début et de fin sont *inclus* dans la recherche.
+     * 
+     * <pre>
+     * // Example
+     * 
+     * </pre>
+     * 
+     * @param idSensor ID du Sensor ou Device ID
+     * @param startDate Date de début (inclusive)
+     * @param endDate Date de fin (inclusive)
+     * @param valueType
+     * @return LinkedHashMap de SensorData triés par date du plus anciens au plus récent.
+     */
+    public LinkedHashMap<LocalDateTime, String> findSensorDataByPeriodAndType(String idSensor, Date startDate, Date endDate, PayloadValueType valueType) {
+        var datas = sensorDataDao.findSensorDataByPeriodAndType(idSensor, startDate, endDate, valueType);
+        LinkedHashMap<LocalDateTime, String> timeToStringValueMap = new LinkedHashMap<>();
+        for (SensorData data : datas) {
+            var receivedDate = data.getReceivedAt();
+            timeToStringValueMap.put(receivedDate, data.getValueAsString());
+        }
+        return timeToStringValueMap;
     }
 
     /* ===================== CREATE ===================== */

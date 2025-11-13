@@ -59,8 +59,9 @@ CREATE TABLE pending_users (
 );
 
 -- Création de la table des valeurs senseurs
+-- sql_mode=only_full_group_by doit etre activé sur le serveur MySQL
 CREATE TABLE sensor_data (
-    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     id_sensor VARCHAR(50),
     received_at TIMESTAMP(6),
     string_value TEXT, -- TODO: ajouter une limit
@@ -125,6 +126,3 @@ CREATE TABLE sensor_data (
     FOREIGN KEY (id_sensor) REFERENCES Sensors(id_sensor) ON DELETE CASCADE,
     CONSTRAINT unique_id_received_at UNIQUE (id_sensor, received_at, value_type)
 );
-
-
-

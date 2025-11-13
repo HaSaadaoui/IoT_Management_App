@@ -1,6 +1,7 @@
 package com.amaris.sensorprocessor.controller;
 
 import com.amaris.sensorprocessor.constant.Constants;
+import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.Gateway;
 import com.amaris.sensorprocessor.entity.Sensor;
 import com.amaris.sensorprocessor.entity.User;
@@ -10,6 +11,7 @@ import com.amaris.sensorprocessor.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -24,6 +26,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.security.Principal;
+import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -352,6 +357,26 @@ public class SensorController {
 
         return emitter;
     }
+
+    /**
+     * Endpoint REST pour récupérer les données d'un capteur sur une période.
+     */
+    @GetMapping(value = "/manage-sensors/monitoring/{idGateway}/{idSensor}/{valueType}")
+    @ResponseBody
+    public LinkedHashMap<LocalDateTime, String> getSensorDataByPeriod(
+            @PathVariable String idGateway, // Ca nous servira plus tard pour les idSensor ambigues
+            @PathVariable String idSensor,
+            @PathVariable PayloadValueType valueType,
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date endDate) {
+        try {
+            return sensorService.findSensorDataByPeriodAndType(idSensor, startDate, endDate, valueType);
+        } catch (Exception e) {
+            log.error("[API] Error fetching data for sensor {}: {}", idSensor, e.getMessage(), e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error fetching sensor data", e);
+        }
+    }
+    
 
     /* ===================== PRIVÉS ===================== */
 
