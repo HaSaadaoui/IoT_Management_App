@@ -398,17 +398,18 @@ setupHistoryTitles();
 
 async function loadHistory(fromISO, toISO) {
   const SENSOR_ID = document.documentElement.dataset.deviceId;
+  const GATEWAY_ID = document.documentElement.dataset.gatewayId;
   const params = new URLSearchParams();
-  if (fromISO) params.set('from', fromISO);
-  if (toISO)   params.set('to',   toISO);
-  const res = await fetch(`/manage-sensors/monitoring/${encodeURIComponent(SENSOR_ID)}/history?` + params.toString());
+  if (fromISO) params.set('startDate', fromISO);
+  if (toISO)   params.set('endDate',   toISO);
+  const res = await fetch(`/manage-sensors/monitoring/${encodeURIComponent(GATEWAY_ID)}/${encodeURIComponent(SENSOR_ID)}/history?` + params.toString());
   if (!res.ok) throw new Error("History fetch failed");
   const j = await res.json();
 
   const labels = (j.timestamps || []).map(t => { try { return new Date(t).toLocaleTimeString(); } catch { return t; } });
-  if (j.battery_pct) setSeries(histBattery, labels, j.battery_pct);
-  if (j.rssi_dbm)    setSeries(histRssi,    labels, j.rssi_dbm);
-  if (j.snr_db)      setSeries(histSnr,     labels, j.snr_db);
+  if (j.data.LAST_BATTERY_PERCENTAGE_VALUE) setSeries(histBattery, labels, j.data.LAST_BATTERY_PERCENTAGE_VALUE);
+  if (j.data.RSSI)                          setSeries(histRssi,    labels, j.data.RSSI);
+  if (j.data.SNR)                           setSeries(histSnr,     labels, j.data.SNR);
 
   if (j.metrics?.A && histMetricA) {
     document.getElementById("histMetricA-title").textContent = j.metrics.A.label || document.getElementById("histMetricA-title").textContent;

@@ -30,6 +30,7 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -376,7 +377,28 @@ public class SensorController {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error fetching sensor data", e);
         }
     }
+
+    @GetMapping(value = "/manage-sensors/monitoring/{idGateway}/{idSensor}/history")
+    @ResponseBody
+    public Map<String, Object> getSensorHistory(
+            @PathVariable String idGateway,
+            @PathVariable String idSensor,
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date endDate) {
+        
+        Map<PayloadValueType, LinkedHashMap<LocalDateTime, String>> dataGroupedByValueType = sensorService.findSensorDataByPeriod(idSensor, startDate, endDate);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("idSensor", idSensor);
+        response.put("idGateway", idGateway);
+        response.put("startDate", startDate != null ? startDate : "beginning");
+        response.put("endDate", endDate != null ? endDate : "now");
+        response.put("data", dataGroupedByValueType);
+        return response;
+    }
+
     
+   
 
     /* ===================== PRIVÉS ===================== */
 

@@ -25,8 +25,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -168,6 +168,35 @@ public class SensorService {
         }
         return timeToStringValueMap;
     }
+
+    public Map<PayloadValueType, LinkedHashMap<LocalDateTime, String>> findSensorDataByPeriod(String idSensor, Date startDate, Date endDate) {
+        List<SensorData> allSensorDatas = sensorDataDao.findSensorDataByPeriod(idSensor, startDate, endDate);
+        /*
+          // Prepare a javascript object that looks like this:
+          {
+            "TEMPERATURE": [
+              "2025-11-17T13:21:06.841481": 123
+              "2025-11-18T13:21:06.841481": 456
+            ],
+            "RSSI": [
+              "2025-11-17T13:21:06.841481": 123
+              "2025-11-18T13:21:06.841481": 456
+            ],
+          }
+        */
+        
+        // Group data by value_type
+        Map<PayloadValueType, LinkedHashMap<LocalDateTime, String>> groupedData = new LinkedHashMap<>();
+        
+        // Each group contains a LinkedHashMap for the value_type
+        for (SensorData data : allSensorDatas) {
+            groupedData.computeIfAbsent(data.getValueType(), k -> new LinkedHashMap<>())
+                       .put(data.getReceivedAt(), data.getValueAsString());
+        }
+        
+        return groupedData;
+    }
+
 
     /* ===================== CREATE ===================== */
 
