@@ -76,6 +76,11 @@ public class SensorService {
                 .accept(MediaType.TEXT_EVENT_STREAM)
                 .retrieve()
                 .bodyToFlux(String.class)
+                .timeout(java.time.Duration.ofSeconds(120))
+                .onErrorResume(java.util.concurrent.TimeoutException.class, e -> {
+                    log.warn("[Sensor] SSE timeout for appId={}: {}", appId, e.getMessage());
+                    return Flux.empty(); // Return an empty Flux to quietly ignore the timeout
+                })
                 .doOnError(err -> {
                     log.error("[Sensor] SSE error appId={}: {}", appId, err.getMessage(), err);
                 });

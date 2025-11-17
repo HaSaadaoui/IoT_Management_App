@@ -201,7 +201,7 @@ public class SensorSyncService {
 
     public int syncGateway(String gatewayId) {
         int syncCount = syncSensorsFromTTN(gatewayId);
-        syncSensorsData(gatewayId);
+        syncSensorsData(gatewayId, null);
         return syncCount;
     }
 
@@ -212,69 +212,42 @@ public class SensorSyncService {
      * et insère les données de capteur résultantes dans la base de données. La fonction est exécuté une seule fois.
      *
      * @param gatewayId L'identifiant de la gateway pour laquelle synchroniser les données.
-     */
-    @Transactional
-    public void syncSensorsData(String gatewayId) {
-        // Fetch latest data from monitoring API
-        final String appId;
-        if (gatewayId.toLowerCase().contains("leva-rpi")) {
-            appId = "lorawan-network-mantu";
-        } else if (gatewayId.contains("lil")) {
-            appId = "lil-rpi-mantu-appli";
-        } else if (gatewayId.contains("rpi")) {
-            appId = "rpi-mantu-appli";
-        } else {
-            appId = gatewayId + "-mantu-appli";
-        }
-
-        sensorService.getGatewayDevices(appId, null)
-        .takeWhile(json -> !"".equalsIgnoreCase(json))
-        .map(
-            (String json) -> {
-                try {
-                    storeDataFromPayload(json, appId);
-                    return true;
-                } catch (Exception e) {
-                    log.error("[SensorSync] Error inserting sensor data: {}", e.getMessage(), e);
-                }
-                return false;
-            }
-        ).subscribe();
-    }
-
-    /**
-     * Récupère les données de monitoring d'une gateway et les enregistre dans la base de données.
-     * Cette méthode s'abonne à un flux SSE de données de monitoring, décode chaque payload
-     * et insère les données de capteur résultantes dans la base de données.
-     *
-     * @param gatewayId L'identifiant de la gateway pour laquelle synchroniser les données.
-     * @param after     Timestamp pour ne récupérer que les données après ce moment.
+     * @param after Timestamp pour ne récupérer que les données après ce moment. S'il est égal à null, le comportement par défaut s'appliquera.
      */
     @Transactional
     public void syncSensorsData(String gatewayId, Instant after) {
-        // Fetch latest data from monitoring API
-        final String appId;
-        if (gatewayId.toLowerCase().contains("leva-rpi")) {
-            appId = "lorawan-network-mantu";
-        } else if (gatewayId.contains("lil")) {
-            appId = "lil-rpi-mantu-appli";
-        } else if (gatewayId.contains("rpi")) {
-            appId = "rpi-mantu-appli";
-        } else {
-            appId = gatewayId + "-mantu-appli";
-        }
+        try {
+            // Fetch latest data from monitoring API
+            final String appId;
+            if (gatewayId.toLowerCase().contains("leva-rpi")) {
+                appId = "lorawan-network-mantu";
+            } else if (gatewayId.contains("lil")) {
+                appId = "lil-rpi-mantu-appli";
+            } else if (gatewayId.contains("rpi")) {
+                appId = "rpi-mantu-appli";
+            } else {
+                appId = gatewayId + "-mantu-appli";
+            }
 
-        sensorService.getGatewayDevices(appId, after)
-            .takeWhile(json -> !"".equalsIgnoreCase(json))
-            .map(json -> {
-                try {
-                    storeDataFromPayload(json, appId);
-                    return true;
-                } catch (Exception e) {
-                    log.error("[SensorSync] Error inserting sensor data: {}", e.getMessage(), e);
-                    return false;
-                }
-            }).subscribe();
+            sensorService.getGatewayDevices(appId, after)
+                    .takeWhile(json -> {
+                        var val = !"".equalsIgnoreCase(json);
+                        return val;
+                    })
+                    .map(
+                            (String json) -> {
+                                try {
+                                    storeDataFromPayload(json, appId);
+                                    return true;
+                                } catch (Exception e) {
+                                    log.error("[SensorSync] Error inserting sensor data: {}", e.getMessage(), e);
+                                }
+                                return false;
+                            })
+                    .subscribe();
+        } catch (Exception e) {
+            log.error("[SensorSync] Error syncing sensors data: {}", e.getMessage(), e);
+        }
     }
 
     /**
@@ -296,7 +269,7 @@ public class SensorSyncService {
                 boolean isInitialSync = !initialSyncCompleted.get(gatewayId).getAndSet(true);
                 if (isInitialSync) {
                     log.info("[SensorSync] Performing initial full data sync for gateway: {}", gatewayId);
-                    syncSensorsData(gatewayId);
+                    syncSensorsData(gatewayId, null);
                 }
                 else {
                     Instant after = Instant.now().minus(
@@ -339,10 +312,16 @@ public class SensorSyncService {
     public void initPeriodicSyncs() {
         log.info("[SensorSync] Initializing periodic syncs for all active gateways...");
         List<Gateway> allGateways = gatewayService.getAllGateways();
-        for (Gateway gateway : allGateways) {
-            startPeriodicSync(gateway.getGatewayId());
+        try {
+            for (Gateway gateway : allGateways) {
+                startPeriodicSync(gateway.getGatewayId());
+            }
+            log.info("[SensorSync] Finished initializing periodic syncs. {} tasks scheduled.", allGateways.size());
+        } catch (Exception e) {
+            log.error("[SensorSync] Error initializing periodic syncs: {}", e.getMessage(), e);
+            // Log the number of gateways found, even if scheduling failed for some.
+            log.info("[SensorSync] Found {} gateways but failed to schedule all tasks.", allGateways.size());
         }
-        log.info("[SensorSync] Finished initializing periodic syncs. {} tasks scheduled.", allGateways.size());
     }
 
     @PreDestroy
