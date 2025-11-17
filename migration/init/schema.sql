@@ -125,4 +125,6 @@ CREATE TABLE sensor_data (
     ) NOT NULL,
     FOREIGN KEY (id_sensor) REFERENCES Sensors(id_sensor) ON DELETE CASCADE,
     CONSTRAINT unique_id_received_at UNIQUE (id_sensor, received_at, value_type)
-);
+); 
+
+CREATE INDEX idx_received_at ON sensor_data (received_at);
