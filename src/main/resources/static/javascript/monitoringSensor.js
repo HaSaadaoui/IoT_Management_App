@@ -108,6 +108,58 @@ const sCountIn   = el("#s-count-in");
 const sCountOut  = el("#s-count-out");
 const sGenBatt   = el("#s-gen-batt");
 
+// Map metric names to backend names
+// See: src/main/java/com/amaris/sensorprocessor/entity/PayloadValueType.java
+const DEVICE_TYPE_METRICS = {
+  "COUNT": [
+    "BATTERY",
+    "PERIOD_IN",
+    "PERIOD_OUT",
+  ],
+  "CO2": [
+    "CO2",
+    "TEMPERATURE",
+    "HUMIDITY",
+    "VDD",
+    "LIGHT",
+    "MOTION",
+  ],
+  "OCCUP": [
+    "PRESENCE",
+    "LIGHT",
+    "BATTERY",
+  ],
+  "TEMPEX": [
+    "TEMPERATURE",
+    "HUMIDITY",
+  ],
+  "PIR_LIGHT": [
+    "PRESENCE",
+    "LIGHT",
+    "BATTERY",
+  ],
+  "EYE": [
+    "TEMPERATURE",
+    "HUMIDITY",
+    "LIGHT",
+    "MOTION",
+    "PRESENCE", "OCCUPANCY", // TODO: Double check that
+    "VDD",
+  ],
+  "SON": [
+    "LAI",
+    "LAI_MAX",
+    "LAEQ",
+    "BATTERY",
+  ],
+  "DESK": [
+    "PRESENCE", "OCCUPANCY",
+    "TEMPERATURE",
+    "HUMIDITY",
+    "VDD",
+  ]
+};
+
 // ====== SSE ======
 let es = null;
 let LIVE_MODE = true;
@@ -411,13 +463,26 @@ async function loadHistory(fromISO, toISO) {
   if (j.data.RSSI)                          setSeries(histRssi,    labels, j.data.RSSI);
   if (j.data.SNR)                           setSeries(histSnr,     labels, j.data.SNR);
 
-  if (j.metrics?.A && histMetricA) {
-    document.getElementById("histMetricA-title").textContent = j.metrics.A.label || document.getElementById("histMetricA-title").textContent;
-    setSeries(histMetricA, labels, j.metrics.A.values || []);
+  // if (j.metrics?.A && histMetricA) {
+  //   document.getElementById("histMetricA-title").textContent = j.metrics.A.label || document.getElementById("histMetricA-title").textContent;
+  //   setSeries(histMetricA, labels, j.metrics.A.values || []);
+  // }
+  // if (j.metrics?.B && histMetricB) {
+  //   document.getElementById("histMetricB-title").textContent = j.metrics.B.label || document.getElementById("histMetricB-title").textContent;
+  //   setSeries(histMetricB, labels, j.metrics.B.values || []);
+  // }
+
+  const devType = (document.documentElement.dataset.devType || '').toUpperCase();
+  const metrics = DEVICE_TYPE_METRICS[devType];
+
+  if (metrics[0] && histMetricA) {
+    document.getElementById("histMetricA-title").textContent = metrics[0];
+    setSeries(histMetricA, labels, j.data[metrics[0]]);
   }
-  if (j.metrics?.B && histMetricB) {
-    document.getElementById("histMetricB-title").textContent = j.metrics.B.label || document.getElementById("histMetricB-title").textContent;
-    setSeries(histMetricB, labels, j.metrics.B.values || []);
+
+  if (metrics[1] && histMetricB) {
+    document.getElementById("histMetricB-title").textContent = metrics[1];
+    setSeries(histMetricB, labels, j.data[metrics[1]]);
   }
 
   // Update KPI cards
@@ -517,5 +582,19 @@ document.getElementById('hist-load')?.addEventListener('click', async () => {
   }
 });
 
+async function initializePage() {
+  const to = new Date();
+  const from = new Date(to.getTime() - (24 * 60 * 60 * 1000)); // Last 24 hours
+  try {
+    await loadHistory(from.toISOString(), to.toISOString());
+  } catch (e) {
+    console.error("Failed to load initial history:", e);
+    // Silently fail or show a non-blocking notification
+  }
+}
+
 // Boot
-showPane('live');
+document.addEventListener('DOMContentLoaded', () => {
+  showPane('live');
+  setTimeout(() => initializePage(), 100)
+});
