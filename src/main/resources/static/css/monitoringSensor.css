@@ -64,9 +64,9 @@ body {
 }
 
 main {
-    max-width: 1400px;
+    max-width: 1100px;
     margin: 2rem auto;
-    padding: 0 1.5rem 3rem;
+    padding: 1rem;
 }
 
 /* ===== ONGLETS MODERNES ===== */
@@ -129,9 +129,27 @@ main {
 /* ===== GRILLE RESPONSIVE ===== */
 .info-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 1.25rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
     margin-bottom: 2rem;
+}
+
+@media (max-width: 1200px) {
+    .info-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .info-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ===== CARDS MODERNES ===== */
@@ -170,7 +188,7 @@ main {
     margin: 0;
     font-size: 0.95rem;
     color: #666;
-    text-transform: capitalize;
+    /*text-transform: capitalize;*/
     font-weight: normal;
 }
 
@@ -212,6 +230,10 @@ main {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310b981'%3E%3Cpath d='M2 20h4V10H2v10zm6 0h4V4H8v16zm6 0h4v-6h-4v6zm6-10v10h4V10h-4z'/%3E%3C/svg%3E");
 }
 
+.icon-distance::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f59e0b'%3E%3Cpath d='M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z'/%3E%3C/svg%3E");
+}
+
 /* ===== BADGES MODERNES ===== */
 .badge {
     display: inline-flex;
@@ -247,8 +269,8 @@ main {
     gap: 0.5rem;
     padding: 0.5rem 1rem;
     border-radius: 12px;
-    font-weight: 700;
-    font-size: 1rem;
+    font-weight: 600;
+    font-size: 0.95rem;
     border: 2px solid;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -311,18 +333,18 @@ main {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.75rem 1.25rem;
-    border-radius: 16px;
-    font-weight: 700;
-    font-size: 1.5rem;
-    border: 3px solid;
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: 2px solid;
     transition: all 0.3s;
     position: relative;
 }
 
 .co2-badge::before {
     content: '🌱';
-    font-size: 1.5rem;
+    font-size: 1rem;
 }
 
 .co2--good {
@@ -363,17 +385,17 @@ main {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.75rem 1.25rem;
-    border-radius: 16px;
-    font-weight: 700;
-    font-size: 1.25rem;
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.95rem;
     border: 2px solid;
     transition: all 0.3s;
 }
 
 .temp-badge::before {
     content: '🌡️';
-    font-size: 1.5rem;
+    font-size: 1rem;
 }
 
 .temp--cold {
@@ -398,6 +420,67 @@ main {
     background: linear-gradient(135deg, #fecaca, #fca5a5);
     color: #991b1b;
     border-color: var(--temp-hot);
+}
+
+/* ===== HUMIDITY BADGE AVEC COULEURS DYNAMIQUES ===== */
+.humidity-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+    font-weight: 600;
+    border: 2px solid;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+}
+
+.humidity--low {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #92400e;
+    border-color: #f59e0b;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+}
+
+.humidity--low::before {
+    content: '🏜️';
+    font-size: 1rem;
+}
+
+.humidity--normal {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #065f46;
+    border-color: #10b981;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.humidity--normal::before {
+    content: '💧';
+    font-size: 1rem;
+}
+
+.humidity--high {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: #1e40af;
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.humidity--high::before {
+    content: '💦';
+    font-size: 1rem;
+}
+
+.humidity--veryhigh {
+    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+    color: #3730a3;
+    border-color: #6366f1;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.humidity--veryhigh::before {
+    content: '🌊';
+    font-size: 1rem;
 }
 
 /* ===== SECTION TITLES ===== */
@@ -678,11 +761,11 @@ main {
 
 .chart-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     margin-bottom: 1rem;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    gap: 1.5rem;
 }
 
 .chart-header h4 {
@@ -690,6 +773,7 @@ main {
     color: var(--text-primary);
     font-size: 1rem;
     font-weight: 600;
+    min-width: 200px;
 }
 
 .chart-controls {
@@ -765,6 +849,7 @@ main {
     height: 200px;
     width: 100%;
     margin-top: 1rem;
+    padding-right: 20px; /* Espace pour les valeurs de l'axe Y */
 }
 
 .realtime-charts .chart-container canvas {
@@ -885,63 +970,7 @@ main {
     margin: 2rem 0;
 }
 
-.info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-    margin: 2rem 0;
-}
-
-/* Ensure all cards have uniform size and layout */
-.info-grid .card {
-    max-height: 116px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
-
-/* Specific height for Status section (first info-grid) */
-.info-grid:first-of-type .card {
-    max-height: 116px;
-}
-
-/* Uniform card title styling */
-.info-grid .card h4 {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    line-height: 1.2;
-    min-height: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-/* Uniform card content styling */
-.info-grid .card p {
-    margin: 0;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    flex: 1;
-}
-
-/* Ensure badges have consistent sizing */
-.info-grid .card .badge,
-.info-grid .card .co2-badge,
-.info-grid .card .temp-badge,
-.info-grid .card .battery-badge {
-    font-size: 1rem;
-    font-weight: 600;
-    min-height: 2rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    white-space: nowrap;
-}
+/* Duplicate .info-grid removed - using the one at line 130 */
 
 .kpi-card {
     background: white;
@@ -1375,14 +1404,7 @@ canvas {
     border-bottom-color: var(--primary-light);
 }
 
-/* Réduire la taille pour les cartes d'info statiques */
-.info-grid .card p {
-    font-size: 1.25rem;
-}
-
-.info-grid .card p .badge {
-    font-size: 0.95rem;
-}
+/* Removed - using base card styles from line 156 */
 
 /* ===== STATUS INDICATOR ===== */
 .status-indicator {
@@ -1490,28 +1512,7 @@ canvas {
         font-size: 0.9rem;
     }
     
-    /* Uniform card sizing on tablet */
-    .info-grid .card {
-        min-height: 100px;
-    }
-    
-    /* Specific height for Status section on tablet */
-    .info-grid:first-of-type .card {
-        min-height: 122.4px;
-    }
-    
-    .info-grid .card h4 {
-        font-size: 0.8rem;
-        min-height: 1.2rem;
-    }
-    
-    .info-grid .card .badge,
-    .info-grid .card .co2-badge,
-    .info-grid .card .temp-badge,
-    .info-grid .card .battery-badge {
-        font-size: 0.9rem;
-        min-height: 1.8rem;
-    }
+    /* Removed tablet card overrides - using base styles */
 }
 
 @media (max-width: 480px) {
@@ -1589,36 +1590,7 @@ canvas {
         font-size: 0.75rem;
     }
     
-    /* Uniform card sizing on mobile */
-    .info-grid {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1rem;
-    }
-    
-    .info-grid .card {
-        min-height: 90px;
-        padding: 1rem;
-    }
-    
-    /* Specific height for Status section on mobile */
-    .info-grid:first-of-type .card {
-        min-height: 122.4px;
-    }
-    
-    .info-grid .card h4 {
-        font-size: 0.75rem;
-        min-height: 1rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .info-grid .card .badge,
-    .info-grid .card .co2-badge,
-    .info-grid .card .temp-badge,
-    .info-grid .card .battery-badge {
-        font-size: 0.8rem;
-        min-height: 1.5rem;
-        padding: 0.25rem 0.5rem;
-    }
+    /* Removed mobile card overrides - using base styles and media queries from line 137-153 */
 }
 
 /* Smaller badges for SF/BW/Freq display */
@@ -1635,12 +1607,14 @@ canvas {
     flex-direction: column;
     gap: 0.5rem;
     margin-top: 0.4rem;
+    margin-left: 0px;
 }
 
 .labeled-values .value-line {
     display: flex;
-    justify-content: space-between;
+    flex-direction: row;
     align-items: center;
+    gap: 0.5rem;
     font-size: 0.9rem;
     font-weight: 500;
     color: #555;
@@ -1651,4 +1625,5 @@ canvas {
     font-size: 0.8rem;
     padding: 0.2rem 0.5rem;
     min-width: auto;
+    align-self: flex-start;
 }

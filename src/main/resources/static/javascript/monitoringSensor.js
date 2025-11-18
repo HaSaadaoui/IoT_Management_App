@@ -79,6 +79,27 @@ function updateTempBadge(selector, temp) {
   node.textContent = t.toFixed(1) + ' °C';
 }
 
+// --- Humidity helper (couleur selon humidité)
+function updateHumidityBadge(selector, humidity) {
+  const node = typeof selector === 'string' ? el(selector) : selector;
+  if (!node) return;
+  node.classList.remove('humidity--low','humidity--normal','humidity--high','humidity--veryhigh');
+
+  if (humidity == null || Number.isNaN(Number(humidity))) {
+    node.classList.add('humidity--normal');
+    node.textContent = '-- %';
+    return;
+  }
+  const h = Math.round(Number(humidity));
+  let cls = 'humidity--normal';
+  if (h < 30) cls = 'humidity--low';        // Trop sec
+  else if (h > 70) cls = 'humidity--veryhigh'; // Trop humide
+  else if (h > 60) cls = 'humidity--high';     // Un peu humide
+
+  node.classList.add(cls);
+  node.textContent = h + ' %';
+}
+
 // ===== Leaflet (optionnel) =====
 const mapEl = document.getElementById('map');
 let map = null, sensorMarker = null;
@@ -271,13 +292,13 @@ function startSSE() {
 
       switch (PROF) {
         case 'COUNT':
-          if (typeof p['battery (%)'] === 'number' && el('#s-count-batt')) updateBatteryBadge('#s-count-batt', p['battery (%)']);
+          if (typeof p['battery'] === 'number' && el('#s-count-batt')) updateBatteryBadge('#s-count-batt', p['battery']);
           if (p['period_in']  != null && el('#s-count-in'))  setText('#s-count-in',  p['period_in']);
           if (p['period_out'] != null && el('#s-count-out')) setText('#s-count-out', p['period_out']);
           break;
         case 'TEMPEX':
           if (typeof p['temperature (°C)'] === 'number' && el('#s-tempex-temp')) updateTempBadge('#s-tempex-temp', p['temperature (°C)']);
-          if (typeof p['humidity (%)']     === 'number' && el('#s-tempex-hum'))  setText('#s-tempex-hum',  fmt.hum(p['humidity (%)']));
+          if (typeof p['humidity (%)']     === 'number' && el('#s-tempex-hum'))  updateHumidityBadge('#s-tempex-hum', p['humidity (%)']);
           if (typeof p['battery (%)'] === 'number' && el('#s-tempex-batt')) updateBatteryBadge('#s-tempex-batt', p['battery (%)']);
           break;
         case 'SON':
@@ -289,7 +310,7 @@ function startSSE() {
         case 'CO2':
           if (typeof p['co2 (ppm)']        === 'number' && el('#s-co2-ppm'))  updateCO2Badge('#s-co2-ppm',  p['co2 (ppm)']);
           if (typeof p['temperature (°C)'] === 'number' && el('#s-co2-temp')) updateTempBadge('#s-co2-temp', p['temperature (°C)']);
-          if (typeof p['humidity (%)']     === 'number' && el('#s-co2-hum'))  setText('#s-co2-hum',  fmt.hum(p['humidity (%)']));
+          if (typeof p['humidity (%)']     === 'number' && el('#s-co2-hum'))  updateHumidityBadge('#s-co2-hum', p['humidity (%)']);
           // VDD → Battery %
           if (typeof p['vdd (v)']  === 'number') {
             const vddMv = Math.round(p['vdd (v)'] * 1000);
@@ -309,7 +330,7 @@ function startSSE() {
           break;
         case 'EYE':
           if (typeof p['temperature (°C)'] === 'number' && el('#s-eye-temp')) updateTempBadge('#s-eye-temp', p['temperature (°C)']);
-          if (typeof p['humidity (%)'] === 'number' && el('#s-eye-hum'))      setText('#s-eye-hum',  fmt.hum(p['humidity (%)']));
+          if (typeof p['humidity (%)'] === 'number' && el('#s-eye-hum'))      updateHumidityBadge('#s-eye-hum', p['humidity (%)']);
           if (p.light != null && el('#s-eye-light')) setText('#s-eye-light', p.light);
           if (p.presence != null && el('#s-eye-presence')) setText('#s-eye-presence', p.presence);
           // VDD → Battery %
@@ -337,7 +358,7 @@ function startSSE() {
             }
           }
           if (typeof p['temperature (°C)'] === 'number' && el('#s-desk-temp')) updateTempBadge('#s-desk-temp', p['temperature (°C)']);
-          if (typeof p['humidity (%)']     === 'number' && el('#s-desk-hum'))  setText('#s-desk-hum',  fmt.hum(p['humidity (%)']));
+          if (typeof p['humidity (%)']     === 'number' && el('#s-desk-hum'))  updateHumidityBadge('#s-desk-hum', p['humidity (%)']);
           // VDD → Battery %
           if (typeof p['vdd (mV)'] === 'number') {
             const battPct = vddToBatteryPercent(p['vdd (mV)']);
@@ -407,14 +428,14 @@ function setupHistoryTitles() {
   const B = document.getElementById("histMetricB-title");
   if (!A || !B) return;
   switch (devType) {
-    case 'CO2':       A.textContent = "CO₂ (ppm)";       B.textContent = "Température (°C)"; break;
-    case 'DESK':      A.textContent = "Occupancy";       B.textContent = "Température (°C)"; break;
+    case 'CO2':       A.textContent = "CO₂ (ppm)";       B.textContent = "Temperature (°C)"; break;
+    case 'DESK':      A.textContent = "Occupancy";       B.textContent = "Temperature (°C)"; break;
     case 'EYE':
-    case 'TEMPEX':    A.textContent = "Température (°C)"; B.textContent = "Humidité (%)";     break;
+    case 'TEMPEX':    A.textContent = "Temperature (°C)"; B.textContent = "Humidity (%)";     break;
     case 'SON':       A.textContent = "LAeq (dB)";       B.textContent = "LAI (dB)";         break;
-    case 'PIR_LIGHT': A.textContent = "Présence";        B.textContent = "Lumière (lux)";    break;
-    case 'OCCUP':     A.textContent = "Présence";        B.textContent = "Illuminance";      break;
-    case 'COUNT':     A.textContent = "period_in";       B.textContent = "period_out";       break;
+    case 'PIR_LIGHT': A.textContent = "Presence";        B.textContent = "Light (lux)";      break;
+    case 'OCCUP':     A.textContent = "Occupancy";       B.textContent = "Distance (mm)";    break;
+    case 'COUNT':     A.textContent = "Period IN";       B.textContent = "Period OUT";       break;
     default:          A.textContent = "Metric A";        B.textContent = "Metric B";
   }
 }
@@ -546,10 +567,10 @@ function updateEnergyConsumption(data) {
   
   // Groupes de canaux selon votre spécification
   const channelGroups = {
-    'red-outlets': { channels: [0, 1, 2], name: '🔴 Prises rouges', color: '#ef4444' },
-    'white-outlets': { channels: [3, 4, 5], name: '⚪ Prises blanches & éclairage', color: '#64748b' },
-    'ventilation': { channels: [6, 7, 8], name: '🌬️ Ventilation & convecteurs', color: '#3b82f6' },
-    'other': { channels: [9, 10, 11], name: '🔧 Autres circuits', color: '#f59e0b' }
+    'red-outlets': { channels: [0, 1, 2], name: '🔴 Red Outlets', color: '#ef4444' },
+    'white-outlets': { channels: [3, 4, 5], name: '⚪ White Outlets & Lighting', color: '#64748b' },
+    'ventilation': { channels: [6, 7, 8], name: '🌬️ Ventilation & Heaters', color: '#3b82f6' },
+    'other': { channels: [9, 10, 11], name: '🔧 Other Circuits', color: '#f59e0b' }
   };
 
   let totalConsumption = 0;
@@ -574,7 +595,7 @@ function updateEnergyConsumption(data) {
       if (channelEl) {
         channelEl.innerHTML = `
           <div class="energy-channel-header">
-            <span class="channel-number">Canal ${channel}</span>
+            <span class="channel-number">Channel ${channel}</span>
             <span class="channel-uuid">${channelData.uuid || ''}</span>
           </div>
           <div class="energy-value">
@@ -605,7 +626,7 @@ function updateEnergyConsumption(data) {
       groupEl.innerHTML = `
         <div class="energy-group-header">
           <span class="group-name">${group.name}</span>
-          <span class="group-channels">Canaux ${group.channels.join(', ')}</span>
+          <span class="group-channels">Channels ${group.channels.join(', ')}</span>
         </div>
         <div class="energy-group-values">
           <div class="wh-value">${formatEnergyValue(groupTotal)} Wh</div>
@@ -624,9 +645,8 @@ function updateEnergyConsumption(data) {
     const totalKWh = (totalConsumption / 1000).toFixed(2);
     totalEl.innerHTML = `
       <div class="total-consumption">
-        <div class="total-label">Consommation Totale</div>
+        <div class="total-label">Total Consumption</div>
         <div class="total-values">
-          <div class="total-wh">${formatEnergyValue(totalConsumption)} Wh</div>
           <div class="total-kwh">${totalKWh} kWh</div>
         </div>
       </div>
@@ -646,11 +666,14 @@ function formatEnergyValue(value) {
   return value.toLocaleString();
 }
 
+// Variable globale pour le graphique doughnut
+let energyDoughnutChart = null;
+
 function updateEnergyChart(groups, data) {
   const chartEl = el('#energy-chart');
   if (!chartEl) return;
 
-  // Données pour le graphique en barres
+  // Données pour le graphique doughnut
   const groupData = Object.entries(groups).map(([groupId, group]) => {
     let total = 0;
     group.channels.forEach(channel => {
@@ -661,32 +684,84 @@ function updateEnergyChart(groups, data) {
     });
     return {
       name: group.name,
-      value: total,
+      value: total / 1000, // Convertir en kWh
       color: group.color
     };
   });
 
-  // Création/mise à jour du graphique simple avec CSS
-  chartEl.innerHTML = groupData.map(item => {
-    const maxValue = Math.max(...groupData.map(g => g.value));
-    const percentage = maxValue > 0 ? (item.value / maxValue) * 100 : 0;
-    
-    return `
-      <div class="chart-bar">
-        <div class="bar-label">${item.name}</div>
-        <div class="bar-container">
-          <div class="bar-fill" style="width: ${percentage}%; background-color: ${item.color}"></div>
-          <span class="bar-value">${(item.value / 1000).toFixed(1)} kWh</span>
-        </div>
-      </div>
-    `;
-  }).join('');
+  // Si le canvas n'existe pas, le créer
+  let canvas = chartEl.querySelector('canvas');
+  if (!canvas) {
+    chartEl.innerHTML = '<canvas id="energy-doughnut-canvas"></canvas>';
+    canvas = chartEl.querySelector('canvas');
+  }
+
+  // Créer ou mettre à jour le graphique doughnut
+  if (!energyDoughnutChart) {
+    const ctx = canvas.getContext('2d');
+    energyDoughnutChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: groupData.map(g => g.name),
+        datasets: [{
+          data: groupData.map(g => g.value),
+          backgroundColor: groupData.map(g => g.color),
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              font: {
+                size: 12,
+                weight: '500'
+              },
+              generateLabels: function(chart) {
+                const data = chart.data;
+                return data.labels.map((label, i) => {
+                  const value = data.datasets[0].data[i];
+                  return {
+                    text: `${label}: ${value.toFixed(1)} kWh`,
+                    fillStyle: data.datasets[0].backgroundColor[i],
+                    hidden: false,
+                    index: i
+                  };
+                });
+              }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed || 0;
+                return `${label}: ${value.toFixed(2)} kWh`;
+              }
+            }
+          }
+        }
+      }
+    });
+  } else {
+    // Mettre à jour les données existantes
+    energyDoughnutChart.data.labels = groupData.map(g => g.name);
+    energyDoughnutChart.data.datasets[0].data = groupData.map(g => g.value);
+    energyDoughnutChart.data.datasets[0].backgroundColor = groupData.map(g => g.color);
+    energyDoughnutChart.update('none');
+  }
 }
 
 // ===== Real-time Charts =====
 let realtimeCharts = {
   main: null,
   secondary: null,
+  humidity: null,
   rssi: null,
   snr: null,
   battery: null
@@ -695,10 +770,46 @@ let realtimeCharts = {
 let chartData = {
   main: { labels: [], data: [] },
   secondary: { labels: [], data: [] },
+  humidity: { labels: [], data: [] },
   rssi: { labels: [], data: [] },
   snr: { labels: [], data: [] },
-  battery: { labels: [], data: [] }
+  battery: { labels: [], data: [] },
+  // Pour ENERGY/CONSO - 3 datasets
+  powerUsage: {
+    labels: [],
+    red: [],
+    white: [],
+    ventilation: []
+  }
 };
+
+// Fonction pour mettre à jour le graphique Power Usage avec 3 groupes
+function updatePowerUsageChart(timestamp, values) {
+  if (chartsPaused || !realtimeCharts.secondary) return;
+  
+  const data = chartData.powerUsage;
+  
+  // Ajouter les nouvelles valeurs
+  data.labels.push(timestamp);
+  data.red.push(values.red);
+  data.white.push(values.white);
+  data.ventilation.push(values.ventilation);
+  
+  // Limiter le nombre de points
+  if (data.labels.length > MAX_CHART_POINTS) {
+    data.labels.shift();
+    data.red.shift();
+    data.white.shift();
+    data.ventilation.shift();
+  }
+  
+  // Mettre à jour le graphique
+  realtimeCharts.secondary.data.labels = data.labels;
+  realtimeCharts.secondary.data.datasets[0].data = data.red;
+  realtimeCharts.secondary.data.datasets[1].data = data.white;
+  realtimeCharts.secondary.data.datasets[2].data = data.ventilation;
+  realtimeCharts.secondary.update('none');
+}
 
 let chartsPaused = false;
 const MAX_CHART_POINTS = 50;
@@ -716,23 +827,27 @@ function initRealtimeCharts() {
   const chartConfigs = {
     'CO2': {
       main: { label: 'CO₂', color: '#ef4444', title: '🌬️ CO₂ Level', unit: 'ppm' },
-      secondary: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' }
+      secondary: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
+      humidity: { label: 'Humidity', color: '#10b981', title: '💧 Humidity', unit: '%' }
     },
     'TEMPEX': {
       main: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
-      secondary: { label: 'Humidity', color: '#3b82f6', title: '💧 Humidity', unit: '%' }
+      secondary: { label: 'Humidity', color: '#3b82f6', title: '💧 Humidity', unit: '%' },
+      humidity: { label: 'Humidity', color: '#10b981', title: '💧 Humidity', unit: '%' }
     },
     'DESK': {
       main: { label: 'Occupancy', color: '#10b981', title: '👤 Desk Occupancy', unit: 'Status' },
-      secondary: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' }
+      secondary: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
+      humidity: { label: 'Humidity', color: '#10b981', title: '💧 Humidity', unit: '%' }
     },
     'EYE': {
       main: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
-      secondary: { label: 'Humidity', color: '#3b82f6', title: '💧 Humidity', unit: '%' }
+      secondary: { label: 'Humidity', color: '#3b82f6', title: '💧 Humidity', unit: '%' },
+      humidity: { label: 'Humidity', color: '#10b981', title: '💧 Humidity', unit: '%' }
     },
     'OCCUP': {
       main: { label: 'Occupancy', color: '#10b981', title: '👤 Occupancy Status', unit: 'Status' },
-      secondary: { label: 'Illuminance', color: '#fbbf24', title: '💡 Light Level', unit: 'lux' }
+      secondary: { label: 'Distance', color: '#fbbf24', title: '📏 Distance', unit: 'mm' }
     },
     'PIR_LIGHT': {
       main: { label: 'Presence', color: '#10b981', title: '👤 Motion Detection', unit: 'Status' },
@@ -742,13 +857,17 @@ function initRealtimeCharts() {
       main: { label: 'Sound Level', color: '#8b5cf6', title: '🔊 Sound Level', unit: 'dB' },
       secondary: { label: 'Sound Impact', color: '#ec4899', title: '📢 Sound Impact', unit: 'dB' }
     },
+    'COUNT': {
+      main: { label: 'Period IN', color: '#10b981', title: '📥 Period IN', unit: 's' },
+      secondary: { label: 'Period OUT', color: '#ef4444', title: '📤 Period OUT', unit: 's' }
+    },
     'ENERGY': {
-      main: { label: 'Energy Consumption', color: '#f59e0b', title: '⚡ Energy Consumption', unit: 'kWh' },
-      secondary: { label: 'Power Usage', color: '#ef4444', title: '🔌 Power Usage', unit: 'W' }
+      main: { label: 'Consumption', color: '#f59e0b', title: '⚡ Energy Consumption', unit: 'kWh' },
+      secondary: { label: 'Consumption by Group', color: '#ef4444', title: '🔌 Consumption by Group', unit: 'kWh' }
     },
     'CONSO': {
-      main: { label: 'Energy Consumption', color: '#f59e0b', title: '⚡ Energy Consumption', unit: 'kWh' },
-      secondary: { label: 'Power Usage', color: '#ef4444', title: '🔌 Power Usage', unit: 'W' }
+      main: { label: 'Consumption', color: '#f59e0b', title: '⚡ Energy Consumption', unit: 'kWh' },
+      secondary: { label: 'Consumption by Group', color: '#ef4444', title: '🔌 Consumption by Group', unit: 'kWh' }
     }
   };
 
@@ -766,6 +885,7 @@ function initRealtimeCharts() {
   // Création des graphiques
   const mainCtx = el('#realtime-chart-main')?.getContext('2d');
   const secondaryCtx = el('#realtime-chart-secondary')?.getContext('2d');
+  const humidityCtx = el('#realtime-chart-humidity')?.getContext('2d');
   const rssiCtx = el('#realtime-chart-rssi')?.getContext('2d');
   const snrCtx = el('#realtime-chart-snr')?.getContext('2d');
 
@@ -774,7 +894,21 @@ function initRealtimeCharts() {
   }
   
   if (secondaryCtx) {
-    realtimeCharts.secondary = new Chart(secondaryCtx, createChartConfig(config.secondary.label, config.secondary.color, config.secondary.unit || ''));
+    // Pour ENERGY/CONSO, créer un graphique avec 3 datasets
+    if (devType === 'ENERGY' || devType === 'CONSO') {
+      realtimeCharts.secondary = new Chart(secondaryCtx, createEnergyPowerUsageChartConfig());
+    } else {
+      realtimeCharts.secondary = new Chart(secondaryCtx, createChartConfig(config.secondary.label, config.secondary.color, config.secondary.unit || ''));
+    }
+  }
+  
+  // Show and initialize humidity chart for sensors with humidity data
+  if (config.humidity && humidityCtx) {
+    const humidityContainer = el('#humidity-chart-container');
+    if (humidityContainer) {
+      humidityContainer.style.display = 'block';
+    }
+    realtimeCharts.humidity = new Chart(humidityCtx, createChartConfig(config.humidity.label, config.humidity.color, config.humidity.unit || ''));
   }
   
   if (rssiCtx) {
@@ -800,6 +934,53 @@ function initRealtimeCharts() {
   if (clearBtn) {
     clearBtn.addEventListener('click', clearAllCharts);
   }
+}
+
+function createEnergyPowerUsageChartConfig() {
+  const currentDate = new Date().toLocaleDateString('en-CA');
+  
+  return {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: '🔴 Red Outlets',
+          data: [],
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 2,
+          pointHoverRadius: 4,
+          borderWidth: 2
+        },
+        {
+          label: '⚪ White Outlets & Lighting',
+          data: [],
+          borderColor: '#64748b',
+          backgroundColor: 'rgba(100, 116, 139, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 2,
+          pointHoverRadius: 4,
+          borderWidth: 2
+        },
+        {
+          label: '🌬️ Ventilation & Heaters',
+          data: [],
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 2,
+          pointHoverRadius: 4,
+          borderWidth: 2
+        }
+      ]
+    },
+    options: getChartOptionsWithUnits('Consumption by Group', 'kWh', currentDate)
+  };
 }
 
 function createChartConfig(label, color, yAxisUnit = '') {
@@ -834,10 +1015,105 @@ function createChartConfig(label, color, yAxisUnit = '') {
 }
 
 function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate = '') {
+  // Déterminer l'échelle Y appropriée selon le type de métrique
+  let yAxisConfig = {
+    display: true,
+    title: {
+      display: yAxisLabel !== '',
+      text: yAxisLabel,
+      font: {
+        size: 14,
+        weight: 'bold'
+      }
+    },
+    grid: {
+      color: 'rgba(0,0,0,0.1)',
+      drawBorder: false
+    },
+    ticks: {
+      maxTicksLimit: 6,
+      font: {
+        size: 11
+      }
+    }
+  };
+  
+  // Configuration spécifique selon l'unité
+  switch(yAxisUnit) {
+    case 'ppm': // CO2
+      yAxisConfig.suggestedMin = 0;
+      yAxisConfig.suggestedMax = 2000;
+      break;
+    case '°C': // Température
+      yAxisConfig.suggestedMin = 15;
+      yAxisConfig.suggestedMax = 30;
+      break;
+    case '%': // Humidité ou Batterie
+      yAxisConfig.min = 0;
+      yAxisConfig.max = 100;
+      break;
+    case 'dBm': // RSSI
+      yAxisConfig.suggestedMin = -120;
+      yAxisConfig.suggestedMax = -30;
+      break;
+    case 'dB': // SNR ou Sound
+      if (yAxisLabel.includes('Sound') || yAxisLabel.includes('LAeq') || yAxisLabel.includes('LAI')) {
+        yAxisConfig.suggestedMin = 0;
+        yAxisConfig.suggestedMax = 100;
+      } else {
+        yAxisConfig.suggestedMin = -10;
+        yAxisConfig.suggestedMax = 15;
+      }
+      break;
+    case 'lux': // Lumière
+      yAxisConfig.suggestedMin = 0;
+      yAxisConfig.suggestedMax = 1000;
+      break;
+    case 'kWh': // Énergie
+      yAxisConfig.beginAtZero = true;
+      yAxisConfig.grace = '10%'; // Ajoute 10% d'espace au-dessus de la valeur max
+      break;
+    case 'W': // Puissance
+      yAxisConfig.beginAtZero = true;
+      yAxisConfig.grace = '10%';
+      break;
+    case 'Status': // Présence/Occupancy (0 ou 1)
+      yAxisConfig.min = 0;
+      yAxisConfig.max = 1;
+      yAxisConfig.ticks = {
+        ...yAxisConfig.ticks,
+        stepSize: 1,
+        callback: function(value) {
+          return value === 1 ? 'Occupied' : (value === 0 ? 'Free' : '');
+        }
+      };
+      break;
+    case 'Level': // Daylight level
+      yAxisConfig.suggestedMin = 0;
+      yAxisConfig.suggestedMax = 10;
+      break;
+    case 's': // Secondes (Period IN/OUT)
+      yAxisConfig.beginAtZero = true;
+      yAxisConfig.grace = '10%';
+      break;
+    case 'mm': // Millimètres (Distance OCCUP)
+      yAxisConfig.beginAtZero = true;
+      yAxisConfig.grace = '10%';
+      break;
+    default:
+      // Échelle automatique pour les autres cas
+      yAxisConfig.beginAtZero = false;
+  }
+  
   return {
     responsive: true,
     maintainAspectRatio: false,
     resizeDelay: 0,
+    layout: {
+      padding: {
+        right: 15 // Espace supplémentaire à droite pour les valeurs de l'axe Y
+      }
+    },
     interaction: {
       intersect: false,
       mode: 'index'
@@ -900,27 +1176,7 @@ function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate =
           }
         }
       },
-      y: {
-        display: true,
-        title: {
-          display: yAxisLabel !== '',
-          text: yAxisLabel,
-          font: {
-            size: 14,
-            weight: 'bold'
-          }
-        },
-        grid: {
-          color: 'rgba(0,0,0,0.1)',
-          drawBorder: false
-        },
-        ticks: {
-          maxTicksLimit: 6,
-          font: {
-            size: 11
-          }
-        }
-      }
+      y: yAxisConfig
     },
     animation: {
       duration: 0
@@ -972,18 +1228,22 @@ function updateRealtimeCharts(data) {
     case 'CO2':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['co2 (ppm)']);
       updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['temperature (°C)']);
+      updateChart(realtimeCharts.humidity, chartData.humidity, timestamp, data['humidity (%)']);
       break;
     case 'TEMPEX':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['temperature (°C)']);
       updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['humidity (%)']);
+      updateChart(realtimeCharts.humidity, chartData.humidity, timestamp, data['humidity (%)']);
       break;
     case 'DESK':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data.presence ? 1 : 0);
       updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['temperature (°C)']);
+      updateChart(realtimeCharts.humidity, chartData.humidity, timestamp, data['humidity (%)']);
       break;
     case 'EYE':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['temperature (°C)']);
       updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['humidity (%)']);
+      updateChart(realtimeCharts.humidity, chartData.humidity, timestamp, data['humidity (%)']);
       break;
     case 'OCCUP':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data.presence ? 1 : 0);
@@ -997,20 +1257,46 @@ function updateRealtimeCharts(data) {
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['LAeq (dB)']);
       updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['LAI (dB)']);
       break;
+    case 'COUNT':
+      updateChart(realtimeCharts.main, chartData.main, timestamp, data['period_in']);
+      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['period_out']);
+      break;
     case 'ENERGY':
     case 'CONSO':
-      // Pour l'énergie, on calcule la consommation totale
-      let totalWh = 0;
+      // Pour l'énergie, afficher les 3 groupes principaux sur Power Usage
       if (data.energy_data && typeof data.energy_data === 'object') {
-        Object.values(data.energy_data).forEach(channelData => {
-          if (channelData && channelData.value) {
-            totalWh += channelData.value;
-          }
+        // Calculer les totaux par groupe
+        const redOutlets = [0, 1, 2].reduce((sum, ch) => {
+          const channelData = data.energy_data[ch];
+          return sum + (channelData?.value || 0);
+        }, 0);
+        
+        const whiteOutlets = [3, 4, 5].reduce((sum, ch) => {
+          const channelData = data.energy_data[ch];
+          return sum + (channelData?.value || 0);
+        }, 0);
+        
+        const ventilation = [6, 7, 8].reduce((sum, ch) => {
+          const channelData = data.energy_data[ch];
+          return sum + (channelData?.value || 0);
+        }, 0);
+        
+        // Consommation totale pour le graphique principal
+        const totalWh = redOutlets + whiteOutlets + ventilation + 
+          [9, 10, 11].reduce((sum, ch) => {
+            const channelData = data.energy_data[ch];
+            return sum + (channelData?.value || 0);
+          }, 0);
+        
+        updateChart(realtimeCharts.main, chartData.main, timestamp, totalWh / 1000); // kWh
+        
+        // Mettre à jour le graphique Power Usage avec les 3 groupes
+        updatePowerUsageChart(timestamp, {
+          red: redOutlets / 1000,
+          white: whiteOutlets / 1000,
+          ventilation: ventilation / 1000
         });
       }
-      updateChart(realtimeCharts.main, chartData.main, timestamp, totalWh / 1000); // kWh
-      // Pour Power Usage, calculer la puissance instantanée (approximation)
-      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, totalWh * 0.1); // W approximation
       break;
   }
   

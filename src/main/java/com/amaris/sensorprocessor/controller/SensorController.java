@@ -466,7 +466,10 @@ public class SensorController {
                     }
                     case "OCCUP" -> {
                         payload.setPresence(firstAny(dp, "occupancy"));
-                        payload.setLight(firstAny(dp, "illuminance"));
+                        // TTN envoie 'distance' pour ce capteur, pas 'illuminance'
+                        Object distanceOrIllum = firstAny(dp, "distance");
+                        if (distanceOrIllum == null) distanceOrIllum = firstAny(dp, "illuminance");
+                        payload.setLight(distanceOrIllum);
                         payload.setBattery(firstNumber(dp, "battery"));
                     }
                     case "TEMPEX" -> {
