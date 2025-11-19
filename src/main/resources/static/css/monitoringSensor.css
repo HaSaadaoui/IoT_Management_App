@@ -523,13 +523,7 @@ main {
     grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
     margin-bottom: 2rem;
-    align-items: start; /* Aligner les éléments en haut */
-}
-
-.energy-dashboard > div {
-    height: 100%; /* Forcer la même hauteur */
-    display: flex;
-    flex-direction: column;
+    align-items: end; /* Aligner les éléments en bas */
 }
 
 .energy-groups {
@@ -598,6 +592,7 @@ main {
     padding: 1.5rem;
     text-align: center;
     box-shadow: var(--shadow-glow);
+    margin-bottom: 1.5rem;
 }
 
 .total-label {
@@ -628,7 +623,7 @@ main {
     border-radius: 12px;
     padding: 1.5rem;
     box-shadow: var(--shadow-sm);
-    max-height: 400px; /* Limiter la hauteur du graphique */
+    height: 350px; /* Hauteur fixe pour le graphique */
     display: flex;
     align-items: center;
     justify-content: center;

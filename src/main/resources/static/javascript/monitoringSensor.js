@@ -567,10 +567,10 @@ function updateEnergyConsumption(data) {
   
   // Groupes de canaux selon votre spécification
   const channelGroups = {
-    'red-outlets': { channels: [0, 1, 2], name: '🔴 Red Outlets', color: '#ef4444' },
-    'white-outlets': { channels: [3, 4, 5], name: '⚪ White Outlets & Lighting', color: '#64748b' },
-    'ventilation': { channels: [6, 7, 8], name: '🌬️ Ventilation & Heaters', color: '#3b82f6' },
-    'other': { channels: [9, 10, 11], name: '🔧 Other Circuits', color: '#f59e0b' }
+    'red-outlets': { channels: [0, 1, 2], name: 'Red Outlets', emoji: '🔴', color: '#ef4444' },
+    'white-outlets': { channels: [3, 4, 5], name: 'White Outlets & Lighting', emoji: '⚪', color: '#64748b' },
+    'ventilation': { channels: [6, 7, 8], name: 'Ventilation & Heaters', emoji: '🌬️', color: '#3b82f6' },
+    'other': { channels: [9, 10, 11], name: 'Other Circuits', emoji: '🔧', color: '#f59e0b' }
   };
 
   let totalConsumption = 0;
@@ -625,7 +625,7 @@ function updateEnergyConsumption(data) {
       const kWh = (groupTotal / 1000).toFixed(2);
       groupEl.innerHTML = `
         <div class="energy-group-header">
-          <span class="group-name">${group.name}</span>
+          <span class="group-name">${group.emoji} ${group.name}</span>
           <span class="group-channels">Channels ${group.channels.join(', ')}</span>
         </div>
         <div class="energy-group-values">
@@ -948,8 +948,8 @@ function createEnergyPowerUsageChartConfig() {
           label: 'Red Outlets',
           data: [],
           borderColor: '#ef4444',
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          fill: true,
+          backgroundColor: 'transparent',
+          fill: false,
           tension: 0.3,
           pointRadius: 2,
           pointHoverRadius: 4,
@@ -959,8 +959,8 @@ function createEnergyPowerUsageChartConfig() {
           label: 'White Outlets & Lighting',
           data: [],
           borderColor: '#64748b',
-          backgroundColor: 'rgba(100, 116, 139, 0.1)',
-          fill: true,
+          backgroundColor: 'transparent',
+          fill: false,
           tension: 0.3,
           pointRadius: 2,
           pointHoverRadius: 4,
@@ -970,8 +970,8 @@ function createEnergyPowerUsageChartConfig() {
           label: 'Ventilation & Heaters',
           data: [],
           borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          fill: true,
+          backgroundColor: 'transparent',
+          fill: false,
           tension: 0.3,
           pointRadius: 2,
           pointHoverRadius: 4,
