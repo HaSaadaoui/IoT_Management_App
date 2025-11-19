@@ -945,7 +945,7 @@ function createEnergyPowerUsageChartConfig() {
       labels: [],
       datasets: [
         {
-          label: '🔴 Red Outlets',
+          label: 'Red Outlets',
           data: [],
           borderColor: '#ef4444',
           backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -956,7 +956,7 @@ function createEnergyPowerUsageChartConfig() {
           borderWidth: 2
         },
         {
-          label: '⚪ White Outlets & Lighting',
+          label: 'White Outlets & Lighting',
           data: [],
           borderColor: '#64748b',
           backgroundColor: 'rgba(100, 116, 139, 0.1)',
@@ -967,7 +967,7 @@ function createEnergyPowerUsageChartConfig() {
           borderWidth: 2
         },
         {
-          label: '🌬️ Ventilation & Heaters',
+          label: 'Ventilation & Heaters',
           data: [],
           borderColor: '#3b82f6',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',

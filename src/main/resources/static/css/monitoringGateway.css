@@ -185,9 +185,20 @@ canvas {
     font-size: 1.25rem;
     font-weight: 700;
     color: var(--text-primary);
-    margin: 2rem 0 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--border);
+    margin: 2.5rem 0 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 3px solid var(--primary);
+    position: relative;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary-light), transparent);
 }
 
 /* ===== TABLE STYLING ===== */
@@ -200,12 +211,18 @@ table {
 
 thead {
     background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 thead th {
     color: white;
     font-weight: 600;
     text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
     letter-spacing: 0.5px;
     font-size: 0.85rem;
 }
