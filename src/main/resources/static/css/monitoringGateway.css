@@ -206,22 +206,25 @@ table {
     width: 100%;
     border-collapse: collapse;
     border-radius: 8px;
-    overflow: hidden;
+    display: block;
 }
 
 thead {
     background: linear-gradient(135deg, var(--primary), var(--primary-light));
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    display: block;
+    width: 100%;
+}
+
+thead tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
 }
 
 thead th {
     color: white;
     font-weight: 600;
     text-transform: uppercase;
-    position: sticky;
-    top: 0;
     background: linear-gradient(135deg, var(--primary), var(--primary-light));
     letter-spacing: 0.5px;
     font-size: 0.85rem;
@@ -234,7 +237,17 @@ th, td {
     font-size: 0.9rem;
 }
 
+tbody {
+    display: block;
+    max-height: 340px;
+    overflow-y: auto;
+    width: 100%;
+}
+
 tbody tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
     transition: background-color 0.2s ease;
 }
 
@@ -307,27 +320,28 @@ tbody tr:last-child td {
     flex: 1;
     height: auto;
     max-height: 400px;
-    overflow-y: auto;
     margin-top: 1rem;
     border-radius: 8px;
     border: 1px solid var(--border);
+    overflow: hidden;
+    position: relative;
 }
 
-#table-container::-webkit-scrollbar {
+tbody::-webkit-scrollbar {
     width: 8px;
 }
 
-#table-container::-webkit-scrollbar-track {
+tbody::-webkit-scrollbar-track {
     background: var(--bg-main);
     border-radius: 4px;
 }
 
-#table-container::-webkit-scrollbar-thumb {
+tbody::-webkit-scrollbar-thumb {
     background: var(--primary);
     border-radius: 4px;
 }
 
-#table-container::-webkit-scrollbar-thumb:hover {
+tbody::-webkit-scrollbar-thumb:hover {
     background: var(--primary-dark);
 }
 

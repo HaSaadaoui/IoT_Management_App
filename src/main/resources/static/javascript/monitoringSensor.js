@@ -638,10 +638,10 @@ function updateEnergyConsumption(data) {
   
   // Groupes de canaux selon votre spécification
   const channelGroups = {
-    'red-outlets': { channels: [0, 1, 2], name: '🔴 Red Outlets', color: '#ef4444' },
-    'white-outlets': { channels: [3, 4, 5], name: '⚪ White Outlets & Lighting', color: '#64748b' },
-    'ventilation': { channels: [6, 7, 8], name: '🌬️ Ventilation & Heaters', color: '#3b82f6' },
-    'other': { channels: [9, 10, 11], name: '🔧 Other Circuits', color: '#f59e0b' }
+    'red-outlets': { channels: [0, 1, 2], name: 'Red Outlets', emoji: '🔴', color: '#ef4444' },
+    'white-outlets': { channels: [3, 4, 5], name: 'White Outlets & Lighting', emoji: '⚪', color: '#64748b' },
+    'ventilation': { channels: [6, 7, 8], name: 'Ventilation & Heaters', emoji: '🌬️', color: '#3b82f6' },
+    'other': { channels: [9, 10, 11], name: 'Other Circuits', emoji: '🔧', color: '#f59e0b' }
   };
 
   let totalConsumption = 0;
@@ -696,7 +696,7 @@ function updateEnergyConsumption(data) {
       const kWh = (groupTotal / 1000).toFixed(2);
       groupEl.innerHTML = `
         <div class="energy-group-header">
-          <span class="group-name">${group.name}</span>
+          <span class="group-name">${group.emoji} ${group.name}</span>
           <span class="group-channels">Channels ${group.channels.join(', ')}</span>
         </div>
         <div class="energy-group-values">
@@ -760,12 +760,23 @@ function updateEnergyChart(groups, data) {
     };
   });
 
-  // Si le canvas n'existe pas, le créer
-  let canvas = chartEl.querySelector('canvas');
-  if (!canvas) {
-    chartEl.innerHTML = '<canvas id="energy-doughnut-canvas"></canvas>';
-    canvas = chartEl.querySelector('canvas');
+  // Créer le layout horizontal avec labels à gauche et chart à droite
+  if (!chartEl.querySelector('.doughnut-container')) {
+    chartEl.innerHTML = `
+      <div class="doughnut-container">
+        <div class="doughnut-labels">
+          <h4 style="margin: 0 0 1rem 0; font-size: 0.9rem; color: var(--text-secondary);">Consumption by Group</h4>
+          <div class="labels-list"></div>
+        </div>
+        <div class="doughnut-chart">
+          <canvas id="energy-doughnut-canvas"></canvas>
+        </div>
+      </div>
+    `;
   }
+  
+  const canvas = chartEl.querySelector('canvas');
+  const labelsList = chartEl.querySelector('.labels-list');
 
   // Créer ou mettre à jour le graphique doughnut
   if (!energyDoughnutChart) {
@@ -783,29 +794,10 @@ function updateEnergyChart(groups, data) {
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: {
-            position: 'bottom',
-            labels: {
-              padding: 15,
-              font: {
-                size: 12,
-                weight: '500'
-              },
-              generateLabels: function(chart) {
-                const data = chart.data;
-                return data.labels.map((label, i) => {
-                  const value = data.datasets[0].data[i];
-                  return {
-                    text: `${label}: ${value.toFixed(1)} kWh`,
-                    fillStyle: data.datasets[0].backgroundColor[i],
-                    hidden: false,
-                    index: i
-                  };
-                });
-              }
-            }
+            display: false // Désactiver la légende par défaut
           },
           tooltip: {
             callbacks: {
@@ -825,6 +817,21 @@ function updateEnergyChart(groups, data) {
     energyDoughnutChart.data.datasets[0].data = groupData.map(g => g.value);
     energyDoughnutChart.data.datasets[0].backgroundColor = groupData.map(g => g.color);
     energyDoughnutChart.update('none');
+  }
+  
+  // Générer les labels personnalisés à gauche
+  if (labelsList) {
+    labelsList.innerHTML = groupData.map((group) => {
+      return `
+        <div class="custom-label" style="display: flex; align-items: center; margin-bottom: 0.75rem;">
+          <div class="label-color" style="width: 12px; height: 12px; background-color: ${group.color}; border-radius: 50%; margin-right: 0.5rem;"></div>
+          <div class="label-text" style="flex: 1; font-size: 0.8rem;">
+            <div style="font-weight: 600; color: var(--text-primary);">${group.name}</div>
+            <div style="color: var(--text-secondary); font-size: 0.75rem;">${group.value.toFixed(1)} kWh</div>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 }
 
@@ -1019,8 +1026,8 @@ function createEnergyPowerUsageChartConfig() {
           label: 'Red Outlets',
           data: [],
           borderColor: '#ef4444',
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          fill: true,
+          backgroundColor: 'transparent',
+          fill: false,
           tension: 0.3,
           pointRadius: 2,
           pointHoverRadius: 4,
@@ -1030,8 +1037,8 @@ function createEnergyPowerUsageChartConfig() {
           label: 'White Outlets & Lighting',
           data: [],
           borderColor: '#64748b',
-          backgroundColor: 'rgba(100, 116, 139, 0.1)',
-          fill: true,
+          backgroundColor: 'transparent',
+          fill: false,
           tension: 0.3,
           pointRadius: 2,
           pointHoverRadius: 4,
@@ -1041,8 +1048,8 @@ function createEnergyPowerUsageChartConfig() {
           label: 'Ventilation & Heaters',
           data: [],
           borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          fill: true,
+          backgroundColor: 'transparent',
+          fill: false,
           tension: 0.3,
           pointRadius: 2,
           pointHoverRadius: 4,
