@@ -523,7 +523,7 @@ main {
     grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
     margin-bottom: 2rem;
-    align-items: end; /* Aligner les éléments en bas */
+    /*align-items: end; /* Aligner les éléments en bas */
 }
 
 .energy-groups {
@@ -623,10 +623,49 @@ main {
     border-radius: 12px;
     padding: 1.5rem;
     box-shadow: var(--shadow-sm);
-    height: 350px; /* Hauteur fixe pour le graphique */
+    height: 230px; /* Hauteur fixe pour le graphique */
+}
+
+/* Layout horizontal pour le doughnut chart */
+.doughnut-container {
+    display: flex;
+    height: 100%;
+    gap: 1rem;
+    align-items: center;
+}
+
+.doughnut-labels {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 120px;
+}
+
+.doughnut-chart {
+    flex: 1;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+}
+
+.doughnut-chart canvas {
+    max-height: 180px !important;
+    max-width: 180px !important;
+}
+
+.custom-label {
+    transition: all 0.2s ease;
+}
+
+.custom-label:hover {
+    transform: translateX(2px);
+    background-color: rgba(102, 33, 121, 0.05);
+    border-radius: 6px;
+    padding: 0.25rem;
+    margin: -0.25rem;
 }
 
 .chart-bar {
