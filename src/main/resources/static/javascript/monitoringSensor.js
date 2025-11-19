@@ -750,14 +750,12 @@ function updateEnergyChart(groups, data) {
   
   // Générer les labels personnalisés à gauche
   if (labelsList) {
-    labelsList.innerHTML = groupData.map((group, index) => {
-      const groupKey = Object.keys(channelGroups).find(key => channelGroups[key].name === group.name);
-      const groupInfo = channelGroups[groupKey];
+    labelsList.innerHTML = groupData.map((group) => {
       return `
         <div class="custom-label" style="display: flex; align-items: center; margin-bottom: 0.75rem;">
           <div class="label-color" style="width: 12px; height: 12px; background-color: ${group.color}; border-radius: 50%; margin-right: 0.5rem;"></div>
           <div class="label-text" style="flex: 1; font-size: 0.8rem;">
-            <div style="font-weight: 600; color: var(--text-primary);">${groupInfo?.shortName || group.name}</div>
+            <div style="font-weight: 600; color: var(--text-primary);">${group.name}</div>
             <div style="color: var(--text-secondary); font-size: 0.75rem;">${group.value.toFixed(1)} kWh</div>
           </div>
         </div>
