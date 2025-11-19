@@ -41,7 +41,7 @@ public enum PayloadValueType {
     LAST_BATTERY_PERCENTAGE_F_CNT("$.result.uplink_message.last_battery_percentage.f_cnt"),
     LAST_BATTERY_PERCENTAGE_RECEIVED_AT("$.result.uplink_message.last_battery_percentage.received_at"),
     LAST_BATTERY_PERCENTAGE_VALUE("$.result.uplink_message.last_battery_percentage.value"),
-    LAST_BATTERY_PERCENTAGE("$.result.uplink_message.last_battery_percentage.value"),
+    LAST_BATTERY_PERCENTAGE("$.result.uplink_message.last_battery_percentage.value"), // TODO: check if we remove
     LIGHT("$.result.uplink_message.decoded_payload.light"),
     LOCATION_ALTITUDE("$.result.uplink_message.rx_metadata.[0].location.altitude"),
     LOCATION_LATITUDE("$.result.uplink_message.rx_metadata.[0].location.latitude"),

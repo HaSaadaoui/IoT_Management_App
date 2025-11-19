@@ -143,7 +143,8 @@ const DEVICE_TYPE_METRICS = {
     "HUMIDITY",
     "LIGHT",
     "MOTION",
-    "PRESENCE", "OCCUPANCY", // TODO: Double check that
+    "OCCUPANCY", // TODO: Double check that
+    "PRESENCE",
     "VDD",
   ],
   "SON": [
@@ -153,7 +154,8 @@ const DEVICE_TYPE_METRICS = {
     "BATTERY",
   ],
   "DESK": [
-    "PRESENCE", "OCCUPANCY",
+    "OCCUPANCY",
+    "PRESENCE",
     "TEMPERATURE",
     "HUMIDITY",
     "VDD",
@@ -487,6 +489,7 @@ async function loadHistory(fromISO, toISO) {
 
   // Update KPI cards
   updateKPICards(j, fromISO, toISO);
+  setupHistoryTitles();
 }
 
 // Update KPI Cards with statistics
@@ -500,15 +503,17 @@ function updateKPICards(data, fromISO, toISO) {
 
   // Average battery
   const batteryEl = document.getElementById('kpi-battery');
-  if (batteryEl && data.battery_pct?.length > 0) {
-    const avg = data.battery_pct.reduce((a, b) => a + b, 0) / data.battery_pct.length;
+  const pctValues = Object.values(data.data.LAST_BATTERY_PERCENTAGE_VALUE || []).map(x => parseInt(x, 10));
+  if (batteryEl && pctValues?.length > 0) {
+    const avg = pctValues.reduce((a, b) => a + b, 0) / pctValues.length;
     batteryEl.textContent = `${Math.round(avg)}%`;
   }
 
   // Average RSSI
   const rssiEl = document.getElementById('kpi-rssi');
-  if (rssiEl && data.rssi_dbm?.length > 0) {
-    const avg = data.rssi_dbm.reduce((a, b) => a + b, 0) / data.rssi_dbm.length;
+  const rssiValues = Object.values(data.data.RSSI || []).map(x => parseInt(x, 10));
+  if (rssiEl && rssiValues?.length > 0) {
+    const avg = rssiValues.reduce((a, b) => a + b, 0) / rssiValues.length;
     rssiEl.textContent = `${Math.round(avg)} dBm`;
   }
 
