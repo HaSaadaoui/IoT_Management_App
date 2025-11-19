@@ -229,6 +229,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const pageRows = filteredRows.slice(start, start + PAGE_SIZE);
     renderRows(pageRows);
     renderPagination(total);
+    updateSensorCount(total);
+  }
+
+  // Update sensor count display
+  function updateSensorCount(count) {
+    const sensorCountEl = document.getElementById('sensorCount');
+    if (sensorCountEl) {
+      sensorCountEl.textContent = count;
+    }
   }
 
   // ----- Filtres -----

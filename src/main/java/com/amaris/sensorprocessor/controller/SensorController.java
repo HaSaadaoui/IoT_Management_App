@@ -513,12 +513,16 @@ public class SensorController {
                     }
                     case "OCCUP" -> {
                         payload.setPresence(firstAny(dp, "occupancy"));
-                        payload.setLight(firstAny(dp, "illuminance"));
+                        // TTN envoie 'distance' pour ce capteur, pas 'illuminance'
+                        Object distanceOrIllum = firstAny(dp, "distance");
+                        if (distanceOrIllum == null) distanceOrIllum = firstAny(dp, "illuminance");
+                        payload.setLight(distanceOrIllum);
                         payload.setBattery(firstNumber(dp, "battery"));
                     }
                     case "TEMPEX" -> {
                         payload.setTemperature(firstNumber(dp, "temperature"));
                         payload.setHumidity(firstNumber(dp, "humidity"));
+                        payload.setBattery(firstNumber(dp, "battery"));
                     }
 
                     case "PIR_LIGHT" -> {
@@ -547,8 +551,16 @@ public class SensorController {
                         payload.setHumidity(firstNumber(dp, "humidity"));
                         payload.setVdd(firstNumber(dp, "vdd"));
                     }
-
-
+                    case "ENERGY", "CONSO" -> {
+                        // Pour les capteurs d'énergie, on passe tout le decoded_payload
+                        // car il contient la structure complexe avec les canaux
+                        if (dp != null && dp.isObject()) {
+                            @SuppressWarnings("unchecked")
+                            java.util.Map<String, Object> energyMap = om.convertValue(dp, java.util.Map.class);
+                            payload.setEnergyData(energyMap);
+                        }
+                        // Pas de battery pour CONSO car connecté à un générateur
+                    }
 
                     default -> payload.setBattery(firstNumber(dp, "battery"));
                 }

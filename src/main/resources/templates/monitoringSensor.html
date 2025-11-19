@@ -52,13 +52,14 @@
 
     <!-- Onglets -->
     <nav class="tabs">
-        <button class="tab-btn is-active" data-pane="live">Temps réel</button>
-        <button class="tab-btn" data-pane="history">Historique</button>
+        <button class="tab-btn is-active" data-pane="live">Real-time</button>
+        <button class="tab-btn" data-pane="history">History</button>
     </nav>
 
     <!-- ===== Panneau LIVE ===== -->
     <section id="pane-live">
         <!-- Infos statiques -->
+        <h3 class="section-title">📊 Sensor Information</h3>
         <section class="info-grid">
             <div class="card">
                 <h4>Status</h4>
@@ -70,24 +71,26 @@
                 </p>
             </div>
 
-            <div class="card"><h4>Sensor ID</h4><p th:text="${sensor.idSensor}">--</p></div>
             <div class="card"><h4>DevEUI</h4><p th:text="${sensor.devEui} ?: '--'">--</p></div>
 
             <div class="card">
                 <h4>Gateway</h4>
                 <p th:with="gid=${sensor.idGateway}, ip=${gatewayIp} ?: ''">
                     <a class="link"
-                       th:href="@{|/manage-gateways/monitoring/${gid}/view?ip=${ip}|}"
-                       th:text="${gatewayName} ?: ${gid}">--</a>
+                       th:href="@{|/manage-gateways/monitoring/${gid}/view?ip=${ip}|}" 
+                       th:text="${gid}">--</a>
                 </p>
             </div>
 
             <div class="card"><h4>Building</h4><p th:text="${sensor.buildingName} ?: '--'">--</p></div>
             <div class="card"><h4>Floor</h4><p th:text="${sensor.floor} ?: '--'">--</p></div>
+            <div class="card"><h4>Type</h4><p th:text="${sensor.deviceType} ?: '--'">--</p></div>
+            <div class="card"><h4>Last seen</h4><p><span id="s-last" class="badge">--</span></p></div>
+            <div class="card"><h4>Protocol</h4><p><span class="badge">LoRaWAN</span></p></div>
         </section>
 
-        <!-- Live data PAR TYPE -->
-        <h3 class="section-title">Live data</h3>
+        <!-- Last seen PAR TYPE -->
+        <h3 class="section-title">🕒 Last seen</h3>
 
         <!-- COUNT -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'COUNT')}">
@@ -96,14 +99,14 @@
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
                     <span>--</span>
                 </span></p></div>
-            <div class="card"><h4>Period IN</h4><p><span id="s-count-in" class="badge">--</span></p></div>
-            <div class="card"><h4>Period OUT</h4><p><span id="s-count-out" class="badge">--</span></p></div>
+            <div class="card"><h4>Period IN (Entries)</h4><p><span id="s-count-in" class="badge">--</span></p></div>
+            <div class="card"><h4>Period OUT (Exits)</h4><p><span id="s-count-out" class="badge">--</span></p></div>
         </section>
 
         <!-- OCCUP -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'OCCUP')}">
             <div class="card"><h4>Occupancy</h4><p><span id="s-occup-presence" class="badge">--</span></p></div>
-            <div class="card"><h4 class="with-icon icon-hum">Illuminance</h4><p><span id="s-occup-illum" class="badge">--</span></p></div>
+            <div class="card"><h4 class="with-icon icon-distance">Distance (mm)</h4><p><span id="s-occup-illum" class="badge">--</span></p></div>
             <div class="card"><h4>Battery</h4>
                 <p><span id="s-occup-batt" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
@@ -114,7 +117,12 @@
         <!-- TEMPEX -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'TEMPEX')}">
             <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-tempex-temp" class="badge">--</span></p></div>
-            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-tempex-hum" class="badge">--</span></p></div>
+            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-tempex-hum" class="humidity-badge humidity--normal">--</span></p></div>
+            <div class="card"><h4>Battery</h4>
+                <p><span id="s-tempex-batt" class="battery-badge">
+                    <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
+                    <span>--</span>
+                </span></p></div>
         </section>
 
         <!-- PIR_LIGHT -->
@@ -132,7 +140,7 @@
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'DESK')}">
             <div class="card"><h4>👤 Occupancy</h4><p><span id="s-desk-occupancy" class="badge">--</span></p></div>
             <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-desk-temp" class="temp-badge temp--normal">--</span></p></div>
-            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-desk-hum" class="badge">-- %</span></p></div>
+            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-desk-hum" class="humidity-badge humidity--normal">-- %</span></p></div>
             <div class="card"><h4>Battery</h4>
                 <p><span id="s-desk-vdd" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
@@ -142,12 +150,12 @@
 
         <!-- CO2 -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'CO2')}">
-            <div class="card" style="grid-column: span 2;">
+            <div class="card">
                 <h4>💨 CO₂ Level</h4>
                 <p><span id="s-co2-ppm" class="co2-badge co2--good">-- ppm</span></p>
             </div>
             <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-co2-temp" class="temp-badge temp--normal">--</span></p></div>
-            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-co2-hum" class="badge">--</span></p></div>
+            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-co2-hum" class="humidity-badge humidity--normal">--</span></p></div>
             <div class="card"><h4>Battery</h4>
                 <p><span id="s-co2-vdd" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
@@ -172,7 +180,7 @@
         <!-- EYE -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'EYE')}">
             <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-eye-temp" class="badge">--</span></p></div>
-            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-eye-hum" class="badge">--</span></p></div>
+            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-eye-hum" class="humidity-badge humidity--normal">--</span></p></div>
             <div class="card"><h4>Light</h4><p><span id="s-eye-light" class="badge">--</span></p></div>
             <div class="card"><h4>Presence</h4><p><span id="s-eye-presence" class="badge">--</span></p></div>
             <div class="card"><h4>Battery</h4>
@@ -188,7 +196,11 @@
           or #strings.equalsIgnoreCase(sensor.deviceType,'PIR_LIGHT')
           or #strings.equalsIgnoreCase(sensor.deviceType,'DESK')
           or #strings.equalsIgnoreCase(sensor.deviceType,'CO2')
-          or #strings.equalsIgnoreCase(sensor.deviceType,'TEMPEX'))}">
+          or #strings.equalsIgnoreCase(sensor.deviceType,'TEMPEX')
+          or #strings.equalsIgnoreCase(sensor.deviceType,'SON')
+          or #strings.equalsIgnoreCase(sensor.deviceType,'EYE')
+          or #strings.equalsIgnoreCase(sensor.deviceType,'ENERGY')
+          or #strings.equalsIgnoreCase(sensor.deviceType,'CONSO'))}">
             <div class="card"><h4>Battery</h4>
                 <p><span id="s-gen-batt" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
@@ -196,30 +208,319 @@
                 </span></p></div>
         </section>
 
-        <!-- Réseau / Radio -->
-        <h3 class="section-title">Network / Radio</h3>
+        <!-- ENERGY/CONSO - Energy Consumption -->
+        <section th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'ENERGY') or #strings.equalsIgnoreCase(sensor.deviceType,'CONSO')}">
+            <h3 class="section-title">⚡ Energy Consumption</h3>
+            
+            <!-- Dashboard principal -->
+            <div class="energy-dashboard">
+                <!-- Groupes de consommation -->
+                <div class="energy-groups">
+                    <div id="energy-group-red-outlets" class="energy-group">
+                        <div class="energy-group-header">
+                            <span class="group-name">🔴 Red Outlets</span>
+                            <span class="group-channels">Channels 0, 1, 2</span>
+                        </div>
+                        <div class="energy-group-values">
+                            <div class="wh-value">-- Wh</div>
+                            <div class="kwh-value">-- kWh</div>
+                        </div>
+                    </div>
+                    
+                    <div id="energy-group-white-outlets" class="energy-group">
+                        <div class="energy-group-header">
+                            <span class="group-name">⚪ White Outlets & Lighting</span>
+                            <span class="group-channels">Channels 3, 4, 5</span>
+                        </div>
+                        <div class="energy-group-values">
+                            <div class="wh-value">-- Wh</div>
+                            <div class="kwh-value">-- kWh</div>
+                        </div>
+                    </div>
+                    
+                    <div id="energy-group-ventilation" class="energy-group">
+                        <div class="energy-group-header">
+                            <span class="group-name">🌬️ Ventilation & Heaters</span>
+                            <span class="group-channels">Channels 6, 7, 8</span>
+                        </div>
+                        <div class="energy-group-values">
+                            <div class="wh-value">-- Wh</div>
+                            <div class="kwh-value">-- kWh</div>
+                        </div>
+                    </div>
+                    
+                    <div id="energy-group-other" class="energy-group">
+                        <div class="energy-group-header">
+                            <span class="group-name">🔧 Other Circuits</span>
+                            <span class="group-channels">Channels 9, 10, 11</span>
+                        </div>
+                        <div class="energy-group-values">
+                            <div class="wh-value">-- Wh</div>
+                            <div class="kwh-value">-- kWh</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Total et graphique -->
+                <div>
+                    <div id="energy-total" class="energy-total">
+                        <div class="total-consumption">
+                            <div class="total-label">Total Consumption</div>
+                            <div class="total-values">
+                                <div class="total-kwh">-- kWh</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="energy-chart" class="energy-chart" style="margin-top: 1.5rem;">
+                        <div style="text-align: center; color: #64748b; padding: 2rem;">
+                            📊 Real-time Chart<br>
+                            <small>Data will appear automatically</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Channel Details -->
+            <h4 class="section-title" style="font-size: 1.1rem; margin-top: 2rem;">Channel Details</h4>
+            <div class="energy-channels">
+                <div id="energy-channel-0" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Channel 0</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-1" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Channel 1</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-2" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Channel 2</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-3" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Channel 3</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-4" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Channel 4</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-5" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Channel 5</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-6" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Channel 6</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-7" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Channel 7</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-8" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Channel 8</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-9" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Channel 9</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-10" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Channel 10</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+                <div id="energy-channel-11" class="energy-channel">
+                    <div class="energy-channel-header">
+                        <span class="channel-number">Channel 11</span>
+                        <span class="channel-uuid">--</span>
+                    </div>
+                    <div class="energy-value">
+                        <span class="value">--</span>
+                        <span class="unit">Wh</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Graphiques en temps réel -->
+        <h3 class="section-title">📈 Real-Time Data</h3>
+        <section class="realtime-charts">
+            <div class="chart-grid">
+                <!-- Graphique principal selon le type de capteur -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h4 id="realtime-chart-title">Primary Data</h4>
+                        <div class="chart-controls">
+                            <button id="chart-pause" class="chart-btn">⏸️ Pause</button>
+                            <button id="chart-clear" class="chart-btn">🗑️ Clear</button>
+                        </div>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="realtime-chart-main"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Graphique secondaire -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h4 id="realtime-chart-secondary-title">Secondary Data</h4>
+                        <div class="chart-legend" id="secondary-legend"></div>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="realtime-chart-secondary"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Humidity Chart for CO2 and DESK sensors -->
+                <div class="chart-container" id="humidity-chart-container" style="display: none;">
+                    <div class="chart-header">
+                        <h4>💧 Humidity</h4>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="realtime-chart-humidity"></canvas>
+                    </div>
+                </div>
+                
+            </div>
+        </section>
+
+        <!-- Network / Radio -->
+        <h3 class="section-title">📡 Network / Radio</h3>
+        
         <section id="net-grid" class="info-grid">
-            <div class="card"><h4>Last seen</h4><p><span id="s-last" class="badge">--</span></p></div>
-            <div class="card"><h4>Frequency Plan</h4><p th:text="${sensor.frequencyPlan} ?: '--'">--</p></div>
-            <div class="card"><h4>f_cnt / f_port</h4><p><span id="s-fcnt" class="badge">--</span> / <span id="s-fport" class="badge">--</span></p></div>
-            <div class="card"><h4 class="with-icon icon-signal">RSSI / SNR</h4><p><span id="s-rssi" class="badge">--</span> / <span id="s-snr" class="badge">--</span></p></div>
-            <div class="card"><h4>SF / BW / Freq</h4><p><span id="s-dr" class="badge">--</span></p></div>
+            <div class="card"><h4>Frequency Plan</h4><p th:text="${
+                sensor.frequencyPlan == 'EU_863_870_TTN' ? 'Europe' :
+                sensor.frequencyPlan == 'US_902_928_FSB_2' ? 'United States' :
+                sensor.frequencyPlan == 'AU_915_928_FSB_2' ? 'Australia' :
+                sensor.frequencyPlan == 'CN_470_510_FSB_11' ? 'China' :
+                sensor.frequencyPlan == 'AS_920_923' ? 'Asia' : (sensor.frequencyPlan ?: '--')
+            }">--</p></div>
+            <div class="card"><h4>Frame Counter / Port</h4><p class="labeled-values">
+                <span class="value-line">f_cnt: <span id="s-fcnt" class="badge">--</span></span>
+                <span class="value-line">f_port: <span id="s-fport" class="badge">--</span></span>
+            </p></div>
+            <div class="card"><h4 class="with-icon icon-signal">Signal Quality</h4><p class="labeled-values">
+                <span class="value-line">RSSI: <span id="s-rssi" class="badge">--</span></span>
+                <span class="value-line">SNR: <span id="s-snr" class="badge">--</span></span>
+            </p></div>
+            <div class="card"><h4>Radio Parameters</h4><p class="labeled-values">
+                <span class="value-line">SF: <span id="s-sf" class="badge">--</span></span>
+                <!--<span class="value-line">BW: <span id="s-bw" class="badge">--</span></span>-->
+                <!--<span class="value-line">CR: <span id="s-cr" class="badge">--</span></span>-->
+                <span class="value-line">Freq: <span id="s-freq" class="badge">--</span></span>
+            </p></div>
+        </section>
+        
+        <!-- Signal Quality Charts -->
+        <section class="realtime-charts">
+            <div class="chart-grid">
+                <!-- RSSI Chart -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h4>📶 RSSI Signal Strength</h4>
+                        <div class="chart-legend">
+                            <span class="legend-item"><span class="legend-color" style="background: #ef4444;"></span> RSSI</span>
+                        </div>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="realtime-chart-rssi"></canvas>
+                    </div>
+                </div>
+                
+                <!-- SNR Chart -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h4>📡 SNR Signal Quality</h4>
+                        <div class="chart-legend">
+                            <span class="legend-item"><span class="legend-color" style="background: #3b82f6;"></span> SNR</span>
+                        </div>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="realtime-chart-snr"></canvas>
+                    </div>
+                </div>
+            </div>
         </section>
     </section>
 
     <!-- ===== Panneau HISTORIQUE ===== -->
     <section id="pane-history" class="hidden">
-        <h3 class="section-title">📊 Historique & Analyse</h3>
+        <h3 class="section-title">📊 History & Analysis</h3>
 
         <!-- Filtres de période -->
         <div class="history-filters card">
             <div class="filter-grid">
                 <div class="filter-item">
-                    <label for="hist-from">📅 Date de début</label>
+                    <label for="hist-from">📅 Start Date</label>
                     <input type="datetime-local" id="hist-from" th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')} + 'T00:00'">
                 </div>
                 <div class="filter-item">
-                    <label for="hist-to">📅 Date de fin</label>
+                    <label for="hist-to">📅 End Date</label>
                     <input type="datetime-local" id="hist-to" th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')} + 'T23:59'">
                 </div>
                 <div class="filter-item" style="align-self:end;">
@@ -227,7 +528,7 @@
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 0.5rem;">
                             <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5z"/>
                         </svg>
-                        Charger les données
+                        Load Data
                     </button>
                 </div>
             </div>
@@ -238,28 +539,28 @@
             <div class="kpi-card kpi-card--primary">
                 <div class="kpi-icon">📊</div>
                 <div class="kpi-content">
-                    <div class="kpi-label">Total de mesures</div>
+                    <div class="kpi-label">Total Measurements</div>
                     <div class="kpi-value" id="kpi-total">--</div>
                 </div>
             </div>
             <div class="kpi-card kpi-card--success">
                 <div class="kpi-icon">🔋</div>
                 <div class="kpi-content">
-                    <div class="kpi-label">Batterie moyenne</div>
+                    <div class="kpi-label">Average Battery</div>
                     <div class="kpi-value" id="kpi-battery">--</div>
                 </div>
             </div>
             <div class="kpi-card kpi-card--info">
                 <div class="kpi-icon">📡</div>
                 <div class="kpi-content">
-                    <div class="kpi-label">Signal moyen (RSSI)</div>
+                    <div class="kpi-label">Average Signal (RSSI)</div>
                     <div class="kpi-value" id="kpi-rssi">--</div>
                 </div>
             </div>
             <div class="kpi-card kpi-card--warning">
                 <div class="kpi-icon">⏱️</div>
                 <div class="kpi-content">
-                    <div class="kpi-label">Période analysée</div>
+                    <div class="kpi-label">Analyzed Period</div>
                     <div class="kpi-value" id="kpi-period">--</div>
                 </div>
             </div>
@@ -267,18 +568,18 @@
 
         <!-- Graphiques principaux -->
         <div class="charts-section">
-            <h4 class="subsection-title">📈 Évolution temporelle</h4>
+            <h4 class="subsection-title">📈 Time Evolution</h4>
             <div class="charts-grid">
                 <div class="chart-card">
                     <div class="chart-header">
                         <div class="chart-title">
                             <span class="chart-icon" style="background: linear-gradient(135deg, #10b981, #059669);">🔋</span>
-                            <span>Niveau de batterie</span>
+                            <span>Battery Level</span>
                         </div>
                         <div class="chart-legend">
-                            <span class="legend-item legend-good">Bon</span>
-                            <span class="legend-item legend-warn">Moyen</span>
-                            <span class="legend-item legend-low">Faible</span>
+                            <span class="legend-item legend-good">Good</span>
+                            <span class="legend-item legend-warn">Medium</span>
+                            <span class="legend-item legend-low">Low</span>
                         </div>
                     </div>
                     <div class="chart-container">
@@ -290,7 +591,7 @@
                     <div class="chart-header">
                         <div class="chart-title">
                             <span class="chart-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">📡</span>
-                            <span>Qualité du signal (RSSI)</span>
+                            <span>Signal Quality (RSSI)</span>
                         </div>
                         <div class="chart-info">dBm</div>
                     </div>
@@ -303,7 +604,7 @@
                     <div class="chart-header">
                         <div class="chart-title">
                             <span class="chart-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">📶</span>
-                            <span>Rapport signal/bruit (SNR)</span>
+                            <span>Signal-to-Noise Ratio (SNR)</span>
                         </div>
                         <div class="chart-info">dB</div>
                     </div>
@@ -316,13 +617,13 @@
 
         <!-- Métriques spécifiques au capteur -->
         <div class="charts-section" id="sensor-metrics-section">
-            <h4 class="subsection-title">🎯 Métriques du capteur</h4>
+            <h4 class="subsection-title">🎯 Sensor Metrics</h4>
             <div class="charts-grid charts-grid--2col">
                 <div class="chart-card" id="histMetricA-wrap">
                     <div class="chart-header">
                         <div class="chart-title">
                             <span class="chart-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">📊</span>
-                            <span id="histMetricA-title">Métrique A</span>
+                            <span id="histMetricA-title">Metric A</span>
                         </div>
                     </div>
                     <div class="chart-container">
@@ -334,7 +635,7 @@
                     <div class="chart-header">
                         <div class="chart-title">
                             <span class="chart-icon" style="background: linear-gradient(135deg, #ec4899, #db2777);">📊</span>
-                            <span id="histMetricB-title">Métrique B</span>
+                            <span id="histMetricB-title">Metric B</span>
                         </div>
                     </div>
                     <div class="chart-container">
