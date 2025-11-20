@@ -63,10 +63,10 @@
         <section class="info-grid">
             <div class="card">
                 <h4>Status</h4>
-                <p>
-                  <span class="badge" th:classappend="${sensor.status} ? ' badge--ok' : ' badge--off'">
+                <p id="sensor-status-container">
+                  <span id="sensor-status" class="badge" th:classappend="${sensor.status} ? ' badge--ok' : ' badge--off'">
                     <img th:src="${sensor.status} ? '/image/toggle_on.svg' : '/image/toggle_off.svg'" alt="Status"/>
-                    <span th:text="${sensor.status} ? 'Active' : 'Inactive'">--</span>
+                    <span id="sensor-status-text" th:text="${sensor.status} ? 'Active' : 'Inactive'">--</span>
                   </span>
                 </p>
             </div>

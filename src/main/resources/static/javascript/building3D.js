@@ -108,6 +108,40 @@ class Building3D {
                     { id: 'D11', status: 'free', x: 1, y: 2 },
                     { id: 'D12', status: 'used', x: 3, y: 2 }
                 ]
+            },
+            4: {
+                name: 'Floor 4',
+                desks: [
+                    { id: 'D1', status: 'free', x: -3, y: -2 },
+                    { id: 'D2', status: 'used', x: -1, y: -2 },
+                    { id: 'D3', status: 'free', x: 1, y: -2 },
+                    { id: 'D4', status: 'free', x: 3, y: -2 },
+                    { id: 'D5', status: 'free', x: -3, y: -0.5 },
+                    { id: 'D6', status: 'used', x: -1, y: -0.5 },
+                    { id: 'D7', status: 'free', x: 1, y: -0.5 },
+                    { id: 'D8', status: 'free', x: 3, y: -0.5 },
+                    { id: 'D9', status: 'used', x: -3, y: 1 },
+                    { id: 'D10', status: 'free', x: -1, y: 1 },
+                    { id: 'D11', status: 'used', x: 1, y: 1 },
+                    { id: 'D12', status: 'free', x: 3, y: 1 }
+                ]
+            },
+            5: {
+                name: 'Floor 5',
+                desks: [
+                    { id: 'D1', status: 'free', x: -3, y: -2 },
+                    { id: 'D2', status: 'free', x: -1, y: -2 },
+                    { id: 'D3', status: 'used', x: 1, y: -2 },
+                    { id: 'D4', status: 'free', x: 3, y: -2 },
+                    { id: 'D5', status: 'free', x: -3, y: 0 },
+                    { id: 'D6', status: 'free', x: -1, y: 0 },
+                    { id: 'D7', status: 'free', x: 1, y: 0 },
+                    { id: 'D8', status: 'used', x: 3, y: 0 },
+                    { id: 'D9', status: 'free', x: -3, y: 2 },
+                    { id: 'D10', status: 'free', x: -1, y: 2 },
+                    { id: 'D11', status: 'used', x: 1, y: 2 },
+                    { id: 'D12', status: 'free', x: 3, y: 2 }
+                ]
             }
         };
         
@@ -133,9 +167,9 @@ class Building3D {
     
     setupCamera() {
         const aspect = this.container.clientWidth / this.container.clientHeight;
-        this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
-        this.camera.position.set(15, 12, 15);
-        this.camera.lookAt(0, 5, 0);
+        this.camera = new THREE.PerspectiveCamera(70, aspect, 0.1, 1000);
+        this.camera.position.set(20, 18, 20);
+        this.camera.lookAt(0, 10, 0);
     }
     
     setupRenderer() {
@@ -200,8 +234,8 @@ class Building3D {
         const floorDepth = 8;
         const wallThickness = 0.2;
         
-        // Create 4 floors
-        for (let i = 0; i < 4; i++) {
+        // Create 6 floors
+        for (let i = 0; i < 6; i++) {
             const floorGroup = new THREE.Group();
             floorGroup.userData = { floorNumber: i, type: 'floor' };
             

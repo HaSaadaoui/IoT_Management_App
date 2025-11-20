@@ -262,6 +262,13 @@ main {
     border-color: #94a3b8;
 }
 
+.badge--occupied {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border-color: #ef4444;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
 /* ===== BATTERIE AVEC ANIMATION ===== */
 .battery-badge {
     display: inline-flex;
@@ -623,7 +630,7 @@ main {
     border-radius: 12px;
     padding: 1.5rem;
     box-shadow: var(--shadow-sm);
-    height: 230px; /* Hauteur fixe pour le graphique */
+    height: 235px; /* Hauteur fixe pour le graphique */
 }
 
 /* Layout horizontal pour le doughnut chart */

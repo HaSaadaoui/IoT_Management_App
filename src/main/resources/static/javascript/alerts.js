@@ -198,6 +198,108 @@ function initCharts() {
             }
         });
     }
+
+    // Meeting Room A Donut chart
+    const ctxMeetingA = document.getElementById('chart-meeting-a');
+    if (ctxMeetingA) {
+        new Chart(ctxMeetingA, {
+            type: 'doughnut',
+            data: {
+                labels: ['Free', 'Used', 'Invalid'],
+                datasets: [{
+                    data: [66.67, 33.33, 0],
+                    backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Meeting Room B Donut chart
+    const ctxMeetingB = document.getElementById('chart-meeting-b');
+    if (ctxMeetingB) {
+        new Chart(ctxMeetingB, {
+            type: 'doughnut',
+            data: {
+                labels: ['Free', 'Used', 'Invalid'],
+                datasets: [{
+                    data: [50, 45, 5],
+                    backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Meeting Room C Donut chart
+    const ctxMeetingC = document.getElementById('chart-meeting-c');
+    if (ctxMeetingC) {
+        new Chart(ctxMeetingC, {
+            type: 'doughnut',
+            data: {
+                labels: ['Free', 'Used', 'Invalid'],
+                datasets: [{
+                    data: [80, 20, 0],
+                    backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
     
     // Total Occupancy Donut Chart
     const ctx3 = document.getElementById('chart-total');
