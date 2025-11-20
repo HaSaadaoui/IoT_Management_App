@@ -792,6 +792,46 @@ main {
     border-bottom: none;
 }
 
+/* ===== SENSOR COST CHART ===== */
+.cost-summary {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba(102, 33, 121, 0.05), rgba(139, 47, 163, 0.05));
+    border-radius: 12px;
+    border: 1px solid rgba(102, 33, 121, 0.1);
+}
+
+.cost-total,
+.cost-average {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.cost-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cost-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+#chart-sensor-cost {
+    height: 250px !important;
+}
+
 /* ===== ALERTS SECTION ===== */
 .alerts-section {
     margin-bottom: 2rem;
