@@ -147,12 +147,14 @@ const DEVICE_TYPE_METRICS = {
   ],
   "OCCUP": [
     "PRESENCE",
-    "LIGHT",
+    "ILLUMINANCE",
+    // "LIGHT",
     "BATTERY",
   ],
   "TEMPEX": [
     "TEMPERATURE",
     "HUMIDITY",
+    "BATTERY",
   ],
   "PIR_LIGHT": [
     "PRESENCE",
@@ -466,8 +468,53 @@ const mkHist = (id, label) => (ctx(id) ? mkLineChart(ctx(id), label, "rgb(102,33
 const histBattery = mkHist("histBattery", "Battery (%)");
 const histRssi    = mkHist("histRssi",    "RSSI (dBm)");
 const histSnr     = mkHist("histSnr",     "SNR (dB)");
-const histMetricA = mkHist("histMetricA", "Metric A");
-const histMetricB = mkHist("histMetricB", "Metric B");
+
+// Array to hold dynamically created metric chart instances
+let dynamicMetricCharts = [];
+
+// Map backend metric names to user-friendly titles with units
+const METRIC_TITLES = {
+  'CO2': 'CO₂ (ppm)',
+  'TEMPERATURE': 'Temperature (°C)',
+  'HUMIDITY': 'Humidity (%)',
+  'VDD': 'Voltage (mV)',
+  'LIGHT': 'Light (lux)',
+  'MOTION': 'Motion',
+  'PRESENCE': 'Presence',
+  'OCCUPANCY': 'Occupancy',
+  'PERIOD_IN': 'Period IN (s)',
+  'PERIOD_OUT': 'Period OUT (s)',
+  'LAI': 'Sound Impact (LAI)',
+  'LAI_MAX': 'Max Sound Impact (LAImax)',
+  'LAEQ': 'Equivalent Sound Level (LAeq)',
+  'BATTERY': 'Battery (%)',
+  'RSSI': 'Signal (RSSI)',
+  'SNR': 'Signal/Noise (SNR)',
+  'DISTANCE': 'Distance (mm)'
+};
+
+// Helper function to get a consistent color for metrics
+function getMetricColor(metricName) {
+  const colors = {
+    'temperature': '#f59e0b', // Orange
+    'humidity': '#3b82f6',    // Blue
+    'co2': '#ef4444',         // Red
+    'vdd': '#10b981',         // Green
+    'light': '#fbbf24',       // Amber
+    'motion': '#6366f1',      // Indigo
+    'presence': '#10b981',    // Green (similar to VDD for status)
+    'occupancy': '#10b981',   // Green
+    'period_in': '#6366f1',   // Indigo
+    'period_out': '#8b5cf6',  // Violet
+    'lai': '#ec4899',         // Pink
+    'laeq': '#db2777',        // Darker Pink
+    'lai_max': '#9333ea',     // Purple
+    'battery': '#059669',     // Dark Green
+    'rssi': '#2563eb',        // Darker Blue
+    'snr': '#7c3aed',         // Darker Violet
+  };
+  return colors[metricName.toLowerCase()] || '#662179'; // Default purple
+}
 
 function setSeries(chart, labels, values) {
   if (!chart) return;
@@ -475,25 +522,6 @@ function setSeries(chart, labels, values) {
   chart.data.datasets[0].data = values;
   chart.update();
 }
-
-function setupHistoryTitles() {
-  const devType = (document.documentElement.dataset.devType || '').toUpperCase();
-  const A = document.getElementById("histMetricA-title");
-  const B = document.getElementById("histMetricB-title");
-  if (!A || !B) return;
-  switch (devType) {
-    case 'CO2':       A.textContent = "CO₂ (ppm)";       B.textContent = "Temperature (°C)"; break;
-    case 'DESK':      A.textContent = "Occupancy";       B.textContent = "Temperature (°C)"; break;
-    case 'EYE':
-    case 'TEMPEX':    A.textContent = "Temperature (°C)"; B.textContent = "Humidity (%)";     break;
-    case 'SON':       A.textContent = "LAeq (dB)";       B.textContent = "LAI (dB)";         break;
-    case 'PIR_LIGHT': A.textContent = "Presence";        B.textContent = "Light (lux)";      break;
-    case 'OCCUP':     A.textContent = "Occupancy";       B.textContent = "Distance (mm)";    break;
-    case 'COUNT':     A.textContent = "Period IN";       B.textContent = "Period OUT";       break;
-    default:          A.textContent = "Metric A";        B.textContent = "Metric B";
-  }
-}
-setupHistoryTitles();
 
 async function loadHistory(fromISO, toISO) {
   const SENSOR_ID = document.documentElement.dataset.deviceId;
@@ -510,31 +538,56 @@ async function loadHistory(fromISO, toISO) {
   if (j.data.RSSI)                          setSeries(histRssi,    labels, j.data.RSSI);
   if (j.data.SNR)                           setSeries(histSnr,     labels, j.data.SNR);
 
-  // if (j.metrics?.A && histMetricA) {
-  //   document.getElementById("histMetricA-title").textContent = j.metrics.A.label || document.getElementById("histMetricA-title").textContent;
-  //   setSeries(histMetricA, labels, j.metrics.A.values || []);
-  // }
-  // if (j.metrics?.B && histMetricB) {
-  //   document.getElementById("histMetricB-title").textContent = j.metrics.B.label || document.getElementById("histMetricB-title").textContent;
-  //   setSeries(histMetricB, labels, j.metrics.B.values || []);
-  // }
+  // Clear previous dynamic charts and their containers
+  dynamicMetricCharts.forEach(chart => chart.destroy()); // Destroy old Chart.js instances
+  dynamicMetricCharts = []; // Clear the array
+  const historyMetricsContainer = el('#history-metrics-container');
+  if (historyMetricsContainer) {
+    historyMetricsContainer.innerHTML = ''; // Clear the HTML content
+  }
 
   const devType = (document.documentElement.dataset.devType || '').toUpperCase();
-  const metrics = DEVICE_TYPE_METRICS[devType];
+  const metrics = DEVICE_TYPE_METRICS[devType] || [];
 
-  if (metrics[0] && histMetricA) {
-    document.getElementById("histMetricA-title").textContent = metrics[0];
-    setSeries(histMetricA, labels, j.data[metrics[0]]);
-  }
+  metrics.forEach((metricName) => {
+    // Generate a unique ID for the canvas
+    const canvasId = `histMetric-${metricName.replace(/[^a-zA-Z0-9]/g, '')}`; // Sanitize metric name for ID
+    const chartTitle = METRIC_TITLES[metricName] || metricName; // Get user-friendly title
 
-  if (metrics[1] && histMetricB) {
-    document.getElementById("histMetricB-title").textContent = metrics[1];
-    setSeries(histMetricB, labels, j.data[metrics[1]]);
-  }
+    // Create the HTML structure for the chart card
+    const chartCardHtml = `
+      <div class="chart-card metric-chart-card">
+        <div class="chart-header">
+          <div class="chart-title">
+            <span class="chart-icon" style="background: linear-gradient(135deg, ${getMetricColor(metricName)}, ${getMetricColor(metricName)});">📊</span>
+            <span class="metric-title">${chartTitle}</span>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="${canvasId}"></canvas>
+        </div>
+      </div>
+    `;
+
+    // Append the new chart card to the container
+    if (historyMetricsContainer) {
+      historyMetricsContainer.insertAdjacentHTML('beforeend', chartCardHtml);
+    }
+
+    // Get the context of the newly created canvas
+    const ctx = document.getElementById(canvasId)?.getContext("2d");
+    if (ctx) {
+      // Create a new Chart.js instance
+      const newChart = mkLineChart(ctx, chartTitle, getMetricColor(metricName)); // Use friendly title for chart label
+      dynamicMetricCharts.push(newChart); // Store the instance
+
+      // Populate the chart with data
+      setSeries(newChart, labels, j.data[metricName] || []);
+    }
+  });
 
   // Update KPI cards
   updateKPICards(j, fromISO, toISO);
-  setupHistoryTitles();
 }
 
 // Update KPI Cards with statistics
@@ -542,7 +595,7 @@ function updateKPICards(data, fromISO, toISO) {
   // Total measurements
   const totalEl = document.getElementById('kpi-total');
   if (totalEl) {
-    const total = data.timestamps?.length || 0;
+    const total = Object.values(data.data).map(x => Object.values(x).length).reduce((a, b) => a + b)
     totalEl.textContent = total.toLocaleString();
   }
 
@@ -1467,9 +1520,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const from = new Date(to.getTime() - (24 * 60 * 60 * 1000)); // Last 24 hours
   loadHistory(from.toISOString(), to.toISOString());
   
-  // Initialiser les graphiques en temps réel
   if (window.Chart) {
     initRealtimeCharts();
   }
 });
-
