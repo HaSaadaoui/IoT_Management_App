@@ -517,11 +517,11 @@
             <div class="filter-grid">
                 <div class="filter-item">
                     <label for="hist-from">📅 Start Date</label>
-                    <input type="datetime-local" id="hist-from" th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')} + 'T00:00'">
+                    <input type="datetime-local" id="hist-from">
                 </div>
                 <div class="filter-item">
                     <label for="hist-to">📅 End Date</label>
-                    <input type="datetime-local" id="hist-to" th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')} + 'T23:59'">
+                    <input type="datetime-local" id="hist-to">
                 </div>
                 <div class="filter-item" style="align-self:end;">
                     <button id="hist-load" class="btn btn-primary">
@@ -570,22 +570,6 @@
         <div class="charts-section">
             <h4 class="subsection-title">📈 Time Evolution</h4>
             <div class="charts-grid">
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <div class="chart-title">
-                            <span class="chart-icon" style="background: linear-gradient(135deg, #10b981, #059669);">🔋</span>
-                            <span>Battery Level</span>
-                        </div>
-                        <div class="chart-legend">
-                            <span class="legend-item legend-good">Good</span>
-                            <span class="legend-item legend-warn">Medium</span>
-                            <span class="legend-item legend-low">Low</span>
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="histBattery"></canvas>
-                    </div>
-                </div>
 
                 <div class="chart-card">
                     <div class="chart-header">

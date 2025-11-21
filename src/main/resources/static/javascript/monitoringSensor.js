@@ -133,11 +133,12 @@ const sGenBatt   = el("#s-gen-batt");
 // See: src/main/java/com/amaris/sensorprocessor/entity/PayloadValueType.java
 const DEVICE_TYPE_METRICS = {
   "COUNT": [
-    // "BATTERY",
+    "BATTERY",
     "PERIOD_IN",
     "PERIOD_OUT",
   ],
   "CO2": [
+    "LAST_BATTERY_PERCENTAGE",
     "CO2",
     "TEMPERATURE",
     "HUMIDITY",
@@ -146,22 +147,23 @@ const DEVICE_TYPE_METRICS = {
     "MOTION",
   ],
   "OCCUP": [
+    "BATTERY",
     "PRESENCE",
     "ILLUMINANCE",
     // "LIGHT",
-    // "BATTERY",
   ],
   "TEMPEX": [
+    "BATTERY",
     "TEMPERATURE",
     "HUMIDITY",
-    // "BATTERY",
   ],
   "PIR_LIGHT": [
+    "BATTERY",
     "PRESENCE",
     "LIGHT",
-    // "BATTERY",
   ],
   "EYE": [
+    "BATTERY",
     "TEMPERATURE",
     "HUMIDITY",
     "LIGHT",
@@ -171,18 +173,20 @@ const DEVICE_TYPE_METRICS = {
     "VDD",
   ],
   "SON": [
+    "BATTERY",
     "LAI",
-    "LAI_MAX",
+    "LAIMAX",
     "LAEQ",
-    // "BATTERY",
   ],
   "DESK": [
+    "BATTERY",
     "OCCUPANCY",
     "TEMPERATURE",
     "HUMIDITY",
     "VDD",
   ],
   "CONSO": [
+    "BATTERY",
     "CONSUMPTION_CHANNEL_0",
     "CONSUMPTION_CHANNEL_1",
     "CONSUMPTION_CHANNEL_2",
@@ -197,6 +201,7 @@ const DEVICE_TYPE_METRICS = {
     "CONSUMPTION_CHANNEL_11",
   ],
   "ENERGY": [
+    "BATTERY",
     "CONSUMPTION_CHANNEL_0",
     "CONSUMPTION_CHANNEL_1",
     "CONSUMPTION_CHANNEL_2",
@@ -528,12 +533,13 @@ const METRIC_TITLES = {
   'PERIOD_IN': 'Period IN (s)',
   'PERIOD_OUT': 'Period OUT (s)',
   'LAI': 'Sound Impact (LAI)',
-  'LAI_MAX': 'Max Sound Impact (LAImax)',
+  'LAIMAX': 'Max Sound Impact (LAImax)',
   'LAEQ': 'Equivalent Sound Level (LAeq)',
   'BATTERY': 'Battery (%)',
   'RSSI': 'Signal (RSSI)',
   'SNR': 'Signal/Noise (SNR)',
   'DISTANCE': 'Distance (mm)',
+  'ILLUMINANCE': 'Illuminance',
   'CONSUMPTION_CHANNEL_0': 'Consumption Channel 0',
   'CONSUMPTION_CHANNEL_1': 'Consumption Channel 1',
   'CONSUMPTION_CHANNEL_2': 'Consumption Channel 2',
@@ -563,7 +569,7 @@ function getMetricColor(metricName) {
     'period_out': '#8b5cf6',  // Violet
     'lai': '#ec4899',         // Pink
     'laeq': '#db2777',        // Darker Pink
-    'lai_max': '#9333ea',     // Purple
+    'laimax': '#9333ea',      // Purple
     'battery': '#059669',     // Dark Green
     'rssi': '#2563eb',        // Darker Blue
     'snr': '#7c3aed',         // Darker Violet
@@ -637,7 +643,18 @@ async function loadHistory(fromISO, toISO) {
       dynamicMetricCharts.push(newChart); // Store the instance
 
       // Populate the chart with data
-      setSeries(newChart, labels, j.data[metricName] || []);
+      if ("OCCUPANCY" == metricName) {
+        /*
+         * Since this one returns strings instead of numbers, we need to standardize it
+         */
+        const convertedMetrics = Object.values(j.data[metricName]).map(value =>  "occupied" == value ? 1 : 0);
+        setSeries(newChart, labels, convertedMetrics);
+      } else if ("ILLUMINANCE" == metricName) {
+        const convertedMetrics = Object.values(j.data[metricName]).map(value =>  "dim" == value ? 0 : 1);
+        setSeries(newChart, labels, convertedMetrics);
+      } else {
+        setSeries(newChart, labels, j.data[metricName] || []);
+      }
     }
   });
 
@@ -1571,8 +1588,13 @@ function clearAllCharts() {
 document.addEventListener("DOMContentLoaded", () => {
   if (LIVE_MODE) startSSE();
   
+  // Next 24 hours
   const to = new Date();
-  const from = new Date(to.getTime() - (24 * 60 * 60 * 1000)); // Last 24 hours
+  to.setHours(to.getHours() + 24);
+  // Last 24 hours
+  const from = new Date();
+  from.setHours(from.getHours() - 24);
+  
   loadHistory(from.toISOString(), to.toISOString());
   
   if (window.Chart) {
