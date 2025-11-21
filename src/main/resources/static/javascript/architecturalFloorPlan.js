@@ -69,6 +69,9 @@ class ArchitecturalFloorPlan {
             case 5:
                 this.drawFloor5();
                 break;
+            case 6:
+                this.drawFloor6();
+                break;
         }
         
         // Add sensor overlay if not DESK mode
@@ -80,10 +83,15 @@ class ArchitecturalFloorPlan {
     }
     
     generateSensorData(mode, floor) {
+        // Updated positions to match new building schema
+        // Building spans: x: 50-1050, y: 50-450 (with angular shape)
         const positions = [
-            {x: 200, y: 150}, {x: 400, y: 150}, {x: 600, y: 150},
-            {x: 200, y: 300}, {x: 400, y: 300}, {x: 600, y: 300},
-            {x: 200, y: 450}, {x: 400, y: 450}, {x: 600, y: 450}
+            // Top row
+            {x: 150, y: 100}, {x: 350, y: 100}, {x: 550, y: 100}, {x: 750, y: 100}, {x: 950, y: 100},
+            // Middle row
+            {x: 150, y: 200}, {x: 350, y: 200}, {x: 550, y: 200}, {x: 750, y: 200}, {x: 950, y: 200},
+            // Bottom row (adjusted for angular shape)
+            {x: 350, y: 300}, {x: 550, y: 300}, {x: 750, y: 300}, {x: 950, y: 300}
         ];
         
         return positions.map((pos, i) => ({
@@ -118,8 +126,8 @@ class ArchitecturalFloorPlan {
     drawGroundFloor() {
         const g = this.createGroup('ground-floor');
         
-        // Same building outline as Floor 2
-        const mainOutline = [
+        // Main building outline - Same as Floor 2
+        const outerWall = [
             { x: 50, y: 50 },
             { x: 950, y: 50 },
             { x: 1050, y: 50 },
@@ -129,113 +137,35 @@ class ArchitecturalFloorPlan {
             { x: 50, y: 200 },
             { x: 50, y: 50 }
         ];
-        this.drawWall(g, mainOutline, true);
+        this.drawWall(g, outerWall, true);
         
-        // Entrance area (bottom center)
-        const entrancePath = [
-            { x: 350, y: 550 },
-            { x: 350, y: 520 },
-            { x: 450, y: 520 },
-            { x: 450, y: 550 }
-        ];
-        this.drawWall(g, entrancePath, false);
+        // Internal separator lines (same as Floor 2)
+        this.drawLine(g, [{ x: 750, y: 55 }, { x: 750, y: 240 }], this.colors.interiorLine, 2);
+        this.drawLine(g, [{ x: 720, y: 55 }, { x: 720, y: 240 }], this.colors.interiorLine, 2);
+        this.drawLine(g, [{ x: 720, y: 240 }, { x: 750, y: 240 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 1050, y: 200 }, { x: 850, y: 200 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 1050, y: 210 }, { x: 850, y: 210 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 850, y: 200 }, { x: 850, y: 210 }], this.colors.interiorLine, 2);
         
-        // Main corridor (vertical - center)
-        const corridorLeft = [
-            { x: 380, y: 520 },
-            { x: 380, y: 80 }
-        ];
-        this.drawLine(g, corridorLeft, this.colors.interiorLine, 2);
-        
-        const corridorRight = [
-            { x: 420, y: 520 },
-            { x: 420, y: 80 }
-        ];
-        this.drawLine(g, corridorRight, this.colors.interiorLine, 2);
-        
-        // Left wing - Open space
-        const leftWingWall = [
-            { x: 100, y: 200 },
-            { x: 380, y: 200 }
-        ];
-        this.drawLine(g, leftWingWall, this.colors.interiorLine, 2);
-        
-        // Right wing - Open space
-        const rightWingWall = [
-            { x: 420, y: 200 },
-            { x: 700, y: 200 }
-        ];
-        this.drawLine(g, rightWingWall, this.colors.interiorLine, 2);
-        
-        // Meeting room (top left)
-        const meetingRoom = [
-            { x: 100, y: 50 },
-            { x: 280, y: 50 },
-            { x: 280, y: 200 },
-            { x: 100, y: 200 }
-        ];
-        this.drawWall(g, meetingRoom, false);
-        
-        // Meeting room door
-        this.drawDoor(g, 280, 125, 'vertical');
-        
-        // Server room (top right)
-        const serverRoom = [
-            { x: 520, y: 50 },
-            { x: 700, y: 50 },
-            { x: 700, y: 200 },
-            { x: 520, y: 200 }
-        ];
-        this.drawWall(g, serverRoom, false);
-        
-        // Server room door
-        this.drawDoor(g, 520, 125, 'vertical');
-        
-        // Windows (top wall)
-        this.drawWindow(g, 320, 50, 60, 'horizontal');
-        this.drawWindow(g, 440, 50, 60, 'horizontal');
-        
-        // Windows (left wall)
-        this.drawWindow(g, 100, 300, 80, 'vertical');
-        this.drawWindow(g, 100, 420, 80, 'vertical');
-        
-        // Windows (right wall)
-        this.drawWindow(g, 700, 300, 80, 'vertical');
-        this.drawWindow(g, 700, 420, 80, 'vertical');
+        // Windows (same positions as Floor 2)
+        this.drawWindow(g, 120, 50, 80, 'horizontal');
+        this.drawWindow(g, 290, 50, 80, 'horizontal');
+        this.drawWindow(g, 430, 50, 80, 'horizontal');
+        this.drawWindow(g, 550, 50, 80, 'horizontal');
+        this.drawWindow(g, 650, 50, 80, 'horizontal');
+        this.drawWindow(g, 820, 50, 80, 'horizontal');
+        this.drawWindow(g, 980, 50, 80, 'horizontal');
         
         // ONLY DRAW DESKS IF IN DESK MODE
         if (this.sensorMode === 'DESK') {
-            // DESKS - Left open space (4 desks in 2x2 grid)
-            const leftDesks = [
-                { id: 'D1', x: 150, y: 250, status: 'free' },
-                { id: 'D2', x: 240, y: 250, status: 'used' },
-                { id: 'D3', x: 150, y: 350, status: 'free' },
-                { id: 'D4', x: 240, y: 350, status: 'free' }
-            ];
-            
-            leftDesks.forEach(desk => {
-                this.drawDesk(g, desk.x, desk.y, 60, 40, desk.status, desk.id);
-            });
-            
-            // DESKS - Right open space (4 desks in 2x2 grid)
-            const rightDesks = [
-                { id: 'D5', x: 500, y: 250, status: 'used' },
-                { id: 'D6', x: 590, y: 250, status: 'free' },
-                { id: 'D7', x: 500, y: 350, status: 'free' },
-                { id: 'D8', x: 590, y: 350, status: 'used' }
-            ];
-            
-            rightDesks.forEach(desk => {
-                this.drawDesk(g, desk.x, desk.y, 60, 40, desk.status, desk.id);
-            });
+            // Ground floor desks - similar layout to Floor 2
+            this.drawWorkstation(g, 120, 60, 'free', 'D01', 30, 50, 'left');
+            this.drawWorkstation(g, 90, 60, 'free', 'D02', 30, 50, 'right');
+            this.drawWorkstation(g, 260, 60, 'used', 'D03', 30, 50, 'left');
+            this.drawWorkstation(g, 290, 60, 'free', 'D04', 30, 50, 'right');
+            this.drawWorkstation(g, 790, 60, 'free', 'D05', 30, 50, 'left');
+            this.drawWorkstation(g, 820, 60, 'free', 'D06', 30, 50, 'right');
         }
-        
-        // Labels
-        this.drawLabel(g, 190, 120, 'Meeting Room', 12);
-        this.drawLabel(g, 610, 120, 'Server Room', 12);
-        this.drawLabel(g, 220, 220, 'Open Space', 14, 'bold');
-        this.drawLabel(g, 560, 220, 'Open Space', 14, 'bold');
-        this.drawLabel(g, 400, 300, 'Corridor', 12);
         
         this.svg.appendChild(g);
     }
@@ -243,8 +173,8 @@ class ArchitecturalFloorPlan {
     drawFloor1() {
         const g = this.createGroup('floor-1');
         
-        // Same building outline as Floor 2
-        const mainOutline = [
+        // Main building outline - Same as Floor 2
+        const outerWall = [
             { x: 50, y: 50 },
             { x: 950, y: 50 },
             { x: 1050, y: 50 },
@@ -254,78 +184,39 @@ class ArchitecturalFloorPlan {
             { x: 50, y: 200 },
             { x: 50, y: 50 }
         ];
-        this.drawWall(g, mainOutline, true);
+        this.drawWall(g, outerWall, true);
         
-        // Horizontal corridor
-        const corridorTop = [
-            { x: 100, y: 280 },
-            { x: 700, y: 280 }
-        ];
-        this.drawLine(g, corridorTop, this.colors.interiorLine, 2);
+        // Internal separator lines (same as Floor 2)
+        this.drawLine(g, [{ x: 750, y: 55 }, { x: 750, y: 240 }], this.colors.interiorLine, 2);
+        this.drawLine(g, [{ x: 720, y: 55 }, { x: 720, y: 240 }], this.colors.interiorLine, 2);
+        this.drawLine(g, [{ x: 720, y: 240 }, { x: 750, y: 240 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 1050, y: 200 }, { x: 850, y: 200 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 1050, y: 210 }, { x: 850, y: 210 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 850, y: 200 }, { x: 850, y: 210 }], this.colors.interiorLine, 2);
         
-        const corridorBottom = [
-            { x: 100, y: 320 },
-            { x: 700, y: 320 }
-        ];
-        this.drawLine(g, corridorBottom, this.colors.interiorLine, 2);
-        
-        // Vertical dividers
-        this.drawLine(g, [{ x: 400, y: 50 }, { x: 400, y: 280 }], this.colors.interiorLine, 2);
-        this.drawLine(g, [{ x: 400, y: 320 }, { x: 400, y: 550 }], this.colors.interiorLine, 2);
+        // Windows (same positions as Floor 2)
+        this.drawWindow(g, 120, 50, 80, 'horizontal');
+        this.drawWindow(g, 290, 50, 80, 'horizontal');
+        this.drawWindow(g, 430, 50, 80, 'horizontal');
+        this.drawWindow(g, 550, 50, 80, 'horizontal');
+        this.drawWindow(g, 650, 50, 80, 'horizontal');
+        this.drawWindow(g, 820, 50, 80, 'horizontal');
+        this.drawWindow(g, 980, 50, 80, 'horizontal');
         
         // ONLY DRAW DESKS IF IN DESK MODE
         if (this.sensorMode === 'DESK') {
-            // Top left section - 3 desks
-            const topLeftDesks = [
-                { id: 'D1', x: 150, y: 100, status: 'free' },
-                { id: 'D2', x: 250, y: 100, status: 'used' },
-                { id: 'D3', x: 150, y: 180, status: 'free' }
-            ];
-            topLeftDesks.forEach(desk => {
-                this.drawDesk(g, desk.x, desk.y, 60, 40, desk.status, desk.id);
-            });
-            
-            // Top right section - 3 desks
-            const topRightDesks = [
-                { id: 'D4', x: 500, y: 100, status: 'invalid' },
-                { id: 'D5', x: 600, y: 100, status: 'free' },
-                { id: 'D6', x: 500, y: 180, status: 'used' }
-            ];
-            topRightDesks.forEach(desk => {
-                this.drawDesk(g, desk.x, desk.y, 60, 40, desk.status, desk.id);
-            });
-            
-            // Bottom left section - 3 desks
-            const bottomLeftDesks = [
-                { id: 'D7', x: 150, y: 370, status: 'free' },
-                { id: 'D8', x: 250, y: 370, status: 'free' },
-                { id: 'D9', x: 150, y: 470, status: 'used' }
-            ];
-            bottomLeftDesks.forEach(desk => {
-                this.drawDesk(g, desk.x, desk.y, 60, 40, desk.status, desk.id);
-            });
-            
-            // Bottom right section - 3 desks
-            const bottomRightDesks = [
-                { id: 'D10', x: 500, y: 370, status: 'free' },
-                { id: 'D11', x: 600, y: 370, status: 'used' },
-                { id: 'D12', x: 500, y: 470, status: 'free' }
-            ];
-            bottomRightDesks.forEach(desk => {
-                this.drawDesk(g, desk.x, desk.y, 60, 40, desk.status, desk.id);
-            });
+            // Floor 1 desks
+            this.drawWorkstation(g, 120, 60, 'used', 'D01', 30, 50, 'left');
+            this.drawWorkstation(g, 90, 60, 'free', 'D02', 30, 50, 'right');
+            this.drawWorkstation(g, 260, 60, 'free', 'D03', 30, 50, 'left');
+            this.drawWorkstation(g, 290, 60, 'invalid', 'D04', 30, 50, 'right');
+            this.drawWorkstation(g, 460, 60, 'free', 'D05', 30, 50, 'left');
+            this.drawWorkstation(g, 490, 60, 'free', 'D06', 30, 50, 'right');
+            this.drawWorkstation(g, 790, 60, 'free', 'D07', 30, 50, 'left');
+            this.drawWorkstation(g, 820, 60, 'used', 'D08', 30, 50, 'right');
+            this.drawWorkstation(g, 950, 60, 'free', 'D09', 30, 50, 'left');
+            this.drawWorkstation(g, 980, 60, 'free', 'D10', 30, 50, 'right');
         }
-        
-        // Windows
-        this.drawWindow(g, 200, 50, 80, 'horizontal');
-        this.drawWindow(g, 500, 50, 80, 'horizontal');
-        this.drawWindow(g, 100, 150, 60, 'vertical');
-        this.drawWindow(g, 700, 150, 60, 'vertical');
-        
-        // Labels
-        this.drawLabel(g, 250, 230, 'Work Area A', 14, 'bold');
-        this.drawLabel(g, 550, 230, 'Work Area B', 14, 'bold');
-        this.drawLabel(g, 400, 300, 'Main Corridor', 12);
         
         this.svg.appendChild(g);
     }
@@ -408,7 +299,39 @@ class ArchitecturalFloorPlan {
         this.drawWindow(g, 820, 50, 80, 'horizontal');  // rect x=780
         this.drawWindow(g, 980, 50, 80, 'horizontal');  // rect x=940
         
-        // Desks will be added later per your instruction
+        // ONLY DRAW DESKS IF IN DESK MODE
+        if (this.sensorMode === 'DESK') {
+            // D01 - rect x=120, chair cx=80 (left side)
+            this.drawWorkstation(g, 120, 60, 'free', 'D01', 30, 50, 'left', null, 80, 85, 135, 85);
+            
+            // D02 - rect x=90, chair cx=160 (right side)
+            this.drawWorkstation(g, 90, 60, 'free', 'D02', 30, 50, 'right', null, 160, 85, 105, 85);
+            
+            // D03 - horizontal desk
+            this.drawWorkstation(g, 90, 110, 'free', 'D03', 60, 30, 'bottom', null, 120, 150, 120, 125);
+            
+            // D04 & D05 - Center-left cluster
+            this.drawWorkstation(g, 260, 60, 'free', 'D04', 30, 50, 'left', null, 250, 85, 275, 85);
+            this.drawWorkstation(g, 290, 60, 'free', 'D05', 30, 50, 'right', null, 330, 85, 305, 85);
+            
+            // D06 - With rotation 190°
+            this.drawWorkstation(g, 260, 240, 'free', 'D06', 30, 50, 'custom', 'rotate(190, 275, 265)', 250, 260, 275, 265);
+            
+            // D07 - With rotation 190°
+            this.drawWorkstation(g, 230, 240, 'free', 'D07', 30, 50, 'custom', 'rotate(190, 275, 265)', 330, 275, 305, 270);
+            
+            // Right cluster 1
+            this.drawWorkstation(g, 790, 60, 'free', 'D08', 30, 50, 'left', null, 780, 85, 805, 85);
+            this.drawWorkstation(g, 790, 110, 'free', 'D09', 30, 50, 'left', null, 780, 135, 805, 135);
+            this.drawWorkstation(g, 820, 60, 'free', 'D10', 30, 50, 'right', null, 860, 85, 835, 85);
+            this.drawWorkstation(g, 820, 110, 'free', 'D11', 30, 50, 'right', null, 860, 135, 835, 135);
+            
+            // Right cluster 2
+            this.drawWorkstation(g, 950, 60, 'free', 'D12', 30, 50, 'left', null, 940, 85, 965, 85);
+            this.drawWorkstation(g, 950, 110, 'free', 'D13', 30, 50, 'left', null, 940, 135, 965, 135);
+            this.drawWorkstation(g, 980, 60, 'free', 'D14', 30, 50, 'right', null, 1020, 85, 995, 85);
+            this.drawWorkstation(g, 980, 110, 'free', 'D15', 30, 50, 'right', null, 1020, 135, 995, 135);
+        }
         
         this.svg.appendChild(g);
     }
@@ -524,43 +447,90 @@ class ArchitecturalFloorPlan {
         
         // ONLY DRAW DESKS IF IN DESK MODE
         if (this.sensorMode === 'DESK') {
-            const desks = [
-                // Top row - vertical desks (width=30, height=50)
-                { id: 'D05', x: 300, y: 60, width: 30, height: 50, chair: 'left', status: 'free' },
-                { id: 'D06', x: 330, y: 60, width: 30, height: 50, chair: 'right', status: 'free' },
-                { id: 'D07', x: 460, y: 60, width: 30, height: 50, chair: 'left', status: 'free' },
-                { id: 'D09', x: 490, y: 60, width: 30, height: 50, chair: 'right', status: 'free' },
-                { id: 'D11', x: 620, y: 60, width: 30, height: 50, chair: 'left', status: 'free' },
-                { id: 'D14', x: 650, y: 60, width: 30, height: 50, chair: 'right', status: 'free' },
-                { id: 'D17', x: 790, y: 60, width: 30, height: 50, chair: 'left', status: 'free' },
-                { id: 'D19', x: 820, y: 60, width: 30, height: 50, chair: 'right', status: 'free' },
-                { id: 'D21', x: 950, y: 60, width: 30, height: 50, chair: 'left', status: 'free' },
-                { id: 'D23', x: 980, y: 60, width: 30, height: 50, chair: 'right', status: 'free' },
-                
-                // Left cluster - horizontal desks (width=50, height=30)
-                { id: 'D01', x: 110, y: 90, width: 50, height: 30, chair: 'top', status: 'free' },
-                { id: 'D03', x: 160, y: 90, width: 50, height: 30, chair: 'top', status: 'free' },
-                { id: 'D02', x: 110, y: 120, width: 50, height: 30, chair: 'bottom', status: 'free' },
-                { id: 'D04', x: 160, y: 120, width: 50, height: 30, chair: 'bottom', status: 'free' },
-                
-                // Middle row - vertical desks
-                { id: 'D08', x: 460, y: 110, width: 30, height: 50, chair: 'left', status: 'free' },
-                { id: 'D10', x: 490, y: 110, width: 30, height: 50, chair: 'right', status: 'free' },
-                { id: 'D12', x: 620, y: 110, width: 30, height: 50, chair: 'left', status: 'free' },
-                { id: 'D15', x: 650, y: 110, width: 30, height: 50, chair: 'right', status: 'free' },
-                { id: 'D18', x: 790, y: 110, width: 30, height: 50, chair: 'left', status: 'free' },
-                { id: 'D20', x: 820, y: 110, width: 30, height: 50, chair: 'right', status: 'free' },
-                { id: 'D22', x: 950, y: 110, width: 30, height: 50, chair: 'left', status: 'free' },
-                { id: 'D24', x: 980, y: 110, width: 30, height: 50, chair: 'right', status: 'free' },
-                
-                // Bottom row - vertical desks
-                { id: 'D13', x: 620, y: 160, width: 30, height: 50, chair: 'left', status: 'free' },
-                { id: 'D16', x: 650, y: 160, width: 30, height: 50, chair: 'right', status: 'free' }
-            ];
+            // Left cluster - horizontal desks
+            this.drawWorkstation(g, 110, 90, 'free', 'D01', 50, 30, 'top');
+            this.drawWorkstation(g, 160, 90, 'free', 'D03', 50, 30, 'top');
+            this.drawWorkstation(g, 110, 120, 'free', 'D02', 50, 30, 'bottom');
+            this.drawWorkstation(g, 160, 120, 'free', 'D04', 50, 30, 'bottom');
             
-            desks.forEach(desk => {
-                this.drawWorkstation(g, desk.x, desk.y, desk.status, desk.id, desk.width, desk.height, desk.chair);
-            });
+            // Top row - vertical desks
+            this.drawWorkstation(g, 300, 60, 'free', 'D05', 30, 50, 'left');
+            this.drawWorkstation(g, 330, 60, 'free', 'D06', 30, 50, 'right');
+            this.drawWorkstation(g, 460, 60, 'free', 'D07', 30, 50, 'left');
+            this.drawWorkstation(g, 490, 60, 'free', 'D09', 30, 50, 'right');
+            this.drawWorkstation(g, 620, 60, 'free', 'D11', 30, 50, 'left');
+            this.drawWorkstation(g, 650, 60, 'free', 'D14', 30, 50, 'right');
+            this.drawWorkstation(g, 790, 60, 'free', 'D17', 30, 50, 'left');
+            this.drawWorkstation(g, 820, 60, 'free', 'D19', 30, 50, 'right');
+            this.drawWorkstation(g, 950, 60, 'free', 'D21', 30, 50, 'left');
+            this.drawWorkstation(g, 980, 60, 'free', 'D23', 30, 50, 'right');
+            
+            // Middle row - vertical desks
+            this.drawWorkstation(g, 460, 110, 'free', 'D08', 30, 50, 'left');
+            this.drawWorkstation(g, 490, 110, 'free', 'D10', 30, 50, 'right');
+            this.drawWorkstation(g, 620, 110, 'free', 'D12', 30, 50, 'left');
+            this.drawWorkstation(g, 650, 110, 'free', 'D15', 30, 50, 'right');
+            this.drawWorkstation(g, 790, 110, 'free', 'D18', 30, 50, 'left');
+            this.drawWorkstation(g, 820, 110, 'free', 'D20', 30, 50, 'right');
+            this.drawWorkstation(g, 950, 110, 'free', 'D22', 30, 50, 'left');
+            this.drawWorkstation(g, 980, 110, 'free', 'D24', 30, 50, 'right');
+            
+            // Bottom row - vertical desks
+            this.drawWorkstation(g, 620, 160, 'free', 'D13', 30, 50, 'left');
+            this.drawWorkstation(g, 650, 160, 'free', 'D16', 30, 50, 'right');
+        }
+        
+        this.svg.appendChild(g);
+    }
+    
+    drawFloor6() {
+        const g = this.createGroup('floor-6');
+        
+        // Main building outline - Same as Floor 2
+        const outerWall = [
+            { x: 50, y: 50 },
+            { x: 950, y: 50 },
+            { x: 1050, y: 50 },
+            { x: 1050, y: 450 },
+            { x: 200, y: 280 },
+            { x: 200, y: 280 },
+            { x: 50, y: 200 },
+            { x: 50, y: 50 }
+        ];
+        this.drawWall(g, outerWall, true);
+        
+        // Internal separator lines (same as Floor 2)
+        this.drawLine(g, [{ x: 750, y: 55 }, { x: 750, y: 240 }], this.colors.interiorLine, 2);
+        this.drawLine(g, [{ x: 720, y: 55 }, { x: 720, y: 240 }], this.colors.interiorLine, 2);
+        this.drawLine(g, [{ x: 720, y: 240 }, { x: 750, y: 240 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 1050, y: 200 }, { x: 850, y: 200 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 1050, y: 210 }, { x: 850, y: 210 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 850, y: 200 }, { x: 850, y: 210 }], this.colors.interiorLine, 2);
+        
+        // Windows (same positions as Floor 2)
+        this.drawWindow(g, 120, 50, 80, 'horizontal');
+        this.drawWindow(g, 290, 50, 80, 'horizontal');
+        this.drawWindow(g, 430, 50, 80, 'horizontal');
+        this.drawWindow(g, 550, 50, 80, 'horizontal');
+        this.drawWindow(g, 650, 50, 80, 'horizontal');
+        this.drawWindow(g, 820, 50, 80, 'horizontal');
+        this.drawWindow(g, 980, 50, 80, 'horizontal');
+        
+        // ONLY DRAW DESKS IF IN DESK MODE
+        if (this.sensorMode === 'DESK') {
+            // Floor 6 desks - similar configuration
+            this.drawWorkstation(g, 120, 60, 'free', 'D01', 30, 50, 'left');
+            this.drawWorkstation(g, 90, 60, 'free', 'D02', 30, 50, 'right');
+            this.drawWorkstation(g, 260, 60, 'free', 'D03', 30, 50, 'left');
+            this.drawWorkstation(g, 290, 60, 'free', 'D04', 30, 50, 'right');
+            this.drawWorkstation(g, 460, 60, 'free', 'D05', 30, 50, 'left');
+            this.drawWorkstation(g, 490, 60, 'free', 'D06', 30, 50, 'right');
+            this.drawWorkstation(g, 620, 60, 'free', 'D07', 30, 50, 'left');
+            this.drawWorkstation(g, 650, 60, 'free', 'D08', 30, 50, 'right');
+            this.drawWorkstation(g, 790, 60, 'free', 'D09', 30, 50, 'left');
+            this.drawWorkstation(g, 820, 60, 'free', 'D10', 30, 50, 'right');
+            this.drawWorkstation(g, 950, 60, 'free', 'D11', 30, 50, 'left');
+            this.drawWorkstation(g, 980, 60, 'free', 'D12', 30, 50, 'right');
         }
         
         this.svg.appendChild(g);
@@ -731,7 +701,7 @@ class ArchitecturalFloorPlan {
         parent.appendChild(label);
     }
     
-    drawWorkstation(parent, x, y, status, id, width = 45, height = 35, chairPosition = 'top') {
+    drawWorkstation(parent, x, y, status, id, width = 45, height = 35, chairPosition = 'top', rotation = null, chairX = null, chairY = null, textX = null, textY = null) {
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
         g.setAttribute("class", "workstation");
         g.setAttribute("data-desk-id", id);
@@ -747,9 +717,14 @@ class ArchitecturalFloorPlan {
         desk.setAttribute("stroke-width", 2);
         desk.setAttribute("rx", 3);
         
+        // Add rotation if specified
+        if (rotation) {
+            desk.setAttribute("transform", rotation);
+        }
+        
         // Calculate center for text
-        const centerX = x + width / 2;
-        const centerY = y + height / 2;
+        const centerX = textX !== null ? textX : (x + width / 2);
+        const centerY = textY !== null ? textY : (y + height / 2);
         
         // Desk ID label
         const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -760,36 +735,44 @@ class ArchitecturalFloorPlan {
         text.setAttribute("font-size", "12");
         text.setAttribute("font-weight", "bold");
         text.setAttribute("fill", "#ffffff");
-        text.textContent = id;
+        text.textContent = id.replace('D', '');
         
-        // Chair position based on direction
-        let chairX, chairY;
-        switch(chairPosition) {
-            case 'left':
-                chairX = x - 10;
-                chairY = centerY;
-                break;
-            case 'right':
-                chairX = x + width + 10;
-                chairY = centerY;
-                break;
-            case 'top':
-                chairX = centerX;
-                chairY = y - 10;
-                break;
-            case 'bottom':
-                chairX = centerX;
-                chairY = y + height + 10;
-                break;
-            default:
-                chairX = centerX;
-                chairY = y - 10;
+        // Chair position
+        let finalChairX, finalChairY;
+        
+        if (chairX !== null && chairY !== null) {
+            // Custom chair position provided
+            finalChairX = chairX;
+            finalChairY = chairY;
+        } else {
+            // Calculate chair position based on direction
+            switch(chairPosition) {
+                case 'left':
+                    finalChairX = x - 10;
+                    finalChairY = y + height / 2;
+                    break;
+                case 'right':
+                    finalChairX = x + width + 10;
+                    finalChairY = y + height / 2;
+                    break;
+                case 'top':
+                    finalChairX = x + width / 2;
+                    finalChairY = y - 10;
+                    break;
+                case 'bottom':
+                    finalChairX = x + width / 2;
+                    finalChairY = y + height + 10;
+                    break;
+                default:
+                    finalChairX = x + width / 2;
+                    finalChairY = y - 10;
+            }
         }
         
         // Chair indicator (small circle)
         const chair = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        chair.setAttribute("cx", chairX);
-        chair.setAttribute("cy", chairY);
+        chair.setAttribute("cx", finalChairX);
+        chair.setAttribute("cy", finalChairY);
         chair.setAttribute("r", 4);
         chair.setAttribute("fill", '#94a3b8');
         chair.setAttribute("stroke", this.colors.wallStroke);
