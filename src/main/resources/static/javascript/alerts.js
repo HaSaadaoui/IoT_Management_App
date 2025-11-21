@@ -381,22 +381,57 @@ function initCharts() {
                 maintainAspectRatio: false,
                 scales: {
                     x: {
+                        title: {
+                            display: true,
+                            text: 'Date (day)',
+                            color: '#64748b',
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            },
+                            padding: { top: 10 }
+                        },
                         stacked: true,
                         grid: {
                             display: false
+                        },
+                        ticks: {
+                            maxRotation: 0,
+                            minRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 15,
+                            color: '#64748b',
+                            font: {
+                                size: 10
+                            }
                         }
                     },
                     y: {
+                        title: {
+                            display: true,
+                            text: 'Occupancy Rate (%)',
+                            color: '#64748b',
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            },
+                            padding: { bottom: 10 }
+                        },
                         stacked: true,
                         beginAtZero: true,
                         max: 100,
                         ticks: {
+                            color: '#64748b',
+                            font: {
+                                size: 11
+                            },
                             callback: function(value) {
                                 return value + '%';
                             }
                         },
                         grid: {
-                            color: '#e2e8f0'
+                            color: 'rgba(226, 232, 240, 0.5)',
+                            lineWidth: 1
                         }
                     }
                 },
@@ -505,26 +540,58 @@ function initCharts() {
                 },
                 scales: {
                     x: {
+                        title: {
+                            display: true,
+                            text: 'Date (day)',
+                            color: '#64748b',
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            },
+                            padding: { top: 10 }
+                        },
                         grid: {
                             display: false
                         },
                         ticks: {
-                            maxRotation: 45,
-                            minRotation: 45
+                            maxRotation: 0,
+                            minRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 10,
+                            color: '#64748b',
+                            font: {
+                                size: 10
+                            }
                         }
                     },
                     y: {
+                        title: {
+                            display: true,
+                            text: 'Cost (€)',
+                            color: '#64748b',
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            },
+                            padding: { bottom: 10 }
+                        },
                         beginAtZero: false,
                         min: 20,
-                        max: 35,
+                        max: 36,
                         ticks: {
+                            stepSize: 2,
+                            color: '#64748b',
+                            font: {
+                                size: 11
+                            },
                             callback: function(value) {
-                                return '€' + value.toFixed(2);
+                                return '€' + value;
                             }
                         },
                         grid: {
-                            color: '#e2e8f0',
-                            drawBorder: false
+                            color: 'rgba(226, 232, 240, 0.5)',
+                            drawBorder: false,
+                            lineWidth: 1
                         }
                     }
                 },

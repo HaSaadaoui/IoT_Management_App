@@ -142,6 +142,23 @@ class Building3D {
                     { id: 'D11', status: 'used', x: 1, y: 2 },
                     { id: 'D12', status: 'free', x: 3, y: 2 }
                 ]
+            },
+            6: {
+                name: 'Floor 6',
+                desks: [
+                    { id: 'D1', status: 'free', x: -3, y: -2 },
+                    { id: 'D2', status: 'free', x: -1, y: -2 },
+                    { id: 'D3', status: 'free', x: 1, y: -2 },
+                    { id: 'D4', status: 'free', x: 3, y: -2 },
+                    { id: 'D5', status: 'free', x: -3, y: 0 },
+                    { id: 'D6', status: 'free', x: -1, y: 0 },
+                    { id: 'D7', status: 'free', x: 1, y: 0 },
+                    { id: 'D8', status: 'free', x: 3, y: 0 },
+                    { id: 'D9', status: 'free', x: -3, y: 2 },
+                    { id: 'D10', status: 'free', x: -1, y: 2 },
+                    { id: 'D11', status: 'free', x: 1, y: 2 },
+                    { id: 'D12', status: 'free', x: 3, y: 2 }
+                ]
             }
         };
         
@@ -230,78 +247,84 @@ class Building3D {
         this.building = new THREE.Group();
         
         const floorHeight = 3;
-        const floorWidth = 10;
-        const floorDepth = 8;
-        const wallThickness = 0.2;
+        const scale = 0.01; // Scale down from SVG coordinates (1100x500) to 3D (11x5)
         
-        // Create 6 floors
-        for (let i = 0; i < 6; i++) {
+        // Define angular building shape (from 2D floor plan)
+        // SVG coordinates: x: 50-1050, y: 50-450
+        const buildingShape = new THREE.Shape();
+        buildingShape.moveTo(50 * scale, 50 * scale);
+        buildingShape.lineTo(950 * scale, 50 * scale);
+        buildingShape.lineTo(1050 * scale, 50 * scale);
+        buildingShape.lineTo(1050 * scale, 450 * scale);
+        buildingShape.lineTo(200 * scale, 280 * scale);
+        buildingShape.lineTo(50 * scale, 200 * scale);
+        buildingShape.lineTo(50 * scale, 50 * scale);
+        
+        // Center the shape (shift by half of bounding box)
+        const centerX = (50 + 1050) * scale / 2;
+        const centerZ = (50 + 450) * scale / 2;
+        
+        // Create 7 floors (0-6)
+        for (let i = 0; i < 7; i++) {
             const floorGroup = new THREE.Group();
             floorGroup.userData = { floorNumber: i, type: 'floor' };
             
-            // Floor base
-            const floorGeometry = new THREE.BoxGeometry(floorWidth, 0.3, floorDepth);
+            // Floor base (extruded shape)
+            const extrudeSettings = {
+                depth: 0.3,
+                bevelEnabled: false
+            };
+            const floorGeometry = new THREE.ExtrudeGeometry(buildingShape, extrudeSettings);
             const floorMaterial = new THREE.MeshStandardMaterial({
                 color: this.colors.floorBase,
                 metalness: 0.1,
                 roughness: 0.8
             });
             const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-            floor.position.y = i * floorHeight;
+            floor.rotation.x = -Math.PI / 2; // Rotate to horizontal
+            floor.position.set(-centerX, i * floorHeight, -centerZ);
             floor.castShadow = true;
             floor.receiveShadow = true;
             floor.userData = { floorNumber: i, type: 'floor', clickable: true };
             floorGroup.add(floor);
             this.floors.push(floor);
             
-            // Walls
+            // Walls (extruded outline)
+            const wallExtrudeSettings = {
+                depth: floorHeight,
+                bevelEnabled: false
+            };
+            const wallGeometry = new THREE.ExtrudeGeometry(buildingShape, wallExtrudeSettings);
             const wallMaterial = new THREE.MeshStandardMaterial({
                 color: this.colors.walls,
                 transparent: true,
-                opacity: 0.7,
+                opacity: 0.3,
                 metalness: 0.1,
-                roughness: 0.9
+                roughness: 0.9,
+                side: THREE.DoubleSide
             });
+            const walls = new THREE.Mesh(wallGeometry, wallMaterial);
+            walls.rotation.x = -Math.PI / 2;
+            walls.position.set(-centerX, i * floorHeight, -centerZ);
+            walls.castShadow = true;
+            floorGroup.add(walls);
             
-            // Front and back walls
-            const wallGeometry1 = new THREE.BoxGeometry(floorWidth, floorHeight, wallThickness);
-            const frontWall = new THREE.Mesh(wallGeometry1, wallMaterial);
-            frontWall.position.set(0, i * floorHeight + floorHeight / 2, floorDepth / 2);
-            frontWall.castShadow = true;
-            floorGroup.add(frontWall);
-            
-            const backWall = new THREE.Mesh(wallGeometry1, wallMaterial);
-            backWall.position.set(0, i * floorHeight + floorHeight / 2, -floorDepth / 2);
-            backWall.castShadow = true;
-            floorGroup.add(backWall);
-            
-            // Side walls
-            const wallGeometry2 = new THREE.BoxGeometry(wallThickness, floorHeight, floorDepth);
-            const leftWall = new THREE.Mesh(wallGeometry2, wallMaterial);
-            leftWall.position.set(-floorWidth / 2, i * floorHeight + floorHeight / 2, 0);
-            leftWall.castShadow = true;
-            floorGroup.add(leftWall);
-            
-            const rightWall = new THREE.Mesh(wallGeometry2, wallMaterial);
-            rightWall.position.set(floorWidth / 2, i * floorHeight + floorHeight / 2, 0);
-            rightWall.castShadow = true;
-            floorGroup.add(rightWall);
-            
-            // Roof (can be animated)
-            const roofGeometry = new THREE.BoxGeometry(floorWidth, 0.2, floorDepth);
+            // Roof
+            const roofGeometry = new THREE.ExtrudeGeometry(buildingShape, extrudeSettings);
             const roofMaterial = new THREE.MeshStandardMaterial({
                 color: this.colors.roof,
                 metalness: 0.3,
                 roughness: 0.7
             });
             const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-            roof.position.y = i * floorHeight + floorHeight;
+            roof.rotation.x = -Math.PI / 2;
+            roof.position.set(-centerX, i * floorHeight + floorHeight, -centerZ);
             roof.castShadow = true;
             roof.userData = { type: 'roof', floorNumber: i };
             floorGroup.add(roof);
             this.roofs.push(roof);
             
-            // Add purple accent edge
+            // Add purple accent edges
             const edgeGeometry = new THREE.EdgesGeometry(floorGeometry);
             const edgeMaterial = new THREE.LineBasicMaterial({
                 color: this.colors.primary,
@@ -309,6 +332,7 @@ class Building3D {
             });
             const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
             edges.position.copy(floor.position);
+            edges.rotation.copy(floor.rotation);
             floorGroup.add(edges);
             
             this.building.add(floorGroup);
