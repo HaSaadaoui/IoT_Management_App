@@ -133,7 +133,7 @@ const sGenBatt   = el("#s-gen-batt");
 // See: src/main/java/com/amaris/sensorprocessor/entity/PayloadValueType.java
 const DEVICE_TYPE_METRICS = {
   "COUNT": [
-    "BATTERY",
+    // "BATTERY",
     "PERIOD_IN",
     "PERIOD_OUT",
   ],
@@ -149,17 +149,17 @@ const DEVICE_TYPE_METRICS = {
     "PRESENCE",
     "ILLUMINANCE",
     // "LIGHT",
-    "BATTERY",
+    // "BATTERY",
   ],
   "TEMPEX": [
     "TEMPERATURE",
     "HUMIDITY",
-    "BATTERY",
+    // "BATTERY",
   ],
   "PIR_LIGHT": [
     "PRESENCE",
     "LIGHT",
-    "BATTERY",
+    // "BATTERY",
   ],
   "EYE": [
     "TEMPERATURE",
@@ -174,14 +174,41 @@ const DEVICE_TYPE_METRICS = {
     "LAI",
     "LAI_MAX",
     "LAEQ",
-    "BATTERY",
+    // "BATTERY",
   ],
   "DESK": [
     "OCCUPANCY",
-    "PRESENCE",
     "TEMPERATURE",
     "HUMIDITY",
     "VDD",
+  ],
+  "CONSO": [
+    "CONSUMPTION_CHANNEL_0",
+    "CONSUMPTION_CHANNEL_1",
+    "CONSUMPTION_CHANNEL_2",
+    "CONSUMPTION_CHANNEL_3",
+    "CONSUMPTION_CHANNEL_4",
+    "CONSUMPTION_CHANNEL_5",
+    "CONSUMPTION_CHANNEL_6",
+    "CONSUMPTION_CHANNEL_7",
+    "CONSUMPTION_CHANNEL_8",
+    "CONSUMPTION_CHANNEL_9",
+    "CONSUMPTION_CHANNEL_10",
+    "CONSUMPTION_CHANNEL_11",
+  ],
+  "ENERGY": [
+    "CONSUMPTION_CHANNEL_0",
+    "CONSUMPTION_CHANNEL_1",
+    "CONSUMPTION_CHANNEL_2",
+    "CONSUMPTION_CHANNEL_3",
+    "CONSUMPTION_CHANNEL_4",
+    "CONSUMPTION_CHANNEL_5",
+    "CONSUMPTION_CHANNEL_6",
+    "CONSUMPTION_CHANNEL_7",
+    "CONSUMPTION_CHANNEL_8",
+    "CONSUMPTION_CHANNEL_9",
+    "CONSUMPTION_CHANNEL_10",
+    "CONSUMPTION_CHANNEL_11",
   ]
 };
 

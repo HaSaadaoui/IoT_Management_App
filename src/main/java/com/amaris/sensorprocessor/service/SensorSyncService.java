@@ -417,15 +417,39 @@ public class SensorSyncService {
             .addOptions(Option.DEFAULT_PATH_LEAF_TO_NULL)
             .addOptions(Option.SUPPRESS_EXCEPTIONS);
 
-        DocumentContext context = JsonPath.using(conf).parse(json);
+        var reader = JsonPath.using(conf);
+
+        DocumentContext context = reader.parse(json);
         String receivedAtString = context.read("$.result.received_at");
         LocalDateTime receivedAt = convertTimestampToLocalDateTime(receivedAtString);
         String deviceId = context.read("$.result.end_device_ids.device_id");
+        
+
         try {
 
-            JSON_PATH_MAP.forEach((key, jsonPath) -> {
+            JSON_PATH_MAP.forEach((PayloadValueType key, String jsonPath) -> {
                 // The enum itself holds the path
-                Object value = context.read(key.getJsonPath());
+                
+                if (json.contains("hardwareData") && key.equals(PayloadValueType.CONSUMPTION_CHANNEL_11)) {
+                    log.debug(appId);
+                }
+
+                // The root can either be "data" or "result"
+                Object value;
+
+                if (context.read("$.result") != null) {
+                    // replace $. by $.result. in the path
+                    String resultJsonPath = jsonPath.replace("$.", "$.result.");
+                    value = context.read(resultJsonPath);
+                    
+                } else if (context.read("$.data") != null) { // For conso sensors
+                    // replace $. by $.data. in the path
+                    String dataJsonPath = jsonPath.replace("$.", "$.data.");
+                    value = context.read(dataJsonPath);
+                } else {
+                    value = null;
+                }
+
 
                 if (value != null) {
                     SensorData sd = new SensorData(deviceId, receivedAt, value.toString(), key.toString());
