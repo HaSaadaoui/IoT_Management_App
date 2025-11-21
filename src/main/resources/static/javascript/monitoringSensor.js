@@ -533,7 +533,19 @@ const METRIC_TITLES = {
   'BATTERY': 'Battery (%)',
   'RSSI': 'Signal (RSSI)',
   'SNR': 'Signal/Noise (SNR)',
-  'DISTANCE': 'Distance (mm)'
+  'DISTANCE': 'Distance (mm)',
+  'CONSUMPTION_CHANNEL_0': 'Consumption Channel 0',
+  'CONSUMPTION_CHANNEL_1': 'Consumption Channel 1',
+  'CONSUMPTION_CHANNEL_2': 'Consumption Channel 2',
+  'CONSUMPTION_CHANNEL_3': 'Consumption Channel 3',
+  'CONSUMPTION_CHANNEL_4': 'Consumption Channel 4',
+  'CONSUMPTION_CHANNEL_5': 'Consumption Channel 5',
+  'CONSUMPTION_CHANNEL_6': 'Consumption Channel 6',
+  'CONSUMPTION_CHANNEL_7': 'Consumption Channel 7',
+  'CONSUMPTION_CHANNEL_8': 'Consumption Channel 8',
+  'CONSUMPTION_CHANNEL_9': 'Consumption Channel 9',
+  'CONSUMPTION_CHANNEL_10': 'Consumption Channel 10',
+  'CONSUMPTION_CHANNEL_11': 'Consumption Channel 11',
 };
 
 // Helper function to get a consistent color for metrics
