@@ -617,17 +617,22 @@ async function loadHistory(fromISO, toISO) {
 
     // Create the HTML structure for the chart card
     const chartCardHtml = `
-      <div class="chart-card metric-chart-card">
-        <div class="chart-header">
-          <div class="chart-title">
-            <span class="chart-icon" style="background: linear-gradient(135deg, ${getMetricColor(metricName)}, ${getMetricColor(metricName)});">📊</span>
-            <span class="metric-title">${chartTitle}</span>
-          </div>
-        </div>
-        <div class="chart-container">
-          <canvas id="${canvasId}"></canvas>
-        </div>
-      </div>
+
+
+
+                  <div class="chart-container">
+                    <div class="chart-header">
+                        <h4>
+                          ${chartTitle}
+                        </h4>
+                        <div class="chart-legend">
+                            <span class="legend-item"><span class="legend-color" style="background: ${getMetricColor(metricName)};"></span> ${metricName}</span>
+                        </div>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="${canvasId}"></canvas>
+                    </div>
+                </div>
     `;
 
     // Append the new chart card to the container
@@ -639,7 +644,8 @@ async function loadHistory(fromISO, toISO) {
     const ctx = document.getElementById(canvasId)?.getContext("2d");
     if (ctx) {
       // Create a new Chart.js instance
-      const newChart = mkLineChart(ctx, chartTitle, getMetricColor(metricName)); // Use friendly title for chart label
+      const chartConfig = createChartConfig(chartTitle, getMetricColor(metricName));
+      const newChart = new Chart(ctx, chartConfig);
       dynamicMetricCharts.push(newChart); // Store the instance
 
       // Populate the chart with data
@@ -647,10 +653,10 @@ async function loadHistory(fromISO, toISO) {
         /*
          * Since this one returns strings instead of numbers, we need to standardize it
          */
-        const convertedMetrics = Object.values(j.data[metricName]).map(value =>  "occupied" == value ? 1 : 0);
+        const convertedMetrics = Object.values(j.data[metricName] || []).map(value =>  "occupied" == value ? 1 : 0);
         setSeries(newChart, labels, convertedMetrics);
       } else if ("ILLUMINANCE" == metricName) {
-        const convertedMetrics = Object.values(j.data[metricName]).map(value =>  "dim" == value ? 0 : 1);
+        const convertedMetrics = Object.values(j.data[metricName] || []).map(value =>  "dim" == value ? 0 : 1);
         setSeries(newChart, labels, convertedMetrics);
       } else {
         setSeries(newChart, labels, j.data[metricName] || []);
@@ -662,18 +668,35 @@ async function loadHistory(fromISO, toISO) {
   updateKPICards(j, fromISO, toISO);
 }
 
+function getBattery(data) {
+  const lastBattery = Object.values(data.LAST_BATTERY_PERCENTAGE_VALUE || []);
+  const battery = Object.values(data.BATTERY || []);
+  if ((lastBattery?.length) > 0) {
+    return lastBattery.map(x => parseInt(x, 10))
+  } else if ((battery?.length) > 0) {
+    return battery.map(x => parseInt(x, 10))
+  } else {
+    console.error("No battery data found");
+    return [];
+  }
+}
+
 // Update KPI Cards with statistics
 function updateKPICards(data, fromISO, toISO) {
   // Total measurements
   const totalEl = document.getElementById('kpi-total');
   if (totalEl) {
-    const total = Object.values(data.data).map(x => Object.values(x).length).reduce((a, b) => a + b)
+    const values = Object.values(data.data || []);
+    let total = 0;
+    if (values.length > 0) {
+      total = values.map(x => Object.values(x).length).reduce((a, b) => a + b)
+    }
     totalEl.textContent = total.toLocaleString();
   }
 
   // Average battery
   const batteryEl = document.getElementById('kpi-battery');
-  const pctValues = Object.values(data.data.LAST_BATTERY_PERCENTAGE_VALUE || []).map(x => parseInt(x, 10));
+  const pctValues = getBattery(data.data || []);
   if (batteryEl && pctValues?.length > 0) {
     const avg = pctValues.reduce((a, b) => a + b, 0) / pctValues.length;
     batteryEl.textContent = `${Math.round(avg)}%`;
