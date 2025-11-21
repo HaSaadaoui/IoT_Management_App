@@ -198,6 +198,108 @@ function initCharts() {
             }
         });
     }
+
+    // Meeting Room A Donut chart
+    const ctxMeetingA = document.getElementById('chart-meeting-a');
+    if (ctxMeetingA) {
+        new Chart(ctxMeetingA, {
+            type: 'doughnut',
+            data: {
+                labels: ['Free', 'Used', 'Invalid'],
+                datasets: [{
+                    data: [66.67, 33.33, 0],
+                    backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Meeting Room B Donut chart
+    const ctxMeetingB = document.getElementById('chart-meeting-b');
+    if (ctxMeetingB) {
+        new Chart(ctxMeetingB, {
+            type: 'doughnut',
+            data: {
+                labels: ['Free', 'Used', 'Invalid'],
+                datasets: [{
+                    data: [50, 45, 5],
+                    backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Meeting Room C Donut chart
+    const ctxMeetingC = document.getElementById('chart-meeting-c');
+    if (ctxMeetingC) {
+        new Chart(ctxMeetingC, {
+            type: 'doughnut',
+            data: {
+                labels: ['Free', 'Used', 'Invalid'],
+                datasets: [{
+                    data: [80, 20, 0],
+                    backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
     
     // Total Occupancy Donut Chart
     const ctx3 = document.getElementById('chart-total');
@@ -345,6 +447,105 @@ function initCharts() {
                         callbacks: {
                             label: function(context) {
                                 return context.label + ': ' + context.parsed.toFixed(2) + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Sensor Cost Line Chart
+    const ctxCost = document.getElementById('chart-sensor-cost');
+    if (ctxCost) {
+        const costDates = [];
+        const costData = [];
+        
+        // Generate realistic cost data for last 30 days
+        const baselineCost = 28; // €28 baseline
+        for (let i = 29; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            costDates.push(date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
+            
+            // Add variation (±20%) to make it realistic
+            const variation = (Math.random() - 0.5) * 2 * 0.2; // ±20%
+            const dailyCost = baselineCost * (1 + variation);
+            costData.push(parseFloat(dailyCost.toFixed(2)));
+        }
+        
+        new Chart(ctxCost, {
+            type: 'line',
+            data: {
+                labels: costDates,
+                datasets: [{
+                    label: 'Daily Cost',
+                    data: costData,
+                    borderColor: '#662179',
+                    backgroundColor: 'rgba(102, 33, 121, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#662179',
+                    pointBorderWidth: 2,
+                    pointHoverBackgroundColor: '#662179',
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    },
+                    y: {
+                        beginAtZero: false,
+                        min: 20,
+                        max: 35,
+                        ticks: {
+                            callback: function(value) {
+                                return '€' + value.toFixed(2);
+                            }
+                        },
+                        grid: {
+                            color: '#e2e8f0',
+                            drawBorder: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        padding: 12,
+                        borderColor: '#662179',
+                        borderWidth: 1,
+                        displayColors: false,
+                        callbacks: {
+                            title: function(context) {
+                                return 'Date: ' + context[0].label;
+                            },
+                            label: function(context) {
+                                return 'Cost: €' + context.parsed.y.toFixed(2);
                             }
                         }
                     }

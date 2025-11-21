@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
-    <title>Alerts & Monitoring Dashboard</title>
+    <title>Dashboard - IoT Monitoring</title>
     <link rel="stylesheet" href="/css/styles.css"/>
     <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}"/>
     <link rel="stylesheet" href="/css/alerts.css"/>
@@ -22,14 +22,9 @@
         </svg>
     </a>
     <div class="header-title-gateway">
-        <span>🚨 Alerts & Monitoring Dashboard</span>
+        <span>📊 Dashboard - IoT Monitoring</span>
     </div>
     <div class="header-right">
-        <div class="header-user">
-            <a th:href="@{/users/{username}(username=${loggedUsername})}" class="header-link">
-                <img th:src="${user.icon}" class="header-avatar" alt="User Avatar" width="32" height="32">
-            </a>
-        </div>
         <div class="dropdown">
             <button onclick="toggleMenu()" class="menu-btn" aria-label="Menu">
                 <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="#662179" viewBox="0 0 24 24">
@@ -59,6 +54,11 @@
                     </button>
                 </form>
             </div>
+        </div>
+        <div class="header-user">
+            <a th:href="@{/users/{username}(username=${loggedUsername})}" class="header-link">
+                <img th:src="${user.icon}" class="header-avatar" alt="User Avatar" width="32" height="32">
+            </a>
         </div>
     </div>
 </header>
@@ -111,6 +111,8 @@
                     <option value="1" selected>Floor 1</option>
                     <option value="2">Floor 2</option>
                     <option value="3">Floor 3</option>
+                    <option value="4">Floor 4</option>
+                    <option value="5">Floor 5</option>
                 </select>
             </div>
             <div class="filter-card">
@@ -140,6 +142,48 @@
         </div>
         <div class="last-refresh">
             <span>🔄 Last refresh: <strong id="last-refresh-time">17/11/2025 11:23:47</strong></span>
+        </div>
+    </section>
+
+    <!-- Alerts Section -->
+    <section class="alerts-section">
+        <h3 class="section-title">🚨 Active Alerts</h3>
+        <div class="alerts-grid">
+            <div class="alert-card critical">
+                <div class="alert-icon">⚠️</div>
+                <div class="alert-content">
+                    <h4>Critical CO2 Level</h4>
+                    <p>Sensor CO2-B2 detected 1200 ppm</p>
+                    <span class="alert-time">2 minutes ago</span>
+                </div>
+            </div>
+
+            <div class="alert-card warning">
+                <div class="alert-icon">🔔</div>
+                <div class="alert-content">
+                    <h4>High Temperature</h4>
+                    <p>Room A-103 temperature at 28°C</p>
+                    <span class="alert-time">15 minutes ago</span>
+                </div>
+            </div>
+
+            <div class="alert-card info">
+                <div class="alert-icon">ℹ️</div>
+                <div class="alert-content">
+                    <h4>Sensor Offline</h4>
+                    <p>DESK-F1-12 not responding</p>
+                    <span class="alert-time">1 hour ago</span>
+                </div>
+            </div>
+
+            <div class="alert-card success">
+                <div class="alert-icon">✅</div>
+                <div class="alert-content">
+                    <h4>System Restored</h4>
+                    <p>Gateway rpi-mantu back online</p>
+                    <span class="alert-time">2 hours ago</span>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -228,11 +272,47 @@
                 </div>
 
                 <div class="stat-card">
-                    <h4 id="stat-card-3-title">Total Live Data</h4>
+                    <h4 id="stat-card-3-title">Meeting Room A</h4>
+                    <div class="donut-chart">
+                        <canvas id="chart-meeting-a"></canvas>
+                    </div>
+                    <div class="stat-legend" id="stat-legend-3">
+                        <div><span class="dot free"></span> Free (66.67%)</div>
+                        <div><span class="dot used"></span> Used (33.33%)</div>
+                        <div><span class="dot invalid"></span> Invalid (0%)</div>
+                    </div>
+                </div>
+
+                <!-- <div class="stat-card">
+                    <h4 id="stat-card-4-title">Meeting Room B</h4>
+                    <div class="donut-chart">
+                        <canvas id="chart-meeting-b"></canvas>
+                    </div>
+                    <div class="stat-legend" id="stat-legend-4">
+                        <div><span class="dot free"></span> Free (50%)</div>
+                        <div><span class="dot used"></span> Used (45%)</div>
+                        <div><span class="dot invalid"></span> Invalid (5%)</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <h4 id="stat-card-5-title">Meeting Room C</h4>
+                    <div class="donut-chart">
+                        <canvas id="chart-meeting-c"></canvas>
+                    </div>
+                    <div class="stat-legend" id="stat-legend-5">
+                        <div><span class="dot free"></span> Free (80%)</div>
+                        <div><span class="dot used"></span> Used (20%)</div>
+                        <div><span class="dot invalid"></span> Invalid (0%)</div>
+                    </div>
+                </div> -->
+
+                <div class="stat-card">
+                    <h4 id="stat-card-6-title">Total Live Data</h4>
                     <div class="donut-chart">
                         <canvas id="chart-total"></canvas>
                     </div>
-                    <div class="stat-legend" id="stat-legend-3">
+                    <div class="stat-legend" id="stat-legend-6">
                         <div><span class="dot free"></span> Free (63.64%)</div>
                         <div><span class="dot used"></span> Used (36.36%)</div>
                         <div><span class="dot invalid"></span> Invalid (0%)</div>
@@ -246,12 +326,6 @@
     <section class="historical-section">
         <h3 class="section-title" id="historical-section-title">📈 Historical Sensor Data - Châteaudun Office</h3>
         <div class="historical-grid">
-            <!-- Bar Chart -->
-            <div class="chart-card large">
-                <h4 id="historical-chart-title">Sensor Data Trends (08:00 - 19:00)</h4>
-                <canvas id="chart-historical-bar"></canvas>
-            </div>
-
             <!-- Global Stats -->
             <div class="chart-card">
                 <h4 id="global-chart-title">Global Statistics</h4>
@@ -288,47 +362,26 @@
                     </table>
                 </div>
             </div>
-        </div>
-    </section>
-
-    <!-- Alerts Section -->
-    <section class="alerts-section">
-        <h3 class="section-title">🚨 Active Alerts</h3>
-        <div class="alerts-grid">
-            <div class="alert-card critical">
-                <div class="alert-icon">⚠️</div>
-                <div class="alert-content">
-                    <h4>Critical CO2 Level</h4>
-                    <p>Sensor CO2-B2-05 detected 1200 ppm</p>
-                    <span class="alert-time">2 minutes ago</span>
+            
+            <!-- Daily Sensor Cost Chart -->
+            <div class="chart-card">
+                <h4>Daily Sensor Cost</h4>
+                <div class="cost-summary">
+                    <div class="cost-total">
+                        <span class="cost-label">Total Monthly Cost</span>
+                        <span class="cost-value">€842.50</span>
+                    </div>
+                    <div class="cost-average">
+                        <span class="cost-label">Average Daily Cost</span>
+                        <span class="cost-value">€27.82</span>
+                    </div>
                 </div>
+                <canvas id="chart-sensor-cost"></canvas>
             </div>
-
-            <div class="alert-card warning">
-                <div class="alert-icon">🔔</div>
-                <div class="alert-content">
-                    <h4>High Temperature</h4>
-                    <p>Room A-103 temperature at 28°C</p>
-                    <span class="alert-time">15 minutes ago</span>
-                </div>
-            </div>
-
-            <div class="alert-card info">
-                <div class="alert-icon">ℹ️</div>
-                <div class="alert-content">
-                    <h4>Sensor Offline</h4>
-                    <p>DESK-F1-12 not responding</p>
-                    <span class="alert-time">1 hour ago</span>
-                </div>
-            </div>
-
-            <div class="alert-card success">
-                <div class="alert-icon">✅</div>
-                <div class="alert-content">
-                    <h4>System Restored</h4>
-                    <p>Gateway rpi-mantu back online</p>
-                    <span class="alert-time">2 hours ago</span>
-                </div>
+            <!-- Bar Chart -->
+            <div class="chart-card large">
+                <h4 id="historical-chart-title">Sensor Data Trends (08:00 - 19:00)</h4>
+                <canvas id="chart-historical-bar"></canvas>
             </div>
         </div>
     </section>

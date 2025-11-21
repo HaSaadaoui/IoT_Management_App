@@ -49,14 +49,14 @@ public class HomeController {
     }
 
     /**
-     * @return la vue "alerts" pour afficher le dashboard des alertes et monitoring.
+     * @return la vue "dashboard" pour afficher le dashboard de monitoring et analytics.
      */
-    @GetMapping("/Alerts")
-    public String alerts(Model model, Principal principal) {
+    @GetMapping("/dashboard")
+    public String dashboard(Model model, Principal principal) {
         User user = userService.searchUserByUsername(principal.getName());
         model.addAttribute("user", user);
         model.addAttribute("loggedUsername", user.getUsername());
-        return "alerts";
+        return "dashboard";
     }
 
     /**

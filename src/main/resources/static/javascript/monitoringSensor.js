@@ -223,12 +223,16 @@ function startSSE() {
       if (lastSeenHuman && lastSeenEl) setText(lastSeenEl, lastSeenHuman);
       if (lastSeenHuman && el("#s-last")) setText("#s-last", lastSeenHuman);
 
-      // Status (ancien)
-      const status = isNormalized ? null : (typeof data.status === "string" ? data.status : null);
-      if (statusBadge && status) {
-        const s = status.toLowerCase();
-        statusBadge.textContent = s.charAt(0).toUpperCase() + s.slice(1);
-        statusBadge.style.backgroundColor = (s === "active" || s === "up") ? "green" : (s === "sleep" ? "gray" : "red");
+      // Status dynamique - Si on reçoit des données, le sensor est actif
+      const statusBadgeEl = el("#sensor-status");
+      const statusTextEl = el("#sensor-status-text");
+      if (statusBadgeEl && statusTextEl) {
+        // Si on reçoit des données, le sensor est actif
+        statusBadgeEl.className = "badge badge--ok";
+        statusTextEl.textContent = "Active";
+        // Mettre à jour l'icône si elle existe
+        const iconImg = statusBadgeEl.querySelector('img');
+        if (iconImg) iconImg.src = '/image/toggle_on.svg';
       }
 
       // Battery
@@ -380,7 +384,19 @@ function startSSE() {
           if (p.presence != null && el('#s-co2-motion'))  setText('#s-co2-motion',  p.presence);
           break;
         case 'OCCUP':
-          if (p.presence != null && el('#s-occup-presence')) setText('#s-occup-presence', p.presence);
+          // Occupancy avec code couleur
+          if (p.presence != null && el('#s-occup-presence')) {
+            const occNode = el('#s-occup-presence');
+            occNode.classList.remove('badge--ok', 'badge--occupied');
+            const presenceValue = String(p.presence).toLowerCase();
+            if (presenceValue === 'occupied' || presenceValue === '1' || p.presence === 1 || p.presence === true) {
+              occNode.classList.add('badge--occupied'); // Rouge pour occupied
+              setText('#s-occup-presence', 'Occupied');
+            } else {
+              occNode.classList.add('badge--ok'); // Vert pour vacant/free
+              setText('#s-occup-presence', presenceValue === 'vacant' ? 'Vacant' : 'Free');
+            }
+          }
           if (p.light    != null && el('#s-occup-illum'))    setText('#s-occup-illum',    p.light);
           if (typeof p['battery (%)'] === 'number' && el('#s-occup-batt')) updateBatteryBadge('#s-occup-batt', p['battery (%)']);
           break;
@@ -401,15 +417,15 @@ function startSSE() {
           if (typeof p['battery (%)'] === 'number' && el('#s-pir-batt')) updateBatteryBadge('#s-pir-batt', p['battery (%)']);
           break;
         case 'DESK':
-          // Occupancy (vient du champ "presence" du backend)
+          // Occupancy avec code couleur (rouge=occupied, vert=free)
           if (p.presence != null && el('#s-desk-occupancy')) {
             const occNode = el('#s-desk-occupancy');
-            occNode.classList.remove('badge--ok', 'badge--off');
+            occNode.classList.remove('badge--ok', 'badge--occupied');
             if (p.presence === 1 || p.presence === true || p.presence === 'occupied') {
-              occNode.classList.add('badge--ok');
+              occNode.classList.add('badge--occupied'); // Rouge pour occupied
               setText('#s-desk-occupancy', 'Occupied');
             } else {
-              occNode.classList.add('badge--off');
+              occNode.classList.add('badge--ok'); // Vert pour free
               setText('#s-desk-occupancy', 'Free');
             }
           }

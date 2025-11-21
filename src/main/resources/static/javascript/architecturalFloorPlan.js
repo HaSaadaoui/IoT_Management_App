@@ -41,7 +41,7 @@ class ArchitecturalFloorPlan {
         this.svg = document.createElementNS(svgNS, "svg");
         this.svg.setAttribute("width", "100%");
         this.svg.setAttribute("height", "100%");
-        this.svg.setAttribute("viewBox", "0 0 800 600");
+        this.svg.setAttribute("viewBox", "0 0 1200 650");
         this.svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
         this.svg.style.background = this.colors.background;
         
@@ -62,6 +62,12 @@ class ArchitecturalFloorPlan {
                 break;
             case 3:
                 this.drawFloor3();
+                break;
+            case 4:
+                this.drawFloor4();
+                break;
+            case 5:
+                this.drawFloor5();
                 break;
         }
         
@@ -112,13 +118,16 @@ class ArchitecturalFloorPlan {
     drawGroundFloor() {
         const g = this.createGroup('ground-floor');
         
-        // ARCHITECTURAL LAYOUT - Ground Floor
-        // Main building outline (20m x 15m)
+        // Same building outline as Floor 2
         const mainOutline = [
-            { x: 100, y: 50 },
-            { x: 700, y: 50 },
-            { x: 700, y: 550 },
-            { x: 100, y: 550 }
+            { x: 50, y: 50 },
+            { x: 950, y: 50 },
+            { x: 1050, y: 50 },
+            { x: 1050, y: 450 },
+            { x: 200, y: 280 },
+            { x: 200, y: 280 },
+            { x: 50, y: 200 },
+            { x: 50, y: 50 }
         ];
         this.drawWall(g, mainOutline, true);
         
@@ -234,12 +243,16 @@ class ArchitecturalFloorPlan {
     drawFloor1() {
         const g = this.createGroup('floor-1');
         
-        // Main outline
+        // Same building outline as Floor 2
         const mainOutline = [
-            { x: 100, y: 50 },
-            { x: 700, y: 50 },
-            { x: 700, y: 550 },
-            { x: 100, y: 550 }
+            { x: 50, y: 50 },
+            { x: 950, y: 50 },
+            { x: 1050, y: 50 },
+            { x: 1050, y: 450 },
+            { x: 200, y: 280 },
+            { x: 200, y: 280 },
+            { x: 50, y: 200 },
+            { x: 50, y: 50 }
         ];
         this.drawWall(g, mainOutline, true);
         
@@ -320,72 +333,82 @@ class ArchitecturalFloorPlan {
     drawFloor2() {
         const g = this.createGroup('floor-2');
         
-        // Main outline
-        const mainOutline = [
-            { x: 100, y: 50 },
-            { x: 700, y: 50 },
-            { x: 700, y: 550 },
-            { x: 100, y: 550 }
+        // Main building outline - EXACT from your Chrome DevTools
+        const outerWall = [
+            { x: 50, y: 50 },
+            { x: 950, y: 50 },
+            { x: 1050, y: 50 },
+            { x: 1050, y: 450 },
+            { x: 200, y: 280 },
+            { x: 200, y: 280 },
+            { x: 50, y: 200 },
+            { x: 50, y: 50 }
         ];
-        this.drawWall(g, mainOutline, true);
+        this.drawWall(g, outerWall, true);
         
-        // L-shaped corridor
-        const corridorVertical = [
-            { x: 350, y: 50 },
-            { x: 350, y: 400 }
+        // Internal separator lines
+        this.drawLine(g, [{ x: 750, y: 55 }, { x: 750, y: 240 }], this.colors.interiorLine, 2);
+        this.drawLine(g, [{ x: 720, y: 55 }, { x: 720, y: 240 }], this.colors.interiorLine, 2);
+        this.drawLine(g, [{ x: 720, y: 240 }, { x: 750, y: 240 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 1050, y: 200 }, { x: 850, y: 200 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 1050, y: 210 }, { x: 850, y: 210 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 850, y: 200 }, { x: 850, y: 210 }], this.colors.interiorLine, 2);
+        
+        // ATLANTIC Room - EXACT coordinates
+        const atlanticRoom = [
+            { x: 380, y: 170 },
+            { x: 380, y: 50 },
+            { x: 490, y: 50 },
+            { x: 490, y: 220 },
+            { x: 380, y: 170 }  // ← this closes the shape (equivalent to "Z"
         ];
-        this.drawLine(g, corridorVertical, this.colors.interiorLine, 2);
+        this.drawWall(g, atlanticRoom, false);
+        this.drawLabel(g, 430, 140, 'Atlantic', 16, 'bold');
         
-        const corridorHorizontal = [
-            { x: 350, y: 400 },
-            { x: 700, y: 400 }
+        // Atlantic Door (rotated)
+        const atlanticDoor = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        atlanticDoor.setAttribute("x", 395);
+        atlanticDoor.setAttribute("y", 230);
+        atlanticDoor.setAttribute("width", 40);
+        atlanticDoor.setAttribute("height", 4);
+        atlanticDoor.setAttribute("fill", "#ffffff");
+        atlanticDoor.setAttribute("stroke", "#000000");
+        atlanticDoor.setAttribute("stroke-width", 2);
+        atlanticDoor.setAttribute("transform", "rotate(25, 520, 222)");
+        g.appendChild(atlanticDoor);
+        
+        // PACIFIC Room - EXACT coordinates
+        const pacificRoom = [
+            { x: 710, y: 220 },
+            { x: 710, y: 50 },
+            { x: 490, y: 50 },
+            { x: 490, y: 220 },
+            { x: 710, y: 220 }  // ← this closes the shape (equivalent to "Z")
         ];
-        this.drawLine(g, corridorHorizontal, this.colors.interiorLine, 2);
+        this.drawWall(g, pacificRoom, false);
+        this.drawLabel(g, 600, 140, 'Pacific', 16, 'bold');
         
-        // Conference room (top left)
-        const conferenceRoom = [
-            { x: 100, y: 50 },
-            { x: 350, y: 50 },
-            { x: 350, y: 250 },
-            { x: 100, y: 250 }
-        ];
-        this.drawWall(g, conferenceRoom, false);
-        this.drawDoor(g, 350, 150, 'vertical');
-        this.drawLabel(g, 225, 150, 'Conference', 14, 'bold');
+        // Pacific Door
+        const pacificDoor = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        pacificDoor.setAttribute("x", 520);
+        pacificDoor.setAttribute("y", 215);
+        pacificDoor.setAttribute("width", 40);
+        pacificDoor.setAttribute("height", 4);
+        pacificDoor.setAttribute("fill", "#ffffff");
+        pacificDoor.setAttribute("stroke", "#000000");
+        pacificDoor.setAttribute("stroke-width", 2);
+        g.appendChild(pacificDoor);
         
-        // ONLY DRAW DESKS IF IN DESK MODE
-        if (this.sensorMode === 'DESK') {
-            // Open space desks (4x4 grid)
-            const deskPositions = [
-                { id: 'D1', x: 450, y: 100, status: 'free' },
-                { id: 'D2', x: 540, y: 100, status: 'free' },
-                { id: 'D3', x: 630, y: 100, status: 'used' },
-                { id: 'D4', x: 450, y: 180, status: 'free' },
-                { id: 'D5', x: 540, y: 180, status: 'used' },
-                { id: 'D6', x: 630, y: 180, status: 'free' },
-                { id: 'D7', x: 450, y: 260, status: 'free' },
-                { id: 'D8', x: 540, y: 260, status: 'used' },
-                { id: 'D9', x: 630, y: 260, status: 'free' },
-                { id: 'D10', x: 450, y: 340, status: 'used' },
-                { id: 'D11', x: 540, y: 340, status: 'free' },
-                { id: 'D12', x: 630, y: 340, status: 'free' },
-                { id: 'D13', x: 150, y: 320, status: 'used' },
-                { id: 'D14', x: 240, y: 320, status: 'free' },
-                { id: 'D15', x: 150, y: 450, status: 'free' },
-                { id: 'D16', x: 240, y: 450, status: 'used' }
-            ];
-            
-            deskPositions.forEach(desk => {
-                this.drawDesk(g, desk.x, desk.y, 60, 40, desk.status, desk.id);
-            });
-        }
+        // Windows - EXACT positions (centered: x + width/2)
+        this.drawWindow(g, 120, 50, 80, 'horizontal');  // rect x=80
+        this.drawWindow(g, 290, 50, 80, 'horizontal');  // rect x=250
+        this.drawWindow(g, 430, 50, 80, 'horizontal');  // rect x=390
+        this.drawWindow(g, 550, 50, 80, 'horizontal');  // rect x=510
+        this.drawWindow(g, 650, 50, 80, 'horizontal');  // rect x=610
+        this.drawWindow(g, 820, 50, 80, 'horizontal');  // rect x=780
+        this.drawWindow(g, 980, 50, 80, 'horizontal');  // rect x=940
         
-        // Windows
-        this.drawWindow(g, 400, 50, 100, 'horizontal');
-        this.drawWindow(g, 550, 50, 100, 'horizontal');
-        this.drawWindow(g, 700, 200, 80, 'vertical');
-        
-        this.drawLabel(g, 540, 50, 'Open Workspace', 14, 'bold');
+        // Desks will be added later per your instruction
         
         this.svg.appendChild(g);
     }
@@ -393,59 +416,152 @@ class ArchitecturalFloorPlan {
     drawFloor3() {
         const g = this.createGroup('floor-3');
         
-        // Main outline
-        const mainOutline = [
-            { x: 100, y: 50 },
-            { x: 700, y: 50 },
-            { x: 700, y: 550 },
-            { x: 100, y: 550 }
+        // Same building outline as Floor 2
+        const outerWall = [
+            { x: 50, y: 50 },
+            { x: 950, y: 50 },
+            { x: 1050, y: 50 },
+            { x: 1050, y: 450 },
+            { x: 200, y: 280 },
+            { x: 200, y: 280 },
+            { x: 50, y: 200 },
+            { x: 50, y: 50 }
         ];
-        this.drawWall(g, mainOutline, true);
+        this.drawWall(g, outerWall, true);
         
-        // Central corridor
-        const corridorPath = [
-            { x: 400, y: 50 },
-            { x: 400, y: 300 },
-            { x: 250, y: 300 },
-            { x: 250, y: 550 }
+        // Internal separator lines (same as Floor 2)
+        this.drawLine(g, [{ x: 750, y: 55 }, { x: 750, y: 240 }], this.colors.interiorLine, 2);
+        this.drawLine(g, [{ x: 720, y: 55 }, { x: 720, y: 240 }], this.colors.interiorLine, 2);
+        this.drawLine(g, [{ x: 720, y: 240 }, { x: 750, y: 240 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 1050, y: 200 }, { x: 850, y: 200 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 1050, y: 210 }, { x: 850, y: 210 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 850, y: 200 }, { x: 850, y: 210 }], this.colors.interiorLine, 2);
+        
+        // Windows (same positions as Floor 2)
+        this.drawWindow(g, 120, 50, 80, 'horizontal');  // rect x=80
+        this.drawWindow(g, 290, 50, 80, 'horizontal');  // rect x=250
+        this.drawWindow(g, 430, 50, 80, 'horizontal');  // rect x=390
+        this.drawWindow(g, 550, 50, 80, 'horizontal');  // rect x=510
+        this.drawWindow(g, 650, 50, 80, 'horizontal');  // rect x=610
+        this.drawWindow(g, 820, 50, 80, 'horizontal');  // rect x=780
+        this.drawWindow(g, 980, 50, 80, 'horizontal');  // rect x=940
+        
+        // Desks will be added later per your instruction
+        
+        this.svg.appendChild(g);
+    }
+    
+    drawFloor4() {
+        const g = this.createGroup('floor-4');
+        
+        // Same building outline as Floor 2
+        const outerWall = [
+            { x: 50, y: 50 },
+            { x: 950, y: 50 },
+            { x: 1050, y: 50 },
+            { x: 1050, y: 450 },
+            { x: 200, y: 280 },
+            { x: 200, y: 280 },
+            { x: 50, y: 200 },
+            { x: 50, y: 50 }
         ];
-        this.drawLine(g, corridorPath, this.colors.interiorLine, 3);
+        this.drawWall(g, outerWall, true);
         
-        // Rooms
-        this.drawLine(g, [{ x: 100, y: 200 }, { x: 400, y: 200 }], this.colors.interiorLine, 2);
-        this.drawLine(g, [{ x: 400, y: 350 }, { x: 700, y: 350 }], this.colors.interiorLine, 2);
+        // Internal separator lines (same as Floor 2)
+        this.drawLine(g, [{ x: 750, y: 55 }, { x: 750, y: 240 }], this.colors.interiorLine, 2);
+        this.drawLine(g, [{ x: 720, y: 55 }, { x: 720, y: 240 }], this.colors.interiorLine, 2);
+        this.drawLine(g, [{ x: 720, y: 240 }, { x: 750, y: 240 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 1050, y: 200 }, { x: 850, y: 200 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 1050, y: 210 }, { x: 850, y: 210 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 850, y: 200 }, { x: 850, y: 210 }], this.colors.interiorLine, 2);
+        
+        // Windows (same positions as Floor 2)
+        this.drawWindow(g, 120, 50, 80, 'horizontal');  // rect x=80
+        this.drawWindow(g, 290, 50, 80, 'horizontal');  // rect x=250
+        this.drawWindow(g, 430, 50, 80, 'horizontal');  // rect x=390
+        this.drawWindow(g, 550, 50, 80, 'horizontal');  // rect x=510
+        this.drawWindow(g, 650, 50, 80, 'horizontal');  // rect x=610
+        this.drawWindow(g, 820, 50, 80, 'horizontal');  // rect x=780
+        this.drawWindow(g, 980, 50, 80, 'horizontal');  // rect x=940
+        
+        // Desks will be added later per your instruction
+        
+        this.svg.appendChild(g);
+    }
+    
+    drawFloor5() {
+        const g = this.createGroup('floor-5');
+        
+        // Same building outline as Floor 2
+        const outerWall = [
+            { x: 50, y: 50 },
+            { x: 950, y: 50 },
+            { x: 1050, y: 50 },
+            { x: 1050, y: 450 },
+            { x: 200, y: 280 },
+            { x: 200, y: 280 },
+            { x: 50, y: 200 },
+            { x: 50, y: 50 }
+        ];
+        this.drawWall(g, outerWall, true);
+        
+        // Internal separator lines (same as Floor 2)
+        this.drawLine(g, [{ x: 750, y: 55 }, { x: 750, y: 240 }], this.colors.interiorLine, 2);
+        this.drawLine(g, [{ x: 720, y: 55 }, { x: 720, y: 240 }], this.colors.interiorLine, 2);
+        this.drawLine(g, [{ x: 720, y: 240 }, { x: 750, y: 240 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 1050, y: 200 }, { x: 850, y: 200 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 1050, y: 210 }, { x: 850, y: 210 }], this.colors.interiorLine, 1.5);
+        this.drawLine(g, [{ x: 850, y: 200 }, { x: 850, y: 210 }], this.colors.interiorLine, 2);
+        
+        // Windows (same positions as Floor 2)
+        this.drawWindow(g, 120, 50, 80, 'horizontal');  // rect x=80
+        this.drawWindow(g, 290, 50, 80, 'horizontal');  // rect x=250
+        this.drawWindow(g, 430, 50, 80, 'horizontal');  // rect x=390
+        this.drawWindow(g, 550, 50, 80, 'horizontal');  // rect x=510
+        this.drawWindow(g, 650, 50, 80, 'horizontal');  // rect x=610
+        this.drawWindow(g, 820, 50, 80, 'horizontal');  // rect x=780
+        this.drawWindow(g, 980, 50, 80, 'horizontal');  // rect x=940
         
         // ONLY DRAW DESKS IF IN DESK MODE
         if (this.sensorMode === 'DESK') {
-            // Desks
-            const deskPositions = [
-                { id: 'D1', x: 150, y: 100, status: 'free' },
-                { id: 'D2', x: 250, y: 100, status: 'free' },
-                { id: 'D3', x: 150, y: 250, status: 'free' },
-                { id: 'D4', x: 500, y: 100, status: 'used' },
-                { id: 'D5', x: 600, y: 100, status: 'free' },
-                { id: 'D6', x: 500, y: 200, status: 'free' },
-                { id: 'D7', x: 600, y: 200, status: 'used' },
-                { id: 'D8', x: 500, y: 420, status: 'free' },
-                { id: 'D9', x: 600, y: 420, status: 'free' },
-                { id: 'D10', x: 150, y: 420, status: 'used' },
-                { id: 'D11', x: 350, y: 420, status: 'free' },
-                { id: 'D12', x: 350, y: 500, status: 'used' }
+            const desks = [
+                // Top row - vertical desks (width=30, height=50)
+                { id: 'D05', x: 300, y: 60, width: 30, height: 50, chair: 'left', status: 'free' },
+                { id: 'D06', x: 330, y: 60, width: 30, height: 50, chair: 'right', status: 'free' },
+                { id: 'D07', x: 460, y: 60, width: 30, height: 50, chair: 'left', status: 'free' },
+                { id: 'D09', x: 490, y: 60, width: 30, height: 50, chair: 'right', status: 'free' },
+                { id: 'D11', x: 620, y: 60, width: 30, height: 50, chair: 'left', status: 'free' },
+                { id: 'D14', x: 650, y: 60, width: 30, height: 50, chair: 'right', status: 'free' },
+                { id: 'D17', x: 790, y: 60, width: 30, height: 50, chair: 'left', status: 'free' },
+                { id: 'D19', x: 820, y: 60, width: 30, height: 50, chair: 'right', status: 'free' },
+                { id: 'D21', x: 950, y: 60, width: 30, height: 50, chair: 'left', status: 'free' },
+                { id: 'D23', x: 980, y: 60, width: 30, height: 50, chair: 'right', status: 'free' },
+                
+                // Left cluster - horizontal desks (width=50, height=30)
+                { id: 'D01', x: 110, y: 90, width: 50, height: 30, chair: 'top', status: 'free' },
+                { id: 'D03', x: 160, y: 90, width: 50, height: 30, chair: 'top', status: 'free' },
+                { id: 'D02', x: 110, y: 120, width: 50, height: 30, chair: 'bottom', status: 'free' },
+                { id: 'D04', x: 160, y: 120, width: 50, height: 30, chair: 'bottom', status: 'free' },
+                
+                // Middle row - vertical desks
+                { id: 'D08', x: 460, y: 110, width: 30, height: 50, chair: 'left', status: 'free' },
+                { id: 'D10', x: 490, y: 110, width: 30, height: 50, chair: 'right', status: 'free' },
+                { id: 'D12', x: 620, y: 110, width: 30, height: 50, chair: 'left', status: 'free' },
+                { id: 'D15', x: 650, y: 110, width: 30, height: 50, chair: 'right', status: 'free' },
+                { id: 'D18', x: 790, y: 110, width: 30, height: 50, chair: 'left', status: 'free' },
+                { id: 'D20', x: 820, y: 110, width: 30, height: 50, chair: 'right', status: 'free' },
+                { id: 'D22', x: 950, y: 110, width: 30, height: 50, chair: 'left', status: 'free' },
+                { id: 'D24', x: 980, y: 110, width: 30, height: 50, chair: 'right', status: 'free' },
+                
+                // Bottom row - vertical desks
+                { id: 'D13', x: 620, y: 160, width: 30, height: 50, chair: 'left', status: 'free' },
+                { id: 'D16', x: 650, y: 160, width: 30, height: 50, chair: 'right', status: 'free' }
             ];
             
-            deskPositions.forEach(desk => {
-                this.drawDesk(g, desk.x, desk.y, 60, 40, desk.status, desk.id);
+            desks.forEach(desk => {
+                this.drawWorkstation(g, desk.x, desk.y, desk.status, desk.id, desk.width, desk.height, desk.chair);
             });
         }
-        
-        // Windows
-        this.drawWindow(g, 200, 50, 80, 'horizontal');
-        this.drawWindow(g, 500, 50, 80, 'horizontal');
-        this.drawWindow(g, 100, 300, 100, 'vertical');
-        this.drawWindow(g, 700, 200, 100, 'vertical');
-        
-        this.drawLabel(g, 250, 150, 'Zone A', 14, 'bold');
-        this.drawLabel(g, 550, 270, 'Zone B', 14, 'bold');
         
         this.svg.appendChild(g);
     }
@@ -613,6 +729,109 @@ class ArchitecturalFloorPlan {
         label.textContent = text;
         
         parent.appendChild(label);
+    }
+    
+    drawWorkstation(parent, x, y, status, id, width = 45, height = 35, chairPosition = 'top') {
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("class", "workstation");
+        g.setAttribute("data-desk-id", id);
+        
+        // Main desk rectangle (x, y is top-left corner, NOT center)
+        const desk = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        desk.setAttribute("x", x);
+        desk.setAttribute("y", y);
+        desk.setAttribute("width", width);
+        desk.setAttribute("height", height);
+        desk.setAttribute("fill", this.colors[status]);
+        desk.setAttribute("stroke", this.colors.wallStroke);
+        desk.setAttribute("stroke-width", 2);
+        desk.setAttribute("rx", 3);
+        
+        // Calculate center for text
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+        
+        // Desk ID label
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", centerX);
+        text.setAttribute("y", centerY + 5);
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("font-family", "Arial, sans-serif");
+        text.setAttribute("font-size", "12");
+        text.setAttribute("font-weight", "bold");
+        text.setAttribute("fill", "#ffffff");
+        text.textContent = id;
+        
+        // Chair position based on direction
+        let chairX, chairY;
+        switch(chairPosition) {
+            case 'left':
+                chairX = x - 10;
+                chairY = centerY;
+                break;
+            case 'right':
+                chairX = x + width + 10;
+                chairY = centerY;
+                break;
+            case 'top':
+                chairX = centerX;
+                chairY = y - 10;
+                break;
+            case 'bottom':
+                chairX = centerX;
+                chairY = y + height + 10;
+                break;
+            default:
+                chairX = centerX;
+                chairY = y - 10;
+        }
+        
+        // Chair indicator (small circle)
+        const chair = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        chair.setAttribute("cx", chairX);
+        chair.setAttribute("cy", chairY);
+        chair.setAttribute("r", 4);
+        chair.setAttribute("fill", '#94a3b8');
+        chair.setAttribute("stroke", this.colors.wallStroke);
+        chair.setAttribute("stroke-width", 1);
+        
+        g.appendChild(desk);
+        g.appendChild(chair);
+        g.appendChild(text);
+        
+        parent.appendChild(g);
+    }
+    
+    drawStaircase(parent, x, y, width, height) {
+        // Staircase outline
+        const stairsOutline = [
+            { x: x, y: y },
+            { x: x + width, y: y },
+            { x: x + width, y: y + height },
+            { x: x, y: y + height }
+        ];
+        this.drawWall(parent, stairsOutline, false);
+        
+        // Draw individual steps
+        const numSteps = 7;
+        for(let i = 0; i < numSteps; i++) {
+            const stepY = y + 10 + (i * (height - 20) / numSteps);
+            this.drawLine(parent, 
+                [{x: x + 5, y: stepY}, {x: x + width - 5, y: stepY}], 
+                this.colors.interiorLine, 1.5);
+        }
+        
+        // Stair direction arrow
+        const arrow = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        arrow.setAttribute("x", x + width/2);
+        arrow.setAttribute("y", y + height/2 + 8);
+        arrow.setAttribute("text-anchor", "middle");
+        arrow.setAttribute("font-size", "24");
+        arrow.textContent = "⬇️";
+        parent.appendChild(arrow);
+        
+        // Label
+        this.drawLabel(parent, x + width/2, y - 8, 'Stairs', 10, 'bold');
     }
     
     // Public method to export SVG
