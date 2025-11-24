@@ -159,8 +159,8 @@ const DEVICE_TYPE_METRICS = {
   ],
   "PIR_LIGHT": [
     "LAST_BATTERY_PERCENTAGE",
-    "OCCUPANCY",
-    "LIGHT",
+    "DAYLIGHT",
+    "PIR",
   ],
   "EYE": [
     "LAST_BATTERY_PERCENTAGE",
@@ -506,8 +506,32 @@ const ctx = id => (document.getElementById(id)?.getContext("2d") || null);
 function mkLineChart(ctx, label, color) {
   return new Chart(ctx, {
     type: "line",
-    data: { labels: [], datasets: [{ label, data: [], borderColor: color, backgroundColor: color.replace("1)", "0.1)").replace("rgb","rgba"), fill:true, tension:.3, pointRadius:2 }]},
-    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:"top" }} }
+    data: {
+      labels: [],
+      datasets: [{
+        label,
+        // data: [],
+        borderColor: color,
+        backgroundColor: color.replace("1)", "0.1)").replace("rgb", "rgba"),
+        fill: true,
+        tension: .3,
+        pointRadius: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+        },
+      },
+      plugins: {
+        legend: {
+          position: "top",
+        }
+      }
+    }
   });
 }
 const mkHist = (id, label) => (ctx(id) ? mkLineChart(ctx(id), label, "rgb(102,33,121,1)") : null);
@@ -643,37 +667,60 @@ async function loadHistory(fromISO, toISO) {
     // Get the context of the newly created canvas
     const ctx = document.getElementById(canvasId)?.getContext("2d");
     if (ctx) {
+      let inputData = j.data[metricName];
       // Create a new Chart.js instance
-      const chartConfig = createChartConfig(chartTitle, getMetricColor(metricName));
-      const newChart = new Chart(ctx, chartConfig);
-      dynamicMetricCharts.push(newChart); // Store the instance
+      let chartConfig = createChartConfig(chartTitle, getMetricColor(metricName));
+      
+      const transformedData = Object.entries(inputData).map(([timestamp, value]) => ({
+        x: timestamp,
+        y: value
+      }));
 
-      // Populate the chart with data
-      if ("OCCUPANCY" == metricName) {
-        /*
-         * Since this one returns strings instead of numbers, we need to standardize it
-         */
-        const convertedMetrics = Object.values(j.data[metricName] || []).map(value => {
-          if ("occupied" == value) {
-            return 1;
-          } else if ("vacant" == value) {
-            return 0;
-          } else {
-            return value;
-          }
-        });
-        setSeries(newChart, labels, convertedMetrics);
-      } else if ("ILLUMINANCE" == metricName) {
-        const convertedMetrics = Object.values(j.data[metricName] || []).map(value =>  "dim" == value ? 0 : 1);
-        setSeries(newChart, labels, convertedMetrics);
-      } else {
-        setSeries(newChart, labels, j.data[metricName] || []);
+      chartConfig.data =  {
+        datasets: [{
+          data: transformedData,
+          borderColor: getMetricColor(metricName),
+          backgroundColor: getMetricColor(metricName).replace("1)", "0.1)").replace("rgb", "rgba"),
+        }]
       }
+      const generatedLabels = generateLabels(Object.values(j.data[metricName] || {}))
+      let yType = 'linear'
+      if (containsStrings(generatedLabels)) {
+        yType = 'category'
+      }
+      
+      chartConfig.options.scales = {
+        y: {
+          type: yType,
+          labels: generatedLabels,
+        },
+        x: {
+          type: 'time'
+        }
+      }
+      let newChart = new Chart(ctx, chartConfig);
+      newChart.update();
+      dynamicMetricCharts.push(newChart); // Store the instance
     }
   });
 
   // Update KPI cards
   updateKPICards(j, fromISO, toISO);
+}
+
+function containsStrings(values) {
+  if (!Array.isArray(values)) return false;
+  return values.some(v => {
+    // try to parse as number, if it fails, return
+    return isNaN(Number(v));
+  })
+}
+
+function generateLabels(values) {
+  // Use a Set to automatically handle uniqueness.
+  const uniqueLabels = new Set(values.filter(v => typeof v === 'string'));
+  // Convert the Set back to an array.
+  return Array.from(uniqueLabels);
 }
 
 function getBattery(data) {
@@ -1621,10 +1668,11 @@ document.addEventListener("DOMContentLoaded", () => {
   
   // Next 24 hours
   const to = new Date();
-  to.setHours(to.getHours() + 24);
+  const DEFAULT_DAYS_COUNT = 3;
+  to.setHours(to.getHours() + 24 * DEFAULT_DAYS_COUNT);
   // Last 24 hours
   const from = new Date();
-  from.setHours(from.getHours() - 24);
+  from.setHours(from.getHours() - 24 * DEFAULT_DAYS_COUNT);
   
   loadHistory(from.toISOString(), to.toISOString());
   
