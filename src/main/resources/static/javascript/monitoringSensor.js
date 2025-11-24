@@ -588,8 +588,8 @@ const METRIC_TITLES = {
   'MOTION': 'Motion',
   'PRESENCE': 'Presence',
   'OCCUPANCY': 'Occupancy',
-  'PERIOD_IN': 'Period IN (s)',
-  'PERIOD_OUT': 'Period OUT (s)',
+  'PERIOD_IN': 'Staff IN (s)',
+  'PERIOD_OUT': 'Staff OUT (s)',
   'LAI': 'Sound Impact (LAI)',
   'LAIMAX': 'Max Sound Impact (LAImax)',
   'LAEQ': 'Equivalent Sound Level (LAeq)',
@@ -659,6 +659,10 @@ async function loadHistory(fromISO, toISO) {
   if (!res.ok) throw new Error("History fetch failed");
   const j = await res.json();
 
+  // Hide sections by default, show them if they have data
+  el('#network-quality-section').style.display = 'none';
+  el('#sensor-metrics-section').style.display = 'none';
+
   const getChartData = (metricName) => {
     const metricData = j.data[metricName] || {};
     const labels = Object.keys(metricData).map(t => new Date(t).toLocaleString());
@@ -690,11 +694,6 @@ async function loadHistory(fromISO, toISO) {
   const networkMetrics = ['RSSI', 'SNR'];
   const sensorMetrics = DEVICE_TYPE_METRICS[devType] || [];
 
-  // Show sensor metrics section only if there are metrics to display
-  if (sensorMetrics.length > 0) {
-    el('#sensor-metrics-section').style.display = 'block';
-  }
-
   const processMetric = (metricName, container) => {
     // Generate a unique ID for the canvas
     const canvasId = `histMetric-${metricName.replace(/[^a-zA-Z0-9]/g, '')}`; // Sanitize metric name for ID
@@ -702,6 +701,12 @@ async function loadHistory(fromISO, toISO) {
     const color = getMetricColor(metricName);
 
     // Create the HTML structure for the chart card
+    const inputData = j.data[metricName] || {};
+    if (Object.keys(inputData).length === 0) {
+      return; // Do not create a chart if there is no data
+    }
+
+    container.parentElement.style.display = 'block'; // Show the parent section
     const chartCardHtml = `
 
 
@@ -729,7 +734,6 @@ async function loadHistory(fromISO, toISO) {
     // Get the context of the newly created canvas
     const ctx = document.getElementById(canvasId)?.getContext("2d");
     if (ctx) {
-      let inputData = j.data[metricName] || {};
       // Create a new Chart.js instance
       let chartConfig = createChartConfig(chartTitle, color, '', getLastTimestamp(Object.keys(inputData)))
       
@@ -758,6 +762,14 @@ async function loadHistory(fromISO, toISO) {
         y: {
           type: yType,
           labels: generatedLabels,
+          title: {
+            display: true,
+            text: chartTitle,
+            font: {
+              size: 14,
+              weight: 'bold'
+            }
+          },
           beginAtZero: true,
         },
         x: {
@@ -772,6 +784,14 @@ async function loadHistory(fromISO, toISO) {
 
             // Optional: Specify the smallest unit to parse (your raw data is seconds/milliseconds)
             minUnit: 'minute'
+          },
+          title: {
+            display: true,
+            text: 'Time',
+            font: {
+              size: 14,
+              weight: 'bold'
+            }
           },
           ticks: {
             autoSkip: true,
@@ -1250,8 +1270,8 @@ function initRealtimeCharts() {
       secondary: { label: 'Sound Impact', color: '#ec4899', title: '📢 Sound Impact', unit: 'dB' }
     },
     'COUNT': {
-      main: { label: 'Period IN', color: '#10b981', title: '📥 Period IN', unit: 's' },
-      secondary: { label: 'Period OUT', color: '#ef4444', title: '📤 Period OUT', unit: 's' }
+      main: { label: 'Staff IN', color: '#10b981', title: '📥 Staff IN', unit: 's' },
+      secondary: { label: 'Staff OUT', color: '#ef4444', title: '📤 Staff OUT', unit: 's' }
     },
     'ENERGY': {
       main: { label: 'Consumption', color: '#f59e0b', title: '⚡ Energy Consumption', unit: 'kWh' },
@@ -1411,7 +1431,7 @@ function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate =
   let yAxisConfig = {
     display: true,
     title: {
-      display: yAxisLabel !== '',
+      display: true,
       text: yAxisLabel,
       font: {
         size: 14,
@@ -1484,7 +1504,7 @@ function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate =
       yAxisConfig.suggestedMin = 0;
       yAxisConfig.suggestedMax = 10;
       break;
-    case 's': // Secondes (Period IN/OUT)
+    case 's': // Secondes (Staff IN/OUT)
       yAxisConfig.beginAtZero = true;
       yAxisConfig.grace = '10%';
       break;
