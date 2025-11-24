@@ -653,7 +653,15 @@ async function loadHistory(fromISO, toISO) {
         /*
          * Since this one returns strings instead of numbers, we need to standardize it
          */
-        const convertedMetrics = Object.values(j.data[metricName] || []).map(value =>  "occupied" == value ? 1 : 0);
+        const convertedMetrics = Object.values(j.data[metricName] || []).map(value => {
+          if ("occupied" == value) {
+            return 1;
+          } else if ("vacant" == value) {
+            return 0;
+          } else {
+            return value;
+          }
+        });
         setSeries(newChart, labels, convertedMetrics);
       } else if ("ILLUMINANCE" == metricName) {
         const convertedMetrics = Object.values(j.data[metricName] || []).map(value =>  "dim" == value ? 0 : 1);
