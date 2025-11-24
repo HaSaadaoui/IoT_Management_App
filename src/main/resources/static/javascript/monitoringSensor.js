@@ -185,7 +185,6 @@ const DEVICE_TYPE_METRICS = {
     "VDD",
   ],
   "CONSO": [
-    "LAST_BATTERY_PERCENTAGE",
     "CONSUMPTION_CHANNEL_0",
     "CONSUMPTION_CHANNEL_1",
     "CONSUMPTION_CHANNEL_2",
@@ -608,6 +607,12 @@ function setSeries(chart, labels, values) {
   chart.update();
 }
 
+function getLastTimestamp(values) {
+  const ts = values[values.length-1]
+  const parsed = new Date(ts)
+  return parsed.toLocaleDateString("en-CA")
+}
+
 async function loadHistory(fromISO, toISO) {
   const SENSOR_ID = document.documentElement.dataset.deviceId;
   const GATEWAY_ID = document.documentElement.dataset.gatewayId;
@@ -638,6 +643,7 @@ async function loadHistory(fromISO, toISO) {
     // Generate a unique ID for the canvas
     const canvasId = `histMetric-${metricName.replace(/[^a-zA-Z0-9]/g, '')}`; // Sanitize metric name for ID
     const chartTitle = METRIC_TITLES[metricName] || metricName; // Get user-friendly title
+    const color = getMetricColor(metricName);
 
     // Create the HTML structure for the chart card
     const chartCardHtml = `
@@ -650,7 +656,7 @@ async function loadHistory(fromISO, toISO) {
                           ${chartTitle}
                         </h4>
                         <div class="chart-legend">
-                            <span class="legend-item"><span class="legend-color" style="background: ${getMetricColor(metricName)};"></span> ${metricName}</span>
+                            <span class="legend-item"><span class="legend-color" style="background: ${color};"></span> ${metricName}</span>
                         </div>
                     </div>
                     <div class="chart-canvas-wrapper">
@@ -667,9 +673,9 @@ async function loadHistory(fromISO, toISO) {
     // Get the context of the newly created canvas
     const ctx = document.getElementById(canvasId)?.getContext("2d");
     if (ctx) {
-      let inputData = j.data[metricName];
+      let inputData = j.data[metricName] || {};
       // Create a new Chart.js instance
-      let chartConfig = createChartConfig(chartTitle, getMetricColor(metricName));
+      let chartConfig = createChartConfig(chartTitle, color, '', getLastTimestamp(Object.keys(inputData)))
       
       const transformedData = Object.entries(inputData).map(([timestamp, value]) => ({
         x: timestamp,
@@ -679,23 +685,44 @@ async function loadHistory(fromISO, toISO) {
       chartConfig.data =  {
         datasets: [{
           data: transformedData,
-          borderColor: getMetricColor(metricName),
-          backgroundColor: getMetricColor(metricName).replace("1)", "0.1)").replace("rgb", "rgba"),
+          borderColor: color,
+          backgroundColor: color + "A0",
+          fill: true,
+          tension: 0.1,
         }]
       }
+
       const generatedLabels = generateLabels(Object.values(j.data[metricName] || {}))
       let yType = 'linear'
       if (containsStrings(generatedLabels)) {
         yType = 'category'
       }
-      
+
       chartConfig.options.scales = {
         y: {
           type: yType,
           labels: generatedLabels,
+          beginAtZero: true,
         },
         x: {
-          type: 'time'
+          type: 'time',
+          time: {
+            unit: 'day',
+            displayFormats: {
+              'day': 'yyyy-MM-dd',      // e.g., "Nov 24, 2025"
+              'hour': 'h:mm a',    // e.g., "Nov 24, 1:00 PM"
+              'minute': 'h:mm a'
+            },
+
+            // Optional: Specify the smallest unit to parse (your raw data is seconds/milliseconds)
+            minUnit: 'minute'
+          },
+          ticks: {
+            autoSkip: true,
+            maxTicksLimit: 10, // Adjust this number (e.g., 5, 8, 10, etc.)
+            maxRotation: 0,
+            minRotation: 0
+          }
         }
       }
       let newChart = new Chart(ctx, chartConfig);
@@ -1264,8 +1291,8 @@ function createEnergyPowerUsageChartConfig() {
   };
 }
 
-function createChartConfig(label, color, yAxisUnit = '') {
-  const currentDate = new Date().toLocaleDateString('en-CA'); // Format: 2025-11-13
+function createChartConfig(label, color, yAxisUnit = '', currentDate) {
+  if (!currentDate) currentDate = new Date().toLocaleDateString('en-CA'); // Format: 2025-11-13
   
   // Create Y-axis label with metric name and unit
   let yAxisLabel = label;
