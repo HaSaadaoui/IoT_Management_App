@@ -147,9 +147,9 @@ const DEVICE_TYPE_METRICS = {
     "MOTION",
   ],
   "OCCUP": [
-    "LAST_BATTERY_PERCENTAGE",
+    "BATTERY",
     "OCCUPANCY",
-    "ILLUMINANCE",
+    "DISTANCE",
     // "LIGHT",
   ],
   "TEMPEX": [
