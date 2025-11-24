@@ -27,6 +27,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.security.Principal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -397,7 +398,22 @@ public class SensorController {
         return response;
     }
 
-    
+    @GetMapping(value = "/manage-sensors/monitoring/{idGateway}/{idSensor}/consumption")
+    @ResponseBody
+    public Map<Date, Double> getSensorConsumptionByChannels(
+        @PathVariable String idGateway,
+        @PathVariable String idSensor,
+        @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date startDate,
+        @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date endDate,
+        @RequestParam("channels") String[] channelsStr
+    ) {
+        // Append "CONSUMPTION_CHANNEL_" to all channelStr
+        List<String> channels = new ArrayList<>();
+        for (String channel : channelsStr) {
+            channels.add("CONSUMPTION_CHANNEL_" + channel);
+        }
+        return sensorService.findSensorConsumptionByChannels(idSensor, startDate, endDate, channels);
+    }
    
 
     /* ===================== PRIVÉS ===================== */

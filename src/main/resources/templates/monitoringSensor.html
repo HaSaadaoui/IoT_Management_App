@@ -570,49 +570,77 @@
             </div>
         </div>
 
-        <!-- Graphiques principaux -->
-        <div class="charts-section">
-            <h4 class="subsection-title">📈 Network Quality</h4>
-            <div class="charts-grid">
-
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <div class="chart-title">
-                            <span class="chart-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">📡</span>
-                            <span>Signal Quality (RSSI)</span>
-                        </div>
-                        <div class="chart-info">dBm</div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="histRssi"></canvas>
-                    </div>
-                </div>
-
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <div class="chart-title">
-                            <span class="chart-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">📶</span>
-                            <span>Signal-to-Noise Ratio (SNR)</span>
-                        </div>
-                        <div class="chart-info">dB</div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="histSnr"></canvas>
-                    </div>
-                </div>
+        <!-- Network Quality Section -->
+        <div class="charts-section" id="network-quality-section">
+            <h4 class="subsection-title">📈 Sensor Signal Quality</h4>
+            <div class="charts-grid charts-grid--2col" id="network-metrics-container">
+                <!-- RSSI and SNR charts will be inserted here -->
             </div>
-            
         </div>
 
-        <!-- Métriques spécifiques au capteur -->
-        <div class="charts-section" id="sensor-metrics-section">
+        <!-- Sensor Metrics Section -->
+        <div class="charts-section" id="sensor-metrics-section" style="display: none;">
             <h4 class="subsection-title">🎯 Sensor Metrics</h4>
-            <div class="charts-grid charts-grid--2col" id="history-metrics-container">
+            <div class="charts-grid charts-grid--2col" id="sensor-metrics-container">
                 <!-- Dynamic sensor metric charts will be inserted here by JavaScript -->
             </div>
-            <section class="realtime-charts" id="sensor-metrics-section">
-                <div class="chart-grid" id="history-metrics-container">
-            </section>
+        </div>
+
+        <!-- Section pour l'histogramme de consommation -->
+        <div class="charts-section" id="consumption-histogram-section" style="display: none;">
+            <h4 class="subsection-title">⚡ Hourly Consumption Histograms</h4>
+                <!-- Red Outlets -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🔴</span>
+                            <span>Red Outlets (Ch 0-2)</span>
+                        </div>
+                        <div class="chart-info">kWh</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="histConsumptionRed"></canvas>
+                    </div>
+                </div>
+                <!-- White Outlets -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <span class="chart-icon" style="background: linear-gradient(135deg, #94a3b8, #64748b);">⚪</span>
+                            <span>White Outlets (Ch 3-5)</span>
+                        </div>
+                        <div class="chart-info">kWh</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="histConsumptionWhite"></canvas>
+                    </div>
+                </div>
+                <!-- Ventilation -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <span class="chart-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">🌬️</span>
+                            <span>Ventilation (Ch 6-8)</span>
+                        </div>
+                        <div class="chart-info">kWh</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="histConsumptionVent"></canvas>
+                    </div>
+                </div>
+                <!-- Other -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <span class="chart-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔧</span>
+                            <span>Other (Ch 9-11)</span>
+                        </div>
+                        <div class="chart-info">kWh</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="histConsumptionOther"></canvas>
+                    </div>
+                </div>
         </div>
 
     </section>

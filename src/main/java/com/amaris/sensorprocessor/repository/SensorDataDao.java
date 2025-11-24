@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -87,4 +88,28 @@ public class SensorDataDao {
             return new ArrayList<>();
         }
     }
+
+    // TODO: refactor and rename
+    public List<SensorData> findSensorDataByPeriodAndTypes2(String idSensor, Date startDate, Date endDate, Set<PayloadValueType> valueType) {
+        String query = "SELECT * FROM sensor_data WHERE id_sensor = ? AND value_type IN (" +
+            String.join(",", valueType.stream().map(type -> "'" + type.toString() + "'").toList()) +
+            ") AND received_at BETWEEN ? AND ? ORDER BY received_at ASC";
+
+        try {
+            return jdbcTemplate.query(query, (rs, rowNum) -> {
+                SensorData sensorData = new SensorData(
+                    rs.getString("id_sensor"),
+                    rs.getTimestamp("received_at").toLocalDateTime(),
+                    rs.getString("string_value"),
+                    rs.getString("value_type")
+                );
+                return sensorData;
+            }, idSensor, startDate, endDate);
+        } catch (Exception e) {
+            // Log the exception if necessary
+            return new ArrayList<>();
+        }
+        
+    }
+
 }

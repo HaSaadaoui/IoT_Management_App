@@ -137,6 +137,8 @@ const DEVICE_TYPE_METRICS = {
     "PERIOD_IN",
     "PERIOD_OUT",
   ],
+  "RSSI": ["RSSI"],
+  "SNR": ["SNR"],
   "CO2": [
     "LAST_BATTERY_PERCENTAGE",
     "CO2",
@@ -184,35 +186,35 @@ const DEVICE_TYPE_METRICS = {
     "HUMIDITY",
     "VDD",
   ],
-  "CONSO": [
-    "CONSUMPTION_CHANNEL_0",
-    "CONSUMPTION_CHANNEL_1",
-    "CONSUMPTION_CHANNEL_2",
-    "CONSUMPTION_CHANNEL_3",
-    "CONSUMPTION_CHANNEL_4",
-    "CONSUMPTION_CHANNEL_5",
-    "CONSUMPTION_CHANNEL_6",
-    "CONSUMPTION_CHANNEL_7",
-    "CONSUMPTION_CHANNEL_8",
-    "CONSUMPTION_CHANNEL_9",
-    "CONSUMPTION_CHANNEL_10",
-    "CONSUMPTION_CHANNEL_11",
-  ],
-  "ENERGY": [
-    "LAST_BATTERY_PERCENTAGE",
-    "CONSUMPTION_CHANNEL_0",
-    "CONSUMPTION_CHANNEL_1",
-    "CONSUMPTION_CHANNEL_2",
-    "CONSUMPTION_CHANNEL_3",
-    "CONSUMPTION_CHANNEL_4",
-    "CONSUMPTION_CHANNEL_5",
-    "CONSUMPTION_CHANNEL_6",
-    "CONSUMPTION_CHANNEL_7",
-    "CONSUMPTION_CHANNEL_8",
-    "CONSUMPTION_CHANNEL_9",
-    "CONSUMPTION_CHANNEL_10",
-    "CONSUMPTION_CHANNEL_11",
-  ]
+  // "CONSO": [
+  //   "CONSUMPTION_CHANNEL_0",
+  //   "CONSUMPTION_CHANNEL_1",
+  //   "CONSUMPTION_CHANNEL_2",
+  //   "CONSUMPTION_CHANNEL_3",
+  //   "CONSUMPTION_CHANNEL_4",
+  //   "CONSUMPTION_CHANNEL_5",
+  //   "CONSUMPTION_CHANNEL_6",
+  //   "CONSUMPTION_CHANNEL_7",
+  //   "CONSUMPTION_CHANNEL_8",
+  //   "CONSUMPTION_CHANNEL_9",
+  //   "CONSUMPTION_CHANNEL_10",
+  //   "CONSUMPTION_CHANNEL_11",
+  // ],
+  // "ENERGY": [
+  //   "LAST_BATTERY_PERCENTAGE",
+  //   "CONSUMPTION_CHANNEL_0",
+  //   "CONSUMPTION_CHANNEL_1",
+  //   "CONSUMPTION_CHANNEL_2",
+  //   "CONSUMPTION_CHANNEL_3",
+  //   "CONSUMPTION_CHANNEL_4",
+  //   "CONSUMPTION_CHANNEL_5",
+  //   "CONSUMPTION_CHANNEL_6",
+  //   "CONSUMPTION_CHANNEL_7",
+  //   "CONSUMPTION_CHANNEL_8",
+  //   "CONSUMPTION_CHANNEL_9",
+  //   "CONSUMPTION_CHANNEL_10",
+  //   "CONSUMPTION_CHANNEL_11",
+  // ]
 };
 
 // ====== SSE ======
@@ -534,10 +536,44 @@ function mkLineChart(ctx, label, color) {
   });
 }
 const mkHist = (id, label) => (ctx(id) ? mkLineChart(ctx(id), label, "rgb(102,33,121,1)") : null);
-
-const histBattery = mkHist("histBattery", "Battery (%)");
-const histRssi    = mkHist("histRssi",    "RSSI (dBm)");
-const histSnr     = mkHist("histSnr",     "SNR (dB)");
+function mkBarChart(ctx, label, color) {
+  return new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: [],
+      datasets: [{
+        label,
+        borderColor: color,
+        backgroundColor: color.replace("1)", "0.5)").replace("rgb", "rgba"),
+        borderWidth: 1,
+        borderRadius: 4,
+        barPercentage: 0.8,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+        },
+      },
+      plugins: {
+        legend: {
+          position: "top",
+        }
+      }
+    }
+  });
+}
+const networkMetricsContainer = el('#network-metrics-container');
+const sensorMetricsContainer = el('#sensor-metrics-container');
+const consumptionCharts = {
+    'red':   { id: 'histConsumptionRed',   chart: null, channels: [0, 1, 2],  label: 'Red Outlets (kWh)',   color: 'rgb(239, 68, 68, 1)' },
+    'white': { id: 'histConsumptionWhite', chart: null, channels: [3, 4, 5],  label: 'White Outlets (kWh)', color: 'rgb(100, 116, 139, 1)' },
+    'vent':  { id: 'histConsumptionVent',  chart: null, channels: [6, 7, 8],  label: 'Ventilation (kWh)',   color: 'rgb(59, 130, 246, 1)' },
+    'other': { id: 'histConsumptionOther', chart: null, channels: [9, 10, 11], label: 'Other (kWh)',         color: 'rgb(245, 158, 11, 1)' }
+};
 
 // Array to hold dynamically created metric chart instances
 let dynamicMetricCharts = [];
@@ -623,23 +659,43 @@ async function loadHistory(fromISO, toISO) {
   if (!res.ok) throw new Error("History fetch failed");
   const j = await res.json();
 
-  const labels = (j.timestamps || []).map(t => { try { return new Date(t).toLocaleTimeString(); } catch { return t; } });
-  if (j.data.LAST_BATTERY_PERCENTAGE_VALUE) setSeries(histBattery, labels, j.data.LAST_BATTERY_PERCENTAGE_VALUE);
-  if (j.data.RSSI)                          setSeries(histRssi,    labels, j.data.RSSI);
-  if (j.data.SNR)                           setSeries(histSnr,     labels, j.data.SNR);
+  const getChartData = (metricName) => {
+    const metricData = j.data[metricName] || {};
+    const labels = Object.keys(metricData).map(t => new Date(t).toLocaleString());
+    const values = Object.values(metricData);
+    return { labels, values };
+  };
 
-  // Clear previous dynamic charts and their containers
-  dynamicMetricCharts.forEach(chart => chart.destroy()); // Destroy old Chart.js instances
-  dynamicMetricCharts = []; // Clear the array
-  const historyMetricsContainer = el('#history-metrics-container');
-  if (historyMetricsContainer) {
-    historyMetricsContainer.innerHTML = ''; // Clear the HTML content
+  // Clear previous dynamic charts before loading new ones
+  if (networkMetricsContainer) {
+    networkMetricsContainer.innerHTML = '';
   }
+  if (sensorMetricsContainer) {
+    sensorMetricsContainer.innerHTML = '';
+  }
+  dynamicMetricCharts = [];
 
   const devType = (document.documentElement.dataset.devType || '').toUpperCase();
-  const metrics = DEVICE_TYPE_METRICS[devType] || [];
+  if (devType === 'ENERGY' || devType === 'CONSO') {
+    for (const group of Object.values(consumptionCharts)) { // Use Object.values for iteration
+        if (!group.chart) { // Initialize chart if it doesn't exist
+            const chartCtx = ctx(group.id);
+            if (chartCtx) group.chart = mkBarChart(chartCtx, group.label, group.color);
+        }
+        if (group.chart) loadChannelHistogram(group.chart, group.channels, fromISO, toISO);
+    }
+    el('#consumption-histogram-section').style.display = 'block';
+  }
 
-  metrics.forEach((metricName) => {
+  const networkMetrics = ['RSSI', 'SNR'];
+  const sensorMetrics = DEVICE_TYPE_METRICS[devType] || [];
+
+  // Show sensor metrics section only if there are metrics to display
+  if (sensorMetrics.length > 0) {
+    el('#sensor-metrics-section').style.display = 'block';
+  }
+
+  const processMetric = (metricName, container) => {
     // Generate a unique ID for the canvas
     const canvasId = `histMetric-${metricName.replace(/[^a-zA-Z0-9]/g, '')}`; // Sanitize metric name for ID
     const chartTitle = METRIC_TITLES[metricName] || metricName; // Get user-friendly title
@@ -666,8 +722,8 @@ async function loadHistory(fromISO, toISO) {
     `;
 
     // Append the new chart card to the container
-    if (historyMetricsContainer) {
-      historyMetricsContainer.insertAdjacentHTML('beforeend', chartCardHtml);
+    if (container) {
+      container.insertAdjacentHTML('beforeend', chartCardHtml);
     }
 
     // Get the context of the newly created canvas
@@ -729,10 +785,38 @@ async function loadHistory(fromISO, toISO) {
       newChart.update();
       dynamicMetricCharts.push(newChart); // Store the instance
     }
-  });
+  };
+
+  networkMetrics.forEach(metricName => processMetric(metricName, networkMetricsContainer));
+  sensorMetrics.forEach(metricName => processMetric(metricName, sensorMetricsContainer));
 
   // Update KPI cards
   updateKPICards(j, fromISO, toISO);
+}
+
+async function loadChannelHistogram(chart, channels = [], fromISO, toISO) {
+  if (!chart) return;
+  const SENSOR_ID = document.documentElement.dataset.deviceId;
+  const GATEWAY_ID = document.documentElement.dataset.gatewayId;
+  if (!SENSOR_ID || !GATEWAY_ID || !fromISO || !toISO) return;
+
+  const params = new URLSearchParams();
+  params.set('startDate', fromISO.split('T')[0]);
+  params.set('endDate', toISO.split('T')[0]);
+  channels.forEach(ch => params.append('channels', String(ch)));
+
+  try {
+    const res = await fetch(`/manage-sensors/monitoring/${GATEWAY_ID}/${SENSOR_ID}/consumption?` + params.toString());
+    if (!res.ok) throw new Error(`Failed to fetch consumption data: ${res.statusText}`);
+    const data = await res.json(); // data is Map<Date, Double>
+
+    const labels = Object.keys(data).map(d => new Date(d).toLocaleString('default', { hour: '2-digit', minute: '2-digit' }));
+    const values = Object.values(data).map(v => v / 1000); // Convert Wh to kWh
+    setSeries(chart, labels, values);
+
+  } catch (e) {
+    console.error("Error loading channel histogram:", e);
+  }
 }
 
 function containsStrings(values) {

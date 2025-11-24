@@ -21,12 +21,18 @@ import reactor.core.publisher.Flux;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -195,6 +201,41 @@ public class SensorService {
         }
         
         return groupedData;
+    }
+
+    public Map<Date, Double> findSensorConsumptionByChannels(String idSensor, Date startDate, Date endDate, List<String> channels) {
+        // 1. Convert channel strings to a Set of PayloadValueType enums for efficient lookup.
+        Set<PayloadValueType> consumptionChannels = channels.stream()
+                .map(PayloadValueType::valueOf)
+                .collect(Collectors.toSet());
+                
+        // 2. Fetch all sensor data for the given period.
+        // TODO: rename function
+        List<SensorData> allSensorDatas = sensorDataDao.findSensorDataByPeriodAndTypes2(idSensor, startDate, endDate, consumptionChannels);
+
+        // 3. Filter by the requested channels and aggregate hourly.
+        Map<LocalDateTime, Double> hourlyTotals = allSensorDatas.stream()
+                .filter(data -> consumptionChannels.contains(data.getValueType()))
+                .collect(Collectors.groupingBy(
+                        // Group by the hour part of the timestamp
+                        data -> data.getReceivedAt().truncatedTo(ChronoUnit.HOURS),
+                        // Sum the values for each hour
+                        Collectors.summingDouble(data -> {
+                            Double value = data.getValueAsDouble();
+                            return value != null ? value : 0.0;
+                        })
+                ));
+
+        // 4. Convert the result map from Map<LocalDateTime, Double> to Map<Date, Double>.
+        Map<Date, Double> result = hourlyTotals.entrySet().stream()
+                .collect(Collectors.toMap(
+                        entry -> Date.from(entry.getKey().atZone(ZoneId.systemDefault()).toInstant()),
+                        Map.Entry::getValue,
+                        (v1, v2) -> v1, // In case of merge, keep the first
+                        LinkedHashMap::new // Preserve order
+                ));
+        
+        return result;
     }
 
 
