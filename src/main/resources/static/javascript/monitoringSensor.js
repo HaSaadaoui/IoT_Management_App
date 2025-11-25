@@ -144,7 +144,7 @@ const DEVICE_TYPE_METRICS = {
     "CO2",
     "TEMPERATURE",
     "HUMIDITY",
-    "VDD",
+    // "VDD",
     "LIGHT",
     "MOTION",
   ],
@@ -171,7 +171,7 @@ const DEVICE_TYPE_METRICS = {
     "LIGHT",
     "MOTION",
     "OCCUPANCY", // TODO: Double check that
-    "VDD",
+    // "VDD",
   ],
   "SON": [
     "LAST_BATTERY_PERCENTAGE",
@@ -184,7 +184,7 @@ const DEVICE_TYPE_METRICS = {
     "OCCUPANCY",
     "TEMPERATURE",
     "HUMIDITY",
-    "VDD",
+    // "VDD",
   ],
   // "CONSO": [
   //   "CONSUMPTION_CHANNEL_0",
@@ -588,8 +588,8 @@ const METRIC_TITLES = {
   'MOTION': 'Motion',
   'PRESENCE': 'Presence',
   'OCCUPANCY': 'Occupancy',
-  'PERIOD_IN': 'Staff IN (s)',
-  'PERIOD_OUT': 'Staff OUT (s)',
+  'PERIOD_IN': 'Staff IN',
+  'PERIOD_OUT': 'Staff OUT',
   'LAI': 'Sound Impact (LAI)',
   'LAIMAX': 'Max Sound Impact (LAImax)',
   'LAEQ': 'Equivalent Sound Level (LAeq)',
@@ -765,11 +765,13 @@ async function loadHistory(fromISO, toISO) {
         y: value
       }));
 
+      // Transparent background for RSSI, otherwise a semi-transparent version of the color
+      const bgColor = metricName === 'RSSI' ? 'transparent' : color + "A0";
       chartConfig.data =  {
         datasets: [{
           data: transformedData,
           borderColor: color,
-          backgroundColor: color + "A0",
+          backgroundColor: bgColor,
           fill: true,
           tension: 0.1,
         }]
@@ -1298,7 +1300,7 @@ function initRealtimeCharts() {
     'TEMPEX': {
       main: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
       secondary: { label: 'Humidity', color: '#3b82f6', title: '💧 Humidity', unit: '%' },
-      humidity: { label: 'Humidity', color: '#10b981', title: '💧 Humidity', unit: '%' }
+      // humidity: { label: 'Humidity', color: '#10b981', title: '💧 Humidity', unit: '%' }
     },
     'DESK': {
       main: { label: 'Occupancy', color: '#10b981', title: '👤 Desk Occupancy', unit: 'Status' },
@@ -1308,7 +1310,8 @@ function initRealtimeCharts() {
     'EYE': {
       main: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
       secondary: { label: 'Humidity', color: '#3b82f6', title: '💧 Humidity', unit: '%' },
-      humidity: { label: 'Humidity', color: '#10b981', title: '💧 Humidity', unit: '%' }
+      light: { label: 'Light', color: '#fbbf24', title: '💡 Light Level', unit: 'lux' },
+      occupancy: { label: 'Occupancy', color: '#10b981', title: '👤 Occupancy', unit: 'Status' },
     },
     'OCCUP': {
       main: { label: 'Occupancy', color: '#10b981', title: '👤 Occupancy Status', unit: 'Status' },
@@ -1454,7 +1457,10 @@ function createChartConfig(label, color, yAxisUnit = '', currentDate) {
   // Create Y-axis label with metric name and unit
   let yAxisLabel = label;
   if (yAxisUnit && yAxisUnit !== 'Status' && yAxisUnit !== 'Level') {
-    yAxisLabel += ' (' + yAxisUnit + ')';
+    // Only add unit if it's not already in the label
+    if (!label.includes(`(${yAxisUnit})`)) {
+      yAxisLabel += ' (' + yAxisUnit + ')';
+    }
   }
   
   return {
@@ -1689,6 +1695,7 @@ function updateRealtimeCharts(data) {
   }
 
   // Mise à jour selon le type de capteur
+  // See: chartConfigs in initRealtimeCharts()
   switch (devType) {
     case 'CO2':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['co2 (ppm)']);
@@ -1698,7 +1705,7 @@ function updateRealtimeCharts(data) {
     case 'TEMPEX':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['temperature (°C)']);
       updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['humidity (%)']);
-      updateChart(realtimeCharts.humidity, chartData.humidity, timestamp, data['humidity (%)']);
+      // updateChart(realtimeCharts.humidity, chartData.humidity, timestamp, data['humidity (%)']);
       break;
     case 'DESK':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data.presence ? 1 : 0);
@@ -1708,7 +1715,8 @@ function updateRealtimeCharts(data) {
     case 'EYE':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['temperature (°C)']);
       updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['humidity (%)']);
-      updateChart(realtimeCharts.humidity, chartData.humidity, timestamp, data['humidity (%)']);
+      updateChart(realtimeCharts.light, chartData.light, timestamp, data['light (%)']);
+      updateChart(realtimeCharts.occupancy, chartData.occupancy, timestamp, data['occupancy (%)']);
       break;
     case 'OCCUP':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data.presence ? 1 : 0);

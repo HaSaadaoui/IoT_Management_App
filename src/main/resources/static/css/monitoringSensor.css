@@ -1115,7 +1115,7 @@ main {
 }
 
 .kpi-value {
-    font-size: 2rem;
+    font-size: 1.33rem;
     font-weight: 700;
     color: var(--text-primary);
     line-height: 1;
