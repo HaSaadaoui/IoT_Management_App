@@ -596,7 +596,9 @@
                             <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🔴</span>
                             <span>Red Outlets (Ch 0-2)</span>
                         </div>
-                        <div class="chart-info">kWh</div>
+                        <div class="chart-info">
+                            <span class="total-kwh" id="hist-total-red">--</span> kWh
+                        </div>
                     </div>
                     <div class="chart-container">
                         <canvas id="histConsumptionRed"></canvas>
@@ -610,7 +612,9 @@
                             <span class="chart-icon" style="background: linear-gradient(135deg, #94a3b8, #64748b);">⚪</span>
                             <span>White Outlets (Ch 3-5)</span>
                         </div>
-                        <div class="chart-info">kWh</div>
+                        <div class="chart-info">
+                            <span class="total-kwh" id="hist-total-white">--</span> kWh
+                        </div>
                     </div>
                     <div class="chart-container">
                         <canvas id="histConsumptionWhite"></canvas>
@@ -624,7 +628,9 @@
                             <span class="chart-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">🌬️</span>
                             <span>Ventilation (Ch 6-8)</span>
                         </div>
-                        <div class="chart-info">kWh</div>
+                        <div class="chart-info">
+                            <span class="total-kwh" id="hist-total-vent">--</span> kWh
+                        </div>
                     </div>
                     <div class="chart-container">
                         <canvas id="histConsumptionVent"></canvas>
@@ -638,7 +644,9 @@
                             <span class="chart-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔧</span>
                             <span>Other (Ch 9-11)</span>
                         </div>
-                        <div class="chart-info">kWh</div>
+                        <div class="chart-info">
+                            <span class="total-kwh" id="hist-total-other">--</span> kWh
+                        </div>
                     </div>
                     <div class="chart-container">
                         <canvas id="histConsumptionOther"></canvas>

@@ -819,8 +819,20 @@ async function loadHistory(fromISO, toISO) {
           ticks: {
             autoSkip: true,
             maxTicksLimit: 10, // Adjust this number (e.g., 5, 8, 10, etc.)
-            maxRotation: 0,
+            major: {
+              enabled: true // This is crucial for identifying day boundaries
+            },
+            maxRotation: 0, // Prevent labels from rotating
             minRotation: 0
+          },
+          grid: {
+            color: function(context) {
+              // Make grid lines for day boundaries more prominent
+              if (context.tick.major) {
+                return 'rgba(0, 0, 0, 0.3)'; // Darker line for the start of a new day
+              }
+              return 'rgba(0, 0, 0, 0.05)'; // Lighter line for other grid lines
+            }
           }
         }
       }
@@ -859,12 +871,25 @@ async function loadChannelHistogramData(channels = [], fromISO, toISO) {
 function updateChannelHistogram(chart, data, yAxisMax) {
   if (!chart || !data) return;
 
-  const labels = Object.keys(data).map(d => new Date(d).toLocaleString('default', { hour: '2-digit', minute: '2-digit' }));
+  const labels = Object.keys(data).map(d => {
+    const date = new Date(d);
+    return date.toLocaleString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+  });
   const values = Object.values(data).map(v => v / 1000); // Convert Wh to kWh
+  const totalKWh = values.reduce((sum, v) => sum + v, 0);
+
   setSeries(chart, labels, values);
 
   chart.options.scales.y.max = yAxisMax;
   chart.update();
+
+  // Update the total kWh display in the chart header
+  const canvasId = chart.canvas.id; // e.g., "histConsumptionRed"
+  const groupKey = canvasId.replace('histConsumption', '').toLowerCase(); // "red"
+  const totalEl = document.getElementById(`hist-total-${groupKey}`);
+  if (totalEl) {
+    totalEl.textContent = totalKWh.toFixed(2);
+  }
 }
 
 function containsStrings(values) {
@@ -1832,14 +1857,25 @@ function clearAllCharts() {
 document.addEventListener("DOMContentLoaded", () => {
   if (LIVE_MODE) startSSE();
   
-  // Next 24 hours
+  // Default date range: last 3 days including today
   const to = new Date();
-  const DEFAULT_DAYS_COUNT = 3;
-  to.setHours(to.getHours() + 24 * DEFAULT_DAYS_COUNT);
-  // Last 24 hours
+  to.setHours(23, 59, 59, 999); // End of today
+
   const from = new Date();
-  from.setHours(from.getHours() - 24 * DEFAULT_DAYS_COUNT);
-  
+  from.setDate(from.getDate() - 2); // Go back 2 days to include today as the 3rd day
+  from.setHours(0, 0, 0, 0); // Beginning of that day
+
+  // Helper to format Date to 'yyyy-MM-ddThh:mm' for datetime-local input
+  const toLocalISOString = (date) => {
+    const tzoffset = (new Date()).getTimezoneOffset() * 60000; //offset in milliseconds
+    const localISOTime = (new Date(date - tzoffset)).toISOString().slice(0, 16);
+    return localISOTime;
+  };
+
+  // Set default values for date inputs
+  el('#hist-from').value = toLocalISOString(from);
+  el('#hist-to').value = toLocalISOString(to);
+
   loadHistory(from.toISOString(), to.toISOString());
   
   if (window.Chart) {
