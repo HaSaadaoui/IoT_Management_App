@@ -65,17 +65,16 @@ async function loadHistory(fromISO, toISO) {
             return grouped;
         };
 
+        const intervalHours = 6;
         // Group all datasets by 6-hour intervals
-        const intervalGroupedData = allGroupData.map(groupData => groupDataByInterval(groupData, 6));
+        const intervalGroupedData = allGroupData.map(groupData => groupDataByInterval(groupData, intervalHours));
 
-        // Generate labels showing the "from-to" range for each interval
+        // Generate labels showing just the start time for each interval
         const firstGroupInterval = intervalGroupedData[0] || {};
         const labels = Object.keys(firstGroupInterval).map(intervalStart => {
             const startDate = new Date(intervalStart);
-            const endDate = new Date(startDate.getTime() + (6 * 60 * 60 * 1000) - 1); // End of 6-hour block
             const startStr = startDate.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit' });
-            const endStr = endDate.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
-            return `${startStr}h - ${endStr}`;
+            return `${startStr}h`;
         });
 
         const datasets = intervalGroupedData.map((intervalData, index) => {
@@ -87,13 +86,16 @@ async function loadHistory(fromISO, toISO) {
         if (!combinedConsumptionChart) {
             const chartCtx = ctx('histConsumptionRed');
             if (chartCtx) {
-                combinedConsumptionChart = new Chart(chartCtx, { type: 'bar', data: { labels: [], datasets: [] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false }, y: { beginAtZero: true, title: { display: true, text: 'Total Consumption (kWh)' } } } } });
+                const chartOptions = { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false }, y: { beginAtZero: true, title: { display: true, text: 'Total Consumption (kWh)' } } }, plugins: { title: { display: true, text: '' } } };
+                combinedConsumptionChart = new Chart(chartCtx, { type: 'bar', data: { labels: [], datasets: [] }, options: chartOptions });
             }
         }
 
         if (combinedConsumptionChart) {
             combinedConsumptionChart.data.labels = labels;
             combinedConsumptionChart.data.datasets = datasets;
+            // Update the chart title to include the grouping interval
+            combinedConsumptionChart.options.plugins.title.text = `Total Consumption (kWh) - Grouped by ${intervalHours}h`;
             combinedConsumptionChart.update();
         }
 
