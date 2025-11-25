@@ -65,7 +65,29 @@ async function loadHistory(fromISO, toISO) {
             return grouped;
         };
 
-        const intervalHours = 6;
+        const getGroupingText = (interval) => {
+            if (interval === 24) {
+                return "Daily";
+            }
+            if (interval === 1) {
+                return "Hourly";
+            }
+            return `By ${interval}h`;
+        };
+
+        // Determine grouping interval based on the selected date range
+        let intervalHours = 1; // Default to 1 hour
+        const from = new Date(fromISO);
+        const to = new Date(toISO);
+        const diffDays = (to - from) / (1000 * 60 * 60 * 24);
+
+        if (diffDays > 30) {
+            intervalHours = 24; // Group by day for ranges over a month
+        } else if (diffDays > 7) {
+            intervalHours = 12; // Group by 12 hours for ranges over a week
+        } else if (diffDays > 2) {
+            intervalHours = 6;  // Group by 6 hours for ranges over 2 days
+        }
         // Group all datasets by 6-hour intervals
         const intervalGroupedData = allGroupData.map(groupData => groupDataByInterval(groupData, intervalHours));
 
@@ -73,8 +95,13 @@ async function loadHistory(fromISO, toISO) {
         const firstGroupInterval = intervalGroupedData[0] || {};
         const labels = Object.keys(firstGroupInterval).map(intervalStart => {
             const startDate = new Date(intervalStart);
-            const startStr = startDate.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit' });
-            return `${startStr}h`;
+            // For daily grouping, show only the date. Otherwise, show date and time.
+            if (intervalHours === 24) {
+                return startDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            } else {
+                const startStr = startDate.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                return startStr;
+            }
         });
 
         const datasets = intervalGroupedData.map((intervalData, index) => {
@@ -96,6 +123,7 @@ async function loadHistory(fromISO, toISO) {
             combinedConsumptionChart.data.datasets = datasets;
             // Update the chart title to include the grouping interval
             combinedConsumptionChart.options.plugins.title.text = `Total Consumption (kWh) - Grouped by ${intervalHours}h`;
+            combinedConsumptionChart.options.plugins.title.text = `Consumption (kWh) - ${getGroupingText(intervalHours)} Grouping`;
             combinedConsumptionChart.update();
         }
 
