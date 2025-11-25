@@ -681,13 +681,35 @@ async function loadHistory(fromISO, toISO) {
 
   const devType = (document.documentElement.dataset.devType || '').toUpperCase();
   if (devType === 'ENERGY' || devType === 'CONSO') {
-    for (const group of Object.values(consumptionCharts)) { // Use Object.values for iteration
-        if (!group.chart) { // Initialize chart if it doesn't exist
-            const chartCtx = ctx(group.id);
-            if (chartCtx) group.chart = mkBarChart(chartCtx, group.label, group.color);
-        }
-        if (group.chart) loadChannelHistogram(group.chart, group.channels, fromISO, toISO);
-    }
+    // Fetch all data first to find the global max value
+    const allGroupData = await Promise.all(
+      Object.values(consumptionCharts).map(group =>
+        loadChannelHistogramData(group.channels, fromISO, toISO)
+      )
+    );
+
+    // Find the max kWh value across all datasets
+    const globalMaxKWh = allGroupData.reduce((max, groupData) => {
+      if (!groupData) return max;
+      const currentMax = Math.max(...Object.values(groupData).map(v => v / 1000));
+      return Math.max(max, currentMax);
+    }, 0);
+
+    // Set a ceiling for the chart, e.g., 10% above the max value
+    const yAxisMax = Math.ceil(globalMaxKWh * 1.1);
+
+    // Now, create and update each chart with the shared scale
+    Object.values(consumptionCharts).forEach((group, index) => {
+      if (!group.chart) {
+        const chartCtx = ctx(group.id);
+        if (chartCtx) group.chart = mkBarChart(chartCtx, group.label, group.color);
+      }
+      if (group.chart) {
+        const data = allGroupData[index];
+        updateChannelHistogram(group.chart, data, yAxisMax);
+      }
+    });
+
     el('#consumption-histogram-section').style.display = 'block';
   }
 
@@ -735,7 +757,8 @@ async function loadHistory(fromISO, toISO) {
     const ctx = document.getElementById(canvasId)?.getContext("2d");
     if (ctx) {
       // Create a new Chart.js instance
-      let chartConfig = createChartConfig(chartTitle, color, '', getLastTimestamp(Object.keys(inputData)))
+      // Deep clone the config to prevent object reference issues between charts
+      let chartConfig = JSON.parse(JSON.stringify(createChartConfig(chartTitle, color, '', getLastTimestamp(Object.keys(inputData)))));
       
       const transformedData = Object.entries(inputData).map(([timestamp, value]) => ({
         x: timestamp,
@@ -814,29 +837,34 @@ async function loadHistory(fromISO, toISO) {
   updateKPICards(j, fromISO, toISO);
 }
 
-async function loadChannelHistogram(chart, channels = [], fromISO, toISO) {
-  if (!chart) return;
+async function loadChannelHistogramData(channels = [], fromISO, toISO) {
   const SENSOR_ID = document.documentElement.dataset.deviceId;
   const GATEWAY_ID = document.documentElement.dataset.gatewayId;
-  if (!SENSOR_ID || !GATEWAY_ID || !fromISO || !toISO) return;
-
-  const params = new URLSearchParams();
-  params.set('startDate', fromISO.split('T')[0]);
-  params.set('endDate', toISO.split('T')[0]);
-  channels.forEach(ch => params.append('channels', String(ch)));
+  if (!SENSOR_ID || !GATEWAY_ID || !fromISO || !toISO) return null;
 
   try {
+    const params = new URLSearchParams();
+    params.set('startDate', fromISO.split('T')[0]);
+    params.set('endDate', toISO.split('T')[0]);
+    channels.forEach(ch => params.append('channels', String(ch)));
     const res = await fetch(`/manage-sensors/monitoring/${GATEWAY_ID}/${SENSOR_ID}/consumption?` + params.toString());
-    if (!res.ok) throw new Error(`Failed to fetch consumption data: ${res.statusText}`);
-    const data = await res.json(); // data is Map<Date, Double>
-
-    const labels = Object.keys(data).map(d => new Date(d).toLocaleString('default', { hour: '2-digit', minute: '2-digit' }));
-    const values = Object.values(data).map(v => v / 1000); // Convert Wh to kWh
-    setSeries(chart, labels, values);
-
+    if (!res.ok) throw new Error(`Failed to fetch consumption data for channels ${channels.join(',')}: ${res.statusText}`);
+    return await res.json(); // Returns Map<Date, Double>
   } catch (e) {
-    console.error("Error loading channel histogram:", e);
+    console.error("Error loading channel histogram data:", e);
+    return null;
   }
+}
+
+function updateChannelHistogram(chart, data, yAxisMax) {
+  if (!chart || !data) return;
+
+  const labels = Object.keys(data).map(d => new Date(d).toLocaleString('default', { hour: '2-digit', minute: '2-digit' }));
+  const values = Object.values(data).map(v => v / 1000); // Convert Wh to kWh
+  setSeries(chart, labels, values);
+
+  chart.options.scales.y.max = yAxisMax;
+  chart.update();
 }
 
 function containsStrings(values) {
@@ -1778,9 +1806,16 @@ function updateBatteryChart(batteryPct) {
 }
 
 function clearAllCharts() {
-  Object.keys(chartData).forEach(key => {
-    chartData[key] = { labels: [], data: [] };
-  });
+  // Re-initialize chartData to ensure no shared references
+  chartData = {
+    main: { labels: [], data: [] },
+    secondary: { labels: [], data: [] },
+    humidity: { labels: [], data: [] },
+    rssi: { labels: [], data: [] },
+    snr: { labels: [], data: [] },
+    battery: { labels: [], data: [] },
+    powerUsage: { labels: [], red: [], white: [], ventilation: [] }
+  };
   
   Object.values(realtimeCharts).forEach(chart => {
     if (chart) {
