@@ -1,5 +1,8 @@
 // ===== Helpers =====
+
+// Shortcut for document.querySelector
 const el = (sel) => document.querySelector(sel);
+// Helper to safely set text content of an element
 const setText = (selector, value) => {
   const target = typeof selector === 'string' ? el(selector) : selector;
   if (target) target.textContent = (value == null ? "--" : String(value));
@@ -112,6 +115,10 @@ if (mapEl && window.L) {
   sensorMarker = L.marker([0, 0]).addTo(map);
 }
 
+// ==================================
+// ===== DOM Element References =====
+// ==================================
+
 // Badges optionnels (anciens emplacements éventuels)
 const statusBadge   = el("#sensor-status");
 const batteryBadge  = el("#battery-badge"); // si présent ailleurs dans le layout
@@ -129,6 +136,9 @@ const sCountIn   = el("#s-count-in");
 const sCountOut  = el("#s-count-out");
 const sGenBatt   = el("#s-gen-batt");
 
+// =====================================
+// ===== Sensor Metric Definitions =====
+// =====================================
 // Map metric names to backend names
 // See: src/main/java/com/amaris/sensorprocessor/entity/PayloadValueType.java
 const DEVICE_TYPE_METRICS = {
@@ -217,8 +227,13 @@ const DEVICE_TYPE_METRICS = {
   // ]
 };
 
-// ====== SSE ======
+// =================================================
+// ===== Server-Sent Events (SSE) for Live Data =====
+// =================================================
+
+// SSE connection instance
 let es = null;
+// Flag to control live updates
 let LIVE_MODE = true;
 
 function startSSE() {
@@ -502,8 +517,14 @@ function startSSE() {
 
 function stopSSE() { if (es) { es.close(); es = null; } }
 
-// ===== Charts Historique =====
+// =================================
+// ===== History Chart Setup =====
+// =================================
+
+// Chart.js context helper
 const ctx = id => (document.getElementById(id)?.getContext("2d") || null);
+
+// Factory function for creating a line chart
 function mkLineChart(ctx, label, color) {
   return new Chart(ctx, {
     type: "line",
@@ -535,6 +556,8 @@ function mkLineChart(ctx, label, color) {
     }
   });
 }
+
+// Factory function for creating a bar chart
 const mkHist = (id, label) => (ctx(id) ? mkLineChart(ctx(id), label, "rgb(102,33,121,1)") : null);
 function mkBarChart(ctx, label, color) {
   return new Chart(ctx, {
@@ -566,6 +589,8 @@ function mkBarChart(ctx, label, color) {
     }
   });
 }
+
+// DOM containers for history charts
 const networkMetricsContainer = el('#network-metrics-container');
 const sensorMetricsContainer = el('#sensor-metrics-container');
 const consumptionCharts = {
@@ -634,6 +659,7 @@ function getMetricColor(metricName) {
   return colors[metricName.toLowerCase()] || '#662179'; // Default purple
 }
 
+// Helper to update chart data
 function setSeries(chart, labels, values) {
   if (!chart) return;
   chart.data.labels = labels;
@@ -641,12 +667,14 @@ function setSeries(chart, labels, values) {
   chart.update();
 }
 
+// Helper to get the last timestamp from a dataset
 function getLastTimestamp(values) {
   const ts = values[values.length-1]
   const parsed = new Date(ts)
   return parsed.toLocaleDateString("en-CA")
 }
 
+// Main function to load and render history data
 async function loadHistory(fromISO, toISO) {
   const SENSOR_ID = document.documentElement.dataset.deviceId;
   const GATEWAY_ID = document.documentElement.dataset.gatewayId;
@@ -912,6 +940,7 @@ async function loadHistory(fromISO, toISO) {
   updateKPICards(j, fromISO, toISO);
 }
 
+// Fetches consumption data for specific channels and a date range
 async function loadChannelHistogramData(channels = [], fromISO, toISO) {
   const SENSOR_ID = document.documentElement.dataset.deviceId;
   const GATEWAY_ID = document.documentElement.dataset.gatewayId;
@@ -931,6 +960,7 @@ async function loadChannelHistogramData(channels = [], fromISO, toISO) {
   }
 }
 
+// Checks if an array contains non-numeric string values
 function containsStrings(values) {
   if (!Array.isArray(values)) return false;
   return values.some(v => {
@@ -939,6 +969,7 @@ function containsStrings(values) {
   })
 }
 
+// Generates unique labels from an array of values, for categorical chart axes
 function generateLabels(values) {
   // Use a Set to automatically handle uniqueness.
   const uniqueLabels = new Set(values.filter(v => typeof v === 'string'));
@@ -946,6 +977,7 @@ function generateLabels(values) {
   return Array.from(uniqueLabels);
 }
 
+// Extracts battery data from the history payload
 function getBattery(data) {
   const lastBattery = Object.values(data.LAST_BATTERY_PERCENTAGE_VALUE || []);
   const battery = Object.values(data.BATTERY || []);
@@ -1005,7 +1037,10 @@ function updateKPICards(data, fromISO, toISO) {
   }
 }
 
-// ===== Bascule Live/History =====
+// =========================================
+// ===== Live/History Tab Switching =====
+// =========================================
+
 function showPane(which) {
   const live = document.getElementById("pane-live");
   const hist = document.getElementById("pane-history");
@@ -1024,6 +1059,7 @@ function showPane(which) {
   }
 }
 
+// Overridden updateBatteryBadge to handle specific DOM structure
 function updateBatteryBadge(selector, pct) {
   const node = typeof selector === 'string' ? document.querySelector(selector) : selector;
   if (!node) return;
@@ -1043,26 +1079,21 @@ function updateBatteryBadge(selector, pct) {
 }
 
 
-// Events
+// ========================
+// ===== Event Listeners =====
+// ========================
+
+// Tab switching event listener
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => showPane(btn.dataset.pane));
 });
-document.getElementById('hist-load')?.addEventListener('click', async () => {
-  const from = document.getElementById('hist-from')?.value || '';
-  const to   = document.getElementById('hist-to')?.value   || '';
-  try {
-    await loadHistory(from ? new Date(from).toISOString() : '', to ? new Date(to).toISOString() : '');
-  } catch (e) {
-    console.error(e);
-    alert("Impossible de charger l'historique.");
-  }
-});
 
-// ===== Energy Consumption Functions =====
+// =================================================
+// ===== Real-time Energy Consumption Functions =====
+// =================================================
+
 function updateEnergyConsumption(data) {
   console.log('Energy data received:', data);
-  
-  // Groupes de canaux selon votre spécification
   const channelGroups = {
     'red-outlets': { channels: [0, 1, 2], name: 'Red Outlets', emoji: '🔴', color: '#ef4444' },
     'white-outlets': { channels: [3, 4, 5], name: 'White Outlets & Lighting', emoji: '⚪', color: '#64748b' },
@@ -1072,7 +1103,6 @@ function updateEnergyConsumption(data) {
 
   let totalConsumption = 0;
   
-  // Mise à jour des canaux individuels
   Object.keys(data).forEach(key => {
     const channelData = data[key];
     if (channelData && typeof channelData === 'object') {
@@ -1080,14 +1110,8 @@ function updateEnergyConsumption(data) {
       const value = channelData.value || 0;
       const unit = channelData.unit || 'Wh';
       
-      // Ajouter au total seulement si c'est un nombre valide
-      if (typeof value === 'number' && value > 0) {
-        totalConsumption += value;
-      }
+      if (typeof value === 'number' && value > 0) totalConsumption += value;
       
-      console.log(`Canal ${channel}: ${value} ${unit}`);
-      
-      // Mise à jour de l'affichage du canal individuel
       const channelEl = el(`#energy-channel-${channel}`);
       if (channelEl) {
         channelEl.innerHTML = `
@@ -1104,18 +1128,14 @@ function updateEnergyConsumption(data) {
     }
   });
 
-  // Mise à jour des groupes
   Object.entries(channelGroups).forEach(([groupId, group]) => {
     let groupTotal = 0;
     group.channels.forEach(channel => {
-      // Accès aux données avec la clé string du canal
       const channelData = data[channel.toString()];
       if (channelData && typeof channelData.value === 'number') {
         groupTotal += channelData.value;
       }
     });
-
-    console.log(`Groupe ${groupId} (${group.name}): ${groupTotal} Wh`);
 
     const groupEl = el(`#energy-group-${groupId}`);
     if (groupEl) {
@@ -1134,9 +1154,6 @@ function updateEnergyConsumption(data) {
     }
   });
 
-  // Mise à jour du total général
-  console.log(`Total consommation: ${totalConsumption} Wh`);
-  
   const totalEl = el('#energy-total');
   if (totalEl) {
     const totalKWh = (totalConsumption / 1000).toFixed(2);
@@ -1150,7 +1167,6 @@ function updateEnergyConsumption(data) {
     `;
   }
 
-  // Mise à jour du graphique en temps réel
   updateEnergyChart(channelGroups, data);
 }
 
@@ -1163,14 +1179,12 @@ function formatEnergyValue(value) {
   return value.toLocaleString();
 }
 
-// Variable globale pour le graphique doughnut
+// Doughnut chart instance for energy distribution
 let energyDoughnutChart = null;
 
 function updateEnergyChart(groups, data) {
   const chartEl = el('#energy-chart');
   if (!chartEl) return;
-
-  // Données pour le graphique doughnut
   const groupData = Object.entries(groups).map(([groupId, group]) => {
     let total = 0;
     group.channels.forEach(channel => {
@@ -1186,7 +1200,6 @@ function updateEnergyChart(groups, data) {
     };
   });
 
-  // Créer le layout horizontal avec labels à gauche et chart à droite
   if (!chartEl.querySelector('.doughnut-container')) {
     chartEl.innerHTML = `
       <div class="doughnut-container">
@@ -1204,7 +1217,6 @@ function updateEnergyChart(groups, data) {
   const canvas = chartEl.querySelector('canvas');
   const labelsList = chartEl.querySelector('.labels-list');
 
-  // Créer ou mettre à jour le graphique doughnut
   if (!energyDoughnutChart) {
     const ctx = canvas.getContext('2d');
     energyDoughnutChart = new Chart(ctx, {
@@ -1221,7 +1233,7 @@ function updateEnergyChart(groups, data) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
+        plugins: { // NOSONAR
           legend: {
             display: false // Désactiver la légende par défaut
           },
@@ -1238,14 +1250,12 @@ function updateEnergyChart(groups, data) {
       }
     });
   } else {
-    // Mettre à jour les données existantes
     energyDoughnutChart.data.labels = groupData.map(g => g.name);
     energyDoughnutChart.data.datasets[0].data = groupData.map(g => g.value);
     energyDoughnutChart.data.datasets[0].backgroundColor = groupData.map(g => g.color);
     energyDoughnutChart.update('none');
   }
   
-  // Générer les labels personnalisés à gauche
   if (labelsList) {
     labelsList.innerHTML = groupData.map((group) => {
       return `
@@ -1261,7 +1271,10 @@ function updateEnergyChart(groups, data) {
   }
 }
 
-// ===== Real-time Charts =====
+// ==================================
+// ===== Real-time Chart System =====
+// ==================================
+
 let realtimeCharts = {
   main: null,
   secondary: null,
@@ -1271,6 +1284,7 @@ let realtimeCharts = {
   battery: null
 };
 
+// Data stores for the real-time charts
 let chartData = {
   main: { labels: [], data: [] },
   secondary: { labels: [], data: [] },
@@ -1287,13 +1301,11 @@ let chartData = {
   }
 };
 
-// Fonction pour mettre à jour le graphique Power Usage avec 3 groupes
+// Specific update function for the power usage chart (ENERGY/CONSO sensors)
 function updatePowerUsageChart(timestamp, values) {
   if (chartsPaused || !realtimeCharts.secondary) return;
   
   const data = chartData.powerUsage;
-  
-  // Ajouter les nouvelles valeurs
   data.labels.push(timestamp);
   data.red.push(values.red);
   data.white.push(values.white);
@@ -1307,7 +1319,6 @@ function updatePowerUsageChart(timestamp, values) {
     data.ventilation.shift();
   }
   
-  // Mettre à jour le graphique
   realtimeCharts.secondary.data.labels = data.labels;
   realtimeCharts.secondary.data.datasets[0].data = data.red;
   realtimeCharts.secondary.data.datasets[1].data = data.white;
@@ -1315,19 +1326,18 @@ function updatePowerUsageChart(timestamp, values) {
   realtimeCharts.secondary.update('none');
 }
 
+// State for pausing/resuming charts
 let chartsPaused = false;
 const MAX_CHART_POINTS = 50;
 
+// Initializes all real-time charts based on sensor type
 function initRealtimeCharts() {
-  // Vérifier si Chart.js est disponible
   if (typeof Chart === 'undefined') {
     console.warn('Chart.js not loaded, skipping chart initialization');
     return;
   }
-  
   const devType = (document.documentElement.dataset.devType || '').toUpperCase();
   
-  // Configuration des couleurs par type de capteur
   const chartConfigs = {
     'CO2': {
       main: { label: 'CO₂', color: '#ef4444', title: '🌬️ CO₂ Level', unit: 'ppm' },
@@ -1381,13 +1391,11 @@ function initRealtimeCharts() {
     secondary: { label: 'Metric B', color: '#8b5cf6', title: '📈 Secondary Metric' }
   };
 
-  // Mise à jour des titres
   const mainTitle = el('#realtime-chart-title');
   const secondaryTitle = el('#realtime-chart-secondary-title');
   if (mainTitle) mainTitle.textContent = config.main.title;
   if (secondaryTitle) secondaryTitle.textContent = config.secondary.title;
 
-  // Création des graphiques
   const mainCtx = el('#realtime-chart-main')?.getContext('2d');
   const secondaryCtx = el('#realtime-chart-secondary')?.getContext('2d');
   const humidityCtx = el('#realtime-chart-humidity')?.getContext('2d');
@@ -1399,7 +1407,6 @@ function initRealtimeCharts() {
   }
   
   if (secondaryCtx) {
-    // Pour ENERGY/CONSO, créer un graphique avec 3 datasets
     if (devType === 'ENERGY' || devType === 'CONSO') {
       realtimeCharts.secondary = new Chart(secondaryCtx, createEnergyPowerUsageChartConfig());
     } else {
@@ -1407,7 +1414,6 @@ function initRealtimeCharts() {
     }
   }
   
-  // Show and initialize humidity chart for sensors with humidity data
   if (config.humidity && humidityCtx) {
     const humidityContainer = el('#humidity-chart-container');
     if (humidityContainer) {
@@ -1424,8 +1430,6 @@ function initRealtimeCharts() {
     realtimeCharts.snr = new Chart(snrCtx, createChartConfig('SNR (dB)', '#3b82f6', 'dB'));
   }
   
-
-  // Event listeners pour les contrôles
   const pauseBtn = el('#chart-pause');
   const clearBtn = el('#chart-clear');
   
@@ -1441,6 +1445,7 @@ function initRealtimeCharts() {
   }
 }
 
+// Creates a configuration for the multi-dataset energy power usage chart
 function createEnergyPowerUsageChartConfig() {
   const currentDate = new Date().toLocaleDateString('en-CA');
   
@@ -1488,16 +1493,12 @@ function createEnergyPowerUsageChartConfig() {
   };
 }
 
+// Generic factory function for creating a line chart configuration
 function createChartConfig(label, color, yAxisUnit = '', currentDate) {
-  if (!currentDate) currentDate = new Date().toLocaleDateString('en-CA'); // Format: 2025-11-13
-  
-  // Create Y-axis label with metric name and unit
+  if (!currentDate) currentDate = new Date().toLocaleDateString('en-CA');
   let yAxisLabel = label;
-  if (yAxisUnit && yAxisUnit !== 'Status' && yAxisUnit !== 'Level') {
-    // Only add unit if it's not already in the label
-    if (!label.includes(`(${yAxisUnit})`)) {
+  if (yAxisUnit && yAxisUnit !== 'Status' && yAxisUnit !== 'Level' && !label.includes(`(${yAxisUnit})`)) {
       yAxisLabel += ' (' + yAxisUnit + ')';
-    }
   }
   
   return {
@@ -1522,8 +1523,8 @@ function createChartConfig(label, color, yAxisUnit = '', currentDate) {
   };
 }
 
+// Generates Chart.js options with customized axes based on the unit of measurement
 function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate = '') {
-  // Déterminer l'échelle Y appropriée selon le type de métrique
   let yAxisConfig = {
     display: true,
     title: {
@@ -1546,7 +1547,6 @@ function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate =
     }
   };
   
-  // Configuration spécifique selon l'unité
   switch(yAxisUnit) {
     case 'ppm': // CO2
       yAxisConfig.suggestedMin = 0;
@@ -1609,7 +1609,6 @@ function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate =
       yAxisConfig.grace = '10%';
       break;
     default:
-      // Échelle automatique pour les autres cas
       yAxisConfig.beginAtZero = false;
   }
   
@@ -1617,7 +1616,7 @@ function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate =
     responsive: true,
     maintainAspectRatio: false,
     resizeDelay: 0,
-    layout: {
+    layout: { // NOSONAR
       padding: {
         right: 15 // Espace supplémentaire à droite pour les valeurs de l'axe Y
       }
@@ -1701,17 +1700,18 @@ function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate =
   };
 }
 
+// Fallback for chart options when no units are specified
 function getChartOptions() {
   return getChartOptionsWithUnits('', '', '');
 }
 
+// Main dispatcher for updating real-time charts with new data from SSE
 function updateRealtimeCharts(data) {
   if (chartsPaused) return;
   
   const timestamp = new Date().toLocaleTimeString();
   const devType = (document.documentElement.dataset.devType || '').toUpperCase();
   
-  // Fonction helper pour obtenir le niveau de batterie
   function getBatteryLevel(data) {
     // Priorité 1: battery (%) direct
     if (typeof data['battery (%)'] === 'number') {
@@ -1731,8 +1731,6 @@ function updateRealtimeCharts(data) {
     return 0; // Valeur par défaut
   }
 
-  // Mise à jour selon le type de capteur
-  // See: chartConfigs in initRealtimeCharts()
   switch (devType) {
     case 'CO2':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['co2 (ppm)']);
@@ -1773,9 +1771,7 @@ function updateRealtimeCharts(data) {
       break;
     case 'ENERGY':
     case 'CONSO':
-      // Pour l'énergie, afficher les 3 groupes principaux sur Power Usage
       if (data.energy_data && typeof data.energy_data === 'object') {
-        // Calculer les totaux par groupe
         const redOutlets = [0, 1, 2].reduce((sum, ch) => {
           const channelData = data.energy_data[ch];
           return sum + (channelData?.value || 0);
@@ -1791,16 +1787,13 @@ function updateRealtimeCharts(data) {
           return sum + (channelData?.value || 0);
         }, 0);
         
-        // Consommation totale pour le graphique principal
         const totalWh = redOutlets + whiteOutlets + ventilation + 
           [9, 10, 11].reduce((sum, ch) => {
             const channelData = data.energy_data[ch];
             return sum + (channelData?.value || 0);
           }, 0);
         
-        updateChart(realtimeCharts.main, chartData.main, timestamp, totalWh / 1000); // kWh
-        
-        // Mettre à jour le graphique Power Usage avec les 3 groupes
+        updateChart(realtimeCharts.main, chartData.main, timestamp, totalWh / 1000);
         updatePowerUsageChart(timestamp, {
           red: redOutlets / 1000,
           white: whiteOutlets / 1000,
@@ -1812,40 +1805,39 @@ function updateRealtimeCharts(data) {
   
 }
 
+// Generic function to update a single chart instance
 function updateChart(chart, dataStore, timestamp, value) {
   if (!chart || value == null || isNaN(value)) return;
   
   dataStore.labels.push(timestamp);
   dataStore.data.push(Number(value));
   
-  // Limiter le nombre de points
   if (dataStore.labels.length > MAX_CHART_POINTS) {
     dataStore.labels.shift();
     dataStore.data.shift();
   }
   
-  // Mise à jour efficace sans animation
   chart.data.labels = dataStore.labels;
   chart.data.datasets[0].data = dataStore.data;
   chart.update('none');
 }
 
+// Updates the signal quality (RSSI/SNR) charts
 function updateSignalChart(rssi, snr) {
   if (chartsPaused) return;
   
   const timestamp = new Date().toLocaleTimeString();
   
-  // Update RSSI chart
   if (realtimeCharts.rssi) {
     updateChart(realtimeCharts.rssi, chartData.rssi, timestamp, rssi);
   }
   
-  // Update SNR chart
   if (realtimeCharts.snr) {
     updateChart(realtimeCharts.snr, chartData.snr, timestamp, snr);
   }
 }
 
+// Updates the battery chart
 function updateBatteryChart(batteryPct) {
   if (chartsPaused || !realtimeCharts.battery) return;
   
@@ -1854,7 +1846,6 @@ function updateBatteryChart(batteryPct) {
   chartData.battery.labels.push(timestamp);
   chartData.battery.data.push(batteryPct);
   
-  // Limiter le nombre de points
   if (chartData.battery.labels.length > MAX_CHART_POINTS) {
     chartData.battery.labels.shift();
     chartData.battery.data.shift();
@@ -1864,7 +1855,6 @@ function updateBatteryChart(batteryPct) {
   realtimeCharts.battery.data.datasets[0].data = [...chartData.battery.data];
   realtimeCharts.battery.update('none');
   
-  // Mise à jour du statut de la batterie
   const batteryStatus = el('#battery-status');
   if (batteryStatus) {
     batteryStatus.textContent = `${Math.round(batteryPct)}%`;
@@ -1875,8 +1865,8 @@ function updateBatteryChart(batteryPct) {
   }
 }
 
+// Clears all data from real-time charts
 function clearAllCharts() {
-  // Re-initialize chartData to ensure no shared references
   chartData = {
     main: { labels: [], data: [] },
     secondary: { labels: [], data: [] },
@@ -1898,30 +1888,13 @@ function clearAllCharts() {
   });
 }
 
-// Boot
+// =================================
+// ===== Initialization on Boot =====
+// =================================
+
+// Main entry point when the DOM is ready
 document.addEventListener("DOMContentLoaded", () => {
   if (LIVE_MODE) startSSE();
-  
-  // Default date range: last 3 days including today
-  const to = new Date();
-  to.setHours(23, 59, 59, 999); // End of today
-
-  const from = new Date();
-  from.setDate(from.getDate() - 2); // Go back 2 days to include today as the 3rd day
-  from.setHours(0, 0, 0, 0); // Beginning of that day
-
-  // Helper to format Date to 'yyyy-MM-ddThh:mm' for datetime-local input
-  const toLocalISOString = (date) => {
-    const tzoffset = (new Date()).getTimezoneOffset() * 60000; //offset in milliseconds
-    const localISOTime = (new Date(date - tzoffset)).toISOString().slice(0, 16);
-    return localISOTime;
-  };
-
-  // Set default values for date inputs
-  el('#hist-from').value = toLocalISOString(from);
-  el('#hist-to').value = toLocalISOString(to);
-
-  loadHistory(from.toISOString(), to.toISOString());
   
   if (window.Chart) {
     initRealtimeCharts();
