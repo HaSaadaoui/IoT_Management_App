@@ -569,11 +569,9 @@ function mkBarChart(ctx, label, color) {
 const networkMetricsContainer = el('#network-metrics-container');
 const sensorMetricsContainer = el('#sensor-metrics-container');
 const consumptionCharts = {
-    'red':   { id: 'histConsumptionRed',   chart: null, channels: [0, 1, 2],  label: 'Red Outlets (kWh)',   color: 'rgb(239, 68, 68, 1)' },
-    'white': { id: 'histConsumptionWhite', chart: null, channels: [3, 4, 5],  label: 'White Outlets (kWh)', color: 'rgb(100, 116, 139, 1)' },
-    'vent':  { id: 'histConsumptionVent',  chart: null, channels: [6, 7, 8],  label: 'Ventilation (kWh)',   color: 'rgb(59, 130, 246, 1)' },
-    'other': { id: 'histConsumptionOther', chart: null, channels: [9, 10, 11], label: 'Other (kWh)',         color: 'rgb(245, 158, 11, 1)' }
+  'red': { id: 'histConsumptionRed', channels: [0, 1, 2], label: 'Red Outlets (Ch 0,1,2)', color: 'rgb(239, 68, 68, 1)' }, 'white': { id: 'histConsumptionWhite', channels: [3, 4, 5], label: 'White Outlets & Lightning (Ch 3,4,5)', color: 'rgb(100, 116, 139, 1)' }, 'vent': { id: 'histConsumptionVent', channels: [6, 7, 8], label: 'Ventilation & Heaters (Ch 6,7,8)', color: 'rgb(59, 130, 246, 1)' }, 'other': { id: 'histConsumptionOther', channels: [9, 10, 11], label: 'Other Circuits (Ch 9,10,11)', color: 'rgb(245, 158, 11, 1)' }
 };
+let combinedConsumptionChart = null;
 
 // Array to hold dynamically created metric chart instances
 let dynamicMetricCharts = [];
@@ -664,6 +662,40 @@ async function loadHistory(fromISO, toISO) {
   el('#sensor-metrics-section').style.display = 'none';
 
   const getChartData = (metricName) => {
+    const GROUPING_THRESHOLD = 50; // Max data points before grouping
+    const rawData = j.data[metricName] || {};
+    const dataPoints = Object.keys(rawData).length;
+
+    if (dataPoints > GROUPING_THRESHOLD) {
+      // Group data into 6-hour intervals
+      const groupedData = {};
+      for (const timestamp in rawData) {
+        const date = new Date(timestamp);
+        const hour = date.getHours();
+        const groupHour = Math.floor(hour / 6) * 6; // 0, 6, 12, 18
+        date.setHours(groupHour, 0, 0, 0);
+        const groupKey = date.toISOString();
+
+        if (!groupedData[groupKey]) {
+          groupedData[groupKey] = { sum: 0, count: 0 };
+        }
+        groupedData[groupKey].sum += parseFloat(rawData[timestamp]);
+        groupedData[groupKey].count++;
+      }
+
+      // Calculate averages
+      const averagedData = {};
+      for (const key in groupedData) {
+        averagedData[key] = groupedData[key].sum / groupedData[key].count;
+      }
+      
+      const labels = Object.keys(averagedData).map(t => new Date(t).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit' }));
+      const values = Object.values(averagedData);
+      return { labels, values };
+
+    }
+
+    // Default behavior (no grouping)
     const metricData = j.data[metricName] || {};
     const labels = Object.keys(metricData).map(t => new Date(t).toLocaleString());
     const values = Object.values(metricData);
@@ -681,36 +713,65 @@ async function loadHistory(fromISO, toISO) {
 
   const devType = (document.documentElement.dataset.devType || '').toUpperCase();
   if (devType === 'ENERGY' || devType === 'CONSO') {
-    // Fetch all data first to find the global max value
+    // Hide all but the first chart container
+    const whiteContainer = el('#histConsumptionWhite-container');
+    if (whiteContainer) whiteContainer.style.display = 'none';
+
+    const ventContainer = el('#histConsumptionVent-container');
+    if (ventContainer) ventContainer.style.display = 'none';
+
+    const otherContainer = el('#histConsumptionOther-container');
+    if (otherContainer) otherContainer.style.display = 'none';
+
+    // Fetch all data
     const allGroupData = await Promise.all(
       Object.values(consumptionCharts).map(group =>
         loadChannelHistogramData(group.channels, fromISO, toISO)
       )
     );
 
-    // Find the max kWh value across all datasets
-    const globalMaxKWh = allGroupData.reduce((max, groupData) => {
-      if (!groupData) return max;
-      const currentMax = Math.max(...Object.values(groupData).map(v => v / 1000));
-      return Math.max(max, currentMax);
-    }, 0);
+    const firstGroupData = allGroupData[0] || {};
+    const labels = Object.keys(firstGroupData).map(d => new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }));
 
-    // Set a ceiling for the chart, e.g., 10% above the max value
-    const yAxisMax = Math.ceil(globalMaxKWh * 1.1);
+    const datasets = allGroupData.map((groupData, index) => {
+        const groupInfo = Object.values(consumptionCharts)[index];
+        const values = Object.values(groupData || {}).map(v => v / 1000); // Wh to kWh
+        return {
+            label: groupInfo.label,
+            data: values,
+            backgroundColor: groupInfo.color,
+            borderColor: groupInfo.color,
+            borderWidth: 1,
+            borderRadius: 4,
+            barPercentage: 0.8,
+        };
+    });
 
-    // Now, create and update each chart with the shared scale
-    Object.values(consumptionCharts).forEach((group, index) => {
-      if (!group.chart) {
-        const chartCtx = ctx(group.id);
-        if (chartCtx) group.chart = mkBarChart(chartCtx, group.label, group.color);
-      }
-      if (group.chart) {
-        const data = allGroupData[index];
-        updateChannelHistogram(group.chart, data, yAxisMax);
+    if (!combinedConsumptionChart) {
+        const chartCtx = ctx('histConsumptionRed'); // Use the first canvas
+        if (chartCtx) {
+            combinedConsumptionChart = new Chart(chartCtx, { type: 'bar', data: { labels: [], datasets: [] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false }, y: { beginAtZero: true, title: { display: true, text: 'Total Consumption (kWh)' } } } } });
+        }
+    }
+
+    if (combinedConsumptionChart) {
+        combinedConsumptionChart.data.labels = labels;
+        combinedConsumptionChart.data.datasets = datasets;
+        combinedConsumptionChart.update();
+    }
+
+    // Update total displays
+    allGroupData.forEach((groupData, index) => {
+      const groupKey = Object.keys(consumptionCharts)[index];
+      const totalKWh = Object.values(groupData || {}).reduce((sum, v) => sum + v / 1000, 0);
+      const totalEl = document.getElementById(`hist-total-${groupKey}`);
+      if (totalEl) {
+        totalEl.textContent = totalKWh.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       }
     });
 
-    el('#consumption-histogram-section').style.display = 'block';
+    const consumptionSection = el('#consumption-histogram-section');
+    if (consumptionSection) consumptionSection.style.display = 'block';
   }
 
   const networkMetrics = ['RSSI', 'SNR'];
@@ -867,30 +928,6 @@ async function loadChannelHistogramData(channels = [], fromISO, toISO) {
   } catch (e) {
     console.error("Error loading channel histogram data:", e);
     return null;
-  }
-}
-
-function updateChannelHistogram(chart, data, yAxisMax) {
-  if (!chart || !data) return;
-
-  const labels = Object.keys(data).map(d => {
-    const date = new Date(d);
-    return date.toLocaleString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
-  });
-  const values = Object.values(data).map(v => v / 1000); // Convert Wh to kWh
-  const totalKWh = values.reduce((sum, v) => sum + v, 0);
-
-  setSeries(chart, labels, values);
-
-  chart.options.scales.y.max = yAxisMax;
-  chart.update();
-
-  // Update the total kWh display in the chart header
-  const canvasId = chart.canvas.id; // e.g., "histConsumptionRed"
-  const groupKey = canvasId.replace('histConsumption', '').toLowerCase(); // "red"
-  const totalEl = document.getElementById(`hist-total-${groupKey}`);
-  if (totalEl) {
-    totalEl.textContent = totalKWh.toFixed(2);
   }
 }
 
