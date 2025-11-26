@@ -1366,7 +1366,8 @@ function initRealtimeCharts() {
     'CO2': {
       main: { label: 'CO₂', color: '#ef4444', title: '🌬️ CO₂ Level', unit: 'ppm' },
       secondary: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
-      humidity: { label: 'Humidity', color: '#10b981', title: '💧 Humidity', unit: '%' }
+      humidity: { label: 'Humidity', color: '#10b981', title: '💧 Humidity', unit: '%' },
+      light: { label: 'Light', color: '#fbbf24', title: '💡 Light Level', unit: 'lux' }
     },
     'TEMPEX': {
       main: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
@@ -1445,11 +1446,12 @@ function initRealtimeCharts() {
   
   if (secondaryCtx) {
     if (devType === 'ENERGY' || devType === 'CONSO') {
-      realtimeCharts.secondary = new Chart(secondaryCtx, createEnergyPowerUsageChartConfig());
+        realtimeCharts.secondary = new Chart(secondaryCtx, createEnergyPowerUsageChartConfig());
     } else if (devType === 'OCCUP') {
-      // For OCCUP, the secondary chart is not used, hide its container
-      const secondaryContainer = el('#secondary-chart-container');
-      if (secondaryContainer) secondaryContainer.style.display = 'none';
+        // For OCCUP sensors (like VS41), we only want the main occupancy chart.
+        // The illuminance/distance charts are handled separately and shown based on payload.
+        const secondaryContainer = el('#secondary-chart-container');
+        if (secondaryContainer) secondaryContainer.style.display = 'none';
     } else {
       realtimeCharts.secondary = new Chart(secondaryCtx, createChartConfig(config.secondary.label, config.secondary.color, config.secondary.unit || ''));
     }
@@ -1838,6 +1840,7 @@ function updateRealtimeCharts(data) {
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['co2 (ppm)']);
       updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['temperature (°C)']);
       updateChart(realtimeCharts.humidity, chartData.humidity, timestamp, data['humidity (%)']);
+      updateChart(realtimeCharts.light, chartData.light, timestamp, data.light);
       break;
     case 'TEMPEX':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['temperature (°C)']);
