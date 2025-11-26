@@ -451,6 +451,36 @@
                     </div>
                 </div>
                 
+                <!-- Light Chart for EYE sensor -->
+                <div class="chart-container" id="light-chart-container" style="display: none;">
+                    <div class="chart-header">
+                        <h4>💡 Light Level</h4>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="realtime-chart-light"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Occupancy Chart for EYE sensor -->
+                <div class="chart-container" id="occupancy-chart-container" style="display: none;">
+                    <div class="chart-header">
+                        <h4>👤 Occupancy</h4>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="realtime-chart-occupancy"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Motion Chart for EYE sensor -->
+                <div class="chart-container" id="motion-chart-container" style="display: none;">
+                    <div class="chart-header">
+                        <h4>🏃 Motion</h4>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="realtime-chart-motion"></canvas>
+                    </div>
+                </div>
+                
                 <!-- LAImax Chart for SON sensor -->
                 <div class="chart-container" id="laimax-chart-container" style="display: none;">
                     <div class="chart-header">
@@ -568,7 +598,7 @@
             <div id="kpi-card-conso" class="kpi-card kpi-card--success" style="display: none;">
                 <div class="kpi-icon">⚡</div>
                 <div class="kpi-content">
-                    <div class="kpi-label">Average kWh</div>
+                    <div class="kpi-label">Total consumption</div>
                     <div class="kpi-value" id="kpi-conso">--</div>
                 </div>
             </div>
@@ -612,7 +642,7 @@
                     <div class="chart-header">
                         <div class="chart-title">
                             <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🔴</span>
-                            <span>⚡ Consumption in kWh</span>
+                            <span>Consumption total</span>
                         </div>
                         <div class="chart-info">
                             <span class="kpi-value" id="hist-total-red">--</span> kWh total for selected period
