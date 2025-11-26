@@ -1,0 +1,127 @@
+/* Основной контейнер страницы */
+.prediction-main {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto 40px auto;
+}
+
+/* Верхние табы: Online / Historical */
+.prediction-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.prediction-tab {
+    border: none;
+    padding: 10px 18px;
+    border-radius: 20px;
+    background-color: #f3e7f7;
+    color: #662179;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.prediction-tab.active {
+    background-color: #662179;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(102, 33, 121, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Подтабы горизонтов в Online */
+.horizon-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.horizon-tab {
+    border: none;
+    padding: 6px 14px;
+    border-radius: 16px;
+    background-color: #f6f6f6;
+    color: #662179;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.horizon-tab.active {
+    background-color: #662179;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(102, 33, 121, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Панели Online / Historical */
+.prediction-panel {
+    display: none;
+}
+
+.prediction-panel.active {
+    display: block;
+}
+
+/* Саб-хедер панели */
+.prediction-subheader {
+    margin-bottom: 16px;
+}
+
+.prediction-subheader h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #662179;
+}
+
+.prediction-subheader p {
+    margin: 4px 0 10px 0;
+    color: #666;
+    font-size: 0.95rem;
+}
+
+/* Сетка карточек с графиками */
+.prediction-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+}
+
+/* Карточка графика */
+.prediction-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Заголовок карточки */
+.prediction-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 1rem;
+    color: #333;
+}
+
+/* Канвас не должен растягивать страницу */
+.prediction-card canvas {
+    width: 100% !important;
+    max-width: 100%;
+    height: 320px !important;      /* фиксированная высота, чтобы не было бесконечного роста */
+    max-height: 320px;
+    display: block;
+}
+
+/* Utility: скрыть элемент */
+.hidden {
+    display: none !important;
+}
+
+/* Немного адаптива */
+@media (min-width: 900px) {
+    /* например, в historical можно будет иметь 2 колонки */
+    #panel-historical .prediction-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
