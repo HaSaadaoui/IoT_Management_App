@@ -477,10 +477,11 @@ function startSSE() {
           break;
         case 'DESK':
           // Occupancy avec code couleur (rouge=occupied, vert=free)
-          if (p.presence != null && el('#s-desk-occupancy')) {
+          const presence = p.presence;
+          if (presence != null && el('#s-desk-occupancy')) {
             const occNode = el('#s-desk-occupancy');
             occNode.classList.remove('badge--ok', 'badge--occupied');
-            if (p.presence === 1 || p.presence === true || p.presence === 'occupied') {
+            if (presence === 1 || presence === true || String(presence).toLowerCase() === 'occupied') {
               occNode.classList.add('badge--occupied'); // Rouge pour occupied
               setText('#s-desk-occupancy', 'Occupied');
             } else {
@@ -488,8 +489,14 @@ function startSSE() {
               setText('#s-desk-occupancy', 'Free');
             }
           }
-          if (typeof p['temperature (°C)'] === 'number' && el('#s-desk-temp')) updateTempBadge('#s-desk-temp', p['temperature (°C)']); // NOSONAR
-          if (typeof p['humidity (%)']     === 'number' && el('#s-desk-hum'))  updateHumidityBadge('#s-desk-hum', p['humidity (%)']); // NOSONAR
+          // Show/hide temp/hum cards based on payload for different DESK models (e.g. VS41 vs EMS)
+          // TODO: check if it works
+          const temp = p['temperature (°C)'];
+          const hum = p['humidity (%)'];
+          el('#s-desk-temp-card').style.display = (temp != null) ? '' : 'none';
+          el('#s-desk-hum-card').style.display = (hum != null) ? '' : 'none';
+          if (temp != null && el('#s-desk-temp')) updateTempBadge('#s-desk-temp', temp);
+          if (hum != null && el('#s-desk-hum')) updateHumidityBadge('#s-desk-hum', hum);
           // VDD → Battery %
           if (typeof p['vdd (mV)'] === 'number') {
             const battPct = vddToBatteryPercent(p['vdd (mV)']);
@@ -1387,8 +1394,8 @@ function initRealtimeCharts() {
       occupancy: { label: 'Occupancy', color: '#10b981', title: '👤 Occupancy', unit: 'Status' },
     },
     'OCCUP': {
-      main: { label: 'Occupancy', color: '#10b981', title: '👤 Occupancy Status', unit: 'Status' },
-      illuminance: { label: 'Illuminance', color: '#fbbf24', title: '💡 Illuminance Status', unit: 'IlluminanceStatus' },
+      main: { label: 'Occupancy', color: '#10b981', title: '👤 Occupancy', unit: 'Status' },
+      illuminance: { label: 'Illuminance', color: '#fbbf24', title: '💡 Illuminance', unit: 'IlluminanceStatus' },
       distance: { label: 'Distance', color: '#a855f7', title: '📏 Distance', unit: 'mm' }
     },
     'PIR_LIGHT': {
@@ -1848,9 +1855,16 @@ function updateRealtimeCharts(data) {
       // updateChart(realtimeCharts.humidity, chartData.humidity, timestamp, data['humidity (%)']);
       break;
     case 'DESK':
+      const temp = data['temperature (°C)'];
+      const hum = data['humidity (%)'];
+      // Hide charts if data is not present (for models like VS41)
+      // TODO: check if hiding works
+      el('#secondary-chart-container').style.display = (temp != null) ? 'block' : 'none';
+      el('#humidity-chart-container').style.display = (hum != null) ? 'block' : 'none';
+
       updateChart(realtimeCharts.main, chartData.main, timestamp, data.presence ? 1 : 0);
-      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['temperature (°C)']);
-      updateChart(realtimeCharts.humidity, chartData.humidity, timestamp, data['humidity (%)']);
+      if (temp != null) updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, temp);
+      if (hum != null) updateChart(realtimeCharts.humidity, chartData.humidity, timestamp, hum);
       break;
     case 'EYE':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['temperature (°C)']);

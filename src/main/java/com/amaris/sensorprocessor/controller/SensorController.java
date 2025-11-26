@@ -561,10 +561,11 @@ public class SensorController {
                         payload.setBattery(firstNumber(dp, "battery"));
                     }
                     case "DESK" -> {
-                        payload.setPresence(firstAny(dp, "occupancy"));
-                        payload.setTemperature(firstNumber(dp, "temperature"));
-                        payload.setHumidity(firstNumber(dp, "humidity"));
-                        payload.setVdd(firstNumber(dp, "vdd"));
+                        payload.setPresence(firstAny(dp, "occupancy")); // All DESK models
+                        payload.setTemperature(firstNumber(dp, "temperature")); // e.g., EMS Desk
+                        payload.setHumidity(firstNumber(dp, "humidity")); // e.g., EMS Desk
+                        payload.setVdd(firstNumber(dp, "vdd")); // e.g., EMS Desk
+                        payload.setBattery(firstNumber(dp, "battery")); // e.g., VS41
                     }
                     case "ENERGY", "CONSO" -> {
                         // Pour les capteurs d'énergie, on passe tout le decoded_payload
