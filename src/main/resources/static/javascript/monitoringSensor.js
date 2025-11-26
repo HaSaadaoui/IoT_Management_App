@@ -1387,7 +1387,7 @@ function initRealtimeCharts() {
     },
     'OCCUP': {
       main: { label: 'Occupancy', color: '#10b981', title: '👤 Occupancy Status', unit: 'Status' },
-      illuminance: { label: 'Illuminance', color: '#fbbf24', title: '💡 Illuminance Status', unit: 'Status' },
+      illuminance: { label: 'Illuminance', color: '#fbbf24', title: '💡 Illuminance Status', unit: 'IlluminanceStatus' },
       distance: { label: 'Distance', color: '#a855f7', title: '📏 Distance', unit: 'mm' }
     },
     'PIR_LIGHT': {
@@ -1400,8 +1400,8 @@ function initRealtimeCharts() {
       laiMax: { label: 'LAImax', color: '#9333ea', title: '💥 Max Sound Impact', unit: 'dB' }
     },
     'COUNT': {
-      main: { label: 'Staff IN', color: '#10b981', title: '📥 Staff IN', unit: 's' },
-      secondary: { label: 'Staff OUT', color: '#ef4444', title: '📤 Staff OUT', unit: 's' }
+      main: { label: 'Staff IN', color: '#10b981', title: '📥 Staff IN', unit: 'persons' },
+      secondary: { label: 'Staff OUT', color: '#ef4444', title: '📤 Staff OUT', unit: 'persons' }
     },
     'ENERGY': {
       main: { label: 'Consumption', color: '#f59e0b', title: '⚡ Energy Consumption', unit: 'kWh' },
@@ -1587,7 +1587,7 @@ function createEnergyPowerUsageChartConfig() {
 function createChartConfig(label, color, yAxisUnit = '', currentDate) {
   if (!currentDate) currentDate = new Date().toLocaleDateString('en-CA');
   let yAxisLabel = label;
-  if (yAxisUnit && yAxisUnit !== 'Status' && yAxisUnit !== 'Level' && !label.includes(`(${yAxisUnit})`)) {
+  if (yAxisUnit && yAxisUnit !== 'Status' && yAxisUnit !== 'Level' && yAxisUnit !== 'IlluminanceStatus' && !label.includes(`(${yAxisUnit})`)) {
       yAxisLabel += ' (' + yAxisUnit + ')';
   }
   
@@ -1686,24 +1686,25 @@ function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate =
         }
       };
       break;
-    case 'Status': // For Illuminance status on OCCUP sensors
+    case 'IlluminanceStatus': // For Illuminance status on OCCUP sensors
       yAxisConfig.min = 0;
       yAxisConfig.max = 2;
       yAxisConfig.ticks = {
         ...yAxisConfig.ticks,
         stepSize: 1,
         callback: function(value) {
-          return { 0: 'Disable', 1: 'Dim', 2: 'Bright' }[value] || '';
+          return { 0: 'Disable', 1: 'Dim', 2: 'Bright' }[value] ?? '';
         }
       };
       break;
-    case 'Level': // Daylight level
-      yAxisConfig.suggestedMin = 0;
-      yAxisConfig.suggestedMax = 10;
-      break;
-    case 's': // Secondes (Staff IN/OUT)
+    case 's': // Seconds
       yAxisConfig.beginAtZero = true;
       yAxisConfig.grace = '10%';
+      break;
+    case 'persons': // Staff count for COUNT sensors
+      yAxisConfig.beginAtZero = true;
+      yAxisConfig.grace = '10%';
+      yAxisConfig.ticks.stepSize = 1; // Ensure integer values on the axis
       break;
     case 'mm': // Millimètres (Distance OCCUP)
       yAxisConfig.beginAtZero = true;
