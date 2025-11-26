@@ -100,6 +100,9 @@ public class MonitoringSensorData {
         @JsonProperty("light")
         private Object light;
 
+        @JsonProperty("distance")
+        private Double distance;
+
         @JsonProperty("battery (%)")
         private Double battery;
 

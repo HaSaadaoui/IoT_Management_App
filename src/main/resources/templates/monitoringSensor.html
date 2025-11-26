@@ -111,7 +111,10 @@
         <!-- OCCUP -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'OCCUP')}">
             <div class="card"><h4>Occupancy</h4><p><span id="s-occup-presence" class="badge">--</span></p></div>
-            <div class="card"><h4 class="with-icon icon-distance">Distance (mm)</h4><p><span id="s-occup-illum" class="badge">--</span></p></div>
+            <!-- VS70: Illuminance -->
+            <div class="card" id="s-occup-illum-card"><h4 class="with-icon icon-light">Illuminance</h4><p><span id="s-occup-illum" class="badge">--</span></p></div>
+            <!-- VS30: Distance -->
+            <div class="card" id="s-occup-distance-card" style="display: none;"><h4 class="with-icon icon-distance">Distance (mm)</h4><p><span id="s-occup-distance" class="badge">--</span></p></div>
             <div class="card"><h4>Battery</h4>
                 <p><span id="s-occup-batt" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
@@ -431,7 +434,7 @@
                 </div>
                 
                 <!-- Graphique secondaire -->
-                <div class="chart-container">
+                <div class="chart-container" id="secondary-chart-container">
                     <div class="chart-header">
                         <h4 id="realtime-chart-secondary-title">Secondary Data</h4>
                         <div class="chart-legend" id="secondary-legend"></div>
@@ -439,6 +442,18 @@
                     <div class="chart-canvas-wrapper">
                         <canvas id="realtime-chart-secondary"></canvas>
                     </div>
+                </div>
+
+                <!-- Illuminance Chart for OCCUP sensor -->
+                <div class="chart-container" id="illuminance-chart-container" style="display: none;">
+                    <div class="chart-header"><h4>💡 Illuminance Status</h4></div>
+                    <div class="chart-canvas-wrapper"><canvas id="realtime-chart-illuminance"></canvas></div>
+                </div>
+
+                <!-- Distance Chart for OCCUP sensor -->
+                <div class="chart-container" id="distance-chart-container" style="display: none;">
+                    <div class="chart-header"><h4>📏 Distance</h4></div>
+                    <div class="chart-canvas-wrapper"><canvas id="realtime-chart-distance"></canvas></div>
                 </div>
                 
                 <!-- Humidity Chart for CO2 and DESK sensors -->

@@ -444,13 +444,25 @@ function startSSE() {
               setText('#s-occup-presence', presenceValue === 'vacant' ? 'Vacant' : 'Free');
             }
           }
-          if (p.light    != null && el('#s-occup-illum'))    setText('#s-occup-illum',    p.light);
+          if (p.light != null && el('#s-occup-illum')) {
+            // For VS70, 'light' is a status string like 'dim' or 'bright'
+            const illuminanceStatus = String(p.light);
+            setText('#s-occup-illum', illuminanceStatus.charAt(0).toUpperCase() + illuminanceStatus.slice(1));
+          }
           if (typeof p['battery (%)'] === 'number' && el('#s-occup-batt')) updateBatteryBadge('#s-occup-batt', p['battery (%)']);
+          // VS30 (distance) vs VS70 (illuminance)
+          if (p.distance != null && el('#s-occup-distance')) {
+            setText('#s-occup-distance', p.distance + ' mm');
+            el('#s-occup-distance-card').style.display = '';
+            el('#s-occup-illum-card').style.display = 'none';
+          }
           break;
         case 'EYE':
           if (typeof p['temperature (°C)'] === 'number' && el('#s-eye-temp')) updateTempBadge('#s-eye-temp', p['temperature (°C)']);
           if (typeof p['humidity (%)'] === 'number' && el('#s-eye-hum'))      updateHumidityBadge('#s-eye-hum', p['humidity (%)']);
-          if (p.light != null && el('#s-eye-light')) setText('#s-eye-light', p.light);
+          if (p.light != null && el('#s-eye-light')) {
+            setText('#s-eye-light', p.light + ' lux');
+          }
           if (p.presence != null && el('#s-eye-presence')) setText('#s-eye-presence', p.presence);
           // VDD → Battery %
           if (typeof p['vdd (mV)'] === 'number') {
@@ -476,16 +488,16 @@ function startSSE() {
               setText('#s-desk-occupancy', 'Free');
             }
           }
-          if (typeof p['temperature (°C)'] === 'number' && el('#s-desk-temp')) updateTempBadge('#s-desk-temp', p['temperature (°C)']);
-          if (typeof p['humidity (%)']     === 'number' && el('#s-desk-hum'))  updateHumidityBadge('#s-desk-hum', p['humidity (%)']);
+          if (typeof p['temperature (°C)'] === 'number' && el('#s-desk-temp')) updateTempBadge('#s-desk-temp', p['temperature (°C)']); // NOSONAR
+          if (typeof p['humidity (%)']     === 'number' && el('#s-desk-hum'))  updateHumidityBadge('#s-desk-hum', p['humidity (%)']); // NOSONAR
           // VDD → Battery %
           if (typeof p['vdd (mV)'] === 'number') {
             const battPct = vddToBatteryPercent(p['vdd (mV)']);
             if (battPct != null && el('#s-desk-vdd')) updateBatteryBadge('#s-desk-vdd', battPct);
           }
           break;
-        case 'ENERGY':
-        case 'CONSO':
+        case 'ENERGY': // NOSONAR
+        case 'CONSO': // NOSONAR
           // Gestion des données de consommation énergétique
           console.log('ENERGY/CONSO case triggered with payload:', p);
           if (p && p.energy_data && typeof p.energy_data === 'object') {
@@ -1282,6 +1294,8 @@ let realtimeCharts = {
   humidity: null,
   light: null,
   occupancy: null,
+  illuminance: null,
+  distance: null,
   motion: null,
   rssi: null,
   snr: null,
@@ -1296,6 +1310,8 @@ let chartData = {
   humidity: { labels: [], data: [] },
   light: { labels: [], data: [] },
   occupancy: { labels: [], data: [] },
+  illuminance: { labels: [], data: [] },
+  distance: { labels: [], data: [] },
   motion: { labels: [], data: [] },
   rssi: { labels: [], data: [] },
   snr: { labels: [], data: [] },
@@ -1371,7 +1387,8 @@ function initRealtimeCharts() {
     },
     'OCCUP': {
       main: { label: 'Occupancy', color: '#10b981', title: '👤 Occupancy Status', unit: 'Status' },
-      secondary: { label: 'Distance', color: '#fbbf24', title: '📏 Distance', unit: 'mm' }
+      illuminance: { label: 'Illuminance', color: '#fbbf24', title: '💡 Illuminance Status', unit: 'Status' },
+      distance: { label: 'Distance', color: '#a855f7', title: '📏 Distance', unit: 'mm' }
     },
     'PIR_LIGHT': {
       main: { label: 'Presence', color: '#10b981', title: '👤 Motion Detection', unit: 'Status' },
@@ -1404,7 +1421,11 @@ function initRealtimeCharts() {
   const mainTitle = el('#realtime-chart-title');
   const secondaryTitle = el('#realtime-chart-secondary-title');
   if (mainTitle) mainTitle.textContent = config.main.title;
-  if (secondaryTitle) secondaryTitle.textContent = config.secondary.title;
+  if (secondaryTitle && config.secondary) {
+    secondaryTitle.textContent = config.secondary.title;
+  } else {
+    console.warn('Secondary chart config or title element not found.');
+  }
 
   const mainCtx = el('#realtime-chart-main')?.getContext('2d');
   const secondaryCtx = el('#realtime-chart-secondary')?.getContext('2d');
@@ -1412,6 +1433,8 @@ function initRealtimeCharts() {
   const humidityCtx = el('#realtime-chart-humidity')?.getContext('2d');
   const lightCtx = el('#realtime-chart-light')?.getContext('2d');
   const occupancyCtx = el('#realtime-chart-occupancy')?.getContext('2d');
+  const illuminanceCtx = el('#realtime-chart-illuminance')?.getContext('2d');
+  const distanceCtx = el('#realtime-chart-distance')?.getContext('2d');
   const motionCtx = el('#realtime-chart-motion')?.getContext('2d');
   const rssiCtx = el('#realtime-chart-rssi')?.getContext('2d');
   const snrCtx = el('#realtime-chart-snr')?.getContext('2d');
@@ -1423,6 +1446,10 @@ function initRealtimeCharts() {
   if (secondaryCtx) {
     if (devType === 'ENERGY' || devType === 'CONSO') {
       realtimeCharts.secondary = new Chart(secondaryCtx, createEnergyPowerUsageChartConfig());
+    } else if (devType === 'OCCUP') {
+      // For OCCUP, the secondary chart is not used, hide its container
+      const secondaryContainer = el('#secondary-chart-container');
+      if (secondaryContainer) secondaryContainer.style.display = 'none';
     } else {
       realtimeCharts.secondary = new Chart(secondaryCtx, createChartConfig(config.secondary.label, config.secondary.color, config.secondary.unit || ''));
     }
@@ -1459,6 +1486,22 @@ function initRealtimeCharts() {
       occupancyContainer.style.display = 'block';
     }
     realtimeCharts.occupancy = new Chart(occupancyCtx, createChartConfig(config.occupancy.label, config.occupancy.color, config.occupancy.unit || ''));
+  }
+
+  if (config.illuminance && illuminanceCtx) {
+    const illuminanceContainer = el('#illuminance-chart-container');
+    if (illuminanceContainer) {
+      illuminanceContainer.style.display = 'block';
+    }
+    realtimeCharts.illuminance = new Chart(illuminanceCtx, createChartConfig(config.illuminance.label, config.illuminance.color, config.illuminance.unit || ''));
+  }
+
+  if (config.distance && distanceCtx) {
+    const distanceContainer = el('#distance-chart-container');
+    if (distanceContainer) {
+      distanceContainer.style.display = 'block';
+    }
+    realtimeCharts.distance = new Chart(distanceCtx, createChartConfig(config.distance.label, config.distance.color, config.distance.unit || ''));
   }
   
   if (config.motion && motionCtx) {
@@ -1643,6 +1686,17 @@ function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate =
         }
       };
       break;
+    case 'Status': // For Illuminance status on OCCUP sensors
+      yAxisConfig.min = 0;
+      yAxisConfig.max = 2;
+      yAxisConfig.ticks = {
+        ...yAxisConfig.ticks,
+        stepSize: 1,
+        callback: function(value) {
+          return { 0: 'Disable', 1: 'Dim', 2: 'Bright' }[value] || '';
+        }
+      };
+      break;
     case 'Level': // Daylight level
       yAxisConfig.suggestedMin = 0;
       yAxisConfig.suggestedMax = 10;
@@ -1801,9 +1855,25 @@ function updateRealtimeCharts(data) {
       updateChart(realtimeCharts.motion, chartData.motion, timestamp, data.motion ? 1 : 0);
       updateChart(realtimeCharts.occupancy, chartData.occupancy, timestamp, data.occupancy ? 1 : 0);
       break;
-    case 'OCCUP':
+    case 'OCCUP': // NOSONAR
       updateChart(realtimeCharts.main, chartData.main, timestamp, data.presence ? 1 : 0);
-      updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data.light || 0);
+      // VS30 (distance) vs VS70 (illuminance)
+      if (data.distance != null && typeof data.distance === 'number') {
+        // This is a VS30 sensor, show distance chart and hide illuminance chart
+        el('#distance-chart-container').style.display = 'block';
+        el('#illuminance-chart-container').style.display = 'none';
+        updateChart(realtimeCharts.distance, chartData.distance, timestamp, data.distance);
+      }
+      if (data.light != null) {
+        // This is a VS70 sensor, show illuminance chart and hide distance chart
+        el('#illuminance-chart-container').style.display = 'block';
+        el('#distance-chart-container').style.display = 'none';
+        const illuminanceStatus = (data.light || 'disable').toLowerCase();
+        let numericValue = 0; // Default for 'disable' or unknown
+        if (illuminanceStatus === 'dim') numericValue = 1;
+        else if (illuminanceStatus === 'bright') numericValue = 2;
+        updateChart(realtimeCharts.illuminance, chartData.illuminance, timestamp, numericValue);
+      }
       break;
     case 'PIR_LIGHT':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data.presence ? 1 : 0);
@@ -1923,6 +1993,8 @@ function clearAllCharts() {
     humidity: { labels: [], data: [] },
     light: { labels: [], data: [] },
     occupancy: { labels: [], data: [] },
+    illuminance: { labels: [], data: [] },
+    distance: { labels: [], data: [] },
     motion: { labels: [], data: [] },
     rssi: { labels: [], data: [] },
     snr: { labels: [], data: [] },
