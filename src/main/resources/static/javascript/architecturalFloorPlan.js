@@ -87,11 +87,11 @@ class ArchitecturalFloorPlan {
         // Building spans: x: 50-1050, y: 50-450 (with angular shape)
         const positions = [
             // Top row
-            {x: 150, y: 100}, {x: 350, y: 100}, {x: 550, y: 100}, {x: 750, y: 100}, {x: 950, y: 100},
+            //{x: 150, y: 100}, {x: 350, y: 100}, {x: 550, y: 100}, {x: 950, y: 100},
             // Middle row
-            {x: 150, y: 200}, {x: 350, y: 200}, {x: 550, y: 200}, {x: 750, y: 200}, {x: 950, y: 200},
+            {x: 150, y: 130}, {x: 400, y: 130}, {x: 600, y: 130}, {x: 900, y: 130},
             // Bottom row (adjusted for angular shape)
-            {x: 350, y: 300}, {x: 550, y: 300}, {x: 750, y: 300}, {x: 950, y: 300}
+            //{x: 350, y: 300}, {x: 550, y: 300},
         ];
         
         return positions.map((pos, i) => ({
@@ -366,17 +366,17 @@ class ArchitecturalFloorPlan {
             this.drawWorkstation(g, 120, 60, 'free', 'D01', 30, 50, 'left', null, 80, 85, 135, 85);
             
             // D02 - rect x=90, chair cx=160 (right side)
-            this.drawWorkstation(g, 90, 60, 'free', 'D02', 30, 50, 'right', null, 160, 85, 105, 85);
+            this.drawWorkstation(g, 90, 60, 'used', 'D02', 30, 50, 'right', null, 160, 85, 105, 85);
             
             // D03 - horizontal desk
             this.drawWorkstation(g, 90, 110, 'free', 'D03', 60, 30, 'bottom', null, 120, 150, 120, 125);
             
             // D04 & D05 - Center-left cluster
-            this.drawWorkstation(g, 260, 60, 'free', 'D04', 30, 50, 'left', null, 250, 85, 275, 85);
+            this.drawWorkstation(g, 260, 60, 'used', 'D04', 30, 50, 'left', null, 250, 85, 275, 85);
             this.drawWorkstation(g, 290, 60, 'free', 'D05', 30, 50, 'right', null, 330, 85, 305, 85);
             
             // D06 - With rotation 190°
-            this.drawWorkstation(g, 260, 240, 'free', 'D06', 30, 50, 'custom', 'rotate(190, 275, 265)', 250, 260, 275, 265);
+            this.drawWorkstation(g, 260, 240, 'used', 'D06', 30, 50, 'custom', 'rotate(190, 275, 265)', 250, 260, 275, 265);
             
             // D07 - With rotation 190°
             this.drawWorkstation(g, 230, 240, 'free', 'D07', 30, 50, 'custom', 'rotate(190, 275, 265)', 330, 275, 305, 270);
@@ -384,13 +384,13 @@ class ArchitecturalFloorPlan {
             // Right cluster 1
             this.drawWorkstation(g, 790, 60, 'free', 'D08', 30, 50, 'left', null, 780, 85, 805, 85);
             this.drawWorkstation(g, 790, 110, 'free', 'D09', 30, 50, 'left', null, 780, 135, 805, 135);
-            this.drawWorkstation(g, 820, 60, 'free', 'D10', 30, 50, 'right', null, 860, 85, 835, 85);
+            this.drawWorkstation(g, 820, 60, 'used', 'D10', 30, 50, 'right', null, 860, 85, 835, 85);
             this.drawWorkstation(g, 820, 110, 'free', 'D11', 30, 50, 'right', null, 860, 135, 835, 135);
             
             // Right cluster 2
             this.drawWorkstation(g, 950, 60, 'free', 'D12', 30, 50, 'left', null, 940, 85, 965, 85);
-            this.drawWorkstation(g, 950, 110, 'free', 'D13', 30, 50, 'left', null, 940, 135, 965, 135);
-            this.drawWorkstation(g, 980, 60, 'free', 'D14', 30, 50, 'right', null, 1020, 85, 995, 85);
+            this.drawWorkstation(g, 950, 110, 'used', 'D13', 30, 50, 'left', null, 940, 135, 965, 135);
+            this.drawWorkstation(g, 980, 60, 'used', 'D14', 30, 50, 'right', null, 1020, 85, 995, 85);
             this.drawWorkstation(g, 980, 110, 'free', 'D15', 30, 50, 'right', null, 1020, 135, 995, 135);
         }
         
@@ -487,13 +487,13 @@ class ArchitecturalFloorPlan {
             // D01
             this.drawWorkstation(g, 120, 60, 'free', 'D01', 30, 50, 'left', null, 80, 85, 135, 90);
             // D02
-            this.drawWorkstation(g, 90, 60, 'free', 'D02', 30, 50, 'right', null, 160, 85, 105, 90);
+            this.drawWorkstation(g, 90, 60, 'used', 'D02', 30, 50, 'right', null, 160, 85, 105, 90);
             // D03 - horizontal desk
             this.drawWorkstation(g, 90, 110, 'free', 'D03', 60, 30, 'bottom', null, 120, 150, 120, 125);
             // D04
-            this.drawWorkstation(g, 260, 60, 'free', 'D04', 30, 50, 'left', null, 250, 85, 275, 90);
+            this.drawWorkstation(g, 260, 60, 'used', 'D04', 30, 50, 'left', null, 250, 85, 275, 90);
             // D05
-            this.drawWorkstation(g, 260, 110, 'free', 'D05', 30, 50, 'left', null, 250, 135, 275, 140);
+            this.drawWorkstation(g, 260, 110, 'used', 'D05', 30, 50, 'left', null, 250, 135, 275, 140);
             // D06
             this.drawWorkstation(g, 290, 60, 'free', 'D06', 30, 50, 'right', null, 330, 85, 305, 90);
             // D07
@@ -501,7 +501,7 @@ class ArchitecturalFloorPlan {
             // D08
             this.drawWorkstation(g, 790, 60, 'free', 'D08', 30, 50, 'left', null, 780, 85, 805, 90);
             // D09
-            this.drawWorkstation(g, 790, 110, 'free', 'D09', 30, 50, 'left', null, 780, 135, 805, 140);
+            this.drawWorkstation(g, 790, 110, 'used', 'D09', 30, 50, 'left', null, 780, 135, 805, 140);
             // D10
             this.drawWorkstation(g, 820, 60, 'free', 'D10', 30, 50, 'right', null, 860, 85, 835, 90);
             // D11
@@ -632,15 +632,15 @@ class ArchitecturalFloorPlan {
             // D02
             this.drawWorkstation(g, 790, 110, 'free', 'D02', 30, 50, 'left', null, 780, 135, 805, 140);
             // D03
-            this.drawWorkstation(g, 820, 60, 'free', 'D03', 30, 50, 'right', null, 860, 85, 835, 90);
+            this.drawWorkstation(g, 820, 60, 'used', 'D03', 30, 50, 'right', null, 860, 85, 835, 90);
             // D04
             this.drawWorkstation(g, 820, 110, 'free', 'D04', 30, 50, 'right', null, 860, 135, 835, 140);
             // D05
-            this.drawWorkstation(g, 950, 60, 'free', 'D05', 30, 50, 'left', null, 940, 85, 965, 90);
+            this.drawWorkstation(g, 950, 60, 'used', 'D05', 30, 50, 'left', null, 940, 85, 965, 90);
             // D06
-            this.drawWorkstation(g, 950, 110, 'free', 'D06', 30, 50, 'left', null, 940, 135, 965, 140);
+            this.drawWorkstation(g, 950, 110, 'used', 'D06', 30, 50, 'left', null, 940, 135, 965, 140);
             // D07
-            this.drawWorkstation(g, 980, 60, 'free', 'D07', 30, 50, 'right', null, 1020, 85, 995, 90);
+            this.drawWorkstation(g, 980, 60, 'used', 'D07', 30, 50, 'right', null, 1020, 85, 995, 90);
             // D08
             this.drawWorkstation(g, 980, 110, 'free', 'D08', 30, 50, 'right', null, 1020, 135, 995, 140);
         }
@@ -684,36 +684,36 @@ class ArchitecturalFloorPlan {
         // ONLY DRAW DESKS IF IN DESK MODE
         if (this.sensorMode === 'DESK') {
             // Left cluster - horizontal desks
-            this.drawWorkstation(g, 110, 90, 'free', 'D01', 50, 30, 'top');
+            this.drawWorkstation(g, 110, 90, 'used', 'D01', 50, 30, 'top');
             this.drawWorkstation(g, 160, 90, 'free', 'D03', 50, 30, 'top');
-            this.drawWorkstation(g, 110, 120, 'free', 'D02', 50, 30, 'bottom');
-            this.drawWorkstation(g, 160, 120, 'free', 'D04', 50, 30, 'bottom');
+            this.drawWorkstation(g, 110, 120, 'used', 'D02', 50, 30, 'bottom');
+            this.drawWorkstation(g, 160, 120, 'used', 'D04', 50, 30, 'bottom');
             
             // Top row - vertical desks
-            this.drawWorkstation(g, 300, 60, 'free', 'D05', 30, 50, 'left');
+            this.drawWorkstation(g, 300, 60, 'used', 'D05', 30, 50, 'left');
             this.drawWorkstation(g, 330, 60, 'free', 'D06', 30, 50, 'right');
-            this.drawWorkstation(g, 460, 60, 'free', 'D07', 30, 50, 'left');
-            this.drawWorkstation(g, 490, 60, 'free', 'D09', 30, 50, 'right');
-            this.drawWorkstation(g, 620, 60, 'free', 'D11', 30, 50, 'left');
-            this.drawWorkstation(g, 650, 60, 'free', 'D14', 30, 50, 'right');
-            this.drawWorkstation(g, 790, 60, 'free', 'D17', 30, 50, 'left');
+            this.drawWorkstation(g, 460, 60, 'used', 'D07', 30, 50, 'left');
+            this.drawWorkstation(g, 490, 60, 'used', 'D09', 30, 50, 'right');
+            this.drawWorkstation(g, 620, 60, 'used', 'D11', 30, 50, 'left');
+            this.drawWorkstation(g, 650, 60, 'used', 'D14', 30, 50, 'right');
+            this.drawWorkstation(g, 790, 60, 'used', 'D17', 30, 50, 'left');
             this.drawWorkstation(g, 820, 60, 'free', 'D19', 30, 50, 'right');
             this.drawWorkstation(g, 950, 60, 'free', 'D21', 30, 50, 'left');
-            this.drawWorkstation(g, 980, 60, 'free', 'D23', 30, 50, 'right');
+            this.drawWorkstation(g, 980, 60, 'used', 'D23', 30, 50, 'right');
             
             // Middle row - vertical desks
-            this.drawWorkstation(g, 460, 110, 'free', 'D08', 30, 50, 'left');
+            this.drawWorkstation(g, 460, 110, 'used', 'D08', 30, 50, 'left');
             this.drawWorkstation(g, 490, 110, 'free', 'D10', 30, 50, 'right');
-            this.drawWorkstation(g, 620, 110, 'free', 'D12', 30, 50, 'left');
-            this.drawWorkstation(g, 650, 110, 'free', 'D15', 30, 50, 'right');
+            this.drawWorkstation(g, 620, 110, 'used', 'D12', 30, 50, 'left');
+            this.drawWorkstation(g, 650, 110, 'used', 'D15', 30, 50, 'right');
             this.drawWorkstation(g, 790, 110, 'free', 'D18', 30, 50, 'left');
-            this.drawWorkstation(g, 820, 110, 'free', 'D20', 30, 50, 'right');
-            this.drawWorkstation(g, 950, 110, 'free', 'D22', 30, 50, 'left');
+            this.drawWorkstation(g, 820, 110, 'used', 'D20', 30, 50, 'right');
+            this.drawWorkstation(g, 950, 110, 'used', 'D22', 30, 50, 'left');
             this.drawWorkstation(g, 980, 110, 'free', 'D24', 30, 50, 'right');
             
             // Bottom row - vertical desks
-            this.drawWorkstation(g, 620, 160, 'free', 'D13', 30, 50, 'left');
-            this.drawWorkstation(g, 650, 160, 'free', 'D16', 30, 50, 'right');
+            this.drawWorkstation(g, 620, 160, 'used', 'D13', 30, 50, 'left');
+            this.drawWorkstation(g, 650, 160, 'used', 'D16', 30, 50, 'right');
         }
         
         this.svg.appendChild(g);
@@ -778,25 +778,25 @@ class ArchitecturalFloorPlan {
         if (this.sensorMode === 'DESK') {
             // D01-D04: Horizontal desks (60x30) - Left cluster
             this.drawWorkstation(g, 90, 110, 'free', 'D01', 60, 30, 'top', null, 120, 100, 120, 125);
-            this.drawWorkstation(g, 150, 110, 'free', 'D02', 60, 30, 'top', null, 180, 100, 180, 125);
-            this.drawWorkstation(g, 90, 140, 'free', 'D03', 60, 30, 'bottom', null, 120, 180, 120, 155);
+            this.drawWorkstation(g, 150, 110, 'used', 'D02', 60, 30, 'top', null, 180, 100, 180, 125);
+            this.drawWorkstation(g, 90, 140, 'used', 'D03', 60, 30, 'bottom', null, 120, 180, 120, 155);
             this.drawWorkstation(g, 150, 140, 'free', 'D04', 60, 30, 'bottom', null, 180, 180, 180, 155);
             
             // D05-D08: Horizontal desks (60x30) - Center cluster
-            this.drawWorkstation(g, 350, 110, 'free', 'D05', 60, 30, 'top', null, 380, 100, 380, 125);
-            this.drawWorkstation(g, 410, 110, 'free', 'D06', 60, 30, 'top', null, 440, 100, 440, 125);
+            this.drawWorkstation(g, 350, 110, 'used', 'D05', 60, 30, 'top', null, 380, 100, 380, 125);
+            this.drawWorkstation(g, 410, 110, 'used', 'D06', 60, 30, 'top', null, 440, 100, 440, 125);
             this.drawWorkstation(g, 350, 140, 'free', 'D07', 60, 30, 'bottom', null, 380, 180, 380, 155);
             this.drawWorkstation(g, 410, 140, 'free', 'D08', 60, 30, 'bottom', null, 440, 180, 440, 155);
             
             // D09-D16: Vertical desks (30x50) - Right clusters
             this.drawWorkstation(g, 790, 60, 'free', 'D09', 30, 50, 'left', null, 780, 85, 805, 90);
-            this.drawWorkstation(g, 790, 110, 'free', 'D10', 30, 50, 'left', null, 780, 135, 805, 140);
-            this.drawWorkstation(g, 820, 60, 'free', 'D11', 30, 50, 'right', null, 860, 85, 835, 90);
+            this.drawWorkstation(g, 790, 110, 'used', 'D10', 30, 50, 'left', null, 780, 135, 805, 140);
+            this.drawWorkstation(g, 820, 60, 'used', 'D11', 30, 50, 'right', null, 860, 85, 835, 90);
             this.drawWorkstation(g, 820, 110, 'free', 'D12', 30, 50, 'right', null, 860, 135, 835, 140);
-            this.drawWorkstation(g, 950, 60, 'free', 'D13', 30, 50, 'left', null, 940, 85, 965, 90);
+            this.drawWorkstation(g, 950, 60, 'used', 'D13', 30, 50, 'left', null, 940, 85, 965, 90);
             this.drawWorkstation(g, 950, 110, 'free', 'D14', 30, 50, 'left', null, 940, 135, 965, 140);
-            this.drawWorkstation(g, 980, 60, 'free', 'D15', 30, 50, 'right', null, 1020, 85, 995, 90);
-            this.drawWorkstation(g, 980, 110, 'free', 'D16', 30, 50, 'right', null, 1020, 135, 995, 140);
+            this.drawWorkstation(g, 980, 60, 'used', 'D15', 30, 50, 'right', null, 1020, 85, 995, 90);
+            this.drawWorkstation(g, 980, 110, 'used', 'D16', 30, 50, 'right', null, 1020, 135, 995, 140);
         }
         
         this.svg.appendChild(g);
