@@ -172,9 +172,9 @@
 
         <!-- SON -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'SON')}">
-            <div class="card"><h4>LAeq</h4><p><span id="s-sound-laeq" class="badge">--</span></p></div>
-            <div class="card"><h4>LAI</h4><p><span id="s-sound-lai" class="badge">--</span></p></div>
-            <div class="card"><h4>LAImax</h4><p><span id="s-sound-laimax" class="badge">--</span></p></div>
+            <div class="card"><h4>Equivalent Sound Level (LAeq)</h4><p><span id="s-sound-laeq" class="badge">--</span></p></div>
+            <div class="card"><h4>Sound Impact (LAI)</h4><p><span id="s-sound-lai" class="badge">--</span></p></div>
+            <div class="card"><h4>Max Sound Impact (LAImax)</h4><p><span id="s-sound-laimax" class="badge">--</span></p></div>
             <div class="card"><h4>Battery</h4>
                 <p><span id="s-sound-batt" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
@@ -451,6 +451,16 @@
                     </div>
                 </div>
                 
+                <!-- LAImax Chart for SON sensor -->
+                <div class="chart-container" id="laimax-chart-container" style="display: none;">
+                    <div class="chart-header">
+                        <h4 id="realtime-chart-laimax-title">Max Sound Impact</h4>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="realtime-chart-laimax"></canvas>
+                    </div>
+                </div>
+                
             </div>
         </section>
 
@@ -541,28 +551,35 @@
 
         <!-- KPI Cards - Statistiques clés -->
         <div class="kpi-grid">
-            <div class="kpi-card kpi-card--primary">
+            <div id="kpi-card-total" class="kpi-card kpi-card--primary">
                 <div class="kpi-icon">📊</div>
                 <div class="kpi-content">
                     <div class="kpi-label">Total Measurements</div>
                     <div class="kpi-value" id="kpi-total">--</div>
                 </div>
             </div>
-            <div class="kpi-card kpi-card--success">
+            <div id="kpi-card-battery" class="kpi-card kpi-card--success">
                 <div class="kpi-icon">🔋</div>
                 <div class="kpi-content">
                     <div class="kpi-label">Average Battery</div>
                     <div class="kpi-value" id="kpi-battery">--</div>
                 </div>
             </div>
-            <div class="kpi-card kpi-card--info">
+            <div id="kpi-card-conso" class="kpi-card kpi-card--success" style="display: none;">
+                <div class="kpi-icon">⚡</div>
+                <div class="kpi-content">
+                    <div class="kpi-label">Average kWh</div>
+                    <div class="kpi-value" id="kpi-conso">--</div>
+                </div>
+            </div>
+            <div id="kpi-card-rssi" class="kpi-card kpi-card--info">
                 <div class="kpi-icon">📡</div>
                 <div class="kpi-content">
                     <div class="kpi-label">Average Signal (RSSI)</div>
                     <div class="kpi-value" id="kpi-rssi">--</div>
                 </div>
             </div>
-            <div class="kpi-card kpi-card--warning">
+            <div id="kpi-card-period" class="kpi-card kpi-card--warning">
                 <div class="kpi-icon">⏱️</div>
                 <div class="kpi-content">
                     <div class="kpi-label">Analyzed Period</div>
@@ -589,7 +606,7 @@
 
         <!-- Section pour l'histogramme de consommation -->
         <div class="charts-section" id="consumption-histogram-section" style="display: none;">
-            <h4 class="subsection-title">⚡ Hourly Consumption Histograms</h4>
+            <h4 class="subsection-title">⚡ Energy Consumption</h4>
                 <!-- Red Outlets -->
                 <div class="chart-card">
                     <div class="chart-header">
@@ -598,7 +615,7 @@
                             <span>⚡ Consumption in kWh</span>
                         </div>
                         <div class="chart-info">
-                            <span class="kpi-value" id="hist-total-red">--</span> kWh
+                            <span class="kpi-value" id="hist-total-red">--</span> kWh total for selected period
                         </div>
                     </div>
                     <div class="chart-container">

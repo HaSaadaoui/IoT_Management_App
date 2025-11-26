@@ -1278,6 +1278,7 @@ function updateEnergyChart(groups, data) {
 let realtimeCharts = {
   main: null,
   secondary: null,
+  laiMax: null,
   humidity: null,
   rssi: null,
   snr: null,
@@ -1288,6 +1289,7 @@ let realtimeCharts = {
 let chartData = {
   main: { labels: [], data: [] },
   secondary: { labels: [], data: [] },
+  laiMax: { labels: [], data: [] },
   humidity: { labels: [], data: [] },
   rssi: { labels: [], data: [] },
   snr: { labels: [], data: [] },
@@ -1350,7 +1352,7 @@ function initRealtimeCharts() {
       // humidity: { label: 'Humidity', color: '#10b981', title: '💧 Humidity', unit: '%' }
     },
     'DESK': {
-      main: { label: 'Occupancy', color: '#10b981', title: '👤 Desk Occupancy', unit: 'Status' },
+      main: { label: 'Occupancy', color: '#10b981', title: '👤 Occupancy', unit: 'Status' },
       secondary: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
       humidity: { label: 'Humidity', color: '#10b981', title: '💧 Humidity', unit: '%' }
     },
@@ -1369,8 +1371,9 @@ function initRealtimeCharts() {
       secondary: { label: 'Daylight', color: '#fbbf24', title: '☀️ Daylight Level', unit: 'Level' }
     },
     'SON': {
-      main: { label: 'Sound Level', color: '#8b5cf6', title: '🔊 Sound Level', unit: 'dB' },
-      secondary: { label: 'Sound Impact', color: '#ec4899', title: '📢 Sound Impact', unit: 'dB' }
+      main: { label: 'LAeq', color: '#8b5cf6', title: '🔊 Sound Level', unit: 'dB' },
+      secondary: { label: 'LAI', color: '#ec4899', title: '📢 Sound Impact', unit: 'dB' }      ,
+      laiMax: { label: 'LAImax', color: '#9333ea', title: '💥 Max Sound Impact', unit: 'dB' }
     },
     'COUNT': {
       main: { label: 'Staff IN', color: '#10b981', title: '📥 Staff IN', unit: 's' },
@@ -1398,6 +1401,7 @@ function initRealtimeCharts() {
 
   const mainCtx = el('#realtime-chart-main')?.getContext('2d');
   const secondaryCtx = el('#realtime-chart-secondary')?.getContext('2d');
+  const laiMaxCtx = el('#realtime-chart-laimax')?.getContext('2d');
   const humidityCtx = el('#realtime-chart-humidity')?.getContext('2d');
   const rssiCtx = el('#realtime-chart-rssi')?.getContext('2d');
   const snrCtx = el('#realtime-chart-snr')?.getContext('2d');
@@ -1412,6 +1416,15 @@ function initRealtimeCharts() {
     } else {
       realtimeCharts.secondary = new Chart(secondaryCtx, createChartConfig(config.secondary.label, config.secondary.color, config.secondary.unit || ''));
     }
+  }
+
+  if (config.laiMax && laiMaxCtx) {
+    const laiMaxContainer = el('#laimax-chart-container');
+    if (laiMaxContainer) {
+      laiMaxContainer.style.display = 'block';
+      el('#realtime-chart-laimax-title').textContent = config.laiMax.title;
+    }
+    realtimeCharts.laiMax = new Chart(laiMaxCtx, createChartConfig(config.laiMax.label, config.laiMax.color, config.laiMax.unit || ''));
   }
   
   if (config.humidity && humidityCtx) {
@@ -1764,6 +1777,7 @@ function updateRealtimeCharts(data) {
     case 'SON':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['LAeq (dB)']);
       updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['LAI (dB)']);
+      updateChart(realtimeCharts.laiMax, chartData.laiMax, timestamp, data['LAImax (dB)']);
       break;
     case 'COUNT':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['period_in']);
@@ -1870,6 +1884,7 @@ function clearAllCharts() {
   chartData = {
     main: { labels: [], data: [] },
     secondary: { labels: [], data: [] },
+    laiMax: { labels: [], data: [] },
     humidity: { labels: [], data: [] },
     rssi: { labels: [], data: [] },
     snr: { labels: [], data: [] },

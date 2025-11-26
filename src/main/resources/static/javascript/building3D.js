@@ -543,7 +543,7 @@ class Building3D {
     updateFloorTitle(floorNumber) {
         const data = this.floorData[floorNumber];
         const sensorNames = {
-            'DESK': 'Desk Occupancy',
+            'DESK': 'Occupancy',
             'CO2': 'CO₂ Air Quality',
             'TEMP': 'Temperature',
             'LIGHT': 'Light Levels',

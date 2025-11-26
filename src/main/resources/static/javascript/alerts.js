@@ -642,11 +642,11 @@ function updatePageTitles(sensorType) {
     const sensorInfo = {
         'DESK': {
             icon: '📊',
-            name: 'Desk Occupancy',
-            liveTitle: 'Live Desk Occupancy',
+            name: 'Occupancy',
+            liveTitle: 'Live Occupancy',
             historicalTitle: 'Historical Occupancy Data',
-            chartTitle: 'Desk Occupation Rate (08:00 - 19:00)',
-            globalTitle: 'Global Desk Occupation'
+            chartTitle: 'Occupation Rate (08:00 - 19:00)',
+            globalTitle: 'Global Occupation'
         },
         'CO2': {
             icon: '🌫️',

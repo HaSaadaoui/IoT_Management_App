@@ -167,7 +167,10 @@ async function loadHistory(fromISO, toISO) {
         if (chartCtx) {
             let chartConfig = JSON.parse(JSON.stringify(createChartConfig(chartTitle, color, '', getLastTimestamp(Object.keys(inputData)))));
             const transformedData = Object.entries(inputData).map(([timestamp, value]) => ({ x: timestamp, y: value }));
-            const bgColor = metricName === 'RSSI' ? 'transparent' : color + "A0";
+            let bgColor = color + "A0";
+            if (metricName === 'RSSI' || metricName === 'SNR') {
+                bgColor = 'transparent';
+            }
             chartConfig.data = {
                 datasets: [{
                     data: transformedData, borderColor: color, backgroundColor: bgColor, fill: true, tension: 0.1,
@@ -241,43 +244,65 @@ function getBattery(data) {
 }
 
 function updateKPICards(data, fromISO, toISO) {
-    const totalEl = document.getElementById('kpi-total');
-    if (totalEl) {
-        const values = Object.values(data.data || []);
-        let total = 0;
-        if (values.length > 0) {
-            total = values.map(x => Object.values(x).length).reduce((a, b) => a + b, 0);
+    // Helper to update a KPI card's value and visibility
+    const updateCard = (cardId, valueElId, value, unit = '') => {
+        const card = document.getElementById(cardId);
+        const valueEl = document.getElementById(valueElId);
+        if (!card || !valueEl) return;
+
+        const hasValue = value !== null && value !== undefined && value !== '' && !(Array.isArray(value) && value.length === 0);
+
+        card.style.display = hasValue ? 'flex' : 'none';
+        if (hasValue) {
+            valueEl.textContent = `${value}${unit}`;
         }
-        totalEl.textContent = total.toLocaleString();
+    };
+
+    const devType = (document.documentElement.dataset.devType || '').toUpperCase();
+
+    // Total measurements
+    const values = Object.values(data.data || []);
+    let total = 0;
+    if (values.length > 0) {
+        total = values.map(x => Object.values(x).length).reduce((a, b) => a + b, 0);
+    }
+    updateCard('kpi-card-total', 'kpi-total', total > 0 ? total.toLocaleString() : '');
+
+    if (devType === 'CONSO' || devType === 'ENERGY') {
+        // Average kWh for CONSO/ENERGY sensors
+        const consumptionMetrics = Object.keys(data.data).filter(k => k.startsWith('CONSUMPTION_CHANNEL_'));
+        let totalKWh = 0;
+        let pointCount = 0;
+        consumptionMetrics.forEach(metric => {
+            const metricValues = Object.values(data.data[metric] || {});
+            totalKWh += metricValues.reduce((sum, v) => sum + (parseFloat(v) || 0), 0) / 1000;
+            pointCount += metricValues.length;
+        });
+        const avgKWh = pointCount > 0 ? (totalKWh / pointCount).toFixed(2) : '';
+        updateCard('kpi-card-conso', 'kpi-conso', avgKWh, ' kWh');
+        updateCard('kpi-card-battery', 'kpi-battery', ''); // Hide battery card
+    } else {
+        // Average battery for other sensors
+        const pctValues = getBattery(data.data || []);
+        const avgBattery = pctValues.length > 0 ? Math.round(pctValues.reduce((a, b) => a + b, 0) / pctValues.length) : '';
+        updateCard('kpi-card-battery', 'kpi-battery', avgBattery, avgBattery !== '' ? '%' : '');
+        updateCard('kpi-card-conso', 'kpi-conso', ''); // Hide conso card
     }
 
-    const batteryEl = document.getElementById('kpi-battery');
-    const pctValues = getBattery(data.data || []);
-    if (batteryEl && pctValues?.length > 0) {
-        const avg = pctValues.reduce((a, b) => a + b, 0) / pctValues.length;
-        batteryEl.textContent = `${Math.round(avg)}%`;
-    }
-
-    const rssiEl = document.getElementById('kpi-rssi');
+    // Average RSSI
     const rssiValues = Object.values(data.data.RSSI || []).map(x => parseInt(x, 10));
-    if (rssiEl && rssiValues?.length > 0) {
-        const avg = rssiValues.reduce((a, b) => a + b, 0) / rssiValues.length;
-        rssiEl.textContent = `${Math.round(avg)} dBm`;
-    }
+    const avgRssi = rssiValues.length > 0 ? Math.round(rssiValues.reduce((a, b) => a + b, 0) / rssiValues.length) : '';
+    updateCard('kpi-card-rssi', 'kpi-rssi', avgRssi, avgRssi !== '' ? ' dBm' : '');
 
-    const periodEl = document.getElementById('kpi-period');
-    if (periodEl && fromISO && toISO) {
+    // Period
+    if (fromISO && toISO) {
         const from = new Date(fromISO);
         const to = new Date(toISO);
         const diffMs = to - from;
         const diffHours = Math.round(diffMs / (1000 * 60 * 60));
         const diffDays = Math.round(diffHours / 24);
-
-        if (diffDays > 0) {
-            periodEl.textContent = `${diffDays} day${diffDays > 1 ? 's' : ''}`;
-        } else {
-            periodEl.textContent = `${diffHours} hour${diffHours > 1 ? 's' : ''}`;
-        }
+        const periodText = diffDays > 0 ? `${diffDays} day${diffDays > 1 ? 's' : ''}` : `${diffHours} hour${diffHours > 1 ? 's' : ''}`;
+        updateCard('kpi-card-period', 'kpi-period', periodText);
     }
 }
 
