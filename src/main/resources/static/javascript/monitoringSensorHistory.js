@@ -274,12 +274,13 @@ function updateKPICards(data, fromISO, toISO) {
         let totalKWh = 0;
         let pointCount = 0;
         consumptionMetrics.forEach(metric => {
-            const metricValues = Object.values(data.data[metric] || {});
-            totalKWh += metricValues.reduce((sum, v) => sum + (parseFloat(v) || 0), 0) / 1000;
-            pointCount += metricValues.length;
+            const metricData = data.data[metric] || {};
+            totalKWh += Object.values(metricData).reduce((sum, v) => sum + (parseFloat(v) || 0), 0); // Sum in Wh
         });
-        const avgKWh = pointCount > 0 ? (totalKWh / pointCount).toFixed(2) : '';
-        updateCard('kpi-card-conso', 'kpi-conso', avgKWh, ' kWh');
+        totalKWh /= 1000; // Convert from Wh to kWh
+
+        const formattedKWh = Math.round(totalKWh).toLocaleString();
+        updateCard('kpi-card-conso', 'kpi-conso', formattedKWh, ' kWh');
         updateCard('kpi-card-battery', 'kpi-battery', ''); // Hide battery card
     } else {
         // Average battery for other sensors

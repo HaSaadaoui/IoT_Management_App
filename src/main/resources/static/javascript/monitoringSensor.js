@@ -1280,6 +1280,9 @@ let realtimeCharts = {
   secondary: null,
   laiMax: null,
   humidity: null,
+  light: null,
+  occupancy: null,
+  motion: null,
   rssi: null,
   snr: null,
   battery: null
@@ -1291,6 +1294,9 @@ let chartData = {
   secondary: { labels: [], data: [] },
   laiMax: { labels: [], data: [] },
   humidity: { labels: [], data: [] },
+  light: { labels: [], data: [] },
+  occupancy: { labels: [], data: [] },
+  motion: { labels: [], data: [] },
   rssi: { labels: [], data: [] },
   snr: { labels: [], data: [] },
   battery: { labels: [], data: [] },
@@ -1360,6 +1366,7 @@ function initRealtimeCharts() {
       main: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
       secondary: { label: 'Humidity', color: '#3b82f6', title: '💧 Humidity', unit: '%' },
       light: { label: 'Light', color: '#fbbf24', title: '💡 Light Level', unit: 'lux' },
+      motion: { label: 'Motion', color: '#ec4899', title: '🏃 Motion', unit: 'Status' },
       occupancy: { label: 'Occupancy', color: '#10b981', title: '👤 Occupancy', unit: 'Status' },
     },
     'OCCUP': {
@@ -1403,6 +1410,9 @@ function initRealtimeCharts() {
   const secondaryCtx = el('#realtime-chart-secondary')?.getContext('2d');
   const laiMaxCtx = el('#realtime-chart-laimax')?.getContext('2d');
   const humidityCtx = el('#realtime-chart-humidity')?.getContext('2d');
+  const lightCtx = el('#realtime-chart-light')?.getContext('2d');
+  const occupancyCtx = el('#realtime-chart-occupancy')?.getContext('2d');
+  const motionCtx = el('#realtime-chart-motion')?.getContext('2d');
   const rssiCtx = el('#realtime-chart-rssi')?.getContext('2d');
   const snrCtx = el('#realtime-chart-snr')?.getContext('2d');
 
@@ -1433,6 +1443,30 @@ function initRealtimeCharts() {
       humidityContainer.style.display = 'block';
     }
     realtimeCharts.humidity = new Chart(humidityCtx, createChartConfig(config.humidity.label, config.humidity.color, config.humidity.unit || ''));
+  }
+  
+  if (config.light && lightCtx) {
+    const lightContainer = el('#light-chart-container');
+    if (lightContainer) {
+      lightContainer.style.display = 'block';
+    }
+    realtimeCharts.light = new Chart(lightCtx, createChartConfig(config.light.label, config.light.color, config.light.unit || ''));
+  }
+  
+  if (config.occupancy && occupancyCtx) {
+    const occupancyContainer = el('#occupancy-chart-container');
+    if (occupancyContainer) {
+      occupancyContainer.style.display = 'block';
+    }
+    realtimeCharts.occupancy = new Chart(occupancyCtx, createChartConfig(config.occupancy.label, config.occupancy.color, config.occupancy.unit || ''));
+  }
+  
+  if (config.motion && motionCtx) {
+    const motionContainer = el('#motion-chart-container');
+    if (motionContainer) {
+      motionContainer.style.display = 'block';
+    }
+    realtimeCharts.motion = new Chart(motionCtx, createChartConfig(config.motion.label, config.motion.color, config.motion.unit || ''));
   }
   
   if (rssiCtx) {
@@ -1763,8 +1797,9 @@ function updateRealtimeCharts(data) {
     case 'EYE':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['temperature (°C)']);
       updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['humidity (%)']);
-      updateChart(realtimeCharts.light, chartData.light, timestamp, data['light (%)']);
-      updateChart(realtimeCharts.occupancy, chartData.occupancy, timestamp, data['occupancy (%)']);
+      updateChart(realtimeCharts.light, chartData.light, timestamp, data.light);
+      updateChart(realtimeCharts.motion, chartData.motion, timestamp, data.motion ? 1 : 0);
+      updateChart(realtimeCharts.occupancy, chartData.occupancy, timestamp, data.occupancy ? 1 : 0);
       break;
     case 'OCCUP':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data.presence ? 1 : 0);
@@ -1886,6 +1921,9 @@ function clearAllCharts() {
     secondary: { labels: [], data: [] },
     laiMax: { labels: [], data: [] },
     humidity: { labels: [], data: [] },
+    light: { labels: [], data: [] },
+    occupancy: { labels: [], data: [] },
+    motion: { labels: [], data: [] },
     rssi: { labels: [], data: [] },
     snr: { labels: [], data: [] },
     battery: { labels: [], data: [] },
