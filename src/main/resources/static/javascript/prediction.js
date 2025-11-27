@@ -1,8 +1,10 @@
 // Глобальное хранилище активных графиков Chart.js
 const predictionCharts = {};
+const historicalCharts = {};
+let historicalT0Loaded = false;
 
 /**
- * Рисуем график в указанном canvas.
+ * Рисуем график в указанном canvas (ONLINE).
  */
 function renderPredictionChart(canvasId, data, labelSuffix) {
     const canvas = document.getElementById(canvasId);
@@ -11,21 +13,18 @@ function renderPredictionChart(canvasId, data, labelSuffix) {
         return;
     }
 
-    // Лог, чтобы видеть, что реально приходит с бэка
     console.log("Rendering chart for", canvasId, "data:", data);
 
-    // Если для этого canvas график уже был — удаляем, чтобы не плодить экземпляры
     if (predictionCharts[canvasId]) {
         predictionCharts[canvasId].destroy();
     }
 
     const ctx = canvas.getContext("2d");
 
-    // Поддерживаем оба варианта на всякий случай
     const timestamps = data.timestamps || [];
     const predicted =
-        data.predicted_consumption ?? // snake_case (как реально приходит)
-        data.predictedConsumption ?? // вдруг потом поменяешь серилизацию
+        data.predicted_consumption ??
+        data.predictedConsumption ??
         [];
 
     predictionCharts[canvasId] = new Chart(ctx, {
@@ -42,7 +41,7 @@ function renderPredictionChart(canvasId, data, labelSuffix) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false, // высота задаётся через CSS для .prediction-card
+            maintainAspectRatio: false,
             scales: {
                 x: {
                     ticks: {
@@ -76,24 +75,181 @@ function renderPredictionChart(canvasId, data, labelSuffix) {
 }
 
 /**
- * Загружаем предсказание с бэка для выбранного горизонта.
+ * Загружаем ONLINE предсказание с бэка для выбранного горизонта.
  */
 async function loadPredictionForHorizon(horizon) {
     const canvasId = "chart-online-" + horizon;
 
     try {
-        // Передаём horizon как query param (Java его уже принимает)
         const response = await fetch("/prediction/realtime/data?horizon=" + encodeURIComponent(horizon));
         if (!response.ok) {
             throw new Error("HTTP error " + response.status);
         }
         const data = await response.json();
 
-        // Рисуем график
         renderPredictionChart(canvasId, data, horizon);
     } catch (err) {
         console.error("Error loading prediction for horizon", horizon, err);
-        // TODO: Можно показать сообщение в UI
+    }
+}
+
+/**
+ * Рисуем HISTORICAL графики (pred vs true + abs error).
+ */
+function renderHistoricalCharts(data) {
+    const canvas1 = document.getElementById("chart-historical-backtest");
+    const canvas2 = document.getElementById("chart-historical-scenarios");
+    if (!canvas1 || !canvas2) {
+        console.warn("Historical canvases not found");
+        return;
+    }
+
+    const timestamps = data.timestamps || [];
+    const pred =
+        data.predicted_consumption ??
+        data.predictedConsumption ??
+        [];
+    const truth =
+        data.true_consumption ??
+        data.trueConsumption ??
+        [];
+    const absErr =
+        data.abs_error ??
+        data.absError ??
+        [];
+
+    // Предсказание vs реальное
+    if (historicalCharts["backtest"]) {
+        historicalCharts["backtest"].destroy();
+    }
+    historicalCharts["backtest"] = new Chart(canvas1.getContext("2d"), {
+        type: "line",
+        data: {
+            labels: timestamps,
+            datasets: [
+                {
+                    label: "Predicted consumption",
+                    data: pred,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.25
+                },
+                {
+                    label: "True consumption",
+                    data: truth,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.25
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: true } },
+            scales: {
+                x: { title: { display: true, text: "Timestamp" } },
+                y: { title: { display: true, text: "Consumption" } }
+            }
+        }
+    });
+
+    // Абсолютная ошибка
+    if (historicalCharts["error"]) {
+        historicalCharts["error"].destroy();
+    }
+    historicalCharts["error"] = new Chart(canvas2.getContext("2d"), {
+        type: "line",
+        data: {
+            labels: timestamps,
+            datasets: [
+                {
+                    label: "Absolute error",
+                    data: absErr,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.25
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: true } },
+            scales: {
+                x: { title: { display: true, text: "Timestamp" } },
+                y: { title: { display: true, text: "Error" } }
+            }
+        }
+    });
+}
+
+/**
+ * Загружаем список t0 для HISTORICAL.
+ */
+async function loadHistoricalT0List() {
+    const select = document.getElementById("historical-t0-select");
+    const statusEl = document.getElementById("historical-status");
+    if (!select) return;
+
+    try {
+        if (statusEl) statusEl.textContent = "Loading t0 list...";
+        const resp = await fetch("/prediction/historical/t0-list");
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const data = await resp.json();
+
+        select.innerHTML = "";
+        (data.t0_list || []).forEach(t0 => {
+            const opt = document.createElement("option");
+            opt.value = t0;
+            opt.textContent = t0;
+            select.appendChild(opt);
+        });
+
+        if (data.t0_list && data.t0_list.length > 0) {
+            // например, выбираем последнее t0
+            select.value = data.t0_list[data.t0_list.length - 1];
+        }
+        historicalT0Loaded = true;
+        if (statusEl) statusEl.textContent = "";
+    } catch (err) {
+        console.error("Error loading t0 list", err);
+        if (statusEl) statusEl.textContent = "Failed to load t0 list";
+    }
+}
+
+/**
+ * Загружаем HISTORICAL предсказание.
+ */
+async function loadHistoricalPrediction() {
+    const horizonSelect = document.getElementById("historical-horizon-select");
+    const t0Select = document.getElementById("historical-t0-select");
+    const statusEl = document.getElementById("historical-status");
+    if (!horizonSelect || !t0Select) return;
+
+    const horizon = horizonSelect.value;
+    const t0 = t0Select.value;
+    if (!t0) {
+        if (statusEl) statusEl.textContent = "Please select t0";
+        return;
+    }
+
+    try {
+        if (statusEl) statusEl.textContent = "Loading historical prediction...";
+
+        const url = "/prediction/historical/data?horizon=" +
+            encodeURIComponent(horizon) +
+            "&t0=" + encodeURIComponent(t0);
+
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const data = await resp.json();
+
+        renderHistoricalCharts(data);
+        if (statusEl) statusEl.textContent = "";
+    } catch (err) {
+        console.error("Error loading historical prediction", err);
+        if (statusEl) statusEl.textContent = "Failed to load historical prediction";
     }
 }
 
@@ -114,6 +270,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 .forEach(p => p.classList.remove("active"));
             const panel = document.getElementById("panel-" + target);
             if (panel) panel.classList.add("active");
+
+            // если впервые открыли Historical — грузим t0 список
+            if (target === "historical" && !historicalT0Loaded) {
+                loadHistoricalT0List();
+            }
         });
     });
 
@@ -134,7 +295,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 card.classList.remove("hidden");
             }
 
-            // Загружаем предсказание / рисуем график для выбранного горизонта
             loadPredictionForHorizon(horizon);
         });
     });
@@ -152,5 +312,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if (card) card.classList.remove("hidden");
 
         loadPredictionForHorizon(defaultHorizon);
+    }
+
+    // --- кнопка "Run backtest" для Historical ---
+    const histBtn = document.getElementById("historical-load-btn");
+    if (histBtn) {
+        histBtn.addEventListener("click", () => {
+            loadHistoricalPrediction();
+        });
     }
 });

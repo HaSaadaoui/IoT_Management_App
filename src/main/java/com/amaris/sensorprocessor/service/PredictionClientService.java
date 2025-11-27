@@ -1,6 +1,8 @@
 package com.amaris.sensorprocessor.service;
 
 import com.amaris.sensorprocessor.model.prediction.PredictionResponse;
+import com.amaris.sensorprocessor.model.prediction.T0ListResponse;
+import com.amaris.sensorprocessor.model.prediction.HistoricalResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -12,24 +14,57 @@ public class PredictionClientService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    // базовый URL FastAPI
-    private final String pythonApiUrl = "http://172.205.172.248:8000/predict";
+    // базовый URL FastAPI (без /predict)
+    private final String pythonBaseUrl = "http://172.205.172.248:8000";
+
+    // старый онлайн-эндпойнт
+    private final String pythonOnlineUrl = pythonBaseUrl + "/predict";
 
     /**
-     * Запрос на FastAPI с горизонтом.
-     * Ожидаем, что Python обрабатывает параметр ?horizon=1h/1d/1w/1m/3m
+     * Online: /predict?horizon=...
      */
     public PredictionResponse getPrediction(String horizon) {
         try {
             URI uri = UriComponentsBuilder
-                    .fromHttpUrl(pythonApiUrl)
+                    .fromHttpUrl(pythonOnlineUrl)
                     .queryParam("horizon", horizon)
                     .build()
                     .toUri();
 
             return restTemplate.getForObject(uri, PredictionResponse.class);
         } catch (Exception e) {
-            // пока просто логируем стек трейс, чтобы видеть проблему
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    /**
+     * Historical: /historical/t0-list
+     */
+    public T0ListResponse getHistoricalT0List() {
+        try {
+            String url = pythonBaseUrl + "/historical/t0-list";
+            return restTemplate.getForObject(url, T0ListResponse.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    /**
+     * Historical: /predict/historical?horizon=...&t0=...
+     */
+    public HistoricalResponse getHistoricalPrediction(String horizon, String t0Iso) {
+        try {
+            URI uri = UriComponentsBuilder
+                    .fromHttpUrl(pythonBaseUrl + "/predict/historical")
+                    .queryParam("horizon", horizon)
+                    .queryParam("t0", t0Iso)
+                    .build()
+                    .toUri();
+
+            return restTemplate.getForObject(uri, HistoricalResponse.class);
+        } catch (Exception e) {
             e.printStackTrace();
             throw e;
         }
