@@ -4,10 +4,12 @@ import lombok.AllArgsConstructor;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.ArrayList;
 import java.util.Date;
-
+import java.time.Instant;
+import java.time.LocalDateTime;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -110,6 +112,28 @@ public class SensorDataDao {
             return new ArrayList<>();
         }
         
+    }
+
+    public Optional<SensorData> findLastValueBefore(String idSensor, PayloadValueType channel, Instant instant) {
+        String query = "SELECT * FROM sensor_data WHERE id_sensor = ? AND value_type = ? AND received_at < ? ORDER BY received_at DESC LIMIT 1";
+
+        try {
+            List<SensorData> result = jdbcTemplate.query(query, (rs, rowNum) -> {
+                LocalDateTime receivedAt = rs.getTimestamp("received_at") != null ? rs.getTimestamp("received_at").toLocalDateTime() : null;
+                String stringValue = rs.getString("string_value");
+                String valueType = rs.getString("value_type");
+
+                if (receivedAt == null || stringValue == null || valueType == null) {
+                    return null; // Skip invalid records
+                }
+
+                return new SensorData(rs.getString("id_sensor"), receivedAt, stringValue, valueType);
+            }, idSensor, channel.toString(), instant);
+
+            return result.stream().filter(java.util.Objects::nonNull).findFirst();
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 
 }

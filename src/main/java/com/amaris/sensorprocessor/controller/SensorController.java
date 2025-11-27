@@ -412,7 +412,7 @@ public class SensorController {
         for (String channel : channelsStr) {
             channels.add("CONSUMPTION_CHANNEL_" + channel);
         }
-        return sensorService.findSensorConsumptionByChannels(idSensor, startDate, endDate, channels);
+        return sensorService.getConsumptionByChannels(idSensor, startDate, endDate, channels);
     }
    
 

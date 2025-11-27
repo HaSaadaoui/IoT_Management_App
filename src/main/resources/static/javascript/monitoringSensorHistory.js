@@ -72,7 +72,7 @@ async function loadHistory(fromISO, toISO) {
             if (interval === 1) {
                 return "Hourly";
             }
-            return `By ${interval}h`;
+            return `every ${interval} hours`;
         };
 
         // Determine grouping interval based on the selected date range
@@ -81,11 +81,11 @@ async function loadHistory(fromISO, toISO) {
         const to = new Date(toISO);
         const diffDays = (to - from) / (1000 * 60 * 60 * 24);
 
-        if (diffDays > 30) {
+        if (diffDays >= 30) {
             intervalHours = 24; // Group by day for ranges over a month
-        } else if (diffDays > 7) {
-            intervalHours = 12; // Group by 12 hours for ranges over a week
-        } else if (diffDays > 2) {
+        } else if (diffDays >= 7) {
+            intervalHours = 24; // Group by 24 hours for ranges over a week
+        } else if (diffDays >= 2) {
             intervalHours = 6;  // Group by 6 hours for ranges over 2 days
         }
         // Group all datasets by 6-hour intervals
@@ -122,8 +122,8 @@ async function loadHistory(fromISO, toISO) {
             combinedConsumptionChart.data.labels = labels;
             combinedConsumptionChart.data.datasets = datasets;
             // Update the chart title to include the grouping interval
-            combinedConsumptionChart.options.plugins.title.text = `Total Consumption (kWh) - Grouped by ${intervalHours}h`;
-            combinedConsumptionChart.options.plugins.title.text = `Consumption (kWh) - ${getGroupingText(intervalHours)} Grouping`;
+            combinedConsumptionChart.options.plugins.title.text = `Total Consumption (kWh) - ${intervalHours}h`;
+            combinedConsumptionChart.options.plugins.title.text = `Consumption (kWh) - ${getGroupingText(intervalHours)}`;
             combinedConsumptionChart.update();
         }
 
@@ -313,7 +313,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const from = document.getElementById('hist-from')?.value || '';
         const to = document.getElementById('hist-to')?.value || '';
         try {
-            await loadHistory(from ? new Date(from).toISOString() : '', to ? new Date(to).toISOString() : '');
+            // Construct ISO string manually to avoid timezone shifts.
+            // The input is local time, but we treat it as UTC by appending 'Z'.
+            const fromISO = from ? from + ':00Z' : '';
+            const toISO = to ? to + ':00Z' : '';
+            await loadHistory(fromISO, toISO);
         } catch (e) {
             console.error(e);
             alert("Could not load history.");
@@ -322,8 +326,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Default date range: last 3 days including today
     const to = new Date();
-    to.setHours(23, 59, 59, 999);
-
+    to.setDate(to.getDate() + 1); // Go to the next day
+    to.setHours(0, 0, 0, 0);      // Set to midnight (start of the day)
     const from = new Date();
     from.setDate(from.getDate() - 2);
     from.setHours(0, 0, 0, 0);

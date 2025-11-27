@@ -21,7 +21,6 @@ import reactor.core.publisher.Flux;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -205,39 +204,76 @@ public class SensorService {
         return groupedData;
     }
 
-    public Map<Date, Double> findSensorConsumptionByChannels(String idSensor, Date startDate, Date endDate, List<String> channels) {
-        // 1. Convert channel strings to a Set of PayloadValueType enums for efficient lookup.
-        Set<PayloadValueType> consumptionChannels = channels.stream()
-                .map(PayloadValueType::valueOf)
-                .collect(Collectors.toSet());
-                
-        // 2. Fetch all sensor data for the given period.
-        // TODO: rename function
-        List<SensorData> allSensorDatas = sensorDataDao.findSensorDataByPeriodAndTypes2(idSensor, startDate, endDate, consumptionChannels);
+    // TODO: refactor
+    public Map<Date, Double> getConsumptionByChannels(String idSensor, Date startDate, Date endDate, List<String> channels) {
+        // Convert channel strings to a Set of PayloadValueType enums for efficient lookup.
+        Set<PayloadValueType> consumptionChannels = channels.stream().map(PayloadValueType::valueOf).collect(Collectors.toSet());
 
-        // 3. Filter by the requested channels and aggregate hourly.
-        Map<LocalDateTime, Double> hourlyTotals = allSensorDatas.stream()
-                .filter(data -> consumptionChannels.contains(data.getValueType()))
-                .collect(Collectors.groupingBy(
-                        // Group by the hour part of the timestamp
-                        data -> data.getReceivedAt().truncatedTo(ChronoUnit.HOURS),
-                        // Sum the values for each hour
-                        Collectors.summingDouble(data -> {
-                            Double value = data.getValueAsDouble();
-                            return value != null ? value : 0.0;
-                        })
-                ));
+        // Fetch all sensor data for the period in a single query.
+        List<SensorData> allSensorData = sensorDataDao.findSensorDataByPeriodAndTypes2(idSensor, startDate, endDate, consumptionChannels);
 
-        // 4. Convert the result map from Map<LocalDateTime, Double> to Map<Date, Double>.
-        Map<Date, Double> result = hourlyTotals.entrySet().stream()
-                .collect(Collectors.toMap(
-                        entry -> Date.from(entry.getKey().atZone(ZoneId.systemDefault()).toInstant()),
-                        Map.Entry::getValue,
-                        (v1, v2) -> v1, // In case of merge, keep the first
-                        LinkedHashMap::new // Preserve order
-                ));
-        
-        return result;
+        // Create hourly time series and resample data efficiently.
+        Instant startInstant = startDate.toInstant().truncatedTo(ChronoUnit.HOURS);
+        Instant endInstant = endDate.toInstant();
+        Map<Instant, Double> hourlyTotals = new LinkedHashMap<>();
+
+        // Get initial values at the start of the period for each channel
+        Map<PayloadValueType, Double> lastKnownValues = new HashMap<>();
+        for (PayloadValueType channel : consumptionChannels) {
+            Optional<SensorData> lastData = sensorDataDao.findLastValueBefore(idSensor, channel, startInstant);
+            lastKnownValues.put(channel, lastData.map(SensorData::getValueAsDouble).orElse(0.0));
+        }
+
+        // Initialize hourly slots and iterate through them once
+        Instant currentHour = startInstant;
+        int dataIndex = 0;
+
+        while (!currentHour.isAfter(endInstant)) {
+            // Advance data pointer to catch up to the current hour
+            while (dataIndex < allSensorData.size()) {
+                SensorData dataPoint = allSensorData.get(dataIndex);
+                Instant dataTimestamp = dataPoint.getReceivedAt().atZone(ZoneId.systemDefault()).toInstant();
+
+                if (dataTimestamp.isAfter(currentHour)) {
+                    break; // This data point is for a future hour
+                }
+
+                Double value = dataPoint.getValueAsDouble();
+                if (value != null) {
+                    lastKnownValues.put(dataPoint.getValueType(), value);
+                }
+                dataIndex++;
+            }
+
+            // Calculate the total for the current hour using the last known values
+            double totalForHour = lastKnownValues.values().stream().mapToDouble(Double::doubleValue).sum();
+            hourlyTotals.put(currentHour, totalForHour);
+
+            currentHour = currentHour.plus(1, ChronoUnit.HOURS);
+        }
+
+        // Calculate differential consumption from the hourly totals
+        Map<Date, Double> finalHourlyConsumption = new LinkedHashMap<>();
+        List<Instant> hours = new ArrayList<>(hourlyTotals.keySet());
+        hours.sort(Instant::compareTo);
+
+        for (int i = 1; i < hours.size(); i++) {
+            Instant previousHour = hours.get(i - 1);
+            Instant currentHourKey = hours.get(i);
+
+            double previousTotalValue = hourlyTotals.get(previousHour);
+            double currentTotalValue = hourlyTotals.get(currentHourKey);
+
+            double consumption;
+            if (currentTotalValue < previousTotalValue) {
+                consumption = currentTotalValue; // Assume counter reset
+            } else {
+                consumption = currentTotalValue - previousTotalValue;
+            }
+            finalHourlyConsumption.put(Date.from(currentHourKey), consumption);
+        }
+
+        return finalHourlyConsumption;
     }
 
 
