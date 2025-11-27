@@ -143,6 +143,7 @@ async function loadHistory(fromISO, toISO) {
     const processMetric = (metricName, container) => {
         const canvasId = `histMetric-${metricName.replace(/[^a-zA-Z0-9]/g, '')}`;
         const chartTitle = METRIC_TITLES[metricName] || metricName;
+        const legendLabel = chartTitle.replace(/\s*\(.*\)/, ''); // Remove unit for legend
         const color = getMetricColor(metricName);
         const inputData = j.data[metricName] || {};
 
@@ -154,7 +155,7 @@ async function loadHistory(fromISO, toISO) {
                 <div class="chart-header">
                     <h4>${chartTitle}</h4>
                     <div class="chart-legend">
-                        <span class="legend-item"><span class="legend-color" style="background: ${color};"></span> ${metricName}</span>
+                        <span class="legend-item"><span class="legend-color" style="background: ${color};"></span> ${legendLabel}</span>
                     </div>
                 </div>
                 <div class="chart-canvas-wrapper">

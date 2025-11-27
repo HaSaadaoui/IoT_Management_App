@@ -162,7 +162,7 @@ const DEVICE_TYPE_METRICS = {
     "BATTERY",
     "OCCUPANCY",
     "DISTANCE",
-    // "LIGHT",
+    "ILLUMINANCE",
   ],
   "TEMPEX": [
     "LAST_BATTERY_PERCENTAGE",
@@ -630,8 +630,8 @@ const METRIC_TITLES = {
   'MOTION': 'Motion',
   'PRESENCE': 'Presence',
   'OCCUPANCY': 'Occupancy',
-  'PERIOD_IN': 'Staff IN',
-  'PERIOD_OUT': 'Staff OUT',
+  'PERIOD_IN': 'Number of employees in',
+  'PERIOD_OUT': 'Number of employees out',
   'LAI': 'Sound Impact (LAI)',
   'LAIMAX': 'Max Sound Impact (LAImax)',
   'LAEQ': 'Equivalent Sound Level (LAeq)',
@@ -1390,7 +1390,7 @@ function initRealtimeCharts() {
       main: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' },
       secondary: { label: 'Humidity', color: '#3b82f6', title: '💧 Humidity', unit: '%' },
       light: { label: 'Light', color: '#fbbf24', title: '💡 Light Level', unit: 'lux' },
-      motion: { label: 'Motion', color: '#ec4899', title: '🏃 Motion', unit: 'Status' },
+      motion: { label: 'Motion', color: '#ec4899', title: '🏃 Motion', unit: 'MotionStatus' },
       occupancy: { label: 'Occupancy', color: '#10b981', title: '👤 Occupancy', unit: 'Status' },
     },
     'OCCUP': {
@@ -1596,7 +1596,15 @@ function createEnergyPowerUsageChartConfig() {
 function createChartConfig(label, color, yAxisUnit = '', currentDate) {
   if (!currentDate) currentDate = new Date().toLocaleDateString('en-CA');
   let yAxisLabel = label;
-  if (yAxisUnit && yAxisUnit !== 'Status' && yAxisUnit !== 'Level' && yAxisUnit !== 'IlluminanceStatus' && !label.includes(`(${yAxisUnit})`)) {
+  const hideUnits = [
+    "IlluminanceStatus",
+    "Level",
+    "Status",
+    "LightStatus",
+    "MotionStatus"
+  ]
+  
+  if (yAxisUnit && !hideUnits.includes(yAxisUnit) && !label.includes(`(${yAxisUnit})`)) {
       yAxisLabel += ' (' + yAxisUnit + ')';
   }
   
@@ -1694,6 +1702,11 @@ function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate =
           return value === 1 ? 'Occupied' : (value === 0 ? 'Free' : '');
         }
       };
+      break;
+    case 'MotionStatus':
+      yAxisConfig.min = 0;
+      yAxisConfig.beginAtZero = false;
+      yAxisConfig.ticks.stepSize = 1; // Ensure integer values on the axis
       break;
     case 'IlluminanceStatus': // For Illuminance status on OCCUP sensors
       yAxisConfig.min = 0;
@@ -1870,7 +1883,7 @@ function updateRealtimeCharts(data) {
       updateChart(realtimeCharts.main, chartData.main, timestamp, data['temperature (°C)']);
       updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['humidity (%)']);
       updateChart(realtimeCharts.light, chartData.light, timestamp, data.light);
-      updateChart(realtimeCharts.motion, chartData.motion, timestamp, data.motion ? 1 : 0);
+      updateChart(realtimeCharts.motion, chartData.motion, timestamp, data.motion);
       updateChart(realtimeCharts.occupancy, chartData.occupancy, timestamp, data.occupancy ? 1 : 0);
       break;
     case 'OCCUP': // NOSONAR
