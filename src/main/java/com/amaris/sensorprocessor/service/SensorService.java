@@ -207,13 +207,16 @@ public class SensorService {
     // TODO: refactor
     public Map<Date, Double> getConsumptionByChannels(String idSensor, Date startDate, Date endDate, List<String> channels) {
         // Convert channel strings to a Set of PayloadValueType enums for efficient lookup.
-        Set<PayloadValueType> consumptionChannels = channels.stream().map(PayloadValueType::valueOf).collect(Collectors.toSet());
+        Set<PayloadValueType> consumptionChannels = channels.stream()
+                .map(PayloadValueType::valueOf).collect(Collectors.toSet());
 
         // Fetch all sensor data for the period in a single query.
-        List<SensorData> allSensorData = sensorDataDao.findSensorDataByPeriodAndTypes2(idSensor, startDate, endDate, consumptionChannels);
+        Instant adjustedStartInstant = startDate.toInstant().minus(1, ChronoUnit.HOURS);
+        Date adjustedStartDate = Date.from(adjustedStartInstant);
+        List<SensorData> allSensorData = sensorDataDao.findSensorDataByPeriodAndTypes2(idSensor, adjustedStartDate, endDate, consumptionChannels);
 
         // Create hourly time series and resample data efficiently.
-        Instant startInstant = startDate.toInstant().truncatedTo(ChronoUnit.HOURS);
+        Instant startInstant = adjustedStartInstant.truncatedTo(ChronoUnit.HOURS);
         Instant endInstant = endDate.toInstant();
         Map<Instant, Double> hourlyTotals = new LinkedHashMap<>();
 
@@ -258,13 +261,13 @@ public class SensorService {
         hours.sort(Instant::compareTo);
 
         for (int i = 1; i < hours.size(); i++) {
-            Instant previousHour = hours.get(i - 1);
             Instant currentHourKey = hours.get(i);
+            Instant previousHourKey = hours.get(i - 1);
 
-            double previousTotalValue = hourlyTotals.get(previousHour);
             double currentTotalValue = hourlyTotals.get(currentHourKey);
-
+            double previousTotalValue = hourlyTotals.get(previousHourKey);
             double consumption;
+
             if (currentTotalValue < previousTotalValue) {
                 consumption = currentTotalValue; // Assume counter reset
             } else {

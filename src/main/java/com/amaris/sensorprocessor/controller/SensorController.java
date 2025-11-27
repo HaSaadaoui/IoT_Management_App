@@ -404,10 +404,12 @@ public class SensorController {
     public Map<Date, Double> getSensorConsumptionByChannels(
         @PathVariable String idGateway,
         @PathVariable String idSensor,
-        @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Date startDate,
-        @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Date endDate,
+        @RequestParam("startDate") String startDateStr,
+        @RequestParam("endDate") String endDateStr,
         @RequestParam("channels") String[] channelsStr
     ) {
+        Date startDate = Date.from(java.time.Instant.parse(startDateStr));
+        Date endDate = Date.from(java.time.Instant.parse(endDateStr));
         // Append "CONSUMPTION_CHANNEL_" to all channelStr
         List<String> channels = new ArrayList<>();
         for (String channel : channelsStr) {

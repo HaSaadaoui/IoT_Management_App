@@ -233,9 +233,14 @@ async function loadChannelHistogramData(channels = [], fromISO, toISO) {
     if (!SENSOR_ID || !GATEWAY_ID || !fromISO || !toISO) return null;
 
     try {
+        // Convert ISO strings to Date objects to interpret them in the browser's local timezone,
+        // then convert back to an ISO string which will be in UTC but represent the correct local time.
+        const startDate = new Date(fromISO);
+        const endDate = new Date(toISO);
+
         const params = new URLSearchParams();
-        params.set('startDate', fromISO);
-        params.set('endDate', toISO);
+        params.set('startDate', startDate.toISOString());
+        params.set('endDate', endDate.toISOString());
         channels.forEach(ch => params.append('channels', String(ch)));
         const res = await fetch(`/manage-sensors/monitoring/${GATEWAY_ID}/${SENSOR_ID}/consumption?` + params.toString());
         if (!res.ok) throw new Error(`Failed to fetch consumption data for channels ${channels.join(',')}: ${res.statusText}`);
