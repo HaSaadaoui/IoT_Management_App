@@ -125,18 +125,42 @@
             <p>Backtesting and comparison of past forecasts vs real consumption.</p>
         </div>
 
+        <!-- Блок управления -->
+        <div class="prediction-controls">
+            <label>
+                Horizon:
+                <select id="historical-horizon-select">
+                    <option value="1h">+1 hour</option>
+                    <option value="1d" selected>+1 day</option>
+                    <option value="1w">+1 week</option>
+                    <option value="3m">+3 months</option>
+                </select>
+            </label>
+
+            <label>
+                t0:
+                <select id="historical-t0-select">
+                    <option value="">Loading...</option>
+                </select>
+            </label>
+
+            <button id="historical-load-btn">Run backtest</button>
+            <span id="historical-status" class="prediction-status"></span>
+        </div>
+
         <div class="prediction-grid">
             <div class="prediction-card">
-                <h3>Backtest – last 30 days</h3>
+                <h3>Predicted vs Real</h3>
                 <canvas id="chart-historical-backtest"></canvas>
             </div>
 
             <div class="prediction-card">
-                <h3>Scenario comparison</h3>
+                <h3>Absolute Error</h3>
                 <canvas id="chart-historical-scenarios"></canvas>
             </div>
         </div>
     </section>
+
 
 </main>
 
@@ -160,37 +184,6 @@
     }
 </script>
 
-<script>
-    // верхние табы: Online vs Historical
-    document.querySelectorAll('.prediction-tab').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const target = btn.dataset.tab;
-
-            document.querySelectorAll('.prediction-tab')
-                .forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            document.querySelectorAll('.prediction-panel')
-                .forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-' + target).classList.add('active');
-        });
-    });
-
-    // подтабы горизонтов внутри Online
-    document.querySelectorAll('.horizon-tab').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const horizon = btn.dataset.horizon;
-
-            document.querySelectorAll('.horizon-tab')
-                .forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            document.querySelectorAll('#panel-online .prediction-card')
-                .forEach(c => c.classList.add('hidden'));
-            document.getElementById('card-online-' + horizon).classList.remove('hidden');
-        });
-    });
-</script>
 
 
 </body>
