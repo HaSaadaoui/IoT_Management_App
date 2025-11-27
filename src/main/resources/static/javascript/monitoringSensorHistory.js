@@ -61,7 +61,7 @@ async function loadHistory(fromISO, toISO) {
         );
 
         // Helper to group data by a specified interval in hours
-        const groupDataByInterval = (data, intervalHours = 6) => {
+        const groupDataByInterval = (data, intervalHours = 1) => {
             if (!data) return {};
             const grouped = {};
             for (const timestamp in data) {
@@ -98,19 +98,18 @@ async function loadHistory(fromISO, toISO) {
         const to = new Date(toISO);
         const diffDays = (to - from) / (1000 * 60 * 60 * 24);
 
-        if (diffDays >= 30) {
-            intervalHours = 24; // Group by day for ranges over a month
-        } else if (diffDays >= 7) {
-            intervalHours = 24; // Group by 24 hours for ranges over a week
-        } else if (diffDays >= 2) {
-            intervalHours = 6;  // Group by 6 hours for ranges over 2 days
+        if (diffDays > 7) {
+            intervalHours = 24;
+        } else if (diffDays > 1) {
+            intervalHours = 12;
         }
-        // Group all datasets by 6-hour intervals
+        
         const intervalGroupedData = allGroupData.map(groupData => groupDataByInterval(groupData, intervalHours));
 
         // Generate labels showing just the start time for each interval
         const firstGroupInterval = intervalGroupedData[0] || {};
-        const labels = Object.keys(firstGroupInterval).map(intervalStart => {
+        const allLabels = Object.keys(firstGroupInterval);
+        const labels = allLabels.slice(0, -1).map(intervalStart => {
             const startDate = new Date(intervalStart);
             // For daily grouping, show only the date. Otherwise, show date and time.
             if (intervalHours === 24) {
@@ -123,14 +122,14 @@ async function loadHistory(fromISO, toISO) {
 
         const datasets = intervalGroupedData.map((intervalData, index) => {
             const groupInfo = Object.values(consumptionCharts)[index];
-            const values = Object.keys(firstGroupInterval).map(key => (intervalData[key] || 0) / 1000); // Wh to kWh
+            const values = allLabels.slice(0, -1).map(key => (intervalData[key] || 0) / 1000); // Wh to kWh
             return { label: groupInfo.label, data: values, backgroundColor: groupInfo.color, borderColor: groupInfo.color, borderWidth: 1, borderRadius: 4, barPercentage: 0.8 };
         });
 
         if (!combinedConsumptionChart) {
             const chartCtx = ctx('histConsumptionRed');
             if (chartCtx) {
-                const chartOptions = { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false }, y: { beginAtZero: true, title: { display: true, text: 'Total Consumption (kWh)' } } }, plugins: { title: { display: true, text: '' } } };
+                const chartOptions = { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false }, y: { beginAtZero: true, grace: '50%', title: { display: true, text: 'Total Consumption (kWh)' } } }, plugins: { title: { display: true, text: '' } } };
                 combinedConsumptionChart = new Chart(chartCtx, { type: 'bar', data: { labels: [], datasets: [] }, options: chartOptions });
             }
         }
@@ -308,9 +307,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const to = document.getElementById('hist-to')?.value || '';
         try {
             // Construct ISO string manually to avoid timezone shifts.
-            // The input is local time, but we treat it as UTC by appending 'Z'.
-            const fromISO = from ? from + ':00Z' : '';
-            const toISO = to ? to + ':00Z' : '';
+            // The input is local time, but we treat it as UTC.
+            // Handle cases where seconds may or may not be present.
+            const fromISO = from ? (from.length === 16 ? from + ':00Z' : from + 'Z') : '';
+            const toISO = to ? (to.length === 16 ? to + ':00Z' : to + 'Z') : '';
             await loadHistory(fromISO, toISO);
         } catch (e) {
             console.error(e);

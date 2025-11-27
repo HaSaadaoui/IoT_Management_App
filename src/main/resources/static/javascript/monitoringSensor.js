@@ -1297,6 +1297,9 @@ function updateEnergyChart(groups, data) {
 
 let currentConsumptionInterval = null;
 
+const groupConsumptionData = {};
+const channelConsumptionData = {}; // To store consumption per channel
+
 /**
  * Fetches and updates the consumption for the user-defined period for all channel groups.
  */
@@ -1324,7 +1327,6 @@ function fetchAndUpdateCurrentConsumption() {
   }
 
   let totalCurrentConsumptionWh = 0;
-  const groupConsumptionData = {};
 
   const fetchGroupConsumption = async (groupId, group) => {
     const minutesInput = el('#consumption-period-minutes');
@@ -1332,26 +1334,39 @@ function fetchAndUpdateCurrentConsumption() {
 
     const params = new URLSearchParams();
     group.channels.forEach(ch => params.append('channels', ch));
-    params.append('minutes', minutes);
 
-    try {
-      const res = await fetch(`/manage-sensors/monitoring/${SENSOR_ID}/consumption/current?${params.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        const consumption = data.consumption || 0;
-        groupConsumptionData[groupId] = consumption;
-        totalCurrentConsumptionWh += consumption;
-        const groupEl = el(`#energy-group-${groupId}`);
-        if (groupEl) {
-          const kwhEl = groupEl.querySelector('.kwh-value');
-          const whEl = groupEl.querySelector('.wh-value');
-          // The value is already in Wh from the backend for the period
-          if (kwhEl) kwhEl.textContent = `${(consumption / 1000).toFixed(3)} kWh`;
-          if (whEl) whEl.textContent = `${consumption} Wh`;
+    let groupTotalConsumption = 0;
+
+    // Fetch consumption for each channel individually
+    for (const channel of group.channels) {
+      const channelParams = new URLSearchParams();
+      channelParams.append('channels', channel);
+      channelParams.append('minutes', minutes);
+
+      try {
+        const res = await fetch(`/manage-sensors/monitoring/${SENSOR_ID}/consumption/current?${channelParams.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          const consumption = data.consumption || 0;
+          channelConsumptionData[channel] = consumption; // Store per-channel data
+          groupTotalConsumption += consumption;
         }
+      } catch (e) {
+        console.error(`Error fetching consumption for channel ${channel}:`, e);
+        channelConsumptionData[channel] = 0; // Default to 0 on error
       }
-    } catch (e) {
-      console.error(`Error fetching consumption for ${groupId}:`, e);
+    }
+
+    groupConsumptionData[groupId] = groupTotalConsumption;
+    totalCurrentConsumptionWh += groupTotalConsumption;
+
+    // Update the UI for the group with the total
+    const groupEl = el(`#energy-group-${groupId}`);
+    if (groupEl) {
+      const kwhEl = groupEl.querySelector('.kwh-value');
+      const whEl = groupEl.querySelector('.wh-value');
+      if (kwhEl) kwhEl.textContent = `${(groupTotalConsumption / 1000).toFixed(3)} kWh`;
+      if (whEl) whEl.textContent = `${groupTotalConsumption} Wh`;
     }
   };
 
@@ -1377,7 +1392,7 @@ function fetchAndUpdateCurrentConsumption() {
       const totalKWh = (totalCurrentConsumptionWh / 1000).toFixed(3);
       totalEl.innerHTML = `
         <div class="total-consumption">
-          <div class="total-label">Total Consumption (30mn)</div>
+          <div class="total-label">Total Consumption</div>
           <div class="total-kwh">${totalKWh} kWh</div>
         </div>
       `;
@@ -2043,24 +2058,24 @@ function updateRealtimeCharts(data) {
     case 'CONSO':
       if (data.energy_data && typeof data.energy_data === 'object') {
         const redOutlets = [0, 1, 2].reduce((sum, ch) => {
-          const channelData = data.energy_data[ch];
-          return sum + (channelData?.value || 0);
+          const channelData = channelConsumptionData[ch];
+          return sum + channelData;
         }, 0);
         
         const whiteOutlets = [3, 4, 5].reduce((sum, ch) => {
-          const channelData = data.energy_data[ch];
-          return sum + (channelData?.value || 0);
+          const channelData = channelConsumptionData[ch];
+          return sum + channelData;
         }, 0);
         
         const ventilation = [6, 7, 8].reduce((sum, ch) => {
-          const channelData = data.energy_data[ch];
-          return sum + (channelData?.value || 0);
+          const channelData = channelConsumptionData[ch];
+          return sum + channelData;
         }, 0);
         
         const totalWh = redOutlets + whiteOutlets + ventilation + 
           [9, 10, 11].reduce((sum, ch) => {
-            const channelData = data.energy_data[ch];
-            return sum + (channelData?.value || 0);
+            const channelData = channelConsumptionData[ch];
+            return sum + channelData;
           }, 0);
         
         updateChart(realtimeCharts.main, chartData.main, timestamp, totalWh / 1000);
