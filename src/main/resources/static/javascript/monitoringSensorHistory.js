@@ -10,6 +10,23 @@
 // `DEVICE_TYPE_METRICS` is also defined in monitoringSensor.js.
 // `getMetricColor` is also defined in monitoringSensor.js.
 
+/**
+ * Helper to update a KPI card's value and visibility.
+ * Hides the card if the value is empty or null.
+ * @param {string} cardId - The ID of the card container element.
+ * @param {string} valueElId - The ID of the element that displays the value.
+ * @param {string|number|null|undefined} value - The value to display.
+ * @param {string} [unit=''] - The unit to append to the value.
+ */
+function updateCard(cardId, valueElId, value, unit = '') {
+    const card = document.getElementById(cardId);
+    const valueEl = document.getElementById(valueElId);
+    if (!card || !valueEl) return;
+    const hasValue = value !== null && value !== undefined && value !== '' && !(Array.isArray(value) && value.length === 0);
+    card.style.display = hasValue ? 'flex' : 'none';
+    if (hasValue) valueEl.textContent = `${value}${unit}`;
+}
+
 function getLastTimestamp(values) {
     const ts = values[values.length - 1];
     const parsed = new Date(ts);
@@ -127,14 +144,16 @@ async function loadHistory(fromISO, toISO) {
             combinedConsumptionChart.update();
         }
 
-        allGroupData.forEach((groupData, index) => {
+        // Calculate the total for each group and update its display
+        const groupTotals = allGroupData.map((groupData, index) => {
             const groupKey = Object.keys(consumptionCharts)[index];
-            const totalKWh = Object.values(groupData || {}).reduce((sum, v) => sum + v, 0) / 1000;
+            const totalKWh = Object.values(groupData || {}).reduce((sum, v) => sum + v / 1000, 0);
             const totalEl = document.getElementById(`hist-total-${groupKey}`);
-            if (totalEl) {
-                totalEl.textContent = totalKWh.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            }
+            if (totalEl) totalEl.textContent = totalKWh.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return totalKWh;
         });
+
+        updateCard('kpi-card-conso', 'kpi-conso', groupTotals[0] > 0 ? groupTotals[0].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '', ' kWh');
     }
 
     const networkMetrics = ['RSSI', 'SNR'];
@@ -245,20 +264,6 @@ function getBattery(data) {
 }
 
 function updateKPICards(data, fromISO, toISO) {
-    // Helper to update a KPI card's value and visibility
-    const updateCard = (cardId, valueElId, value, unit = '') => {
-        const card = document.getElementById(cardId);
-        const valueEl = document.getElementById(valueElId);
-        if (!card || !valueEl) return;
-
-        const hasValue = value !== null && value !== undefined && value !== '' && !(Array.isArray(value) && value.length === 0);
-
-        card.style.display = hasValue ? 'flex' : 'none';
-        if (hasValue) {
-            valueEl.textContent = `${value}${unit}`;
-        }
-    };
-
     const devType = (document.documentElement.dataset.devType || '').toUpperCase();
 
     // Total measurements
@@ -270,18 +275,7 @@ function updateKPICards(data, fromISO, toISO) {
     updateCard('kpi-card-total', 'kpi-total', total > 0 ? total.toLocaleString() : '');
 
     if (devType === 'CONSO' || devType === 'ENERGY') {
-        // Average kWh for CONSO/ENERGY sensors
-        const consumptionMetrics = Object.keys(data.data).filter(k => k.startsWith('CONSUMPTION_CHANNEL_'));
-        let totalKWh = 0;
-        let pointCount = 0;
-        consumptionMetrics.forEach(metric => {
-            const metricData = data.data[metric] || {};
-            totalKWh += Object.values(metricData).reduce((sum, v) => sum + (parseFloat(v) || 0), 0); // Sum in Wh
-        });
-        totalKWh /= 1000; // Convert from Wh to kWh
-
-        const formattedKWh = Math.round(totalKWh).toLocaleString();
-        updateCard('kpi-card-conso', 'kpi-conso', formattedKWh, ' kWh');
+        // The 'kpi-card-conso' is now updated inside the loadHistory function for ENERGY/CONSO sensors
         updateCard('kpi-card-battery', 'kpi-battery', ''); // Hide battery card
     } else {
         // Average battery for other sensors

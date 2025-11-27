@@ -276,6 +276,55 @@ public class SensorService {
         return finalHourlyConsumption;
     }
 
+    /**
+     * Calculates the total consumption over a user-defined period (in minutes) for a given sensor.
+     * It sums up the latest values from all consumption channels and subtracts the
+     * sum of the values from the start of the period for the specified channels.
+     *
+     * @param idSensor The ID of the sensor.
+     * @param channels A list of channel numbers (as strings) to include in the calculation.
+     * @param minutes The duration of the period in minutes.
+     * @return The total consumption in the last N minutes as a Double. Returns null if no data is available.
+     */
+    public Double getCurrentConsumption(String idSensor, List<String> channels, int minutes) {
+        Instant now = Instant.now();
+        // If minutes is 0 or less, default to 1 minute to avoid errors
+        Instant timeAgo = now.minus(Math.max(1, minutes), ChronoUnit.MINUTES);
+
+        if (channels == null || channels.isEmpty()) {
+            return 0.0;
+        }
+
+        // Convert channel numbers to PayloadValueType enums
+        Set<PayloadValueType> consumptionChannels = channels.stream()
+            .map(ch -> PayloadValueType.valueOf("CONSUMPTION_CHANNEL_" + ch))
+            .collect(Collectors.toSet());
+
+        if (consumptionChannels.isEmpty()) {
+            return 0.0;
+        }
+
+        // Get the latest data points within the last N minutes for all consumption channels
+        List<SensorData> recentData = sensorDataDao.findSensorDataByPeriodAndTypes2(idSensor, Date.from(timeAgo), Date.from(now), consumptionChannels);
+
+        // Group data by channel and find the latest and earliest value in the timeframe for each
+        Map<PayloadValueType, List<SensorData>> dataByChannel = recentData.stream().collect(Collectors.groupingBy(SensorData::getValueType));
+
+        double totalConsumption = 0;
+
+        for (PayloadValueType channel : consumptionChannels) {
+            List<SensorData> channelData = dataByChannel.get(channel);
+            if (channelData != null && channelData.size() > 1) {
+                // Assuming data is sorted by time, get first and last
+                double latestValue = channelData.get(channelData.size() - 1).getValueAsDouble();
+                double oldestValue = channelData.get(0).getValueAsDouble();
+                totalConsumption += (latestValue - oldestValue);
+            }
+        }
+
+        return totalConsumption > 0 ? totalConsumption : null;
+    }
+
 
     /* ===================== CREATE ===================== */
 

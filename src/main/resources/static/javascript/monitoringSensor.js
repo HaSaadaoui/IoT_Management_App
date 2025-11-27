@@ -1147,46 +1147,47 @@ function updateEnergyConsumption(data) {
     }
   });
 
-  Object.entries(channelGroups).forEach(([groupId, group]) => {
-    let groupTotal = 0;
-    group.channels.forEach(channel => {
-      const channelData = data[channel.toString()];
-      if (channelData && typeof channelData.value === 'number') {
-        groupTotal += channelData.value;
-      }
-    });
+  // Object.entries(channelGroups).forEach(([groupId, group]) => {
+  //   let groupTotal = 0;
+  //   group.channels.forEach(channel => {
+  //     const channelData = data[channel.toString()];
+  //     if (channelData && typeof channelData.value === 'number') {
+  //       groupTotal += channelData.value;
+  //     }
+  //   });
 
-    const groupEl = el(`#energy-group-${groupId}`);
-    if (groupEl) {
-      const kWh = (groupTotal / 1000).toFixed(2);
-      groupEl.innerHTML = `
-        <div class="energy-group-header">
-          <span class="group-name">${group.emoji} ${group.name}</span>
-          <span class="group-channels">Channels ${group.channels.join(', ')}</span>
-        </div>
-        <div class="energy-group-values">
-          <div class="wh-value">${formatEnergyValue(groupTotal)} Wh</div>
-          <div class="kwh-value">${kWh} kWh</div>
-        </div>
-      `;
-      groupEl.style.borderLeftColor = group.color;
-    }
-  });
+  //   const groupEl = el(`#energy-group-${groupId}`);
+  //   if (groupEl) {
+  //     const kWh = (groupTotal / 1000).toFixed(2);
+  //     groupEl.innerHTML = `
+  //       <div class="energy-group-header">
+  //         <span class="group-name">${group.emoji} ${group.name}</span>
+  //         <span class="group-channels">Channels ${group.channels.join(', ')}</span>
+  //       </div>
+  //       <div class="energy-group-values">
+  //         <div class="wh-value">${formatEnergyValue(groupTotal)} Wh</div>
+  //         <div class="kwh-value">${kWh} kWh</div>
+  //       </div>
+  //     `;
+  //     groupEl.style.borderLeftColor = group.color;
+  //   }
+  // });
 
-  const totalEl = el('#energy-total');
-  if (totalEl) {
-    const totalKWh = (totalConsumption / 1000).toFixed(2);
-    totalEl.innerHTML = `
-      <div class="total-consumption">
-        <div class="total-label">Total Consumption</div>
-        <div class="total-values">
-          <div class="total-kwh">${totalKWh} kWh</div>
-        </div>
-      </div>
-    `;
-  }
+  // const totalEl = el('#energy-total');
+  // if (totalEl) {
+  //   const totalKWh = (totalConsumption / 1000).toFixed(2);
+  //   totalEl.innerHTML = `
+  //     <div class="total-consumption">
+  //       <div class="total-label">Total Consumption</div>
+  //       <div class="total-values">
+  //         <div class="total-kwh">${totalKWh} kWh</div>
+  //       </div>
+  //     </div>
+  //   `;
+  // }
 
   updateEnergyChart(channelGroups, data);
+  fetchAndUpdateCurrentConsumption();
 }
 
 function formatEnergyValue(value) {
@@ -1287,6 +1288,114 @@ function updateEnergyChart(groups, data) {
         </div>
       `;
     }).join('');
+  }
+}
+
+// =======================================================
+// ===== Real-time Consumption Functions =====
+// =======================================================
+
+let currentConsumptionInterval = null;
+
+/**
+ * Fetches and updates the consumption for the user-defined period for all channel groups.
+ */
+function fetchAndUpdateCurrentConsumption() {
+  const SENSOR_ID = document.documentElement.dataset.deviceId;
+  if (!SENSOR_ID) return;
+
+  const channelGroups = {
+    'red-outlets': { channels: [0, 1, 2], name: 'Red Outlets', emoji: '🔴', color: '#ef4444' },
+    'white-outlets': { channels: [3, 4, 5], name: 'White Outlets & Lighting', emoji: '⚪', color: '#64748b' },
+    'ventilation': { channels: [6, 7, 8], name: 'Ventilation & Heaters', emoji: '🌬️', color: '#3b82f6' },
+    'other': { channels: [9, 10, 11], name: 'Other Circuits', emoji: '🔧', color: '#f59e0b' }
+  };
+
+  const oldChannelGroups = {
+    'red-outlets': { channels: [0, 1, 2] },
+    'white-outlets': { channels: [3, 4, 5] },
+    'ventilation': { channels: [6, 7, 8] },
+    'other': { channels: [9, 10, 11] }
+  };
+
+  // Clear any existing interval to avoid duplicates
+  if (currentConsumptionInterval) {
+    clearInterval(currentConsumptionInterval);
+  }
+
+  let totalCurrentConsumptionWh = 0;
+  const groupConsumptionData = {};
+
+  const fetchGroupConsumption = async (groupId, group) => {
+    const minutesInput = el('#consumption-period-minutes');
+    const minutes = minutesInput ? minutesInput.value : 30;
+
+    const params = new URLSearchParams();
+    group.channels.forEach(ch => params.append('channels', ch));
+    params.append('minutes', minutes);
+
+    try {
+      const res = await fetch(`/manage-sensors/monitoring/${SENSOR_ID}/consumption/current?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        const consumption = data.consumption || 0;
+        groupConsumptionData[groupId] = consumption;
+        totalCurrentConsumptionWh += consumption;
+        const groupEl = el(`#energy-group-${groupId}`);
+        if (groupEl) {
+          const kwhEl = groupEl.querySelector('.kwh-value');
+          const whEl = groupEl.querySelector('.wh-value');
+          // The value is already in Wh from the backend for the period
+          if (kwhEl) kwhEl.textContent = `${(consumption / 1000).toFixed(3)} kWh`;
+          if (whEl) whEl.textContent = `${consumption} Wh`;
+        }
+      }
+    } catch (e) {
+      console.error(`Error fetching consumption for ${groupId}:`, e);
+    }
+  };
+
+  // Fetch immediately and then set an interval to refetch every 10 seconds
+  const fetchAllGroups = async () => {
+    totalCurrentConsumptionWh = 0; // Reset total before fetching
+    await Promise.all(Object.entries(oldChannelGroups).map(([id, group]) => fetchGroupConsumption(id, group)));
+
+    // Prepare data for updateEnergyChart
+    const chartDataForUpdate = {};
+    Object.entries(channelGroups).forEach(([groupId, group]) => {
+      const consumption = groupConsumptionData[groupId] || 0;
+      // Distribute the group consumption among its channels for the chart function to work
+      // This is a simplification as we don't have per-channel data here.
+      group.channels.forEach((channel, index) => {
+        chartDataForUpdate[channel] = { value: (index === 0 ? consumption : 0) };
+      });
+    });
+    
+    // After all groups are fetched, update the total display
+    const totalEl = el('#energy-total');
+    if (totalEl) {
+      const totalKWh = (totalCurrentConsumptionWh / 1000).toFixed(3);
+      totalEl.innerHTML = `
+        <div class="total-consumption">
+          <div class="total-label">Total Consumption (30mn)</div>
+          <div class="total-kwh">${totalKWh} kWh</div>
+        </div>
+      `;
+    }
+
+    // Update the doughnut chart with the fetched period data
+    updateEnergyChart(channelGroups, chartDataForUpdate);
+  };
+
+  fetchAllGroups();
+  currentConsumptionInterval = setInterval(() => {
+    fetchAllGroups();
+  }, 10000); // Update every 10 seconds
+
+  // Add event listener to the input to refetch on change
+  const minutesInput = el('#consumption-period-minutes');
+  if (minutesInput) {
+    minutesInput.addEventListener('change', fetchAndUpdateCurrentConsumption);
   }
 }
 
@@ -2065,5 +2174,11 @@ document.addEventListener("DOMContentLoaded", () => {
   
   if (window.Chart) {
     initRealtimeCharts();
+    
+    // For energy sensors, fetch the initial consumption data on load
+    const devType = (document.documentElement.dataset.devType || '').toUpperCase();
+    if (devType === 'ENERGY' || devType === 'CONSO') {
+      fetchAndUpdateCurrentConsumption();
+    }
   }
 });

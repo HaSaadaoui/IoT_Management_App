@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -415,6 +416,28 @@ public class SensorController {
         return sensorService.getConsumptionByChannels(idSensor, startDate, endDate, channels);
     }
    
+    /**
+     * Endpoint REST pour récupérer la consommation sur une période récente (en minutes) pour un groupe de canaux.
+     *
+     * @param idSensor L'ID du capteur.
+     * @param channels La liste des numéros de canaux.
+     * @param minutes La durée en minutes (défaut 10).
+     * @return La consommation en Wh pour la période donnée, ou 0 si aucune donnée n'est disponible.
+     */
+    @GetMapping("/manage-sensors/monitoring/{idSensor}/consumption/current")
+    @ResponseBody
+    public ResponseEntity<Map<String, Double>> getCurrentConsumption(
+            @PathVariable String idSensor,
+            @RequestParam("channels") List<String> channels,
+            @RequestParam(value = "minutes", defaultValue = "10") int minutes
+    ) {
+        Double consumption = sensorService.getCurrentConsumption(idSensor, channels, minutes);
+        if (consumption == null) {
+            // Retourner 0 si aucune donnée n'est disponible ou si la consommation est nulle/négative
+            return ResponseEntity.ok(Map.of("consumption", 0.0));
+        }
+        return ResponseEntity.ok(Map.of("consumption", consumption));
+    }
 
     /* ===================== PRIVÉS ===================== */
 
