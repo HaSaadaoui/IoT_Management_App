@@ -1400,7 +1400,7 @@ function initRealtimeCharts() {
     },
     'PIR_LIGHT': {
       main: { label: 'Presence', color: '#10b981', title: '👤 Motion Detection', unit: 'Status' },
-      secondary: { label: 'Daylight', color: '#fbbf24', title: '☀️ Daylight Level', unit: 'Level' }
+      secondary: { label: 'Daylight', color: '#fbbf24', title: '☀️ Daylight Level', unit: 'DaylightLevel' }
     },
     'SON': {
       main: { label: 'LAeq', color: '#8b5cf6', title: '🔊 Sound Level', unit: 'dB' },
@@ -1408,8 +1408,8 @@ function initRealtimeCharts() {
       laiMax: { label: 'LAImax', color: '#9333ea', title: '💥 Max Sound Impact', unit: 'dB' }
     },
     'COUNT': {
-      main: { label: 'Staff IN', color: '#10b981', title: '📥 Staff IN', unit: 'persons' },
-      secondary: { label: 'Staff OUT', color: '#ef4444', title: '📤 Staff OUT', unit: 'persons' }
+      main: { label: 'In', color: '#10b981', title: '📥 Number of Employees In', unit: 'Persons' },
+      secondary: { label: 'Out', color: '#ef4444', title: '📤 Number of Employees Out', unit: 'Persons' }
     },
     'ENERGY': {
       main: { label: 'Consumption', color: '#f59e0b', title: '⚡ Energy Consumption', unit: 'kWh' },
@@ -1601,7 +1601,9 @@ function createChartConfig(label, color, yAxisUnit = '', currentDate) {
     "Level",
     "Status",
     "LightStatus",
-    "MotionStatus"
+    "MotionStatus",
+    "DaylightLevel",
+    "Persons"
   ]
   
   if (yAxisUnit && !hideUnits.includes(yAxisUnit) && !label.includes(`(${yAxisUnit})`)) {
@@ -1708,6 +1710,15 @@ function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate =
       yAxisConfig.beginAtZero = false;
       yAxisConfig.ticks.stepSize = 1; // Ensure integer values on the axis
       break;
+    case 'DaylightLevel': // "dim" or "bright"
+      yAxisConfig.min = 0;
+      yAxisConfig.max = 2;
+      yAxisConfig.ticks = {
+        ...yAxisConfig.ticks,
+        callback: function(value) {
+          return { dim: 'Dim', bright: 'Bright' }[value] ?? '';
+        }
+      }
     case 'IlluminanceStatus': // For Illuminance status on OCCUP sensors
       yAxisConfig.min = 0;
       yAxisConfig.max = 2;
