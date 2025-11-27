@@ -385,8 +385,8 @@ public class SensorController {
     public Map<String, Object> getSensorHistory(
             @PathVariable String idGateway,
             @PathVariable String idSensor,
-            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date startDate,
-            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date endDate) {
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Date startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Date endDate) {
         
         Map<PayloadValueType, LinkedHashMap<LocalDateTime, String>> dataGroupedByValueType = sensorService.findSensorDataByPeriod(idSensor, startDate, endDate);
 
@@ -404,8 +404,8 @@ public class SensorController {
     public Map<Date, Double> getSensorConsumptionByChannels(
         @PathVariable String idGateway,
         @PathVariable String idSensor,
-        @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date startDate,
-        @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date endDate,
+        @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Date startDate,
+        @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Date endDate,
         @RequestParam("channels") String[] channelsStr
     ) {
         // Append "CONSUMPTION_CHANNEL_" to all channelStr

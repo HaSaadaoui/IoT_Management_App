@@ -109,7 +109,7 @@ async function loadHistory(fromISO, toISO) {
         // Generate labels showing just the start time for each interval
         const firstGroupInterval = intervalGroupedData[0] || {};
         const allLabels = Object.keys(firstGroupInterval);
-        const labels = allLabels.slice(0, -1).map(intervalStart => {
+        const labels = allLabels.map(intervalStart => {
             const startDate = new Date(intervalStart);
             // For daily grouping, show only the date. Otherwise, show date and time.
             if (intervalHours === 24) {
@@ -122,7 +122,7 @@ async function loadHistory(fromISO, toISO) {
 
         const datasets = intervalGroupedData.map((intervalData, index) => {
             const groupInfo = Object.values(consumptionCharts)[index];
-            const values = allLabels.slice(0, -1).map(key => (intervalData[key] || 0) / 1000); // Wh to kWh
+            const values = allLabels.map(key => (intervalData[key] || 0) / 1000); // Wh to kWh
             return { label: groupInfo.label, data: values, backgroundColor: groupInfo.color, borderColor: groupInfo.color, borderWidth: 1, borderRadius: 4, barPercentage: 0.8 };
         });
 
@@ -234,8 +234,8 @@ async function loadChannelHistogramData(channels = [], fromISO, toISO) {
 
     try {
         const params = new URLSearchParams();
-        params.set('startDate', fromISO.split('T')[0]);
-        params.set('endDate', toISO.split('T')[0]);
+        params.set('startDate', fromISO);
+        params.set('endDate', toISO);
         channels.forEach(ch => params.append('channels', String(ch)));
         const res = await fetch(`/manage-sensors/monitoring/${GATEWAY_ID}/${SENSOR_ID}/consumption?` + params.toString());
         if (!res.ok) throw new Error(`Failed to fetch consumption data for channels ${channels.join(',')}: ${res.statusText}`);
@@ -327,12 +327,12 @@ document.addEventListener("DOMContentLoaded", () => {
     from.setHours(0, 0, 0, 0);
 
     const toLocalISOString = (date) => {
-        const tzoffset = (new Date()).getTimezoneOffset() * 60000;
-        return new Date(date - tzoffset).toISOString().slice(0, 16);
+        const tzoffset = date.getTimezoneOffset() * 60000;
+        return new Date(date.getTime() - tzoffset).toISOString().slice(0, 19);
     };
 
-    document.getElementById('hist-from').value = toLocalISOString(from);
-    document.getElementById('hist-to').value = toLocalISOString(to);
+    document.getElementById('hist-from').value = toLocalISOString(from).replace('T', ' ');
+    document.getElementById('hist-to').value = toLocalISOString(to).replace('T', ' ');
 
     loadHistory(from.toISOString(), to.toISOString());
 });
