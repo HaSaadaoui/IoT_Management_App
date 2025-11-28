@@ -788,8 +788,8 @@ main {
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border);
     transition: all 0.3s ease;
-    min-height: 280px;
-    max-height: 350px;
+    min-height: 320px;
+    max-height: 400px;
     overflow: hidden;
     position: relative;
 }
@@ -898,7 +898,7 @@ main {
 /* Canvas wrapper and styling - ONLY for real-time charts */
 .realtime-charts .chart-canvas-wrapper {
     position: relative;
-    height: 200px;
+    height: 240px;
     width: 100%;
     margin-top: 1rem;
     padding-right: 20px; /* Espace pour les valeurs de l'axe Y */
@@ -911,7 +911,7 @@ main {
     width: 100% !important;
     height: 100% !important;
     max-width: 100% !important;
-    max-height: 200px !important;
+    max-height: 240px !important;
     border-radius: 8px;
     display: block;
 }

@@ -503,8 +503,8 @@ function startSSE() {
             if (battPct != null && el('#s-desk-vdd')) updateBatteryBadge('#s-desk-vdd', battPct);
           }
           break;
-        case 'ENERGY': // NOSONAR
-        case 'CONSO': // NOSONAR
+        case 'ENERGY': 
+        case 'CONSO': 
           // Gestion des données de consommation énergétique
           console.log('ENERGY/CONSO case triggered with payload:', p);
           if (p && p.energy_data && typeof p.energy_data === 'object') {
@@ -1253,7 +1253,7 @@ function updateEnergyChart(groups, data) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { // NOSONAR
+        plugins: { 
           legend: {
             display: false // Désactiver la légende par défaut
           },
@@ -1712,7 +1712,7 @@ function createEnergyPowerUsageChartConfig() {
         }
       ]
     },
-    options: getChartOptionsWithUnits('Consumption by Group', 'kWh', currentDate)
+    options: getChartOptionsWithUnits('Consumption by Group (kWh)', 'kWh', currentDate)
   };
 }
 
@@ -1875,7 +1875,7 @@ function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate =
     responsive: true,
     maintainAspectRatio: false,
     resizeDelay: 0,
-    layout: { // NOSONAR
+    layout: { 
       padding: {
         right: 15 // Espace supplémentaire à droite pour les valeurs de l'axe Y
       }
@@ -2021,7 +2021,7 @@ function updateRealtimeCharts(data) {
       updateChart(realtimeCharts.motion, chartData.motion, timestamp, data.motion);
       updateChart(realtimeCharts.occupancy, chartData.occupancy, timestamp, data.occupancy ? 1 : 0);
       break;
-    case 'OCCUP': // NOSONAR
+    case 'OCCUP': 
       updateChart(realtimeCharts.main, chartData.main, timestamp, data.presence ? 1 : 0);
       // VS30 (distance) vs VS70 (illuminance)
       if (data.distance != null && typeof data.distance === 'number') {
