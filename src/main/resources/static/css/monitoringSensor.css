@@ -630,7 +630,7 @@ main {
     border-radius: 12px;
     padding: 1.5rem;
     box-shadow: var(--shadow-sm);
-    height: 235px; /* Hauteur fixe pour le graphique */
+    height: 247px; /* Hauteur fixe pour le graphique */
 }
 
 /* Layout horizontal pour le doughnut chart */
