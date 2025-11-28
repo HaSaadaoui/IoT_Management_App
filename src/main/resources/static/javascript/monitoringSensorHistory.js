@@ -140,7 +140,7 @@ async function loadHistory(fromISO, toISO) {
                     scales: {
                         x: {
                             stacked: false,
-                            ticks: { maxRotation: 90, minRotation: 90 }
+                            ticks: { autoSkip: true, maxRotation: 45, minRotation: 45 }
                         },
                         y: { beginAtZero: true, grace: '5%', title: { display: true, text: 'Total Consumption (kWh)' } }
                     },
@@ -226,7 +226,7 @@ async function loadHistory(fromISO, toISO) {
                 },
                 x: {
                     type: 'time',
-                    time: { unit: 'day', displayFormats: { 'day': 'yyyy-MM-dd', 'hour': 'h:mm a', 'minute': 'h:mm a' }, minUnit: 'minute' },
+                    time: { displayFormats: { 'day': 'yyyy-MM-dd', 'hour': 'h:mm a', 'minute': 'h:mm a' }, minUnit: 'minute' },
                     title: { display: true, text: 'Time', font: { size: 14, weight: 'bold' } },
                     ticks: { autoSkip: true, maxTicksLimit: 10, major: { enabled: true }, maxRotation: 0, minRotation: 0 },
                     grid: {
