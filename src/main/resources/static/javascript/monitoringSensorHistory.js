@@ -30,7 +30,7 @@ function updateCard(cardId, valueElId, value, unit = '') {
 function getLastTimestamp(values) {
     const ts = values[values.length - 1];
     const parsed = new Date(ts);
-    return parsed.toLocaleDateString("en-CA");
+    return parsed.toLocaleDateString("en-CA", { timeZone: 'UTC' });
 }
 
 async function loadHistory(fromISO, toISO) {
@@ -96,26 +96,31 @@ async function loadHistory(fromISO, toISO) {
         let intervalHours = 1; // Default to 1 hour
         const from = new Date(fromISO);
         const to = new Date(toISO);
-        const diffDays = (to - from) / (1000 * 60 * 60 * 24);
+        const diffTime = Math.abs(to - from);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        if (diffDays > 7) {
-            intervalHours = 24;
-        } else if (diffDays > 1) {
-            intervalHours = 12;
+        if (diffDays > 1) {
+            intervalHours = 24; // Group by day if range is more than 1 day
         }
-        
         const intervalGroupedData = allGroupData.map(groupData => groupDataByInterval(groupData, intervalHours));
 
         // Generate labels showing just the start time for each interval
-        const firstGroupInterval = intervalGroupedData[0] || {};
-        const allLabels = Object.keys(firstGroupInterval);
+        const allTimestamps = new Set();
+        intervalGroupedData.forEach(group => {
+            if (group) {
+                Object.keys(group).forEach(ts => allTimestamps.add(ts));
+            }
+        });
+        const allLabels = Array.from(allTimestamps).sort();
+
         const labels = allLabels.map(intervalStart => {
+            // Parse the full ISO string to correctly handle it as a UTC date.
             const startDate = new Date(intervalStart);
             // For daily grouping, show only the date. Otherwise, show date and time.
             if (intervalHours === 24) {
                 return startDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             } else {
-                const startStr = startDate.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                const startStr = startDate.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
                 return startStr;
             }
         });
@@ -129,7 +134,18 @@ async function loadHistory(fromISO, toISO) {
         if (!combinedConsumptionChart) {
             const chartCtx = ctx('histConsumptionRed');
             if (chartCtx) {
-                const chartOptions = { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false }, y: { beginAtZero: true, grace: '50%', title: { display: true, text: 'Total Consumption (kWh)' } } }, plugins: { title: { display: true, text: '' } } };
+                const chartOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: false,
+                            ticks: { maxRotation: 90, minRotation: 90 }
+                        },
+                        y: { beginAtZero: true, grace: '5%', title: { display: true, text: 'Total Consumption (kWh)' } }
+                    },
+                    plugins: { title: { display: true, text: '' } }
+                };
                 combinedConsumptionChart = new Chart(chartCtx, { type: 'bar', data: { labels: [], datasets: [] }, options: chartOptions });
             }
         }
@@ -198,6 +214,11 @@ async function loadHistory(fromISO, toISO) {
 
             const generatedLabels = generateLabels(Object.values(j.data[metricName] || {}));
             let yType = containsStrings(generatedLabels) ? 'category' : 'linear';
+            
+            // Omit the last label to prevent it from being cut off at the top of the chart
+            if (yType === 'category' && generatedLabels.length > 1) {
+                generatedLabels.pop();
+            }
 
             chartConfig.options.scales = {
                 y: {
@@ -311,11 +332,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const from = document.getElementById('hist-from')?.value || '';
         const to = document.getElementById('hist-to')?.value || '';
         try {
-            // Construct ISO string manually to avoid timezone shifts.
-            // The input is local time, but we treat it as UTC.
-            // Handle cases where seconds may or may not be present.
-            const fromISO = from ? (from.length === 16 ? from + ':00Z' : from + 'Z') : '';
-            const toISO = to ? (to.length === 16 ? to + ':00Z' : to + 'Z') : '';
+            // Construct ISO string, ensuring minutes are set to 00.
+            const fromDate = from ? new Date(from) : null;
+            if (fromDate) fromDate.setMinutes(0, 0, 0);
+            const fromISO = fromDate ? fromDate.toISOString() : '';
+            const toDate = to ? new Date(to) : null;
+            if (toDate) toDate.setMinutes(0, 0, 0);
+            const toISO = toDate ? toDate.toISOString() : '';
             await loadHistory(fromISO, toISO);
         } catch (e) {
             console.error(e);
@@ -323,21 +346,20 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Default date range: last 3 days including today
+    // Default date range
     const to = new Date();
-    to.setDate(to.getDate() + 1); // Go to the next day
-    to.setHours(0, 0, 0, 0);      // Set to midnight (start of the day)
+    to.setHours(23, 0, 0, 0);
+
     const from = new Date();
-    from.setDate(from.getDate() - 2);
     from.setHours(0, 0, 0, 0);
 
     const toLocalISOString = (date) => {
         const tzoffset = date.getTimezoneOffset() * 60000;
-        return new Date(date.getTime() - tzoffset).toISOString().slice(0, 19);
+        return new Date(date.getTime() - tzoffset).toISOString().slice(0, 16);
     };
 
-    document.getElementById('hist-from').value = toLocalISOString(from).replace('T', ' ');
-    document.getElementById('hist-to').value = toLocalISOString(to).replace('T', ' ');
+    document.getElementById('hist-from').value = toLocalISOString(from);
+    document.getElementById('hist-to').value = toLocalISOString(to);
 
     loadHistory(from.toISOString(), to.toISOString());
 });

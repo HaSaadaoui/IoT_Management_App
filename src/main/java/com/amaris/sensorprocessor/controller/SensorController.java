@@ -406,16 +406,23 @@ public class SensorController {
         @PathVariable String idSensor,
         @RequestParam("startDate") String startDateStr,
         @RequestParam("endDate") String endDateStr,
-        @RequestParam("channels") String[] channelsStr
+        @RequestParam("channels") List<String> channels
     ) {
-        Date startDate = Date.from(java.time.Instant.parse(startDateStr));
-        Date endDate = Date.from(java.time.Instant.parse(endDateStr));
-        // Append "CONSUMPTION_CHANNEL_" to all channelStr
-        List<String> channels = new ArrayList<>();
-        for (String channel : channelsStr) {
-            channels.add("CONSUMPTION_CHANNEL_" + channel);
+        try {
+            // The frontend sends ISO 8601 strings in UTC. Parse them directly into Instants.
+            Date startDate = Date.from(java.time.Instant.parse(startDateStr));
+            Date endDate = Date.from(java.time.Instant.parse(endDateStr));
+
+            // The frontend sends channel numbers; prepend the required prefix for the service layer.
+            List<String> consumptionChannels = channels.stream()
+                    .map(ch -> "CONSUMPTION_CHANNEL_" + ch)
+                    .collect(Collectors.toList());
+
+            return sensorService.getConsumptionByChannels(idSensor, startDate, endDate, consumptionChannels);
+        } catch (java.time.format.DateTimeParseException e) {
+            log.error("[API] Invalid date format for consumption request. startDate='{}', endDate='{}'", startDateStr, endDateStr, e);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid date format. Please use ISO 8601 format.", e);
         }
-        return sensorService.getConsumptionByChannels(idSensor, startDate, endDate, channels);
     }
    
     /**
