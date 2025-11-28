@@ -506,13 +506,13 @@ function startSSE() {
         case 'ENERGY': // NOSONAR
         case 'CONSO': // NOSONAR
           // Gestion des données de consommation énergétique
-          // if (p && p.energy_data && typeof p.energy_data === 'object') {
-          //   console.log('Energy data found:', p.energy_data);
-          //   updateEnergyConsumption(p.energy_data);
-          // } else {
-          //   console.log('No energy_data in payload:', p);
-          // }
-          console.log("Using DB data for more accurate conso/energy") // See: loadChannelHistogramData
+          console.log('ENERGY/CONSO case triggered with payload:', p);
+          if (p && p.energy_data && typeof p.energy_data === 'object') {
+            console.log('Energy data found:', p.energy_data);
+            updateEnergyConsumption(p.energy_data);
+          } else {
+            console.log('No energy_data in payload:', p);
+          }
           break;
         default:
           if (typeof p['battery (%)'] === 'number' && el('#s-gen-batt')) updateBatteryBadge('#s-gen-batt', p['battery (%)']);
@@ -1147,44 +1147,44 @@ function updateEnergyConsumption(data) {
     }
   });
 
-  Object.entries(channelGroups).forEach(([groupId, group]) => {
-    let groupTotal = 0;
-    group.channels.forEach(channel => {
-      const channelData = data[channel.toString()];
-      if (channelData && typeof channelData.value === 'number') {
-        groupTotal += channelData.value;
-      }
-    });
+  // Object.entries(channelGroups).forEach(([groupId, group]) => {
+  //   let groupTotal = 0;
+  //   group.channels.forEach(channel => {
+  //     const channelData = data[channel.toString()];
+  //     if (channelData && typeof channelData.value === 'number') {
+  //       groupTotal += channelData.value;
+  //     }
+  //   });
 
-    const groupEl = el(`#energy-group-${groupId}`);
-    if (groupEl) {
-      const kWh = (groupTotal / 1000).toFixed(2);
-      groupEl.innerHTML = `
-        <div class="energy-group-header">
-          <span class="group-name">${group.emoji} ${group.name}</span>
-          <span class="group-channels">Channels ${group.channels.join(', ')}</span>
-        </div>
-        <div class="energy-group-values">
-          <div class="wh-value">${formatEnergyValue(groupTotal)} Wh</div>
-          <div class="kwh-value">${kWh} kWh</div>
-        </div>
-      `;
-      groupEl.style.borderLeftColor = group.color;
-    }
-  });
+  //   const groupEl = el(`#energy-group-${groupId}`);
+  //   if (groupEl) {
+  //     const kWh = (groupTotal / 1000).toFixed(2);
+  //     groupEl.innerHTML = `
+  //       <div class="energy-group-header">
+  //         <span class="group-name">${group.emoji} ${group.name}</span>
+  //         <span class="group-channels">Channels ${group.channels.join(', ')}</span>
+  //       </div>
+  //       <div class="energy-group-values">
+  //         <div class="wh-value">${formatEnergyValue(groupTotal)} Wh</div>
+  //         <div class="kwh-value">${kWh} kWh</div>
+  //       </div>
+  //     `;
+  //     groupEl.style.borderLeftColor = group.color;
+  //   }
+  // });
 
-  const totalEl = el('#energy-total');
-  if (totalEl) {
-    const totalKWh = (totalConsumption / 1000).toFixed(2);
-    totalEl.innerHTML = `
-      <div class="total-consumption">
-        <div class="total-label">Total Consumption</div>
-        <div class="total-values">
-          <div class="total-kwh">${totalKWh} kWh</div>
-        </div>
-      </div>
-    `;
-  }
+  // const totalEl = el('#energy-total');
+  // if (totalEl) {
+  //   const totalKWh = (totalConsumption / 1000).toFixed(2);
+  //   totalEl.innerHTML = `
+  //     <div class="total-consumption">
+  //       <div class="total-label">Total Consumption</div>
+  //       <div class="total-values">
+  //         <div class="total-kwh">${totalKWh} kWh</div>
+  //       </div>
+  //     </div>
+  //   `;
+  // }
 
   updateEnergyChart(channelGroups, data);
   fetchAndUpdateCurrentConsumption();
