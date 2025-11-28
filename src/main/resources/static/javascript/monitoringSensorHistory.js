@@ -226,7 +226,7 @@ async function loadHistory(fromISO, toISO) {
                 },
                 x: {
                     type: 'time',
-                    time: { displayFormats: { 'day': 'yyyy-MM-dd', 'hour': 'h:mm a', 'minute': 'h:mm a' }, minUnit: 'minute' },
+                    time: { displayFormats: { 'day': 'yyyy-MM-dd', 'hour': 'HH:mm', 'minute': 'HH:mm' }, minUnit: 'minute' },
                     title: { display: true, text: 'Time', font: { size: 14, weight: 'bold' } },
                     ticks: { autoSkip: true, maxTicksLimit: 10, major: { enabled: true }, maxRotation: 0, minRotation: 0 },
                     grid: {
