@@ -533,7 +533,7 @@ function initCharts() {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
                 interaction: {
                     mode: 'index',
                     intersect: false
@@ -545,7 +545,7 @@ function initCharts() {
                             text: 'Date (day)',
                             color: '#64748b',
                             font: {
-                                size: 12,
+                                size: 14,
                                 weight: '600'
                             },
                             padding: { top: 10 }
@@ -560,7 +560,7 @@ function initCharts() {
                             maxTicksLimit: 10,
                             color: '#64748b',
                             font: {
-                                size: 10
+                                size: 14
                             }
                         }
                     },
@@ -570,7 +570,7 @@ function initCharts() {
                             text: 'Cost (€)',
                             color: '#64748b',
                             font: {
-                                size: 12,
+                                size: 14,
                                 weight: '600'
                             },
                             padding: { bottom: 10 }
@@ -582,7 +582,7 @@ function initCharts() {
                             stepSize: 2,
                             color: '#64748b',
                             font: {
-                                size: 11
+                                size: 14
                             },
                             callback: function(value) {
                                 return '€' + value;
