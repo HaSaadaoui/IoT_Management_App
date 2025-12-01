@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -166,12 +167,17 @@ public class SensorService {
      * @param valueType
      * @return LinkedHashMap de SensorData triés par date du plus anciens au plus récent.
      */
-    public LinkedHashMap<LocalDateTime, String> findSensorDataByPeriodAndType(String idSensor, Date startDate, Date endDate, PayloadValueType valueType) {
-        var datas = sensorDataDao.findSensorDataByPeriodAndType(idSensor, startDate, endDate, valueType);
+    public LinkedHashMap<LocalDateTime, String> findSensorDataByPeriodAndType(String idSensor, Date startDate, Date endDate, PayloadValueType valueType, Optional<Integer> limit) {
+        var datas = sensorDataDao.findSensorDataByPeriodAndType(idSensor, startDate, endDate, valueType, limit);
         LinkedHashMap<LocalDateTime, String> timeToStringValueMap = new LinkedHashMap<>();
+        String lastValue = null; // To track the last encountered value
+
         for (SensorData data : datas) {
-            var receivedDate = data.getReceivedAt();
-            timeToStringValueMap.put(receivedDate, data.getValueAsString());
+            String currentValue = data.getValueAsString();
+            if (!Objects.equals(currentValue, lastValue)) { // Only add if the value has changed
+                timeToStringValueMap.put(data.getReceivedAt(), currentValue);
+                lastValue = currentValue;
+            }
         }
         return timeToStringValueMap;
     }

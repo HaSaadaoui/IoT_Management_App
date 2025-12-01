@@ -53,11 +53,25 @@ public class SensorDataDao {
         return datas;
     }
 
-    public List<SensorData> findSensorDataByPeriodAndType(String idSensor, Date startDate, Date endDate, PayloadValueType valueType) {
-        String query = "SELECT * FROM sensor_data WHERE id_sensor = ? AND value_type = ? AND received_at BETWEEN ? AND ? ORDER BY received_at ASC";
+    public List<SensorData> findSensorDataByPeriodAndType(String idSensor, Date startDate, Date endDate, PayloadValueType valueType, Optional<Integer> limit) {
+        StringBuilder queryBuilder = new StringBuilder("SELECT * FROM sensor_data WHERE id_sensor = ? AND value_type = ? AND received_at BETWEEN ? AND ?");
+        List<Object> params = new ArrayList<>();
+        params.add(idSensor);
+        params.add(valueType.toString());
+        params.add(startDate);
+        params.add(endDate);
+
+        if (limit.isPresent() && limit.get() > 0) {
+            // To get the N most recent records in ascending time order,
+            // we order by DESC and limit, then reverse the list in Java.
+            queryBuilder.append(" ORDER BY received_at DESC LIMIT ?");
+            params.add(limit.get());
+        } else {
+            queryBuilder.append(" ORDER BY received_at ASC");
+        }
 
         try {
-            return jdbcTemplate.query(query, (rs, rowNum) -> {
+            List<SensorData> result = jdbcTemplate.query(queryBuilder.toString(), (rs, rowNum) -> {
                 SensorData sensorData = new SensorData(
                     rs.getString("id_sensor"),
                     rs.getTimestamp("received_at").toLocalDateTime(),
@@ -65,7 +79,13 @@ public class SensorDataDao {
                     rs.getString("value_type")
                 );
                 return sensorData;
-            }, idSensor, valueType.toString(), startDate, endDate);
+            }, params.toArray());
+
+            if (limit.isPresent() && limit.get() > 0) {
+                // Reverse the list to get ascending chronological order if a limit was applied
+                java.util.Collections.reverse(result);
+            }
+            return result;
         } catch (Exception e) {
             // Log the exception if necessary
             return new ArrayList<>();
@@ -112,6 +132,28 @@ public class SensorDataDao {
             return new ArrayList<>();
         }
         
+    }
+
+    public Optional<SensorData> findLatestBySensorAndType(String idSensor, PayloadValueType valueType) {
+        String query = "SELECT * FROM sensor_data WHERE id_sensor = ? AND value_type = ? ORDER BY received_at DESC LIMIT 1";
+
+        try {
+            List<SensorData> result = jdbcTemplate.query(query, (rs, rowNum) -> {
+                LocalDateTime receivedAt = rs.getTimestamp("received_at") != null ? rs.getTimestamp("received_at").toLocalDateTime() : null;
+                String stringValue = rs.getString("string_value");
+                String vt = rs.getString("value_type");
+
+                if (receivedAt == null || stringValue == null || vt == null) {
+                    return null; // Skip invalid records
+                }
+
+                return new SensorData(rs.getString("id_sensor"), receivedAt, stringValue, vt);
+            }, idSensor, valueType.toString());
+
+            return result.stream().filter(java.util.Objects::nonNull).findFirst();
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 
     public Optional<SensorData> findLastValueBefore(String idSensor, PayloadValueType channel, Instant instant) {

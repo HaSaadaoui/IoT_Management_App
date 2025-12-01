@@ -65,6 +65,22 @@ public class SensorDao {
         );
     }
 
+    public List<Sensor> findAllByDeviceType(String deviceType) {
+        return jdbcTemplate.query(
+                "SELECT * FROM sensors WHERE DEVICE_TYPE = ?",
+                new BeanPropertyRowMapper<>(Sensor.class),
+                deviceType
+        );
+    }
+
+    public List<Sensor> findAllByLocation(String location) {
+        return jdbcTemplate.query(
+                "SELECT * FROM sensors WHERE location = ?",
+                new BeanPropertyRowMapper<>(Sensor.class),
+                location
+        );
+    }
+
     /** Met à jour les colonnes de base (sauf la PK). */
     public int updateSensor(Sensor sensor) {
         return jdbcTemplate.update(
@@ -75,8 +91,8 @@ public class SensorDao {
                         "BUILDING_NAME = ?, " +
                         "FLOOR = ?, " +
                         "LOCATION = ?, " +
-                        "ID_GATEWAY = ? " +
-                        "DEV_EUI = ? " +
+                        "ID_GATEWAY = ?, " +
+                        "DEV_EUI = ?, " +
                         "FREQUENCY_PLAN = ? " +
                         "WHERE ID_SENSOR = ?",
                 sensor.getDeviceType(),

@@ -49,17 +49,6 @@ public class HomeController {
     }
 
     /**
-     * @return la vue "dashboard" pour afficher le dashboard de monitoring et analytics.
-     */
-    @GetMapping("/dashboard")
-    public String dashboard(Model model, Principal principal) {
-        User user = userService.searchUserByUsername(principal.getName());
-        model.addAttribute("user", user);
-        model.addAttribute("loggedUsername", user.getUsername());
-        return "dashboard";
-    }
-
-    /**
      * @return la vue "register" pour afficher la page d'inscrition.
      */
     @GetMapping("/register")
