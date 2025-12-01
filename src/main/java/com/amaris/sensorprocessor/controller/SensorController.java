@@ -373,7 +373,7 @@ public class SensorController {
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date endDate) {
         try {
-            return sensorService.findSensorDataByPeriodAndType(idSensor, startDate, endDate, valueType);
+            return sensorService.findSensorDataByPeriodAndType(idSensor, startDate, endDate, valueType, Optional.empty());
         } catch (Exception e) {
             log.error("[API] Error fetching data for sensor {}: {}", idSensor, e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error fetching sensor data", e);
