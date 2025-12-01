@@ -169,8 +169,14 @@ main {
 
 .live-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 1.5rem;
+}
+
+.wrapper3d {
+    display: block;
+    grid-template-columns: 1fr;
+    padding-bottom: 1.5rem;
 }
 
 .floor-plan-card {
