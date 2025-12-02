@@ -365,19 +365,22 @@
             </div>
             
             <!-- Daily Sensor Cost Chart -->
-            <div class="chart-card">
-                <h4>Daily Sensor Cost</h4>
+            <div class="chart-card" style="display: flex; flex-direction: column;">
                 <div class="cost-summary">
-                    <div class="cost-total">
-                        <span class="cost-label">Total Monthly Cost</span>
-                        <span class="cost-value">€842.50</span>
-                    </div>
-                    <div class="cost-average">
-                        <span class="cost-label">Average Daily Cost</span>
-                        <span class="cost-value">€27.82</span>
+                    <div class="cost-card">
+                        <div>
+                            <span class="cost-label">Total Monthly Cost</span>
+                            <span class="cost-value">€842.50</span>
+                        </div>
+                        <div>
+                            <span class="cost-label">Average Daily Cost</span>
+                            <span class="cost-value">€27.82</span>
+                        </div>
                     </div>
                 </div>
-                <canvas id="chart-sensor-cost"></canvas>
+                <div style="flex: 1; min-height: 0; position: relative;">
+                    <canvas id="chart-sensor-cost"></canvas>
+                </div>
             </div>
             <!-- Bar Chart -->
             <div class="chart-card large">

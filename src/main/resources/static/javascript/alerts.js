@@ -50,63 +50,63 @@ function loadFloorDesks(floorNumber) {
     const deskGrid = document.getElementById('desk-grid');
     
     // Sample desk configurations for each floor
-    // Desk ID format: desk-{floor}-{number} (e.g., desk-00-01, desk-02-15)
+    // Desk ID format: desk-{floor+1}-{number} (e.g., desk-01-01 for floor 0, desk-03-15 for floor 2)
     const floorDesks = {
         0: [
-            { id: 'desk-00-01', status: 'free' },
-            { id: 'desk-00-02', status: 'used' },
-            { id: 'desk-00-03', status: 'free' },
-            { id: 'desk-00-04', status: 'free' },
-            { id: 'desk-00-05', status: 'used' },
-            { id: 'desk-00-06', status: 'free' },
-            { id: 'desk-00-07', status: 'free' },
-            { id: 'desk-00-08', status: 'used' }
-        ],
-        1: [
             { id: 'desk-01-01', status: 'free' },
             { id: 'desk-01-02', status: 'used' },
             { id: 'desk-01-03', status: 'free' },
-            { id: 'desk-01-04', status: 'invalid' },
-            { id: 'desk-01-05', status: 'free' },
-            { id: 'desk-01-06', status: 'used' },
+            { id: 'desk-01-04', status: 'free' },
+            { id: 'desk-01-05', status: 'used' },
+            { id: 'desk-01-06', status: 'free' },
             { id: 'desk-01-07', status: 'free' },
-            { id: 'desk-01-08', status: 'free' },
-            { id: 'desk-01-09', status: 'used' },
-            { id: 'desk-01-10', status: 'free' },
-            { id: 'desk-01-11', status: 'used' },
-            { id: 'desk-01-12', status: 'free' }
+            { id: 'desk-01-08', status: 'used' }
+        ],
+        1: [
+            { id: 'desk-02-01', status: 'free' },
+            { id: 'desk-02-02', status: 'used' },
+            { id: 'desk-02-03', status: 'free' },
+            { id: 'desk-02-04', status: 'invalid' },
+            { id: 'desk-02-05', status: 'free' },
+            { id: 'desk-02-06', status: 'used' },
+            { id: 'desk-02-07', status: 'free' },
+            { id: 'desk-02-08', status: 'free' },
+            { id: 'desk-02-09', status: 'used' },
+            { id: 'desk-02-10', status: 'free' },
+            { id: 'desk-02-11', status: 'used' },
+            { id: 'desk-02-12', status: 'free' }
         ],
         2: [
-            { id: 'desk-02-01', status: 'free' },
-            { id: 'desk-02-02', status: 'free' },
-            { id: 'desk-02-03', status: 'used' },
-            { id: 'desk-02-04', status: 'free' },
-            { id: 'desk-02-05', status: 'used' },
-            { id: 'desk-02-06', status: 'free' },
-            { id: 'desk-02-07', status: 'free' },
-            { id: 'desk-02-08', status: 'used' },
-            { id: 'desk-02-09', status: 'free' },
-            { id: 'desk-02-10', status: 'used' },
-            { id: 'desk-02-11', status: 'free' },
-            { id: 'desk-02-12', status: 'free' },
-            { id: 'desk-02-13', status: 'used' },
-            { id: 'desk-02-14', status: 'free' },
-            { id: 'desk-02-15', status: 'free' },
-            { id: 'desk-02-16', status: 'used' }
-        ],
-        3: [
             { id: 'desk-03-01', status: 'free' },
             { id: 'desk-03-02', status: 'free' },
-            { id: 'desk-03-03', status: 'free' },
-            { id: 'desk-03-04', status: 'used' },
-            { id: 'desk-03-05', status: 'free' },
+            { id: 'desk-03-03', status: 'used' },
+            { id: 'desk-03-04', status: 'free' },
+            { id: 'desk-03-05', status: 'used' },
             { id: 'desk-03-06', status: 'free' },
-            { id: 'desk-03-07', status: 'used' },
-            { id: 'desk-03-08', status: 'free' },
+            { id: 'desk-03-07', status: 'free' },
+            { id: 'desk-03-08', status: 'used' },
             { id: 'desk-03-09', status: 'free' },
             { id: 'desk-03-10', status: 'used' },
             { id: 'desk-03-11', status: 'free' },
-            { id: 'desk-03-12', status: 'used' }
+            { id: 'desk-03-12', status: 'free' },
+            { id: 'desk-03-13', status: 'used' },
+            { id: 'desk-03-14', status: 'free' },
+            { id: 'desk-03-15', status: 'free' },
+            { id: 'desk-03-16', status: 'used' }
+        ],
+        3: [
+            { id: 'desk-04-01', status: 'free' },
+            { id: 'desk-04-02', status: 'free' },
+            { id: 'desk-04-03', status: 'free' },
+            { id: 'desk-04-04', status: 'used' },
+            { id: 'desk-04-05', status: 'free' },
+            { id: 'desk-04-06', status: 'free' },
+            { id: 'desk-04-07', status: 'used' },
+            { id: 'desk-04-08', status: 'free' },
+            { id: 'desk-04-09', status: 'free' },
+            { id: 'desk-04-10', status: 'used' },
+            { id: 'desk-04-11', status: 'free' },
+            { id: 'desk-04-12', status: 'used' }
         ]
     };
     
@@ -492,135 +492,135 @@ function initCharts() {
     }
     
     // Sensor Cost Line Chart
-    const ctxCost = document.getElementById('chart-sensor-cost');
-    if (ctxCost) {
-        const costDates = [];
-        const costData = [];
+    // const ctxCost = document.getElementById('chart-sensor-cost');
+    // if (ctxCost) {
+    //     const costDates = [];
+    //     const costData = [];
         
-        // Generate realistic cost data for last 30 days
-        const baselineCost = 28; // €28 baseline
-        for (let i = 29; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            costDates.push(date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
+    //     // Generate realistic cost data for last 30 days
+    //     const baselineCost = 28; // €28 baseline
+    //     for (let i = 29; i >= 0; i--) {
+    //         const date = new Date();
+    //         date.setDate(date.getDate() - i);
+    //         costDates.push(date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
             
-            // Add variation (±20%) to make it realistic
-            const variation = (Math.random() - 0.5) * 2 * 0.2; // ±20%
-            const dailyCost = baselineCost * (1 + variation);
-            costData.push(parseFloat(dailyCost.toFixed(2)));
-        }
+    //         // Add variation (±20%) to make it realistic
+    //         const variation = (Math.random() - 0.5) * 2 * 0.2; // ±20%
+    //         const dailyCost = baselineCost * (1 + variation);
+    //         costData.push(parseFloat(dailyCost.toFixed(2)));
+    //     }
         
-        new Chart(ctxCost, {
-            type: 'line',
-            data: {
-                labels: costDates,
-                datasets: [{
-                    label: 'Daily Cost',
-                    data: costData,
-                    borderColor: '#662179',
-                    backgroundColor: 'rgba(102, 33, 121, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    pointBackgroundColor: '#ffffff',
-                    pointBorderColor: '#662179',
-                    pointBorderWidth: 2,
-                    pointHoverBackgroundColor: '#662179',
-                    pointHoverBorderColor: '#ffffff',
-                    pointHoverBorderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false
-                },
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Date (day)',
-                            color: '#64748b',
-                            font: {
-                                size: 14,
-                                weight: '600'
-                            },
-                            padding: { top: 10 }
-                        },
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            maxRotation: 0,
-                            minRotation: 0,
-                            autoSkip: true,
-                            maxTicksLimit: 10,
-                            color: '#64748b',
-                            font: {
-                                size: 14
-                            }
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Cost (€)',
-                            color: '#64748b',
-                            font: {
-                                size: 14,
-                                weight: '600'
-                            },
-                            padding: { bottom: 10 }
-                        },
-                        beginAtZero: false,
-                        min: 20,
-                        max: 36,
-                        ticks: {
-                            stepSize: 2,
-                            color: '#64748b',
-                            font: {
-                                size: 14
-                            },
-                            callback: function(value) {
-                                return '€' + value;
-                            }
-                        },
-                        grid: {
-                            color: 'rgba(226, 232, 240, 0.5)',
-                            drawBorder: false,
-                            lineWidth: 1
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        titleColor: '#ffffff',
-                        bodyColor: '#ffffff',
-                        padding: 12,
-                        borderColor: '#662179',
-                        borderWidth: 1,
-                        displayColors: false,
-                        callbacks: {
-                            title: function(context) {
-                                return 'Date: ' + context[0].label;
-                            },
-                            label: function(context) {
-                                return 'Cost: €' + context.parsed.y.toFixed(2);
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
+    //     new Chart(ctxCost, {
+    //         type: 'line',
+    //         data: {
+    //             labels: costDates,
+    //             datasets: [{
+    //                 label: 'Daily Cost',
+    //                 data: costData,
+    //                 borderColor: '#662179',
+    //                 backgroundColor: 'rgba(102, 33, 121, 0.1)',
+    //                 borderWidth: 3,
+    //                 fill: true,
+    //                 tension: 0.4,
+    //                 pointRadius: 4,
+    //                 pointHoverRadius: 6,
+    //                 pointBackgroundColor: '#ffffff',
+    //                 pointBorderColor: '#662179',
+    //                 pointBorderWidth: 2,
+    //                 pointHoverBackgroundColor: '#662179',
+    //                 pointHoverBorderColor: '#ffffff',
+    //                 pointHoverBorderWidth: 2
+    //             }]
+    //         },
+    //         options: {
+    //             responsive: true,
+    //             maintainAspectRatio: false,
+    //             interaction: {
+    //                 mode: 'index',
+    //                 intersect: false
+    //             },
+    //             scales: {
+    //                 x: {
+    //                     title: {
+    //                         display: true,
+    //                         text: 'Date (day)',
+    //                         color: '#64748b',
+    //                         font: {
+    //                             size: 14,
+    //                             weight: '600'
+    //                         },
+    //                         padding: { top: 10 }
+    //                     },
+    //                     grid: {
+    //                         display: false
+    //                     },
+    //                     ticks: {
+    //                         maxRotation: 0,
+    //                         minRotation: 0,
+    //                         autoSkip: true,
+    //                         maxTicksLimit: 10,
+    //                         color: '#64748b',
+    //                         font: {
+    //                             size: 14
+    //                         }
+    //                     }
+    //                 },
+    //                 y: {
+    //                     title: {
+    //                         display: true,
+    //                         text: 'Cost (€)',
+    //                         color: '#64748b',
+    //                         font: {
+    //                             size: 14,
+    //                             weight: '600'
+    //                         },
+    //                         padding: { bottom: 10 }
+    //                     },
+    //                     beginAtZero: false,
+    //                     min: 20,
+    //                     max: 36,
+    //                     ticks: {
+    //                         stepSize: 2,
+    //                         color: '#64748b',
+    //                         font: {
+    //                             size: 14
+    //                         },
+    //                         callback: function(value) {
+    //                             return '€' + value;
+    //                         }
+    //                     },
+    //                     grid: {
+    //                         color: 'rgba(226, 232, 240, 0.5)',
+    //                         drawBorder: false,
+    //                         lineWidth: 1
+    //                     }
+    //                 }
+    //             },
+    //             plugins: {
+    //                 legend: {
+    //                     display: false
+    //                 },
+    //                 tooltip: {
+    //                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    //                     titleColor: '#ffffff',
+    //                     bodyColor: '#ffffff',
+    //                     padding: 12,
+    //                     borderColor: '#662179',
+    //                     borderWidth: 1,
+    //                     displayColors: false,
+    //                     callbacks: {
+    //                         title: function(context) {
+    //                             return 'Date: ' + context[0].label;
+    //                         },
+    //                         label: function(context) {
+    //                             return 'Cost: €' + context.parsed.y.toFixed(2);
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     });
+    // }
 }
 
 // Desk click handler

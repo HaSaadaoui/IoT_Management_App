@@ -667,15 +667,14 @@ class DashboardManager {
                 datasets: [{
                     label: 'Daily Cost',
                     data: costData,
-                    borderColor: '#662179',
-                    backgroundColor: 'rgba(102, 33, 121, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    pointBackgroundColor: '#ffffff',
-                    pointBorderColor: '#662179',
+                    borderColor: '#fbbf24',
+                    backgroundColor: 'transparent',
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: '#fbbf24',
+                    pointBorderColor: '#fbbf24',
                     pointBorderWidth: 2
                 }]
             },
@@ -686,33 +685,56 @@ class DashboardManager {
                     mode: 'index',
                     intersect: false
                 },
+                elements: {
+                    point: {
+                        radius: 2,
+                        hoverRadius: 4
+                    },
+                    line: {
+                        tension: 0.3
+                    }
+                },
                 scales: {
                     x: {
+                        display: true,
                         title: {
                             display: true,
-                            text: 'Date (day)',
-                            color: '#64748b',
-                            font: { size: 14, weight: '600' },
-                            padding: { top: 10 }
+                            text: 'Time',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
                         },
-                        grid: { display: false },
+                        grid: {
+                            color: 'rgba(0,0,0,0.1)',
+                            drawBorder: false
+                        },
                         ticks: {
-                            maxRotation: 0,
-                            autoSkip: true,
-                            maxTicksLimit: 10
+                            maxTicksLimit: 8,
+                            font: {
+                                size: 11
+                            }
                         }
                     },
                     y: {
+                        display: true,
                         title: {
                             display: true,
-                            text: 'Cost (€)',
-                            color: '#64748b',
-                            font: { size: 14, weight: '600' },
-                            padding: { bottom: 10 }
+                            text: "yAxisLabel",
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
                         },
-                        beginAtZero: false,
+                        grid: {
+                            color: 'rgba(0,0,0,0.1)',
+                            drawBorder: false
+                        },
                         ticks: {
-                            callback: (value) => '€' + value.toFixed(2)
+                            maxTicksLimit: 6,
+                            font: {
+                                size: 11
+                            }
                         }
                     }
                 },

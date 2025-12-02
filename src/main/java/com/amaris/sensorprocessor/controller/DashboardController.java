@@ -41,8 +41,14 @@ public class DashboardController {
 
     @GetMapping("/api/dashboard")
     @ResponseBody
-    public DashboardData getDashboardData() {
-        return dashboardService.getDashboardData();
+    public DashboardData getDashboardData(
+            @RequestParam(required = false) String year,
+            @RequestParam(required = false) String month,
+            @RequestParam(required = false) String building,
+            @RequestParam(required = false) String floor,
+            @RequestParam(required = false) String sensorType,
+            @RequestParam(required = false) String timeSlot) {
+        return dashboardService.getDashboardData(year, month, building, floor, sensorType, timeSlot);
     }
 
     @GetMapping("/api/dashboard/occupancy")
