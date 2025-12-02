@@ -20,9 +20,9 @@ class ArchitecturalFloorPlan {
             wallStroke: '#000000',
             wallFill: '#ffffff',
             interiorLine: '#d1d5db',
-            free: successColor,
-            used: usedColor,
-            invalid: invalidColor,
+            free: okColor,
+            used: notOkColor,
+            invalid: otherColor,
             background: '#ffffff',
             text: '#374151'
         };

@@ -10,6 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
+    <script src="/javascript/chartUtils.js"></script>
 </head>
 
 <body>
@@ -250,89 +251,29 @@
                 <!-- Stats cards will be dynamically generated based on sensor type -->
                 <div class="stat-card" data-chart-index="0">
                     <h4 class="stat-card-title">Open_05-01</h4>
-                    <div class="doughnut-container">
-                        <div class="doughnut-chart">
-                            <canvas class="chart-office"></canvas>
-                        </div>
-                        <div class="doughnut-labels">
-                            <div class="stat-legend">
-                                <div class="custom-label"><span class="dot free"></span> Free (57%)</div>
-                                <div class="custom-label"><span class="dot used"></span> Used (42%)</div>
-                                <div class="custom-label"><span class="dot invalid"></span> Invalid (1%)</div>
-                            </div>
-                        </div>
+                    <div class="chart-container">
+                        <canvas class="chart-office"></canvas>
                     </div>
                 </div>
 
                 <div class="stat-card" data-chart-index="1">
                     <h4 class="stat-card-title">Open_05-02</h4>
-                    <div class="doughnut-container">
-                        <div class="doughnut-chart">
-                            <canvas class="chart-office"></canvas>
-                        </div>
-                        <div class="doughnut-labels">
-                            <div class="stat-legend">
-                                <div class="custom-label"><span class="dot free"></span> Free (75%)</div>
-                                <div class="custom-label"><span class="dot used"></span> Used (25%)</div>
-                                <div class="custom-label"><span class="dot invalid"></span> Invalid (0%)</div>
-                            </div>
-                        </div>
+                    <div class="chart-container">
+                        <canvas class="chart-office"></canvas>
                     </div>
                 </div>
 
                 <div class="stat-card" data-chart-index="2">
                     <h4 class="stat-card-title">Meeting Room A</h4>
-                    <div class="doughnut-container">
-                        <div class="doughnut-chart">
-                            <canvas class="chart-office"></canvas>
-                        </div>
-                        <div class="doughnut-labels">
-                            <div class="stat-legend">
-                                <div class="custom-label"><span class="dot free"></span> Free (66%)</div>
-                                <div class="custom-label"><span class="dot used"></span> Used (34%)</div>
-                                <div class="custom-label"><span class="dot invalid"></span> Invalid (0%)</div>
-                            </div>
-                        </div>
+                    <div class="chart-container">
+                        <canvas class="chart-office"></canvas>
                     </div>
                 </div>
-
-                <!-- <div class="stat-card">
-                    <h4 id="stat-card-4-title">Meeting Room B</h4>
-                    <div class="donut-chart">
-                        <canvas id="chart-meeting-b"></canvas>
-                    </div>
-                    <div class="stat-legend" id="stat-legend-4">
-                        <div><span class="dot free"></span> Free (50%)</div>
-                        <div><span class="dot used"></span> Used (45%)</div>
-                        <div><span class="dot invalid"></span> Invalid (5%)</div>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <h4 id="stat-card-5-title">Meeting Room C</h4>
-                    <div class="donut-chart">
-                        <canvas id="chart-meeting-c"></canvas>
-                    </div>
-                    <div class="stat-legend" id="stat-legend-5">
-                        <div><span class="dot free"></span> Free (80%)</div>
-                        <div><span class="dot used"></span> Used (20%)</div>
-                        <div><span class="dot invalid"></span> Invalid (0%)</div>
-                    </div>
-                </div> -->
 
                 <div class="stat-card" data-chart-type="total">
                     <h4 class="stat-card-title">Total Live Data</h4>
-                    <div class="doughnut-container">
-                        <div class="doughnut-chart">
-                            <canvas id="chart-total"></canvas>
-                        </div>
-                        <div class="doughnut-labels">
-                            <div class="stat-legend">
-                                <div class="custom-label"><span class="dot free"></span> Free (64%)</div>
-                                <div class="custom-label"><span class="dot used"></span> Used (36%)</div>
-                                <div class="custom-label"><span class="dot invalid"></span> Invalid (0%)</div>
-                            </div>
-                        </div>
+                    <div class="chart-container">
+                        <canvas id="chart-total"></canvas>
                     </div>
                 </div>
             </div>
@@ -397,7 +338,7 @@
                     <div class="doughnut-container">
                         <div class="doughnut-chart">
                             <canvas id="chart-global"></canvas>
-                            <div class="global-percentage" id="global-percentage-value">..%</div>
+                            <div class="global-percentage" id="global-percentage-value">0.0%</div>
                         </div>
                         <div class="doughnut-labels">
                             <div class="stat-legend" id="global-legend">

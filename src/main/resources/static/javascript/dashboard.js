@@ -324,44 +324,6 @@ class DashboardManager {
         this.updateTotalChart(liveData);
     }
 
-    // Generic doughnut chart creation function
-    createDoughnutChart(chartElement, data) {
-        // Destroy existing chart if present
-        const existingChart = Chart.getChart(chartElement);
-        if (existingChart) {
-            existingChart.destroy();
-        }
-
-        return new Chart(chartElement, {
-            type: 'doughnut',
-            data: {
-                labels: ['Free', 'Used', 'Invalid'],
-                datasets: [{
-                    data: data,
-                    backgroundColor: [successColor, usedColor, invalidColor],
-                    borderWidth: 0,
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                cutout: '70%',
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: (context) => context.label + ': ' + context.parsed + '%'
-                        }
-                    }
-                },
-            animation: {        
-            duration: 0
-            }
-            }
-        });
-    }
-
     updateLocationChart(location, index) {
         // Find the stat-card with matching data-chart-index
         const statCard = document.querySelector(`.stat-card[data-chart-index="${index}"]`);
@@ -370,78 +332,29 @@ class DashboardManager {
             return;
         }
 
-        const chartElement = statCard.querySelector('.chart-office');
-        if (!chartElement) {
-            console.warn(`Chart element not found for index: ${index}`);
-            return;
-        }
-
-        const total = location.freeCount + location.usedCount + location.invalidCount;
-        if (total === 0) {
-            console.warn(`No data for chart at index ${index}`);
-            return;
-        }
-
-        const freePercent = (location.freeCount / total * 100).toFixed(2);
-        const usedPercent = (location.usedCount / total * 100).toFixed(2);
-        const invalidPercent = (location.invalidCount / total * 100).toFixed(2);
-
-        // Create chart using generic function
-        this.createDoughnutChart(chartElement, [freePercent, usedPercent, invalidPercent]);
-
-        // Update legend
-        const legendElement = statCard.querySelector('.stat-legend');
-        if (legendElement) {
-            legendElement.innerHTML = `
-                <div class="custom-label"><span class="dot free"></span> Free (${freePercent}%)</div>
-                <div class="custom-label"><span class="dot used"></span> Used (${usedPercent}%)</div>
-                <div class="custom-label"><span class="dot invalid"></span> Invalid (${invalidPercent}%)</div>
-            `;
-        }
-
-        // Update title
-        const titleElement = statCard.querySelector('.stat-card-title');
-        if (titleElement) {
-            titleElement.textContent = location.location;
-        }
+        // Use shared utility function to update the entire card
+        window.ChartUtils.updateStatCard(statCard, location);
     }
 
     updateTotalChart(liveData) {
         const totalFree = liveData.reduce((sum, loc) => sum + loc.freeCount, 0);
         const totalUsed = liveData.reduce((sum, loc) => sum + loc.usedCount, 0);
         const totalInvalid = liveData.reduce((sum, loc) => sum + loc.invalidCount, 0);
-        const total = totalFree + totalUsed + totalInvalid;
 
-        if (total === 0) {
-            console.warn('No total data available for chart');
-            return;
-        }
-
-        const freePercent = (totalFree / total * 100).toFixed(2);
-        const usedPercent = (totalUsed / total * 100).toFixed(2);
-        const invalidPercent = (totalInvalid / total * 100).toFixed(2);
-
-        const chartElement = document.getElementById('chart-total');
-        if (!chartElement) {
-            console.warn('Chart element not found: chart-total');
-            return;
-        }
-
-        // Create chart using generic function
-        this.createDoughnutChart(chartElement, [freePercent, usedPercent, invalidPercent]);
-
-        // Update legend - find by data-chart-type="total"
+        // Find total stat card
         const totalStatCard = document.querySelector('.stat-card[data-chart-type="total"]');
-        if (totalStatCard) {
-            const legendElement = totalStatCard.querySelector('.stat-legend');
-            if (legendElement) {
-                legendElement.innerHTML = `
-                    <div class="custom-label"><span class="dot free"></span> Free (${freePercent}%)</div>
-                    <div class="custom-label"><span class="dot used"></span> Used (${usedPercent}%)</div>
-                    <div class="custom-label"><span class="dot invalid"></span> Invalid (${invalidPercent}%)</div>
-                `;
-            }
+        if (!totalStatCard) {
+            console.warn('Total stat card not found');
+            return;
         }
+
+        // Use shared utility function to update the entire card
+        window.ChartUtils.updateStatCard(totalStatCard, {
+            freeCount: totalFree,
+            usedCount: totalUsed,
+            invalidCount: totalInvalid,
+            location: 'Total Live Data'
+        });
     }
 
     updateHistoricalData(historicalData) {
@@ -490,14 +403,14 @@ class DashboardManager {
                     {
                         label: 'Used',
                         data: usedData,
-                        backgroundColor: usedColor,
+                        backgroundColor: notOkColor,
                         borderRadius: 4,
                         barPercentage: 0.8
                     },
                     {
                         label: 'Free',
                         data: freeData,
-                        backgroundColor: successColor,
+                        backgroundColor: okColor,
                         borderRadius: 4,
                         barPercentage: 0.8
                     }
@@ -793,7 +706,7 @@ class DashboardManager {
                 labels: ['Free', 'Occupied'],
                 datasets: [{
                     data: [free, occupied],
-                    backgroundColor: [successColor, usedColor],
+                    backgroundColor: [okColor, notOkColor],
                     borderWidth: 0,
                     hoverOffset: 10
                 }]

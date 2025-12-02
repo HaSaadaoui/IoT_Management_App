@@ -1,9 +1,5 @@
 // ===== ALERTS & MONITORING DASHBOARD - JAVASCRIPT =====
-
-const successColor = '#4a1857';
-const usedColor = '#8b2fa3';
-const invalidColor = '#94a3b8';
-
+// Note: Chart utilities and color constants are loaded from chartUtils.js
 
 // Update last refresh time
 function updateRefreshTime() {
@@ -131,40 +127,7 @@ function loadFloorDesks(floorNumber) {
     });
 }
 
-// Generic donut chart configuration
-function createDoughnutChartConfig(data) {
-    return {
-        type: 'doughnut',
-        data: {
-            labels: ['Free', 'Used', 'Invalid'],
-            datasets: [{
-                data: data,
-                backgroundColor: [successColor, usedColor, invalidColor],
-                borderWidth: 0,
-                hoverOffset: 10
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            cutout: '70%',
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.label + ': ' + context.parsed + '%';
-                        }
-                    }
-                }
-            }
-        }
-    };
-}
-
-// Initialize charts
+// Initialize charts using shared utility functions
 function initCharts() {
     // Chart.js default options
     Chart.defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
@@ -182,7 +145,8 @@ function initCharts() {
         if (statCard) {
             const chartElement = statCard.querySelector('.chart-office');
             if (chartElement) {
-                new Chart(chartElement, createDoughnutChartConfig(data));
+                // Use shared utility function
+                window.ChartUtils.createDoughnutChart(chartElement, data);
             }
         }
     });
@@ -192,7 +156,8 @@ function initCharts() {
     if (totalStatCard) {
         const chartElement = totalStatCard.querySelector('#chart-total');
         if (chartElement) {
-            new Chart(chartElement, createDoughnutChartConfig([63.64, 36.36, 0]));
+            // Use shared utility function
+            window.ChartUtils.createDoughnutChart(chartElement, [63.64, 36.36, 0]);
         }
     }
     
@@ -224,14 +189,14 @@ function initCharts() {
                     {
                         label: 'Used',
                         data: usedData,
-                        backgroundColor: usedColor,
+                        backgroundColor: notOkColor,
                         borderRadius: 4,
                         barPercentage: 0.8
                     },
                     {
                         label: 'Free',
                         data: freeData,
-                        backgroundColor: successColor,
+                        backgroundColor: okColor,
                         borderRadius: 4,
                         barPercentage: 0.8
                     }
