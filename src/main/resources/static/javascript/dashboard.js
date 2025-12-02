@@ -660,6 +660,7 @@ class DashboardManager {
             existingChart.destroy();
         }
 
+        const color = '#662179';
         this.charts.sensorCost = new Chart(chartElement, {
             type: 'line',
             data: {
@@ -667,14 +668,14 @@ class DashboardManager {
                 datasets: [{
                     label: 'Daily Cost',
                     data: costData,
-                    borderColor: '#fbbf24',
+                    borderColor: color,
                     backgroundColor: 'transparent',
                     fill: false,
                     tension: 0.1,
                     pointRadius: 3,
                     pointHoverRadius: 5,
-                    pointBackgroundColor: '#fbbf24',
-                    pointBorderColor: '#fbbf24',
+                    pointBackgroundColor: color,
+                    pointBorderColor: color,
                     pointBorderWidth: 2
                 }]
             },
@@ -713,14 +714,16 @@ class DashboardManager {
                             maxTicksLimit: 8,
                             font: {
                                 size: 11
-                            }
+                            },
+                            maxRotation: 45,
+                            minRotation: 45 / 2
                         }
                     },
                     y: {
                         display: true,
                         title: {
                             display: true,
-                            text: "yAxisLabel",
+                            text: "Cost (€)",
                             font: {
                                 size: 14,
                                 weight: 'bold'
@@ -734,6 +737,9 @@ class DashboardManager {
                             maxTicksLimit: 6,
                             font: {
                                 size: 11
+                            },
+                            callback: function(value) {
+                                return '€' + value.toFixed(2);
                             }
                         }
                     }

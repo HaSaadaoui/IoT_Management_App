@@ -327,16 +327,6 @@
     <section class="historical-section">
         <h3 class="section-title" id="historical-section-title">📈 Historical Sensor Data - Châteaudun Office</h3>
         <div class="historical-grid">
-            <!-- Global Stats -->
-            <div class="chart-card">
-                <h4 id="global-chart-title">Global Statistics</h4>
-                <div class="global-occupation">
-                    <div class="global-donut">
-                        <canvas id="chart-global"></canvas>
-                        <div class="global-percentage" id="global-percentage-value">32.93%</div>
-                    </div>
-                </div>
-            </div>
 
             <!-- Daily History Table -->
             <div class="chart-card">
@@ -367,12 +357,12 @@
             <!-- Daily Sensor Cost Chart -->
             <div class="chart-card" style="display: flex; flex-direction: column;">
                 <div class="cost-summary">
-                    <div class="cost-card">
-                        <div>
+                    <div>
+                        <div class="cost-card">
                             <span class="cost-label">Total Monthly Cost</span>
                             <span class="cost-value">€842.50</span>
                         </div>
-                        <div>
+                        <div class="cost-card">
                             <span class="cost-label">Average Daily Cost</span>
                             <span class="cost-value">€27.82</span>
                         </div>
@@ -382,11 +372,26 @@
                     <canvas id="chart-sensor-cost"></canvas>
                 </div>
             </div>
+
+            
+            <!-- Global Stats -->
+            <div class="chart-card">
+                <h4 id="global-chart-title">Global Statistics</h4>
+                <div class="global-occupation">
+                    <div class="global-donut">
+                        <canvas id="chart-global"></canvas>
+                        <div class="global-percentage" id="global-percentage-value">32.93%</div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Bar Chart -->
             <div class="chart-card large">
                 <h4 id="historical-chart-title">Sensor Data Trends (08:00 - 19:00)</h4>
                 <canvas id="chart-historical-bar"></canvas>
             </div>
+
+            
         </div>
     </section>
 </main>

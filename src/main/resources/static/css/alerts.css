@@ -678,7 +678,7 @@ main {
 
 .historical-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 2fr;
+    grid-template-columns: 1fr 3fr 1fr;
     gap: 1.5rem;
 }
 
@@ -808,7 +808,6 @@ main {
 
 .cost-card {
     background: var(--bg-card);
-    border-radius: 12px;
     padding: 1rem;
     border-left: 4px solid var(--primary);
     box-shadow: var(--shadow-sm);
