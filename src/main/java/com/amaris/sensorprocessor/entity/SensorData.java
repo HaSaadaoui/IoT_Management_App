@@ -87,5 +87,19 @@ public class SensorData {
             return null;
         }
     }
+
+    public String getOccupancy() {
+        String occString = asString.toLowerCase();
+        switch (occString) {
+            case "invalid":
+                return "invalid";
+            case "0":
+            case "free":
+            case "vacant":
+                return "free";
+            default:
+                return occString;
+        }
+    }
     
 }

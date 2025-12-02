@@ -44,127 +44,128 @@ class Building3D {
             0: {
                 name: 'Ground Floor',
                 desks: [
-                    { id: 'D1', status: 'free', x: -3, y: -2 },
-                    { id: 'D2', status: 'used', x: -1, y: -2 },
-                    { id: 'D3', status: 'free', x: 1, y: -2 },
-                    { id: 'D4', status: 'free', x: 3, y: -2 },
-                    { id: 'D5', status: 'used', x: -3, y: 2 },
-                    { id: 'D6', status: 'free', x: -1, y: 2 },
-                    { id: 'D7', status: 'free', x: 1, y: 2 },
-                    { id: 'D8', status: 'used', x: 3, y: 2 }
+                    { id: 'D01', status: 'invalid', x: -3, y: -2 },
+                    { id: 'D02', status: 'invalid', x: -1, y: -2 },
+                    { id: 'D03', status: 'invalid', x: 1, y: -2 },
+                    { id: 'D04', status: 'invalid', x: 3, y: -2 },
+                    { id: 'D05', status: 'invalid', x: -3, y: 2 },
+                    { id: 'D06', status: 'invalid', x: -1, y: 2 },
+                    { id: 'D07', status: 'invalid', x: 1, y: 2 },
+                    { id: 'D08', status: 'invalid', x: 3, y: 2 }
                 ]
             },
             1: {
                 name: 'Floor 1',
                 desks: [
-                    { id: 'D1', status: 'free', x: -3, y: -2 },
-                    { id: 'D2', status: 'used', x: -1, y: -2 },
-                    { id: 'D3', status: 'free', x: 1, y: -2 },
-                    { id: 'D4', status: 'invalid', x: 3, y: -2 },
-                    { id: 'D5', status: 'free', x: -3, y: 0 },
-                    { id: 'D6', status: 'used', x: -1, y: 0 },
-                    { id: 'D7', status: 'free', x: 1, y: 0 },
-                    { id: 'D8', status: 'free', x: 3, y: 0 },
-                    { id: 'D9', status: 'used', x: -3, y: 2 },
-                    { id: 'D10', status: 'free', x: -1, y: 2 },
-                    { id: 'D11', status: 'used', x: 1, y: 2 },
-                    { id: 'D12', status: 'free', x: 3, y: 2 }
+                    { id: 'D01', status: 'invalid', x: -3, y: -2 },
+                    { id: 'D02', status: 'invalid', x: -1, y: -2 },
+                    { id: 'D03', status: 'invalid', x: 1, y: -2 },
+                    { id: 'D04', status: 'invalid', x: 3, y: -2 },
+                    { id: 'D05', status: 'invalid', x: -3, y: 0 },
+                    { id: 'D06', status: 'invalid', x: -1, y: 0 },
+                    { id: 'D07', status: 'invalid', x: 1, y: 0 },
+                    { id: 'D08', status: 'invalid', x: 3, y: 0 },
+                    { id: 'D09', status: 'invalid', x: -3, y: 2 },
+                    { id: 'D10', status: 'invalid', x: -1, y: 2 },
+                    { id: 'D11', status: 'invalid', x: 1, y: 2 },
+                    { id: 'D12', status: 'invalid', x: 3, y: 2 }
                 ]
             },
             2: {
                 name: 'Floor 2',
                 desks: [
-                    { id: 'D1', status: 'free', x: -3, y: -2 },
-                    { id: 'D2', status: 'free', x: -1, y: -2 },
-                    { id: 'D3', status: 'used', x: 1, y: -2 },
-                    { id: 'D4', status: 'free', x: 3, y: -2 },
-                    { id: 'D5', status: 'used', x: -3, y: -0.5 },
-                    { id: 'D6', status: 'free', x: -1, y: -0.5 },
-                    { id: 'D7', status: 'free', x: 1, y: -0.5 },
-                    { id: 'D8', status: 'used', x: 3, y: -0.5 },
-                    { id: 'D9', status: 'free', x: -3, y: 1 },
-                    { id: 'D10', status: 'used', x: -1, y: 1 },
-                    { id: 'D11', status: 'free', x: 1, y: 1 },
-                    { id: 'D12', status: 'free', x: 3, y: 1 },
-                    { id: 'D13', status: 'used', x: -3, y: 2.5 },
-                    { id: 'D14', status: 'free', x: -1, y: 2.5 },
-                    { id: 'D15', status: 'free', x: 1, y: 2.5 },
-                    { id: 'D16', status: 'used', x: 3, y: 2.5 }
+                    { id: 'D01', status: 'invalid', x: -3, y: -2 },
+                    { id: 'D02', status: 'invalid', x: -1, y: -2 },
+                    { id: 'D03', status: 'invalid', x: 1, y: -2 },
+                    { id: 'D04', status: 'invalid', x: 3, y: -2 },
+                    { id: 'D05', status: 'invalid', x: -3, y: -0.5 },
+                    { id: 'D06', status: 'invalid', x: -1, y: -0.5 },
+                    { id: 'D07', status: 'invalid', x: 1, y: -0.5 },
+                    { id: 'D08', status: 'invalid', x: 3, y: -0.5 },
+                    { id: 'D09', status: 'invalid', x: -3, y: 1 },
+                    { id: 'D10', status: 'invalid', x: -1, y: 1 },
+                    { id: 'D11', status: 'invalid', x: 1, y: 1 },
+                    { id: 'D12', status: 'invalid', x: 3, y: 1 },
+                    { id: 'D13', status: 'invalid', x: -3, y: 2.5 },
+                    { id: 'D14', status: 'invalid', x: -1, y: 2.5 },
+                    { id: 'D15', status: 'invalid', x: 1, y: 2.5 },
+                    { id: 'D16', status: 'invalid', x: 3, y: 2.5 }
                 ]
             },
             3: {
                 name: 'Floor 3',
                 desks: [
-                    { id: 'D1', status: 'free', x: -3, y: -2 },
-                    { id: 'D2', status: 'free', x: -1, y: -2 },
-                    { id: 'D3', status: 'free', x: 1, y: -2 },
-                    { id: 'D4', status: 'used', x: 3, y: -2 },
-                    { id: 'D5', status: 'free', x: -3, y: 0 },
-                    { id: 'D6', status: 'free', x: -1, y: 0 },
-                    { id: 'D7', status: 'used', x: 1, y: 0 },
-                    { id: 'D8', status: 'free', x: 3, y: 0 },
-                    { id: 'D9', status: 'free', x: -3, y: 2 },
-                    { id: 'D10', status: 'used', x: -1, y: 2 },
-                    { id: 'D11', status: 'free', x: 1, y: 2 },
-                    { id: 'D12', status: 'used', x: 3, y: 2 }
+                    { id: 'D01', status: 'invalid', x: -3, y: -2 },
+                    { id: 'D02', status: 'invalid', x: -1, y: -2 },
+                    { id: 'D03', status: 'invalid', x: 1, y: -2 },
+                    { id: 'D04', status: 'invalid', x: 3, y: -2 },
+                    { id: 'D05', status: 'invalid', x: -3, y: 0 },
+                    { id: 'D06', status: 'invalid', x: -1, y: 0 },
+                    { id: 'D07', status: 'invalid', x: 1, y: 0 },
+                    { id: 'D08', status: 'invalid', x: 3, y: 0 },
+                    { id: 'D09', status: 'invalid', x: -3, y: 2 },
+                    { id: 'D10', status: 'invalid', x: -1, y: 2 },
+                    { id: 'D11', status: 'invalid', x: 1, y: 2 },
+                    { id: 'D12', status: 'invalid', x: 3, y: 2 }
                 ]
             },
             4: {
                 name: 'Floor 4',
                 desks: [
-                    { id: 'D1', status: 'free', x: -3, y: -2 },
-                    { id: 'D2', status: 'used', x: -1, y: -2 },
-                    { id: 'D3', status: 'free', x: 1, y: -2 },
-                    { id: 'D4', status: 'free', x: 3, y: -2 },
-                    { id: 'D5', status: 'free', x: -3, y: -0.5 },
-                    { id: 'D6', status: 'used', x: -1, y: -0.5 },
-                    { id: 'D7', status: 'free', x: 1, y: -0.5 },
-                    { id: 'D8', status: 'free', x: 3, y: -0.5 },
-                    { id: 'D9', status: 'used', x: -3, y: 1 },
-                    { id: 'D10', status: 'free', x: -1, y: 1 },
-                    { id: 'D11', status: 'used', x: 1, y: 1 },
-                    { id: 'D12', status: 'free', x: 3, y: 1 }
+                    { id: 'D01', status: 'invalid', x: -3, y: -2 },
+                    { id: 'D02', status: 'invalid', x: -1, y: -2 },
+                    { id: 'D03', status: 'invalid', x: 1, y: -2 },
+                    { id: 'D04', status: 'invalid', x: 3, y: -2 },
+                    { id: 'D05', status: 'invalid', x: -3, y: -0.5 },
+                    { id: 'D06', status: 'invalid', x: -1, y: -0.5 },
+                    { id: 'D07', status: 'invalid', x: 1, y: -0.5 },
+                    { id: 'D08', status: 'invalid', x: 3, y: -0.5 },
+                    { id: 'D09', status: 'invalid', x: -3, y: 1 },
+                    { id: 'D10', status: 'invalid', x: -1, y: 1 },
+                    { id: 'D11', status: 'invalid', x: 1, y: 1 },
+                    { id: 'D12', status: 'invalid', x: 3, y: 1 }
                 ]
             },
             5: {
                 name: 'Floor 5',
                 desks: [
-                    { id: 'D1', status: 'free', x: -3, y: -2 },
-                    { id: 'D2', status: 'free', x: -1, y: -2 },
-                    { id: 'D3', status: 'used', x: 1, y: -2 },
-                    { id: 'D4', status: 'free', x: 3, y: -2 },
-                    { id: 'D5', status: 'free', x: -3, y: 0 },
-                    { id: 'D6', status: 'free', x: -1, y: 0 },
-                    { id: 'D7', status: 'free', x: 1, y: 0 },
-                    { id: 'D8', status: 'used', x: 3, y: 0 },
-                    { id: 'D9', status: 'free', x: -3, y: 2 },
-                    { id: 'D10', status: 'free', x: -1, y: 2 },
-                    { id: 'D11', status: 'used', x: 1, y: 2 },
-                    { id: 'D12', status: 'free', x: 3, y: 2 }
+                    { id: 'D01', status: 'invalid', x: -3, y: -2 },
+                    { id: 'D02', status: 'invalid', x: -1, y: -2 },
+                    { id: 'D03', status: 'invalid', x: 1, y: -2 },
+                    { id: 'D04', status: 'invalid', x: 3, y: -2 },
+                    { id: 'D05', status: 'invalid', x: -3, y: 0 },
+                    { id: 'D06', status: 'invalid', x: -1, y: 0 },
+                    { id: 'D07', status: 'invalid', x: 1, y: 0 },
+                    { id: 'D08', status: 'invalid', x: 3, y: 0 },
+                    { id: 'D09', status: 'invalid', x: -3, y: 2 },
+                    { id: 'D10', status: 'invalid', x: -1, y: 2 },
+                    { id: 'D11', status: 'invalid', x: 1, y: 2 },
+                    { id: 'D12', status: 'invalid', x: 3, y: 2 }
                 ]
             },
             6: {
                 name: 'Floor 6',
                 desks: [
-                    { id: 'D1', status: 'free', x: -3, y: -2 },
-                    { id: 'D2', status: 'free', x: -1, y: -2 },
-                    { id: 'D3', status: 'free', x: 1, y: -2 },
-                    { id: 'D4', status: 'free', x: 3, y: -2 },
-                    { id: 'D5', status: 'free', x: -3, y: 0 },
-                    { id: 'D6', status: 'free', x: -1, y: 0 },
-                    { id: 'D7', status: 'free', x: 1, y: 0 },
-                    { id: 'D8', status: 'free', x: 3, y: 0 },
-                    { id: 'D9', status: 'free', x: -3, y: 2 },
-                    { id: 'D10', status: 'free', x: -1, y: 2 },
-                    { id: 'D11', status: 'free', x: 1, y: 2 },
-                    { id: 'D12', status: 'free', x: 3, y: 2 }
+                    { id: 'D01', status: 'invalid', x: -3, y: -2 },
+                    { id: 'D02', status: 'invalid', x: -1, y: -2 },
+                    { id: 'D03', status: 'invalid', x: 1, y: -2 },
+                    { id: 'D04', status: 'invalid', x: 3, y: -2 },
+                    { id: 'D05', status: 'invalid', x: -3, y: 0 },
+                    { id: 'D06', status: 'invalid', x: -1, y: 0 },
+                    { id: 'D07', status: 'invalid', x: 1, y: 0 },
+                    { id: 'D08', status: 'invalid', x: 3, y: 0 },
+                    { id: 'D09', status: 'invalid', x: -3, y: 2 },
+                    { id: 'D10', status: 'invalid', x: -1, y: 2 },
+                    { id: 'D11', status: 'invalid', x: 1, y: 2 },
+                    { id: 'D12', status: 'invalid', x: 3, y: 2 }
                 ]
             }
         };
         
         this.init();
+        this.loadRealOccupancyData();
     }
-    
+
     init() {
         this.setupScene();
         this.setupCamera();
@@ -174,6 +175,65 @@ class Building3D {
         this.createBuilding();
         this.setupEventListeners();
         this.animate();
+    }
+
+    async loadRealOccupancyData() {
+        console.log('=== Loading Real Occupancy Data for 3D Building ===');
+
+        // Iterate through each floor and fetch real occupancy data
+        for (let [floorNumber, floorInfo] of Object.entries(this.floorData)) {
+            floorNumber = parseInt(floorNumber, 10) + 1;
+            try {
+                // Fetch occupancy data for this floor using the dashboard API
+                const response = await fetch(`/api/dashboard/occupancy?floor=${floorNumber}`);
+
+                if (response.ok) {
+                    const occupancyData = await response.json();
+                    console.log(`Floor ${floorNumber} occupancy data:`, occupancyData);
+
+                    // Create a map of desk statuses
+                    const deskStatusMap = new Map();
+                    occupancyData.forEach(desk => {
+                        deskStatusMap.set(desk.id, desk.status);
+                    });
+
+                    // Update desk statuses in floor data
+                    Object.values(floorInfo.desks).map((desk, floorNumber) => {
+                        // Construct expected desk ID format (desk-NN-XX)
+                        const padding = 0 // or 1 if ground floor is 1
+                        const paddedFloor = String(parseInt(floorNumber) + padding).padStart(2, '0');
+                        const deskNumber = desk.id.replace('D', '');
+                        const paddedDesk = deskNumber.padStart(2, '0');
+                        const expectedIdDesk = `desk-${paddedFloor}-${paddedDesk}`;
+                        const expectedIdVS41 = `desk-vs40-${paddedFloor}-${paddedDesk}`;
+                        const expectedIdVS40 = `desk-vs41-${paddedFloor}-${paddedDesk}`;
+
+                        // Look for matching desk in API response
+                        if (deskStatusMap.has(expectedIdDesk) || deskStatusMap.has(expectedIdVS40) || deskStatusMap.has(expectedIdVS41)) {
+                            const newStatus = deskStatusMap.get(expectedIdDesk) || deskStatusMap.get(expectedIdVS40) || deskStatusMap.get(expectedIdVS41);
+                            desk.status = newStatus;
+                            if (this.currentArchPlan)
+                                this.currentArchPlan.deskOccupancy[desk.id] = newStatus;
+                            console.log(`Updated ${desk.id}: ${newStatus}`);
+                        }
+                    });
+                    if (this.currentArchPlan)
+                        this.currentArchPlan.drawFloorPlan();
+                } else {
+                    console.warn(`Failed to fetch occupancy data for floor ${floorNumber}: ${response.status}`);
+                }
+            } catch (error) {
+                console.error(`Error loading occupancy data for floor ${floorNumber}:`, error);
+            }
+        }
+
+        console.log('=== Real Occupancy Data Loaded ===');
+        console.log('Updated floor data:', this.floorData);
+
+        // Refresh the floor info overlay if currently hovering over a floor
+        if (this.hoveredFloor && this.isIn3DView) {
+            this.showFloorInfo(this.hoveredFloor.userData.floorNumber);
+        }
     }
     
     setupScene() {
@@ -419,6 +479,7 @@ class Building3D {
             const floor = intersects[0].object;
             if (floor.userData.clickable) {
                 this.enterFloor(floor.userData.floorNumber);
+                this.loadRealOccupancyData();
             }
         }
     }

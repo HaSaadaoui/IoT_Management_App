@@ -53,60 +53,60 @@ function loadFloorDesks(floorNumber) {
     // Desk ID format: desk-{floor+1}-{number} (e.g., desk-01-01 for floor 0, desk-03-15 for floor 2)
     const floorDesks = {
         0: [
-            { id: 'desk-01-01', status: 'free' },
-            { id: 'desk-01-02', status: 'used' },
-            { id: 'desk-01-03', status: 'free' },
-            { id: 'desk-01-04', status: 'free' },
-            { id: 'desk-01-05', status: 'used' },
-            { id: 'desk-01-06', status: 'free' },
-            { id: 'desk-01-07', status: 'free' },
-            { id: 'desk-01-08', status: 'used' }
+            { id: 'desk-01-01', status: 'invalid' },
+            { id: 'desk-01-02', status: 'invalid' },
+            { id: 'desk-01-03', status: 'invalid' },
+            { id: 'desk-01-04', status: 'invalid' },
+            { id: 'desk-01-05', status: 'invalid' },
+            { id: 'desk-01-06', status: 'invalid' },
+            { id: 'desk-01-07', status: 'invalid' },
+            { id: 'desk-01-08', status: 'invalid' }
         ],
         1: [
-            { id: 'desk-02-01', status: 'free' },
-            { id: 'desk-02-02', status: 'used' },
-            { id: 'desk-02-03', status: 'free' },
+            { id: 'desk-02-01', status: 'invalid' },
+            { id: 'desk-02-02', status: 'invalid' },
+            { id: 'desk-02-03', status: 'invalid' },
             { id: 'desk-02-04', status: 'invalid' },
-            { id: 'desk-02-05', status: 'free' },
-            { id: 'desk-02-06', status: 'used' },
-            { id: 'desk-02-07', status: 'free' },
-            { id: 'desk-02-08', status: 'free' },
-            { id: 'desk-02-09', status: 'used' },
-            { id: 'desk-02-10', status: 'free' },
-            { id: 'desk-02-11', status: 'used' },
-            { id: 'desk-02-12', status: 'free' }
+            { id: 'desk-02-05', status: 'invalid' },
+            { id: 'desk-02-06', status: 'invalid' },
+            { id: 'desk-02-07', status: 'invalid' },
+            { id: 'desk-02-08', status: 'invalid' },
+            { id: 'desk-02-09', status: 'invalid' },
+            { id: 'desk-02-10', status: 'invalid' },
+            { id: 'desk-02-11', status: 'invalid' },
+            { id: 'desk-02-12', status: 'invalid' }
         ],
         2: [
-            { id: 'desk-03-01', status: 'free' },
-            { id: 'desk-03-02', status: 'free' },
-            { id: 'desk-03-03', status: 'used' },
-            { id: 'desk-03-04', status: 'free' },
-            { id: 'desk-03-05', status: 'used' },
-            { id: 'desk-03-06', status: 'free' },
-            { id: 'desk-03-07', status: 'free' },
-            { id: 'desk-03-08', status: 'used' },
-            { id: 'desk-03-09', status: 'free' },
-            { id: 'desk-03-10', status: 'used' },
-            { id: 'desk-03-11', status: 'free' },
-            { id: 'desk-03-12', status: 'free' },
-            { id: 'desk-03-13', status: 'used' },
-            { id: 'desk-03-14', status: 'free' },
-            { id: 'desk-03-15', status: 'free' },
-            { id: 'desk-03-16', status: 'used' }
+            { id: 'desk-03-01', status: 'invalid' },
+            { id: 'desk-03-02', status: 'invalid' },
+            { id: 'desk-03-03', status: 'invalid' },
+            { id: 'desk-03-04', status: 'invalid' },
+            { id: 'desk-03-05', status: 'invalid' },
+            { id: 'desk-03-06', status: 'invalid' },
+            { id: 'desk-03-07', status: 'invalid' },
+            { id: 'desk-03-08', status: 'invalid' },
+            { id: 'desk-03-09', status: 'invalid' },
+            { id: 'desk-03-10', status: 'invalid' },
+            { id: 'desk-03-11', status: 'invalid' },
+            { id: 'desk-03-12', status: 'invalid' },
+            { id: 'desk-03-13', status: 'invalid' },
+            { id: 'desk-03-14', status: 'invalid' },
+            { id: 'desk-03-15', status: 'invalid' },
+            { id: 'desk-03-16', status: 'invalid' }
         ],
         3: [
-            { id: 'desk-04-01', status: 'free' },
-            { id: 'desk-04-02', status: 'free' },
-            { id: 'desk-04-03', status: 'free' },
-            { id: 'desk-04-04', status: 'used' },
-            { id: 'desk-04-05', status: 'free' },
-            { id: 'desk-04-06', status: 'free' },
-            { id: 'desk-04-07', status: 'used' },
-            { id: 'desk-04-08', status: 'free' },
-            { id: 'desk-04-09', status: 'free' },
-            { id: 'desk-04-10', status: 'used' },
-            { id: 'desk-04-11', status: 'free' },
-            { id: 'desk-04-12', status: 'used' }
+            { id: 'desk-04-01', status: 'invalid' },
+            { id: 'desk-04-02', status: 'invalid' },
+            { id: 'desk-04-03', status: 'invalid' },
+            { id: 'desk-04-04', status: 'invalid' },
+            { id: 'desk-04-05', status: 'invalid' },
+            { id: 'desk-04-06', status: 'invalid' },
+            { id: 'desk-04-07', status: 'invalid' },
+            { id: 'desk-04-08', status: 'invalid' },
+            { id: 'desk-04-09', status: 'invalid' },
+            { id: 'desk-04-10', status: 'invalid' },
+            { id: 'desk-04-11', status: 'invalid' },
+            { id: 'desk-04-12', status: 'invalid' }
         ]
     };
     
@@ -120,7 +120,7 @@ function loadFloorDesks(floorNumber) {
         deskElement.setAttribute('data-desk', desk.id);
         deskElement.textContent = desk.id;
         deskElement.addEventListener('click', function() {
-            alert(`Desk ${desk.id}\nStatus: ${desk.status}\n\nClick to view detailed information.`);
+            alert(`Desk ${desk.id}\nStatus: $invaliddesk.status}\n\nClick to view detailed information.`);
         });
         deskGrid.appendChild(deskElement);
     });

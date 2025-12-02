@@ -193,7 +193,7 @@ public class DashboardServiceImpl implements DashboardService {
                         if (data.getReceivedAt().isBefore(LocalDateTime.now().minusHours(1))) {
                             return "invalid";
                         }
-                        return Boolean.TRUE.equals(data.getValueAsBoolean()) ? "used" : "free";
+                        return "used";
                     }).orElse("invalid");
                     return new Desk(sensor.getIdSensor(), status);
                 })
@@ -208,7 +208,7 @@ public class DashboardServiceImpl implements DashboardService {
                         if (data.getReceivedAt().isBefore(LocalDateTime.now().minusHours(1))) {
                             return "invalid";
                         }
-                        return Boolean.TRUE.equals(data.getValueAsBoolean()) ? "used" : "free";
+                        return "used";
                     }).orElse("invalid");
                 })
                 .collect(Collectors.groupingBy(status -> status, Collectors.counting()));
