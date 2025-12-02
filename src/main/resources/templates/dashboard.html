@@ -6,10 +6,7 @@
     <link rel="stylesheet" href="/css/styles.css"/>
     <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}"/>
     <link rel="stylesheet" href="/css/alerts.css"/>
-    <link rel="stylesheet" href="/css/monitoringSensor.css"/>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
@@ -122,7 +119,7 @@
             <div class="filter-card">
                 <label>📊 Sensor Type</label>
                 <select id="filter-sensor-type">
-                    <option value="DESK" selected>Occupancy</option>
+                    <option value="DESK" selected>Desk Occupancy</option>
                     <option value="CO2">CO₂ Air Quality</option>
                     <option value="TEMP">Temperature</option>
                     <option value="LIGHT">Light Levels</option>
@@ -193,9 +190,8 @@
 
     <!-- Live Sensor Data Section -->
     <section class="live-section">
-        <h3 class="section-title" id="live-section-title">📊 Live Occupancy - Châteaudun Office</h3>
-
-        <div class="wrapper3d">
+        <h3 class="section-title" id="live-section-title">📊 Live Desk Occupancy - Châteaudun Office</h3>
+        <div class="live-grid">
             <!-- 3D Building Visualization -->
             <div class="floor-plan-card">
                 <div class="building-3d-header">
@@ -248,10 +244,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-        </div>
-
-        <div class="live-grid">
 
             <!-- Dynamic Sensor Stats -->
             <div class="office-stats" id="sensor-stats-container">
@@ -334,7 +326,7 @@
     <!-- Historical Data Section -->
     <section class="historical-section">
         <h3 class="section-title" id="historical-section-title">📈 Historical Sensor Data - Châteaudun Office</h3>
-        <div class="historical-grid charts-grid">
+        <div class="historical-grid">
             <!-- Global Stats -->
             <div class="chart-card">
                 <h4 id="global-chart-title">Global Statistics</h4>
@@ -373,25 +365,19 @@
             </div>
             
             <!-- Daily Sensor Cost Chart -->
-            <div class="chart-card large">
-                <div class="chart-header">
-                    <h4 id="sensor-cost-chart-title">Daily Sensor Cost</h4>
-                    <div class="chart-legend" id="sensor-cost-legend"></div>
+            <div class="chart-card">
+                <h4>Daily Sensor Cost</h4>
+                <div class="cost-summary">
+                    <div class="cost-total">
+                        <span class="cost-label">Total Monthly Cost</span>
+                        <span class="cost-value">€842.50</span>
+                    </div>
+                    <div class="cost-average">
+                        <span class="cost-label">Average Daily Cost</span>
+                        <span class="cost-value">€27.82</span>
+                    </div>
                 </div>
-                <div class="chart-canvas-wrapper">
-                    <canvas id="chart-sensor-cost"></canvas>
-                </div>
-            </div>
-            <!-- Moved cost summary outside the chart-card -->
-            <div class="cost-summary" style="margin-top: 1rem; padding: 1rem; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow-sm);">
-                <div class="cost-total">
-                    <span class="cost-label">Total Monthly Cost</span>
-                    <span class="cost-value">€842.50</span>
-                </div>
-                <div class="cost-average">
-                    <span class="cost-label">Average Daily Cost</span>
-                    <span class="cost-value">€27.82</span>
-                </div>
+                <canvas id="chart-sensor-cost"></canvas>
             </div>
             <!-- Bar Chart -->
             <div class="chart-card large">
@@ -402,16 +388,12 @@
     </section>
 </main>
 
-<style>
-    .charts-grid .chart-card.large {
-        grid-column: 1 / -1; /* Make it span all columns */
-    }
-</style>
 
 <script src="/javascript/sensorOverlays.js"></script>
 <script src="/javascript/architecturalFloorPlan.js"></script>
 <script src="/javascript/building3D.js"></script>
 <script src="/javascript/alerts.js"></script>
+<script src="/javascript/dashboard.js"></script>
 <script>
     function toggleMenu() {
         document.getElementById("dropdownMenu").classList.toggle("show");
@@ -422,320 +404,6 @@
             document.getElementById("dropdownMenu").classList.remove("show");
         }
     }
-
-    // --- VDD to Battery % converter (règle de trois: 2500mV=0%, 3600mV=100%)
-    function vddToBatteryPercent(vddMv) {
-        if (vddMv == null || Number.isNaN(Number(vddMv))) return null;
-        const v = Number(vddMv);
-        const MIN_VDD = 2500; // 0%
-        const MAX_VDD = 3600; // 100%
-        const pct = ((v - MIN_VDD) / (MAX_VDD - MIN_VDD)) * 100;
-        return Math.max(0, Math.min(100, Math.round(pct)));
-    }
-
-    // Checks if an array contains non-numeric string values
-    function containsStrings(values) {
-        if (!Array.isArray(values)) return false;
-        return values.some(v => {
-            // try to parse as number, if it fails, return
-            return isNaN(Number(v));
-        })
-    }
-
-    // Generates unique labels from an array of values, for categorical chart axes
-    function generateLabels(values) {
-        // Use a Set to automatically handle uniqueness.
-        const uniqueLabels = new Set(values.filter(v => typeof v === 'string'));
-        // Convert the Set back to an array.
-        return Array.from(uniqueLabels);
-    }
-    
-    // Generic factory function for creating a line chart configuration
-    function createChartConfig(label, color, yAxisUnit = '', currentDate) {
-        if (!currentDate) currentDate = new Date().toLocaleDateString('en-CA');
-        let yAxisLabel = label;
-        const hideUnits = [
-            "IlluminanceStatus",
-            "Level",
-            "Status",
-            "LightStatus",
-            "MotionStatus",
-            "DaylightLevel",
-            "Persons"
-        ]
-        
-        if (yAxisUnit && !hideUnits.includes(yAxisUnit) && !label.includes(`(${yAxisUnit})`)) {
-            yAxisLabel += ' (' + yAxisUnit + ')';
-        }
-        
-        return {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: label,
-                    data: [],
-                    borderColor: color,
-                    backgroundColor: 'transparent',
-                    fill: false,
-                    tension: 0.1,
-                    pointRadius: 3,
-                    pointHoverRadius: 5,
-                    pointBackgroundColor: color,
-                    pointBorderColor: color,
-                    pointBorderWidth: 2
-                }]
-            },
-            options: getChartOptionsWithUnits(yAxisLabel, yAxisUnit, currentDate)
-        };
-    }
-
-    // Generates Chart.js options with customized axes based on the unit of measurement
-    function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate = '') {
-        let yAxisConfig = {
-            display: true,
-            title: {
-                display: true,
-                text: yAxisLabel,
-                font: {
-                    size: 14,
-                    weight: 'bold'
-                }
-            },
-            grid: {
-                color: 'rgba(0,0,0,0.1)',
-                drawBorder: false
-            },
-            ticks: {
-                maxTicksLimit: 6,
-                font: {
-                    size: 11
-                }
-            }
-        };
-        
-        switch(yAxisUnit) {
-            case 'ppm': // CO2
-                yAxisConfig.suggestedMin = 0;
-                yAxisConfig.suggestedMax = 2000;
-                break;
-            case '°C': // Température
-                yAxisConfig.suggestedMin = 15;
-                yAxisConfig.suggestedMax = 30;
-                break;
-            case '%': // Humidité ou Batterie
-                yAxisConfig.min = 0;
-                yAxisConfig.max = 100;
-                break;
-            case 'dBm': // RSSI
-                yAxisConfig.suggestedMin = -120;
-                yAxisConfig.suggestedMax = -30;
-                break;
-            case 'dB': // SNR ou Sound
-                if (yAxisLabel.includes('Sound') || yAxisLabel.includes('LAeq') || yAxisLabel.includes('LAI')) {
-                    yAxisConfig.suggestedMin = 0;
-                    yAxisConfig.suggestedMax = 100;
-                } else {
-                    yAxisConfig.suggestedMin = -10;
-                    yAxisConfig.suggestedMax = 15;
-                }
-                break;
-            case 'lux': // Lumière
-                yAxisConfig.suggestedMin = 0;
-                yAxisConfig.suggestedMax = 1000;
-                break;
-            case 'kWh': // Énergie
-                yAxisConfig.beginAtZero = true;
-                yAxisConfig.grace = '10%'; // Ajoute 10% d'espace au-dessus de la valeur max
-                break;
-            case 'W': // Puissance
-                yAxisConfig.beginAtZero = true;
-                yAxisConfig.grace = '10%';
-                break;
-            case 'Status': // Présence/Occupancy (0 ou 1)
-                yAxisConfig.min = 0;
-                yAxisConfig.max = 1;
-                yAxisConfig.ticks = {
-                    ...yAxisConfig.ticks,
-                    stepSize: 1,
-                    callback: function(value) {
-                        return value === 1 ? 'Occupied' : (value === 0 ? 'Free' : '');
-                    }
-                };
-                break;
-            case 'MotionStatus':
-                yAxisConfig.min = 0;
-                yAxisConfig.beginAtZero = false;
-                yAxisConfig.ticks.stepSize = 1; // Ensure integer values on the axis
-                break;
-            case 'DaylightLevel': // "dim" or "bright"
-                yAxisConfig.min = 0;
-                yAxisConfig.max = 2;
-                yAxisConfig.ticks = {
-                    ...yAxisConfig.ticks,
-                    callback: function(value) {
-                        return { dim: 'Dim', bright: 'Bright' }[value] ?? '';
-                    }
-                }
-            case 'IlluminanceStatus': // For Illuminance status on OCCUP sensors
-                yAxisConfig.min = 0;
-                yAxisConfig.max = 2;
-                yAxisConfig.ticks = {
-                    ...yAxisConfig.ticks,
-                    stepSize: 1,
-                    callback: function(value) {
-                        return { 0: 'Disable', 1: 'Dim', 2: 'Bright' }[value] ?? '';
-                    }
-                };
-                break;
-            case 's': // Seconds
-                yAxisConfig.beginAtZero = true;
-                yAxisConfig.grace = '10%';
-                break;
-            case 'persons': // Staff count for COUNT sensors
-                yAxisConfig.beginAtZero = true;
-                yAxisConfig.grace = '10%';
-                yAxisConfig.ticks.stepSize = 1; // Ensure integer values on the axis
-                break;
-            case 'mm': // Millimètres (Distance OCCUP)
-                yAxisConfig.beginAtZero = true;
-                yAxisConfig.grace = '10%';
-                break;
-            default:
-                yAxisConfig.beginAtZero = false;
-        }
-        
-        return {
-            responsive: true,
-            maintainAspectRatio: false,
-            resizeDelay: 0,
-            layout: { 
-                padding: {
-                    right: 15 // Espace supplémentaire à droite pour les valeurs de l'axe Y
-                }
-            },
-            interaction: {
-                intersect: false,
-                mode: 'index'
-            },
-            plugins: {
-                legend: {
-                    display: false
-                },
-                title: {
-                    display: true,
-                    text: currentDate,
-                    position: 'top',
-                    align: 'end',
-                    font: {
-                        size: 12,
-                        weight: 'normal'
-                    },
-                    color: '#666',
-                    padding: {
-                        bottom: 10
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += context.parsed.y;
-                                if (yAxisUnit) {
-                                    label += ' ' + yAxisUnit;
-                                }
-                            }
-                            return label;
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    type: 'time',
-                    time: {
-                        unit: 'day',
-                        displayFormats: {
-                            day: 'yyyy-MM-dd'
-                        },
-                        tooltipFormat: 'yyyy-MM-dd HH:mm'
-                    },
-                    display: true,
-                    title: {
-                        display: true,
-                        text: 'Date',
-                        font: {
-                            size: 14,
-                            weight: 'bold'
-                        }
-                    },
-                    grid: {
-                        color: 'rgba(0,0,0,0.1)',
-                        drawBorder: false
-                    },
-                    ticks: {
-                        maxTicksLimit: 8,
-                        font: {
-                            size: 11
-                        }
-                    }
-                },
-                y: yAxisConfig
-            },
-            animation: {
-                duration: 0
-            },
-            elements: {
-                point: {
-                    radius: 2,
-                    hoverRadius: 4
-                },
-                line: {
-                    tension: 0.3
-                }
-            }
-        };
-    }
-
-    // Fallback for chart options when no units are specified
-    function getChartOptions() {
-        return getChartOptionsWithUnits('', '', '');
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-        // Dummy data for demonstration
-        const dummyDates = Array.from({ length: 7 }, (_, i) => {
-            const d = new Date();
-            d.setDate(d.getDate() - (6 - i));
-            return d.toISOString();
-        });
-        const dummyCosts = [25, 28, 30, 27, 32, 35, 31];
-        const dummyOccupancy = [30, 35, 40, 38, 45, 42, 39];
-
-        // Chart for Daily Sensor Cost
-        const sensorCostCtx = document.getElementById('chart-sensor-cost')?.getContext('2d');
-        if (sensorCostCtx) {
-            const sensorCostChartConfig = createChartConfig('Daily Cost', '#3b82f6', '€', 'Daily');
-            sensorCostChartConfig.data.labels = dummyDates;
-            sensorCostChartConfig.data.datasets[0].data = dummyCosts;
-            new Chart(sensorCostCtx, sensorCostChartConfig);
-            const sensorCostTitle = document.getElementById('sensor-cost-chart-title');
-            if (sensorCostTitle) sensorCostTitle.textContent = 'Daily Sensor Cost';
-        }
-
-        // Chart for Sensor Data Trends (Historical Bar Chart) - using line chart for consistency with secondary-chart-container
-        const historicalBarCtx = document.getElementById('chart-historical-bar')?.getContext('2d');
-        if (historicalBarCtx) {
-            const historicalBarChartConfig = createChartConfig('Occupancy (%)', '#10b981', '%', 'Historical Trends');
-            historicalBarChartConfig.data.labels = dummyDates;
-            historicalBarChartConfig.data.datasets[0].data = dummyOccupancy;
-            new Chart(historicalBarCtx, historicalBarChartConfig);
-        }
-    });
 </script>
 </body>
 </html>
