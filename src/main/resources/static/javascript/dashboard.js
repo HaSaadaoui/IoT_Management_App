@@ -42,7 +42,8 @@ class DashboardManager {
     }
 
     init() {
-        console.log('Dashboard Manager initialized');
+        console.log('=== Dashboard Manager Initialized ===');
+        console.log('Initial filters:', this.filters);
         this.initializeFilters();
         this.loadDashboardData();
 
@@ -53,6 +54,7 @@ class DashboardManager {
     // ===== FILTER MANAGEMENT =====
 
     initializeFilters() {
+        console.log('=== Initializing Filters ===');
         const filterIds = ['year', 'month', 'building', 'floor', 'sensor-type', 'time'];
 
         filterIds.forEach(filterId => {
@@ -65,16 +67,20 @@ class DashboardManager {
 
                 if (this.filters[mappedKey]) {
                     element.value = this.filters[mappedKey];
+                    console.log(`Filter ${filterId} set to:`, this.filters[mappedKey]);
                 }
 
                 // Add change listener
                 element.addEventListener('change', (e) => this.handleFilterChange(filterId, e.target.value));
+            } else {
+                console.warn(`Filter element not found: filter-${filterId}`);
             }
         });
     }
 
     handleFilterChange(filterId, value) {
-        console.log(`Filter ${filterId} changed to:`, value);
+        console.log(`=== Filter Change: ${filterId} ===`);
+        console.log('New value:', value);
 
         // Update filters state
         const filterKey = filterId.replace('filter-', '').replace('-', '');
@@ -82,18 +88,22 @@ class DashboardManager {
                          filterKey === 'time' ? 'timeSlot' : filterKey;
 
         this.filters[mappedKey] = value;
+        console.log('Updated filters:', this.filters);
 
         // Handle sensor type change - update UI
         if (filterId === 'sensor-type') {
+            console.log('Sensor type changed, updating UI...');
             this.updateSensorTypeUI(value);
 
             // Update 3D building if available
             if (window.building3D) {
+                console.log('Updating 3D building sensor mode...');
                 window.building3D.setSensorMode(value);
             }
         }
 
         // Refresh data with new filters
+        console.log('Refreshing dashboard data with new filters...');
         this.loadDashboardData();
     }
 
@@ -137,6 +147,7 @@ class DashboardManager {
     // ===== DATA LOADING =====
 
     async loadDashboardData() {
+        console.log('=== Loading Dashboard Data ===');
         try {
             // Show loading state
             this.showLoading();
@@ -151,25 +162,42 @@ class DashboardManager {
                 timeSlot: this.filters.timeSlot
             });
 
-            const response = await fetch(`/api/dashboard?${params}`);
+            const apiUrl = `/api/dashboard?${params}`;
+            console.log('API URL:', apiUrl);
+            console.log('Request parameters:', Object.fromEntries(params));
+
+            const response = await fetch(apiUrl);
+            console.log('Response status:', response.status, response.statusText);
+
             if (!response.ok) {
-                throw new Error('Failed to fetch dashboard data');
+                throw new Error(`Failed to fetch dashboard data: ${response.status} ${response.statusText}`);
             }
 
             const data = await response.json();
+            console.log('=== API Response Data ===');
+            console.log('Alerts:', data.alerts?.length || 0);
+            console.log('Live Sensor Data:', data.liveSensorData?.length || 0);
+            console.log('Historical Data Points:', data.historicalData?.dataPoints?.length || 0);
+            console.log('Full response:', data);
+
             this.currentData = data;
 
             // Update all visualizations
+            console.log('Updating dashboard visualizations...');
             this.updateDashboard(data);
 
             // Update last refresh time
             this.updateRefreshTime();
+            console.log('Dashboard data loaded successfully!');
 
         } catch (error) {
-            console.error('Error loading dashboard data:', error);
+            console.error('=== Error Loading Dashboard Data ===');
+            console.error('Error:', error);
+            console.error('Stack:', error.stack);
             this.showError('Failed to load dashboard data. Using sample data.');
 
             // Fall back to sample data
+            console.log('Falling back to sample data...');
             this.loadSampleData();
         }
     }
@@ -244,14 +272,27 @@ class DashboardManager {
     // ===== DASHBOARD UPDATE =====
 
     updateDashboard(data) {
+        console.log('=== Updating Dashboard ===');
+        console.log('Updating alerts...');
         this.updateAlerts(data.alerts);
+
+        console.log('Updating live data...');
         this.updateLiveData(data.liveSensorData);
+
+        console.log('Updating historical data...');
         this.updateHistoricalData(data.historicalData);
+
+        console.log('Updating occupation history...');
         this.updateOccupationHistory(data.historicalData);
+
+        console.log('Updating cost analysis...');
         this.updateCostAnalysis(data.historicalData);
+
+        console.log('Updating global statistics...');
         this.updateGlobalStatistics(data.historicalData);
 
         this.hideLoading();
+        console.log('Dashboard update complete!');
     }
 
     updateAlerts(alerts) {
@@ -260,14 +301,23 @@ class DashboardManager {
     }
 
     updateLiveData(liveData) {
-        if (!liveData || liveData.length === 0) return;
+        console.log('=== Updating Live Data ===');
+        if (!liveData || liveData.length === 0) {
+            console.warn('No live data available');
+            return;
+        }
+
+        console.log('Live data entries:', liveData.length);
+        console.log('Live data:', liveData);
 
         // Update donut charts for each location
         liveData.forEach((location, index) => {
+            console.log(`Updating chart ${index + 1}:`, location);
             this.updateLocationChart(location, index);
         });
 
         // Calculate and update total
+        console.log('Updating total chart...');
         this.updateTotalChart(liveData);
     }
 
@@ -275,15 +325,23 @@ class DashboardManager {
         const chartId = `chart-office-${index + 1}`;
         const chartElement = document.getElementById(chartId);
 
-        if (!chartElement) return;
+        if (!chartElement) {
+            console.warn(`Chart element not found: ${chartId}`);
+            return;
+        }
 
         const total = location.freeCount + location.usedCount + location.invalidCount;
+        if (total === 0) {
+            console.warn(`No data for chart ${chartId}`);
+            return;
+        }
+
         const freePercent = (location.freeCount / total * 100).toFixed(2);
         const usedPercent = (location.usedCount / total * 100).toFixed(2);
         const invalidPercent = (location.invalidCount / total * 100).toFixed(2);
 
         // Update chart (if already exists, destroy and recreate)
-        const existingChart = Chart.getChart(chartId);
+        const existingChart = Chart.getChart(chartElement);
         if (existingChart) {
             existingChart.destroy();
         }
@@ -339,14 +397,22 @@ class DashboardManager {
         const totalInvalid = liveData.reduce((sum, loc) => sum + loc.invalidCount, 0);
         const total = totalFree + totalUsed + totalInvalid;
 
+        if (total === 0) {
+            console.warn('No total data available for chart');
+            return;
+        }
+
         const freePercent = (totalFree / total * 100).toFixed(2);
         const usedPercent = (totalUsed / total * 100).toFixed(2);
         const invalidPercent = (totalInvalid / total * 100).toFixed(2);
 
         const chartElement = document.getElementById('chart-total');
-        if (!chartElement) return;
+        if (!chartElement) {
+            console.warn('Chart element not found: chart-total');
+            return;
+        }
 
-        const existingChart = Chart.getChart('chart-total');
+        const existingChart = Chart.getChart(chartElement);
         if (existingChart) {
             existingChart.destroy();
         }
@@ -389,10 +455,19 @@ class DashboardManager {
     }
 
     updateHistoricalData(historicalData) {
-        if (!historicalData || !historicalData.dataPoints) return;
+        console.log('=== Updating Historical Data Chart ===');
+        if (!historicalData || !historicalData.dataPoints) {
+            console.warn('No historical data available');
+            return;
+        }
+
+        console.log('Data points:', historicalData.dataPoints.length);
 
         const chartElement = document.getElementById('chart-historical-bar');
-        if (!chartElement) return;
+        if (!chartElement) {
+            console.error('Chart element not found: chart-historical-bar');
+            return;
+        }
 
         const dates = historicalData.dataPoints.map(d => {
             const date = new Date(d.date);
@@ -402,9 +477,19 @@ class DashboardManager {
         const usedData = historicalData.dataPoints.map(d => d.occupancyRate);
         const freeData = historicalData.dataPoints.map(d => 100 - d.occupancyRate);
 
-        // Destroy existing chart
+        console.log('Chart dates:', dates.length);
+        console.log('Sample dates:', dates.slice(0, 5));
+
+        // Destroy existing chart - use both methods to ensure cleanup
         if (this.charts.historicalBar) {
             this.charts.historicalBar.destroy();
+            this.charts.historicalBar = null;
+        }
+
+        // Also check if there's an existing Chart.js instance on this canvas
+        const existingChart = Chart.getChart(chartElement);
+        if (existingChart) {
+            existingChart.destroy();
         }
 
         this.charts.historicalBar = new Chart(chartElement, {
@@ -510,10 +595,16 @@ class DashboardManager {
     // ===== COST ANALYSIS =====
 
     updateCostAnalysis(historicalData) {
-        if (!historicalData || !historicalData.dataPoints) return;
+        console.log('=== Updating Cost Analysis ===');
+        if (!historicalData || !historicalData.dataPoints) {
+            console.warn('No historical data for cost analysis');
+            return;
+        }
 
         const sensorType = this.filters.sensorType;
         const hourlyRate = this.sensorCosts[sensorType] || 0.10;
+        console.log('Sensor type:', sensorType);
+        console.log('Hourly rate:', hourlyRate);
 
         // Calculate costs based on sensor activity
         const costData = historicalData.dataPoints.map(d => {
@@ -526,6 +617,9 @@ class DashboardManager {
 
         const totalMonthlyCost = costData.reduce((sum, cost) => sum + cost, 0);
         const averageDailyCost = totalMonthlyCost / costData.length;
+
+        console.log('Total monthly cost:', totalMonthlyCost.toFixed(2));
+        console.log('Average daily cost:', averageDailyCost.toFixed(2));
 
         // Update cost summary
         const totalCostElement = document.querySelector('.cost-total .cost-value');
@@ -544,16 +638,26 @@ class DashboardManager {
 
     updateCostChart(dataPoints, costData) {
         const chartElement = document.getElementById('chart-sensor-cost');
-        if (!chartElement) return;
+        if (!chartElement) {
+            console.warn('Chart element not found: chart-sensor-cost');
+            return;
+        }
 
         const dates = dataPoints.map(d => {
             const date = new Date(d.date);
             return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
         });
 
-        // Destroy existing chart
+        // Destroy existing chart - use both methods to ensure cleanup
         if (this.charts.sensorCost) {
             this.charts.sensorCost.destroy();
+            this.charts.sensorCost = null;
+        }
+
+        // Also check if there's an existing Chart.js instance on this canvas
+        const existingChart = Chart.getChart(chartElement);
+        if (existingChart) {
+            existingChart.destroy();
         }
 
         this.charts.sensorCost = new Chart(chartElement, {
@@ -632,20 +736,37 @@ class DashboardManager {
     // ===== GLOBAL STATISTICS =====
 
     updateGlobalStatistics(historicalData) {
-        if (!historicalData) return;
+        console.log('=== Updating Global Statistics ===');
+        if (!historicalData) {
+            console.warn('No historical data for global statistics');
+            return;
+        }
 
         const globalOccupancy = historicalData.globalOccupancy || 0;
+        console.log('Global occupancy:', globalOccupancy.toFixed(2) + '%');
+        console.log('Total sensors:', historicalData.totalSensors);
+        console.log('Active sensors:', historicalData.activeSensors);
 
         // Update global donut chart
         const chartElement = document.getElementById('chart-global');
-        if (!chartElement) return;
+        if (!chartElement) {
+            console.warn('Chart element not found: chart-global');
+            return;
+        }
 
         const occupied = globalOccupancy;
         const free = 100 - globalOccupancy;
 
-        // Destroy existing chart
+        // Destroy existing chart - use both methods to ensure cleanup
         if (this.charts.globalDonut) {
             this.charts.globalDonut.destroy();
+            this.charts.globalDonut = null;
+        }
+
+        // Also check if there's an existing Chart.js instance on this canvas
+        const existingChart = Chart.getChart(chartElement);
+        if (existingChart) {
+            existingChart.destroy();
         }
 
         this.charts.globalDonut = new Chart(chartElement, {
@@ -701,16 +822,16 @@ class DashboardManager {
     }
 
     showLoading() {
+        console.log('⏳ Loading data...');
         // Could add a loading spinner
-        console.log('Loading data...');
     }
 
     hideLoading() {
-        console.log('Data loaded');
+        console.log('✅ Data loaded successfully');
     }
 
     showError(message) {
-        console.error(message);
+        console.error('❌ Error:', message);
         // Could show a toast notification
     }
 }
