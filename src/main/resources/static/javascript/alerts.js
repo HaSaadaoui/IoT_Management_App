@@ -1,5 +1,10 @@
 // ===== ALERTS & MONITORING DASHBOARD - JAVASCRIPT =====
 
+const successColor = '#4a1857';
+const usedColor = '#8b2fa3';
+const invalidColor = '#94a3b8';
+
+
 // Update last refresh time
 function updateRefreshTime() {
     const now = new Date();
@@ -126,214 +131,69 @@ function loadFloorDesks(floorNumber) {
     });
 }
 
+// Generic donut chart configuration
+function createDoughnutChartConfig(data) {
+    return {
+        type: 'doughnut',
+        data: {
+            labels: ['Free', 'Used', 'Invalid'],
+            datasets: [{
+                data: data,
+                backgroundColor: [successColor, usedColor, invalidColor],
+                borderWidth: 0,
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.parsed + '%';
+                        }
+                    }
+                }
+            }
+        }
+    };
+}
+
 // Initialize charts
 function initCharts() {
     // Chart.js default options
     Chart.defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
     Chart.defaults.color = '#64748b';
-    
-    // Office 1 Donut Chart
-    const ctx1 = document.getElementById('chart-office-1');
-    if (ctx1) {
-        new Chart(ctx1, {
-            type: 'doughnut',
-            data: {
-                labels: ['Free', 'Used', 'Invalid'],
-                datasets: [{
-                    data: [57.14, 42, 0.86],
-                    backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
-                    borderWidth: 0,
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                cutout: '70%',
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.label + ': ' + context.parsed + '%';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-    
-    // Office 2 Donut Chart
-    const ctx2 = document.getElementById('chart-office-2');
-    if (ctx2) {
-        new Chart(ctx2, {
-            type: 'doughnut',
-            data: {
-                labels: ['Free', 'Used', 'Invalid'],
-                datasets: [{
-                    data: [75, 25, 0],
-                    backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
-                    borderWidth: 0,
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                cutout: '70%',
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.label + ': ' + context.parsed + '%';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
 
-    // Meeting Room A Donut chart
-    const ctxMeetingA = document.getElementById('chart-meeting-a');
-    if (ctxMeetingA) {
-        new Chart(ctxMeetingA, {
-            type: 'doughnut',
-            data: {
-                labels: ['Free', 'Used', 'Invalid'],
-                datasets: [{
-                    data: [66.67, 33.33, 0],
-                    backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
-                    borderWidth: 0,
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                cutout: '70%',
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.label + ': ' + context.parsed + '%';
-                            }
-                        }
-                    }
-                }
+    // Initialize office/location charts using data-chart-index
+    const chartData = [
+        [57.14, 42, 0.86],  // index 0
+        [75, 25, 0],        // index 1
+        [66.67, 33.33, 0]   // index 2
+    ];
+
+    chartData.forEach((data, index) => {
+        const statCard = document.querySelector(`.stat-card[data-chart-index="${index}"]`);
+        if (statCard) {
+            const chartElement = statCard.querySelector('.chart-office');
+            if (chartElement) {
+                new Chart(chartElement, createDoughnutChartConfig(data));
             }
-        });
-    }
-    
-    // Meeting Room B Donut chart
-    const ctxMeetingB = document.getElementById('chart-meeting-b');
-    if (ctxMeetingB) {
-        new Chart(ctxMeetingB, {
-            type: 'doughnut',
-            data: {
-                labels: ['Free', 'Used', 'Invalid'],
-                datasets: [{
-                    data: [50, 45, 5],
-                    backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
-                    borderWidth: 0,
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                cutout: '70%',
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.label + ': ' + context.parsed + '%';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-    
-    // Meeting Room C Donut chart
-    const ctxMeetingC = document.getElementById('chart-meeting-c');
-    if (ctxMeetingC) {
-        new Chart(ctxMeetingC, {
-            type: 'doughnut',
-            data: {
-                labels: ['Free', 'Used', 'Invalid'],
-                datasets: [{
-                    data: [80, 20, 0],
-                    backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
-                    borderWidth: 0,
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                cutout: '70%',
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.label + ': ' + context.parsed + '%';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-    
-    // Total Occupancy Donut Chart
-    const ctx3 = document.getElementById('chart-total');
-    if (ctx3) {
-        new Chart(ctx3, {
-            type: 'doughnut',
-            data: {
-                labels: ['Free', 'Used', 'Invalid'],
-                datasets: [{
-                    data: [63.64, 36.36, 0],
-                    backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
-                    borderWidth: 0,
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                cutout: '70%',
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.label + ': ' + context.parsed + '%';
-                            }
-                        }
-                    }
-                }
-            }
-        });
+        }
+    });
+
+    // Initialize total chart using data-chart-type="total"
+    const totalStatCard = document.querySelector('.stat-card[data-chart-type="total"]');
+    if (totalStatCard) {
+        const chartElement = totalStatCard.querySelector('#chart-total');
+        if (chartElement) {
+            new Chart(chartElement, createDoughnutChartConfig([63.64, 36.36, 0]));
+        }
     }
     
     // Historical Bar Chart
@@ -364,14 +224,14 @@ function initCharts() {
                     {
                         label: 'Used',
                         data: usedData,
-                        backgroundColor: '#ef4444',
+                        backgroundColor: usedColor,
                         borderRadius: 4,
                         barPercentage: 0.8
                     },
                     {
                         label: 'Free',
                         data: freeData,
-                        backgroundColor: '#10b981',
+                        backgroundColor: successColor,
                         borderRadius: 4,
                         barPercentage: 0.8
                     }
@@ -466,7 +326,7 @@ function initCharts() {
     //             labels: ['Occupied', 'Free'],
     //             datasets: [{
     //                 data: [32.93, 67.07],
-    //                 backgroundColor: ['#ef4444', '#10b981'],
+    //                 backgroundColor: [usedColor, successColor],
     //                 borderWidth: 0,
     //                 hoverOffset: 10
     //             }]

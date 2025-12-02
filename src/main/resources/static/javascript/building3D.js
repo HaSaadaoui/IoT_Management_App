@@ -591,6 +591,11 @@ class Building3D {
         // Initialize architectural plan with sensor mode
         if (window.ArchitecturalFloorPlan) {
             this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', floorData, this.currentSensorMode);
+
+            // Load desk occupancy data if in DESK mode
+            if (this.currentSensorMode === 'DESK') {
+                this.currentArchPlan.loadDeskOccupancy();
+            }
         } else {
             console.error('ArchitecturalFloorPlan not loaded');
             // Fallback to simple grid
@@ -624,6 +629,13 @@ class Building3D {
         // If in 2D view, reload with new sensor mode
         if (!this.isIn3DView && this.currentFloorNumber !== null) {
             this.loadArchitecturalPlan(this.currentFloorNumber);
+        }
+    }
+
+    // Public method to refresh desk occupancy data
+    refreshDeskOccupancy() {
+        if (this.currentArchPlan && this.currentSensorMode === 'DESK') {
+            this.currentArchPlan.loadDeskOccupancy();
         }
     }
     

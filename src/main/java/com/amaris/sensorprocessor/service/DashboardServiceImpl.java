@@ -166,10 +166,34 @@ public class DashboardServiceImpl implements DashboardService {
                 .map(sensor -> {
                     Optional<SensorData> latestOccupancyData = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(), PayloadValueType.OCCUPANCY);
                     String status = latestOccupancyData.map(data -> {
+                        // Check if data is stale (older than 1 hour)
                         if (data.getReceivedAt().isBefore(LocalDateTime.now().minusHours(1))) {
                             return "invalid";
                         }
-                        return "used";
+
+                        // Map the occupancy value to status
+                        String valueStr = data.getValueAsString();
+                        if (valueStr == null) {
+                            return "free";
+                        }
+
+                        // If string is "occupied" or "used", consider it as 1 (used)
+                        if ("occupied".equalsIgnoreCase(valueStr) || "used".equalsIgnoreCase(valueStr)) {
+                            return "used";
+                        }
+
+                        // Try to parse as number
+                        try {
+                            double numValue = Double.parseDouble(valueStr);
+                            if (numValue > 0) {
+                                return "used";
+                            } else {
+                                return "free";
+                            }
+                        } catch (NumberFormatException e) {
+                            // Any other value is considered free
+                            return "free";
+                        }
                     }).orElse("invalid");
                     return new Desk(sensor.getIdSensor(), status);
                 })

@@ -596,6 +596,7 @@ main {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
+    margin: 0rem;
 }
 
 .stat-card::before {
@@ -629,10 +630,56 @@ main {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin-bottom: 1rem;
     text-align: center;
+    margin-top: 0;
 }
 
+/* Layout horizontal pour le doughnut chart - matching monitoringSensor style */
+.doughnut-container {
+    display: flex;
+    max-height: 100%;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    flex-direction: column;
+    align-content: center;
+}
+
+.doughnut-labels {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 120px;
+}
+
+.doughnut-chart {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.doughnut-chart canvas {
+    max-height: 180px !important;
+    max-width: 180px !important;
+}
+
+.custom-label {
+    transition: all 0.2s ease;
+    padding: 0.25rem;
+    border-radius: 6px;
+}
+
+.custom-label:hover {
+    transform: translateX(2px);
+    background-color: rgba(102, 33, 121, 0.05);
+}
+
+/* Legacy donut-chart support (for any old code) */
 .donut-chart {
     position: relative;
     width: 100%;
@@ -682,6 +729,10 @@ main {
     gap: 1.5rem;
 }
 
+.canvas-wrapper {
+    flex: 1; min-height: 0; position: relative;
+}
+
 .chart-card {
     background: var(--bg-card);
     border-radius: 16px;
@@ -689,6 +740,7 @@ main {
     box-shadow: var(--shadow-md);
     border: 1px solid var(--border);
     transition: all 0.3s ease;
+    display: flex; flex-direction: column;
 }
 
 .chart-card:hover {
@@ -699,10 +751,11 @@ main {
 .chart-card.large {
     grid-column: span 3;
     min-height: 400px;
+    /* max-height: fit-content; */
 }
 
 .chart-card.large canvas {
-    height: 350px !important;
+    /* height: auto; */
 }
 
 .chart-card h4 {
@@ -718,8 +771,10 @@ main {
     justify-content: center;
     align-items: center;
     min-height: 250px;
+    padding: 1rem;
 }
 
+/* Legacy global-donut support */
 .global-donut {
     position: relative;
     width: 200px;
@@ -734,6 +789,19 @@ main {
     font-size: 2rem;
     font-weight: 700;
     color: var(--text-primary);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* Global occupation with horizontal layout */
+.global-occupation .doughnut-container {
+    max-width: 500px;
+    width: 100%;
+}
+
+.global-occupation .doughnut-chart {
+    position: relative;
 }
 
 /* ===== HISTORY TABLE ===== */

@@ -1,6 +1,7 @@
 // ===== DASHBOARD MAIN FUNCTIONALITY =====
 // Handles sensor search, filtering, visualization, and cost calculations
 
+
 class DashboardManager {
     constructor() {
         // Current filter state
@@ -45,6 +46,7 @@ class DashboardManager {
         console.log('=== Dashboard Manager Initialized ===');
         console.log('Initial filters:', this.filters);
         this.initializeFilters();
+        this.loadSampleData();
         this.loadDashboardData();
 
         // Auto-refresh every 30 seconds
@@ -322,38 +324,21 @@ class DashboardManager {
         this.updateTotalChart(liveData);
     }
 
-    updateLocationChart(location, index) {
-        const chartId = `chart-office-${index + 1}`;
-        const chartElement = document.getElementById(chartId);
-
-        if (!chartElement) {
-            console.warn(`Chart element not found: ${chartId}`);
-            return;
-        }
-
-        const total = location.freeCount + location.usedCount + location.invalidCount;
-        if (total === 0) {
-            console.warn(`No data for chart ${chartId}`);
-            return;
-        }
-
-        const freePercent = (location.freeCount / total * 100).toFixed(2);
-        const usedPercent = (location.usedCount / total * 100).toFixed(2);
-        const invalidPercent = (location.invalidCount / total * 100).toFixed(2);
-
-        // Update chart (if already exists, destroy and recreate)
+    // Generic doughnut chart creation function
+    createDoughnutChart(chartElement, data) {
+        // Destroy existing chart if present
         const existingChart = Chart.getChart(chartElement);
         if (existingChart) {
             existingChart.destroy();
         }
 
-        new Chart(chartElement, {
+        return new Chart(chartElement, {
             type: 'doughnut',
             data: {
                 labels: ['Free', 'Used', 'Invalid'],
                 datasets: [{
-                    data: [freePercent, usedPercent, invalidPercent],
-                    backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
+                    data: data,
+                    backgroundColor: [successColor, usedColor, invalidColor],
                     borderWidth: 0,
                     hoverOffset: 10
                 }]
@@ -369,24 +354,53 @@ class DashboardManager {
                             label: (context) => context.label + ': ' + context.parsed + '%'
                         }
                     }
-                }
+                },
+            animation: {        
+            duration: 0
+            }
             }
         });
+    }
+
+    updateLocationChart(location, index) {
+        // Find the stat-card with matching data-chart-index
+        const statCard = document.querySelector(`.stat-card[data-chart-index="${index}"]`);
+        if (!statCard) {
+            console.warn(`Stat card not found for index: ${index}`);
+            return;
+        }
+
+        const chartElement = statCard.querySelector('.chart-office');
+        if (!chartElement) {
+            console.warn(`Chart element not found for index: ${index}`);
+            return;
+        }
+
+        const total = location.freeCount + location.usedCount + location.invalidCount;
+        if (total === 0) {
+            console.warn(`No data for chart at index ${index}`);
+            return;
+        }
+
+        const freePercent = (location.freeCount / total * 100).toFixed(2);
+        const usedPercent = (location.usedCount / total * 100).toFixed(2);
+        const invalidPercent = (location.invalidCount / total * 100).toFixed(2);
+
+        // Create chart using generic function
+        this.createDoughnutChart(chartElement, [freePercent, usedPercent, invalidPercent]);
 
         // Update legend
-        const legendId = `stat-legend-${index + 1}`;
-        const legendElement = document.getElementById(legendId);
+        const legendElement = statCard.querySelector('.stat-legend');
         if (legendElement) {
             legendElement.innerHTML = `
-                <div><span class="dot free"></span> Free (${freePercent}%)</div>
-                <div><span class="dot used"></span> Used (${usedPercent}%)</div>
-                <div><span class="dot invalid"></span> Invalid (${invalidPercent}%)</div>
+                <div class="custom-label"><span class="dot free"></span> Free (${freePercent}%)</div>
+                <div class="custom-label"><span class="dot used"></span> Used (${usedPercent}%)</div>
+                <div class="custom-label"><span class="dot invalid"></span> Invalid (${invalidPercent}%)</div>
             `;
         }
 
         // Update title
-        const titleId = `stat-card-${index + 1}-title`;
-        const titleElement = document.getElementById(titleId);
+        const titleElement = statCard.querySelector('.stat-card-title');
         if (titleElement) {
             titleElement.textContent = location.location;
         }
@@ -413,45 +427,20 @@ class DashboardManager {
             return;
         }
 
-        const existingChart = Chart.getChart(chartElement);
-        if (existingChart) {
-            existingChart.destroy();
-        }
+        // Create chart using generic function
+        this.createDoughnutChart(chartElement, [freePercent, usedPercent, invalidPercent]);
 
-        new Chart(chartElement, {
-            type: 'doughnut',
-            data: {
-                labels: ['Free', 'Used', 'Invalid'],
-                datasets: [{
-                    data: [freePercent, usedPercent, invalidPercent],
-                    backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
-                    borderWidth: 0,
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                cutout: '70%',
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: (context) => context.label + ': ' + context.parsed + '%'
-                        }
-                    }
-                }
+        // Update legend - find by data-chart-type="total"
+        const totalStatCard = document.querySelector('.stat-card[data-chart-type="total"]');
+        if (totalStatCard) {
+            const legendElement = totalStatCard.querySelector('.stat-legend');
+            if (legendElement) {
+                legendElement.innerHTML = `
+                    <div class="custom-label"><span class="dot free"></span> Free (${freePercent}%)</div>
+                    <div class="custom-label"><span class="dot used"></span> Used (${usedPercent}%)</div>
+                    <div class="custom-label"><span class="dot invalid"></span> Invalid (${invalidPercent}%)</div>
+                `;
             }
-        });
-
-        // Update legend
-        const legendElement = document.getElementById('stat-legend-6');
-        if (legendElement) {
-            legendElement.innerHTML = `
-                <div><span class="dot free"></span> Free (${freePercent}%)</div>
-                <div><span class="dot used"></span> Used (${usedPercent}%)</div>
-                <div><span class="dot invalid"></span> Invalid (${invalidPercent}%)</div>
-            `;
         }
     }
 
@@ -472,7 +461,7 @@ class DashboardManager {
 
         const dates = historicalData.dataPoints.map(d => {
             const date = new Date(d.date);
-            return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+            return date.toLocaleDateString('en-CA', { day: '2-digit', month: '2-digit' });
         });
 
         const usedData = historicalData.dataPoints.map(d => d.occupancyRate);
@@ -501,14 +490,14 @@ class DashboardManager {
                     {
                         label: 'Used',
                         data: usedData,
-                        backgroundColor: '#ef4444',
+                        backgroundColor: usedColor,
                         borderRadius: 4,
                         barPercentage: 0.8
                     },
                     {
                         label: 'Free',
                         data: freeData,
-                        backgroundColor: '#10b981',
+                        backgroundColor: successColor,
                         borderRadius: 4,
                         barPercentage: 0.8
                     }
@@ -743,7 +732,7 @@ class DashboardManager {
                                 return '€' + value.toFixed(2);
                             }
                         }
-                    }
+                    },
                 },
                 plugins: {
                     legend: { display: false },
@@ -801,10 +790,10 @@ class DashboardManager {
         this.charts.globalDonut = new Chart(chartElement, {
             type: 'doughnut',
             data: {
-                labels: ['Occupied', 'Free'],
+                labels: ['Free', 'Occupied'],
                 datasets: [{
-                    data: [occupied, free],
-                    backgroundColor: ['#ef4444', '#10b981'],
+                    data: [free, occupied],
+                    backgroundColor: [successColor, usedColor],
                     borderWidth: 0,
                     hoverOffset: 10
                 }]
@@ -824,10 +813,19 @@ class DashboardManager {
             }
         });
 
-        // Update percentage display
+        // Update percentage display (showing occupied percentage in center)
         const percentageElement = document.getElementById('global-percentage-value');
         if (percentageElement) {
             percentageElement.textContent = globalOccupancy.toFixed(2) + '%';
+        }
+
+        // Update legend
+        const legendElement = document.getElementById('global-legend');
+        if (legendElement) {
+            legendElement.innerHTML = `
+                <div class="custom-label"><span class="dot free"></span> Free (${free.toFixed(2)}%)</div>
+                <div class="custom-label"><span class="dot used"></span> Occupied (${occupied.toFixed(2)}%)</div>
+            `;
         }
     }
 

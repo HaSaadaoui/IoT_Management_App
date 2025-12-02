@@ -248,39 +248,51 @@
             <!-- Dynamic Sensor Stats -->
             <div class="office-stats" id="sensor-stats-container">
                 <!-- Stats cards will be dynamically generated based on sensor type -->
-                <div class="stat-card">
-                    <h4 id="stat-card-1-title">Open_05-01</h4>
-                    <div class="donut-chart">
-                        <canvas id="chart-office-1"></canvas>
-                    </div>
-                    <div class="stat-legend" id="stat-legend-1">
-                        <div><span class="dot free"></span> Free (57%)</div>
-                        <div><span class="dot used"></span> Used (42%)</div>
-                        <div><span class="dot invalid"></span> Invalid (1%)</div>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <h4 id="stat-card-2-title">Open_05-02</h4>
-                    <div class="donut-chart">
-                        <canvas id="chart-office-2"></canvas>
-                    </div>
-                    <div class="stat-legend" id="stat-legend-2">
-                        <div><span class="dot free"></span> Free (75%)</div>
-                        <div><span class="dot used"></span> Used (25%)</div>
-                        <div><span class="dot invalid"></span> Invalid (0%)</div>
+                <div class="stat-card" data-chart-index="0">
+                    <h4 class="stat-card-title">Open_05-01</h4>
+                    <div class="doughnut-container">
+                        <div class="doughnut-chart">
+                            <canvas class="chart-office"></canvas>
+                        </div>
+                        <div class="doughnut-labels">
+                            <div class="stat-legend">
+                                <div class="custom-label"><span class="dot free"></span> Free (57%)</div>
+                                <div class="custom-label"><span class="dot used"></span> Used (42%)</div>
+                                <div class="custom-label"><span class="dot invalid"></span> Invalid (1%)</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="stat-card">
-                    <h4 id="stat-card-3-title">Meeting Room A</h4>
-                    <div class="donut-chart">
-                        <canvas id="chart-meeting-a"></canvas>
+                <div class="stat-card" data-chart-index="1">
+                    <h4 class="stat-card-title">Open_05-02</h4>
+                    <div class="doughnut-container">
+                        <div class="doughnut-chart">
+                            <canvas class="chart-office"></canvas>
+                        </div>
+                        <div class="doughnut-labels">
+                            <div class="stat-legend">
+                                <div class="custom-label"><span class="dot free"></span> Free (75%)</div>
+                                <div class="custom-label"><span class="dot used"></span> Used (25%)</div>
+                                <div class="custom-label"><span class="dot invalid"></span> Invalid (0%)</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="stat-legend" id="stat-legend-3">
-                        <div><span class="dot free"></span> Free (66%)</div>
-                        <div><span class="dot used"></span> Used (34%)</div>
-                        <div><span class="dot invalid"></span> Invalid (0%)</div>
+                </div>
+
+                <div class="stat-card" data-chart-index="2">
+                    <h4 class="stat-card-title">Meeting Room A</h4>
+                    <div class="doughnut-container">
+                        <div class="doughnut-chart">
+                            <canvas class="chart-office"></canvas>
+                        </div>
+                        <div class="doughnut-labels">
+                            <div class="stat-legend">
+                                <div class="custom-label"><span class="dot free"></span> Free (66%)</div>
+                                <div class="custom-label"><span class="dot used"></span> Used (34%)</div>
+                                <div class="custom-label"><span class="dot invalid"></span> Invalid (0%)</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -308,15 +320,19 @@
                     </div>
                 </div> -->
 
-                <div class="stat-card">
-                    <h4 id="stat-card-6-title">Total Live Data</h4>
-                    <div class="donut-chart">
-                        <canvas id="chart-total"></canvas>
-                    </div>
-                    <div class="stat-legend" id="stat-legend-6">
-                        <div><span class="dot free"></span> Free (64%)</div>
-                        <div><span class="dot used"></span> Used (36%)</div>
-                        <div><span class="dot invalid"></span> Invalid (0%)</div>
+                <div class="stat-card" data-chart-type="total">
+                    <h4 class="stat-card-title">Total Live Data</h4>
+                    <div class="doughnut-container">
+                        <div class="doughnut-chart">
+                            <canvas id="chart-total"></canvas>
+                        </div>
+                        <div class="doughnut-labels">
+                            <div class="stat-legend">
+                                <div class="custom-label"><span class="dot free"></span> Free (64%)</div>
+                                <div class="custom-label"><span class="dot used"></span> Used (36%)</div>
+                                <div class="custom-label"><span class="dot invalid"></span> Invalid (0%)</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -355,7 +371,7 @@
             </div>
             
             <!-- Daily Sensor Cost Chart -->
-            <div class="chart-card" style="display: flex; flex-direction: column;">
+            <div class="chart-card">
                 <div class="cost-summary">
                     <div>
                         <div class="cost-card">
@@ -368,7 +384,7 @@
                         </div>
                     </div>
                 </div>
-                <div style="flex: 1; min-height: 0; position: relative;">
+                <div class="canvas-wrapper">
                     <canvas id="chart-sensor-cost"></canvas>
                 </div>
             </div>
@@ -378,9 +394,17 @@
             <div class="chart-card">
                 <h4 id="global-chart-title">Global Statistics</h4>
                 <div class="global-occupation">
-                    <div class="global-donut">
-                        <canvas id="chart-global"></canvas>
-                        <div class="global-percentage" id="global-percentage-value">..%</div>
+                    <div class="doughnut-container">
+                        <div class="doughnut-chart">
+                            <canvas id="chart-global"></canvas>
+                            <div class="global-percentage" id="global-percentage-value">..%</div>
+                        </div>
+                        <div class="doughnut-labels">
+                            <div class="stat-legend" id="global-legend">
+                                <div class="custom-label"><span class="dot free"></span> Free</div>
+                                <div class="custom-label"><span class="dot used"></span> Occupied</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -388,7 +412,9 @@
             <!-- Bar Chart -->
             <div class="chart-card large">
                 <h4 id="historical-chart-title">Sensor Data Trends (08:00 - 19:00)</h4>
-                <canvas id="chart-historical-bar"></canvas>
+                <div class="canvas-wrapper">
+                    <canvas id="chart-historical-bar"></canvas>
+                </div>
             </div>
 
             
