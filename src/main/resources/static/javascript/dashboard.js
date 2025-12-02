@@ -184,6 +184,7 @@ class DashboardManager {
 
             // Update all visualizations
             console.log('Updating dashboard visualizations...');
+            throw "TODO: updateDashboard(data)";
             this.updateDashboard(data);
 
             // Update last refresh time

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -121,54 +122,29 @@ public class DashboardServiceImpl implements DashboardService {
 
         int daysToGenerate = 30;
         LocalDate endDate = LocalDate.now();
-
-        // If year and month are provided, use them
-        if (year != null && month != null) {
-            try {
-                int y = Integer.parseInt(year);
-                int m = Integer.parseInt(month);
-                endDate = LocalDate.of(y, m, 1).plusMonths(1).minusDays(1);
-                daysToGenerate = endDate.getDayOfMonth();
-            } catch (Exception e) {
-                log.warn("Invalid year/month provided, using current date", e);
-            }
-        }
-
+        
         // Get all sensors matching the filters
         List<Sensor> filteredSensors = sensorDao.findAllByDeviceType(sensorType);
 
-        if (building != null && !building.equals("all")) {
-            filteredSensors = filteredSensors.stream()
-                .filter(sensor -> building.equalsIgnoreCase(sensor.getBuildingName()))
-                .collect(Collectors.toList());
-        }
-
-        if (floor != null && !floor.equals("all")) {
-            filteredSensors = filteredSensors.stream()
-                .filter(sensor -> floor.equals(String.valueOf(sensor.getFloor())))
-                .collect(Collectors.toList());
-        }
-
         int totalSensors = filteredSensors.size();
 
-        // Generate data points for each day
-        for (int i = daysToGenerate - 1; i >= 0; i--) {
-            LocalDate date = endDate.minusDays(i);
-
-            // Calculate occupancy for this date
-            // In production, this should query actual historical data
-            // For now, we'll generate sample data based on sensor count
-            double occupancyRate = 20 + Math.random() * 40; // 20-60%
-            int activeSensorCount = (int) (totalSensors * (0.9 + Math.random() * 0.1)); // 90-100% active
-
-            dataPoints.add(new DataPoint(
-                date.format(formatter),
-                occupancyRate,
-                activeSensorCount,
-                occupancyRate
-            ));
+        // Calculate occupancy for this date
+        var selected = calculateOccupancyStats(filteredSensors);
+        double occupancyRate = 0;
+        for (var entry : selected.entrySet()) {
+            occupancyRate += entry.getValue();
         }
+        occupancyRate = occupancyRate / selected.size();
 
+        int activeSensorCount = (int) (totalSensors * (0.9 + Math.random() * 0.1)); // 90-100% active
+
+        dataPoints.add(new DataPoint(
+            endDate.format(formatter),
+            occupancyRate,
+            activeSensorCount,
+            123 // TODO: calculate average occupancy rate
+        ));
+        
         // Calculate global statistics
         double avgOccupancy = dataPoints.stream()
             .mapToDouble(DataPoint::getOccupancyRate)

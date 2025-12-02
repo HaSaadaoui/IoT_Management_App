@@ -458,38 +458,38 @@ function initCharts() {
     }
     
     // Global Occupation Donut Chart
-    const ctxGlobal = document.getElementById('chart-global');
-    if (ctxGlobal) {
-        new Chart(ctxGlobal, {
-            type: 'doughnut',
-            data: {
-                labels: ['Occupied', 'Free'],
-                datasets: [{
-                    data: [32.93, 67.07],
-                    backgroundColor: ['#ef4444', '#10b981'],
-                    borderWidth: 0,
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                cutout: '75%',
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.label + ': ' + context.parsed.toFixed(2) + '%';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
+    // const ctxGlobal = document.getElementById('chart-global');
+    // if (ctxGlobal) {
+    //     new Chart(ctxGlobal, {
+    //         type: 'doughnut',
+    //         data: {
+    //             labels: ['Occupied', 'Free'],
+    //             datasets: [{
+    //                 data: [32.93, 67.07],
+    //                 backgroundColor: ['#ef4444', '#10b981'],
+    //                 borderWidth: 0,
+    //                 hoverOffset: 10
+    //             }]
+    //         },
+    //         options: {
+    //             responsive: true,
+    //             maintainAspectRatio: true,
+    //             cutout: '75%',
+    //             plugins: {
+    //                 legend: {
+    //                     display: false
+    //                 },
+    //                 tooltip: {
+    //                     callbacks: {
+    //                         label: function(context) {
+    //                             return context.label + ': ' + context.parsed.toFixed(2) + '%';
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     });
+    // }
     
     // Sensor Cost Line Chart
     // const ctxCost = document.getElementById('chart-sensor-cost');
