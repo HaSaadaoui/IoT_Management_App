@@ -67,7 +67,7 @@ public class PredictionController {
     @GetMapping("/prediction/scenarios/data")
     @ResponseBody
     public ScenarioResponse getScenarioData() {
-        return predictionClientService.getScenarioPrediction();
+        return predictionService.getScenarioPrediction();
     }
 
 }
