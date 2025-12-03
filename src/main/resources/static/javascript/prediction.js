@@ -216,9 +216,18 @@ async function loadHistoricalT0List(horizon = "1d") {
                 select.appendChild(opt);
             });
 
-            // default: last t0
-            select.value = list[0];
+            // 🎯 хотим по умолчанию 2024-08-06 09:30:00+00:00 для всех горизонтов
+            const DEFAULT_T0 = "2024-08-06T09:30:00+00:00";
+
+            if (ordered.includes(DEFAULT_T0)) {
+                // если такая дата есть в списке – выбираем именно её
+                select.value = DEFAULT_T0;
+            } else {
+                // иначе fallback – берём самую старую (первую в ordered)
+                select.value = ordered[0];
+            }
         }
+
 
         historicalT0Loaded = true;
         if (statusEl) statusEl.textContent = "";
