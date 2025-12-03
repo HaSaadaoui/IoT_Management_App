@@ -39,12 +39,17 @@ public class PredictionClientService {
     }
 
     /**
-     * Historical: /historical/t0-list
+     * Historical: /historical/t0-list?horizon=...
      */
-    public T0ListResponse getHistoricalT0List() {
+    public T0ListResponse getHistoricalT0List(String horizon) {
         try {
-            String url = pythonBaseUrl + "/historical/t0-list";
-            return restTemplate.getForObject(url, T0ListResponse.class);
+            URI uri = UriComponentsBuilder
+                    .fromUriString(pythonBaseUrl + "/historical/t0-list")
+                    .queryParam("horizon", horizon)
+                    .build()
+                    .toUri();
+
+            return restTemplate.getForObject(uri, T0ListResponse.class);
         } catch (Exception e) {
             e.printStackTrace();
             throw e;

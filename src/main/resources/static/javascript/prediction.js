@@ -184,32 +184,41 @@ function renderHistoricalCharts(data) {
     });
 }
 
-/**
- * Загружаем список t0 для HISTORICAL.
- */
-async function loadHistoricalT0List() {
+async function loadHistoricalT0List(horizon) {
     const select = document.getElementById("historical-t0-select");
     const statusEl = document.getElementById("historical-status");
     if (!select) return;
 
     try {
         if (statusEl) statusEl.textContent = "Loading t0 list...";
-        const resp = await fetch("/prediction/historical/t0-list");
+
+        const resp = await fetch(
+            "/prediction/historical/t0-list?horizon=" + encodeURIComponent(horizon)
+        );
         if (!resp.ok) throw new Error("HTTP " + resp.status);
+
         const data = await resp.json();
 
         select.innerHTML = "";
-        (data.t0_list || []).forEach(t0 => {
-            const opt = document.createElement("option");
-            opt.value = t0;
-            opt.textContent = t0;
-            select.appendChild(opt);
-        });
+        const list = data.t0_list || [];
 
-        if (data.t0_list && data.t0_list.length > 0) {
-            // например, выбираем последнее t0
-            select.value = data.t0_list[data.t0_list.length - 1];
+        if (list.length === 0) {
+            const opt = document.createElement("option");
+            opt.value = "";
+            opt.textContent = "No t0 available";
+            select.appendChild(opt);
+        } else {
+            list.forEach(t0 => {
+                const opt = document.createElement("option");
+                opt.value = t0;
+                opt.textContent = t0;
+                select.appendChild(opt);
+            });
+
+            // default: last t0
+            select.value = list[list.length - 1];
         }
+
         historicalT0Loaded = true;
         if (statusEl) statusEl.textContent = "";
     } catch (err) {
@@ -271,9 +280,21 @@ document.addEventListener("DOMContentLoaded", () => {
             const panel = document.getElementById("panel-" + target);
             if (panel) panel.classList.add("active");
 
-            // если впервые открыли Historical — грузим t0 список
+            // если открыли Historical — грузим t0 список (один раз при первом входе)
             if (target === "historical" && !historicalT0Loaded) {
-                loadHistoricalT0List();
+                const horizonSelect = document.getElementById("historical-horizon-select");
+                const h = horizonSelect ? horizonSelect.value : "1d";
+                loadHistoricalT0List(h);
+            }
+
+            // если открыли Online — подгружаем текущий активный горизонт
+            if (target === "online") {
+                const activeHorizonBtn = document.querySelector('.horizon-tab.active')
+                    || document.querySelector('.horizon-tab[data-horizon="1h"]');
+                if (activeHorizonBtn) {
+                    const h = activeHorizonBtn.dataset.horizon;
+                    loadPredictionForHorizon(h);
+                }
             }
         });
     });
@@ -299,19 +320,41 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // --- первичная загрузка по умолчанию (1h) ---
-    const defaultHorizonBtn = document.querySelector('.horizon-tab.active')
-        || document.querySelector('.horizon-tab[data-horizon="1h"]');
+    // --- смена горизонта в HISTORICAL → перезагрузить список t0 ---
+    const historicalHorizonSelect = document.getElementById("historical-horizon-select");
+    if (historicalHorizonSelect) {
+        historicalHorizonSelect.addEventListener("change", () => {
+            const h = historicalHorizonSelect.value || "1d";
+            loadHistoricalT0List(h);
+        });
+    }
 
-    if (defaultHorizonBtn) {
-        const defaultHorizon = defaultHorizonBtn.dataset.horizon;
+    // --- Инициализация при загрузке страницы ---
+    const historicalPanel = document.getElementById("panel-historical");
+    const onlinePanel = document.getElementById("panel-online");
 
-        document.querySelectorAll("#panel-online .prediction-card")
-            .forEach(c => c.classList.add("hidden"));
-        const card = document.getElementById("card-online-" + defaultHorizon);
-        if (card) card.classList.remove("hidden");
+    // Если по умолчанию активен Historical — сразу грузим t0 список с учётом выбранного горизонта
+    if (historicalPanel && historicalPanel.classList.contains("active")) {
+        const horizonSelect = document.getElementById("historical-horizon-select");
+        const h = horizonSelect ? horizonSelect.value : "1d";
+        loadHistoricalT0List(h);
+    }
 
-        loadPredictionForHorizon(defaultHorizon);
+    // Если по умолчанию активен Online — ведём себя как раньше
+    if (onlinePanel && onlinePanel.classList.contains("active")) {
+        const defaultHorizonBtn = document.querySelector('.horizon-tab.active')
+            || document.querySelector('.horizon-tab[data-horizon="1h"]');
+
+        if (defaultHorizonBtn) {
+            const defaultHorizon = defaultHorizonBtn.dataset.horizon;
+
+            document.querySelectorAll("#panel-online .prediction-card")
+                .forEach(c => c.classList.add("hidden"));
+            const card = document.getElementById("card-online-" + defaultHorizon);
+            if (card) card.classList.remove("hidden");
+
+            loadPredictionForHorizon(defaultHorizon);
+        }
     }
 
     // --- кнопка "Run backtest" для Historical ---

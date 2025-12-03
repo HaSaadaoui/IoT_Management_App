@@ -45,12 +45,14 @@ public class PredictionController {
         return predictionService.getPrediction(horizon);
     }
 
-    // 🔹 СПИСОК t0 ДЛЯ HISTORICAL
     @GetMapping("/prediction/historical/t0-list")
     @ResponseBody
-    public T0ListResponse getHistoricalT0List() {
-        return predictionService.getHistoricalT0List();
+    public T0ListResponse getHistoricalT0List(
+            @RequestParam(name = "horizon", defaultValue = "1d") String horizon
+    ) {
+        return predictionService.getHistoricalT0List(horizon);
     }
+
 
     // 🔹 ДАННЫЕ HISTORICAL ПО ВЫБРАННОМУ t0 + HORIZON
     @GetMapping("/prediction/historical/data")
