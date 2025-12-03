@@ -1,6 +1,8 @@
 // Глобальное хранилище активных графиков Chart.js
 const predictionCharts = {};
 const historicalCharts = {};
+const scenarioCharts = {};
+
 let historicalT0Loaded = false;
 
 /**
@@ -184,6 +186,73 @@ function renderHistoricalCharts(data) {
     });
 }
 
+function renderScenarioChart(data) {
+    const canvas = document.getElementById("chart-scenarios");
+    if (!canvas) {
+        console.warn("Scenario canvas not found");
+        return;
+    }
+
+    if (scenarioCharts["main"]) {
+        scenarioCharts["main"].destroy();
+    }
+
+    const ctx = canvas.getContext("2d");
+
+    const scenarios = data.scenarios || [];
+    const labels = scenarios.map(s => s.scenario);
+    const values = scenarios.map(s => s.predictedConsumption ?? s.predicted_consumption);
+    const deltas = scenarios.map(s => s.delta);
+
+    scenarioCharts["main"] = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "Predicted daily consumption",
+                    data: values,
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: true },
+                tooltip: {
+                    callbacks: {
+                        label: function (ctx) {
+                            const idx = ctx.dataIndex;
+                            const val = values[idx];
+                            const d = deltas[idx];
+                            const sign = d > 0 ? "+" : "";
+                            return ` ${val.toFixed(1)} (Δ ${sign}${d.toFixed(1)})`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: "Scenario" } },
+                y: { title: { display: true, text: "Consumption (kWh)" } }
+            }
+        }
+    });
+}
+
+async function loadScenarios() {
+    try {
+        const resp = await fetch("/prediction/scenarios/data");
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const data = await resp.json();
+        renderScenarioChart(data);
+    } catch (err) {
+        console.error("Error loading scenarios", err);
+    }
+}
+
+
 async function loadHistoricalT0List(horizon = "1d") {
     const select = document.getElementById("historical-t0-select");
     const statusEl = document.getElementById("historical-status");
@@ -296,7 +365,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 const h = horizonSelect ? horizonSelect.value : "1d";
                 loadHistoricalT0List(h);
             }
-
+            if (target === "scenarios") {
+                loadScenarios();
+            }
             // если открыли Online — подгружаем текущий активный горизонт
             if (target === "online") {
                 const activeHorizonBtn = document.querySelector('.horizon-tab.active')
@@ -349,6 +420,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const h = horizonSelect ? horizonSelect.value : "1d";
         loadHistoricalT0List(h);
     }
+    if (scenariosPanel && scenariosPanel.classList.contains("active")) {
+        loadScenarios();
+    }
+
 
     // Если по умолчанию активен Online — ведём себя как раньше
     if (onlinePanel && onlinePanel.classList.contains("active")) {

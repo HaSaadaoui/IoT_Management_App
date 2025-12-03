@@ -3,6 +3,7 @@ package com.amaris.sensorprocessor.service;
 import com.amaris.sensorprocessor.model.prediction.PredictionResponse;
 import com.amaris.sensorprocessor.model.prediction.T0ListResponse;
 import com.amaris.sensorprocessor.model.prediction.HistoricalResponse;
+import com.amaris.sensorprocessor.model.prediction.ScenarioResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -75,4 +76,21 @@ public class PredictionClientService {
             throw e;
         }
     }
+    /**
+     * Scenarios: /predict/scenarios
+     */
+    public ScenarioResponse getScenarioPrediction() {
+        try {
+            URI uri = UriComponentsBuilder
+                    .fromUriString(pythonBaseUrl + "/predict/scenarios")
+                    .build()
+                    .toUri();
+
+            return restTemplate.getForObject(uri, ScenarioResponse.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
 }

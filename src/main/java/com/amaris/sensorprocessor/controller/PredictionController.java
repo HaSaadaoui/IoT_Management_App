@@ -2,6 +2,7 @@ package com.amaris.sensorprocessor.controller;
 
 import com.amaris.sensorprocessor.entity.User;
 import com.amaris.sensorprocessor.model.prediction.PredictionResponse;
+import com.amaris.sensorprocessor.model.prediction.ScenarioResponse;
 import com.amaris.sensorprocessor.model.prediction.T0ListResponse;
 import com.amaris.sensorprocessor.model.prediction.HistoricalResponse;
 import com.amaris.sensorprocessor.service.PredictionClientService;
@@ -63,4 +64,10 @@ public class PredictionController {
     ) {
         return predictionService.getHistoricalPrediction(horizon, t0);
     }
+    @GetMapping("/prediction/scenarios/data")
+    @ResponseBody
+    public ScenarioResponse getScenarioData() {
+        return predictionClientService.getScenarioPrediction();
+    }
+
 }
