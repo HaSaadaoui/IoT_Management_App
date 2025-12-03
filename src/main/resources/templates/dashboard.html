@@ -67,7 +67,7 @@
 <main>
     <!-- Filters Section -->
     <section class="filters-section">
-        <h3 class="section-title">🔍 Filters & Controls</h3>
+        <h3 class="section-title">🔍 Filters & Sensor Selection</h3>
         <div class="filters-grid">
             <div class="filter-card">
                 <label>📅 Year</label>
@@ -141,7 +141,25 @@
                     <option value="evening">Evening (19:00-22:00)</option>
                 </select>
             </div>
+            <div class="filter-card">
+                <label>🎯 Sensor Selection</label>
+                <button id="sensor-load-btn" class="refresh-btn" style="width: 100%;">🔍 Load Sensors</button>
+            </div>
         </div>
+
+        <!-- Sensor List Container -->
+        <div class="sensor-list-container" id="sensor-list-container" style="display: none; margin-top: 20px;">
+            <div class="sensor-list-header">
+                <span>Available Sensors (<span id="sensor-count">0</span>)</span>
+                <button id="select-all-sensors-btn" class="select-all-btn">Select All</button>
+            </div>
+            <div class="sensor-list" id="sensor-list">
+                <div class="sensor-list-placeholder">
+                    Click "Load Sensors" to display available sensors
+                </div>
+            </div>
+        </div>
+
         <div class="last-refresh">
             <span>🔄 Last refresh: <strong id="last-refresh-time">17/11/2025 11:23:47</strong></span>
         </div>
@@ -291,6 +309,7 @@
                 <div class="control-group">
                     <label>📅 Time Range</label>
                     <select id="histogram-time-range">
+                        <option value="TODAY">Today</option>
                         <option value="LAST_7_DAYS" selected>Last 7 Days</option>
                         <option value="LAST_30_DAYS">Last 30 Days</option>
                         <option value="THIS_MONTH">This Month</option>
@@ -336,15 +355,11 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr><td>17/10/2025</td><td>29%</td></tr>
-                            <tr><td>16/10/2025</td><td>30%</td></tr>
-                            <tr><td>15/10/2025</td><td>37%</td></tr>
-                            <tr><td>14/10/2025</td><td>36%</td></tr>
-                            <tr><td>13/10/2025</td><td>35%</td></tr>
-                            <tr><td>10/10/2025</td><td>18%</td></tr>
-                            <tr><td>09/10/2025</td><td>35%</td></tr>
-                            <tr><td>08/10/2025</td><td>24%</td></tr>
-                            <tr><td>07/10/2025</td><td>35%</td></tr>
+                            <tr>
+                                <td colspan="2" style="text-align: center; color: #999;">
+                                    Select sensors to view occupation history
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -389,18 +404,10 @@
                 </div>
             </div>
             
-            <!-- Bar Chart -->
-            <div class="chart-card large">
-                <h4 id="historical-chart-title">Sensor Data Trends (08:00 - 19:00)</h4>
-                <div class="canvas-wrapper">
-                    <canvas id="chart-historical-bar"></canvas>
-                </div>
-            </div>
-
-            <!-- Histogram Chart (New) -->
+            <!-- Sensor Data Trends / Histogram Chart -->
             <div class="chart-card full-width">
                 <div class="histogram-header">
-                    <h4 id="histogram-chart-title">📊 Histogram - Occupancy (Last 7 Days, Daily)</h4>
+                    <h4 id="histogram-chart-title">📊 Sensor Data Trends - Occupancy (Last 7 Days, Daily)</h4>
                     <div class="histogram-summary" id="histogram-summary">
                         <span class="summary-item">Total Sensors: <strong id="summary-total-sensors">--</strong></span>
                         <span class="summary-item">Active: <strong id="summary-active-sensors">--</strong></span>
@@ -410,7 +417,7 @@
                     </div>
                 </div>
                 <div class="canvas-wrapper">
-                    <canvas id="chart-histogram"></canvas>
+                    <canvas id="chart-historical-bar" height="500"></canvas>
                 </div>
                 <div class="histogram-loading" id="histogram-loading" style="display: none;">
                     <span>🔄 Loading histogram data...</span>

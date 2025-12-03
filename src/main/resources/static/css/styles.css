@@ -348,3 +348,133 @@ body {
     }
 }
 
+
+/* Sensor Selection Section */
+.sensor-selection-section {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sensor-selection-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.sensor-filter-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.sensor-list-container {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.sensor-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+}
+
+.select-all-btn {
+    background: white;
+    color: #667eea;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.select-all-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.sensor-list {
+    max-height: 300px;
+    overflow-y: auto;
+    background: #f8f9fa;
+}
+
+.sensor-list-placeholder {
+    padding: 40px 20px;
+    text-align: center;
+    color: #999;
+    font-style: italic;
+}
+
+.sensor-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e0e0e0;
+    background: white;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+
+.sensor-item:hover {
+    background: #f0f4ff;
+}
+
+.sensor-item.selected {
+    background: #e8f0ff;
+    border-left: 4px solid #667eea;
+}
+
+.sensor-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 12px;
+    cursor: pointer;
+}
+
+.sensor-item-info {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sensor-item-name {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.sensor-item-details {
+    display: flex;
+    gap: 12px;
+    font-size: 0.85rem;
+    color: #7f8c8d;
+}
+
+.sensor-badge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.sensor-badge.active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.sensor-badge.inactive {
+    background: #f8d7da;
+    color: #721c24;
+}

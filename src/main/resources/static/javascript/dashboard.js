@@ -1,6 +1,56 @@
 // ===== DASHBOARD MAIN FUNCTIONALITY =====
 // Handles sensor search, filtering, visualization, and cost calculations
 
+// ===== UTILITY: THROTTLE AND DEBOUNCE =====
+//
+// Request Optimization Strategy:
+// 1. DEBOUNCING: Applied to user-triggered actions (filter changes, sensor selection)
+//    - Waits for user to finish interactions before making API calls
+//    - Prevents excessive requests during rapid filter changes
+//    - Delays: 300-500ms depending on action frequency
+//
+// 2. THROTTLING: Applied to periodic actions (auto-refresh)
+//    - Limits execution frequency to prevent server overload
+//    - Ensures minimum time between requests
+//    - Limit: 2000ms for auto-refresh
+//
+// 3. REQUEST GUARDS: Prevents duplicate concurrent requests
+//    - Tracks active requests and skips duplicates
+//    - Applied to all async fetch methods
+//    - Releases lock in finally block to ensure cleanup
+
+/**
+ * Throttle function - limits function execution to once per interval.
+ * Useful for events that fire frequently (scroll, resize, etc.)
+ * @param {Function} func - Function to throttle
+ * @param {number} limit - Minimum time (ms) between executions
+ * @returns {Function} Throttled function
+ */
+function throttle(func, limit) {
+    let inThrottle;
+    return function(...args) {
+        if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    };
+}
+
+/**
+ * Debounce function - delays execution until after a pause in calls.
+ * Useful for search inputs, filter changes, etc.
+ * @param {Function} func - Function to debounce
+ * @param {number} delay - Time (ms) to wait after last call
+ * @returns {Function} Debounced function
+ */
+function debounce(func, delay) {
+    let timeoutId;
+    return function(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func.apply(this, args), delay);
+    };
+}
 
 class DashboardManager {
     constructor() {
@@ -39,6 +89,24 @@ class DashboardManager {
             sensorCost: null
         };
 
+        // Request tracking to prevent concurrent duplicate requests
+        this.activeRequests = {
+            dashboard: false,
+            histogram: false,
+            occupationHistory: false,
+            sensors: false
+        };
+
+        // Create debounced/throttled versions of fetch-heavy methods
+        // Debounce: Wait for user to stop changing filters before fetching
+        this.debouncedLoadDashboardData = debounce(() => this.loadDashboardData(), 500);
+        this.debouncedLoadHistogramData = debounce(() => this.loadHistogramData(), 300);
+        this.debouncedUpdateOccupationHistory = debounce(() => this.updateOccupationHistory(), 300);
+        this.debouncedLoadSensors = debounce(() => this.loadSensors(), 300);
+
+        // Throttle: Limit refresh rate to prevent hammering the server
+        this.throttledRefreshData = throttle(() => this.refreshData(), 2000);
+
         this.init();
     }
 
@@ -47,7 +115,8 @@ class DashboardManager {
         console.log('Initial filters:', this.filters);
         this.initializeFilters();
         this.initializeHistogramControls();
-        this.loadSampleData(); // TODO: remove sample data
+        this.initializeSensorSelection();
+        // this.loadSampleData(); // TODO: remove sample data
         this.loadDashboardData();
 
         // Auto-refresh every 30 seconds
@@ -105,9 +174,9 @@ class DashboardManager {
             }
         }
 
-        // Refresh data with new filters
+        // Refresh data with new filters (debounced to prevent excessive requests)
         console.log('Refreshing dashboard data with new filters...');
-        this.loadDashboardData();
+        this.debouncedLoadDashboardData();
     }
 
     updateSensorTypeUI(sensorType) {
@@ -151,7 +220,16 @@ class DashboardManager {
 
     async loadDashboardData() {
         console.log('=== Loading Dashboard Data ===');
+
+        // Prevent duplicate concurrent requests
+        if (this.activeRequests.dashboard) {
+            console.log('Dashboard request already in progress, skipping...');
+            return;
+        }
+
         try {
+            this.activeRequests.dashboard = true;
+
             // Show loading state
             this.showLoading();
 
@@ -187,7 +265,7 @@ class DashboardManager {
 
             // Update all visualizations
             console.log('Updating dashboard visualizations...');
-            throw "TODO: updateDashboard(data)";
+            // throw "TODO: updateDashboard(data)";
             this.updateDashboard(data);
 
             // Update last refresh time
@@ -198,11 +276,13 @@ class DashboardManager {
             console.error('=== Error Loading Dashboard Data ===');
             console.error('Error:', error);
             console.error('Stack:', error.stack);
-            this.showError('Failed to load dashboard data. Using sample data.');
+            // this.showError('Failed to load dashboard data. Using sample data.');
 
-            // Fall back to sample data
-            console.log('Falling back to sample data...');
-            this.loadSampleData();
+            // // Fall back to sample data
+            // console.log('Falling back to sample data...');
+            // this.loadSampleData();
+        } finally {
+            this.activeRequests.dashboard = false;
         }
     }
 
@@ -283,8 +363,9 @@ class DashboardManager {
         console.log('Updating live data...');
         this.updateLiveData(data.liveSensorData);
 
-        console.log('Updating historical data...');
-        this.updateHistoricalData(data.historicalData);
+        // Histogram is now only updated via sensor selection, not global updates
+        // console.log('Updating historical data...');
+        // this.updateHistoricalData(data.historicalData);
 
         console.log('Updating occupation history...');
         this.updateOccupationHistory(data.historicalData);
@@ -821,17 +902,26 @@ class DashboardManager {
         if (refreshBtn) {
             refreshBtn.addEventListener('click', () => {
                 console.log('Refresh histogram button clicked');
-                this.loadHistogramData();
+                // Histogram is now populated by occupation history when sensors are selected
+                if (this.sensorSelection && this.sensorSelection.selectedSensors.length > 0) {
+                    this.debouncedUpdateOccupationHistory();
+                }
             });
         }
 
-        // Load initial histogram data
-        this.loadHistogramData();
+        // Chart is now populated by occupation history when sensors are selected
+        // Initial state shows empty chart until sensors are selected
     }
 
     async loadHistogramData() {
         console.log('=== Loading Histogram Data ===');
         console.log('Config:', this.histogramConfig);
+
+        // Prevent duplicate concurrent requests
+        if (this.activeRequests.histogram) {
+            console.log('Histogram request already in progress, skipping...');
+            return;
+        }
 
         // Show loading indicator
         const loadingEl = document.getElementById('histogram-loading');
@@ -840,47 +930,85 @@ class DashboardManager {
         }
 
         try {
-            // Build query parameters
-            const params = new URLSearchParams({
-                building: this.filters.building !== 'all' ? this.filters.building : '',
-                floor: this.filters.floor !== 'all' ? this.filters.floor : '',
-                sensorType: this.filters.sensorType,
-                metricType: this.histogramConfig.metricType,
-                timeRange: this.histogramConfig.timeRange,
-                granularity: this.histogramConfig.granularity,
-                timeSlot: this.filters.timeSlot.toUpperCase()
-            });
+            this.activeRequests.histogram = true;
+            // If single sensor is selected, use sensor-by-sensor approach
+            if (this.sensorSelection && this.sensorSelection.selectedSensors.length === 1) {
+                const sensorId = this.sensorSelection.selectedSensors[0];
+                console.log('Loading histogram for single sensor:', sensorId);
 
-            // Remove empty parameters
-            for (const [key, value] of [...params]) {
-                if (!value) params.delete(key);
+                const params = new URLSearchParams({
+                    sensorId: sensorId,
+                    metricType: this.histogramConfig.metricType,
+                    timeRange: this.histogramConfig.timeRange,
+                    granularity: this.histogramConfig.granularity,
+                    timeSlot: this.filters.timeSlot.toUpperCase()
+                });
+
+                // Remove empty parameters
+                for (const [key, value] of [...params]) {
+                    if (!value) params.delete(key);
+                }
+
+                const url = '/api/dashboard/histogram?' + params.toString();
+                console.log('Fetching single sensor:', url);
+
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+
+                const data = await response.json();
+                console.log('Histogram data received:', data);
+
+                this.renderHistogramChart(data);
+                this.updateHistogramSummary(data.summary);
+                this.updateHistogramTitle(data);
+
+            } else {
+                // Multiple sensors or no selection - use group approach
+                const params = new URLSearchParams({
+                    building: this.filters.building !== 'all' ? this.filters.building : '',
+                    floor: this.filters.floor !== 'all' ? this.filters.floor : '',
+                    sensorType: this.filters.sensorType,
+                    metricType: this.histogramConfig.metricType,
+                    timeRange: this.histogramConfig.timeRange,
+                    granularity: this.histogramConfig.granularity,
+                    timeSlot: this.filters.timeSlot.toUpperCase()
+                });
+
+                // Remove empty parameters
+                for (const [key, value] of [...params]) {
+                    if (!value) params.delete(key);
+                }
+
+                const url = '/api/dashboard/histogram?' + params.toString();
+                console.log('Fetching:', url);
+
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+
+                const data = await response.json();
+                console.log('Histogram data received:', data);
+
+                // Render the histogram
+                this.renderHistogramChart(data);
+
+                // Update summary statistics
+                this.updateHistogramSummary(data.summary);
+
+                // Update title
+                this.updateHistogramTitle(data);
             }
-
-            const url = `/api/dashboard/histogram?${params.toString()}`;
-            console.log('Fetching:', url);
-
-            const response = await fetch(url);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log('Histogram data received:', data);
-
-            // Render the histogram
-            this.renderHistogramChart(data);
-
-            // Update summary statistics
-            this.updateHistogramSummary(data.summary);
-
-            // Update title
-            this.updateHistogramTitle(data);
 
         } catch (error) {
             console.error('Error loading histogram data:', error);
             this.showError('Failed to load histogram data: ' + error.message);
         } finally {
+            this.activeRequests.histogram = false;
             // Hide loading indicator
             if (loadingEl) {
                 loadingEl.style.display = 'none';
@@ -891,7 +1019,7 @@ class DashboardManager {
     renderHistogramChart(data) {
         console.log('=== Rendering Histogram Chart ===');
 
-        const chartElement = document.getElementById('chart-histogram');
+        const chartElement = document.getElementById('chart-historical-bar');
         if (!chartElement) {
             console.warn('Histogram chart element not found');
             return;
@@ -911,16 +1039,12 @@ class DashboardManager {
         // Prepare data
         const labels = data.dataPoints.map(dp => {
             if (data.granularity === 'HOURLY') {
-                // Format: "2025-11-25 14:00"
-                const date = new Date(dp.timestamp);
-                return date.toLocaleString('fr-FR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+                // Format: "14:00" (time only for hourly data)
+                const timestamp = dp.timestamp; // Format: "yyyy-MM-dd HH:00"
+                const timePart = timestamp.split(' ')[1]; // Extract "HH:00"
+                return timePart || timestamp;
             } else {
-                // Format: "25/11"
+                // Format: "25/11" (date only for daily data)
                 const date = new Date(dp.timestamp);
                 return date.toLocaleDateString('fr-FR', {
                     day: '2-digit',
@@ -974,13 +1098,13 @@ class DashboardManager {
                     x: {
                         title: {
                             display: true,
-                            text: data.granularity === 'HOURLY' ? 'Date & Time' : 'Date',
+                            text: data.granularity === 'HOURLY' ? 'Time (Hour)' : 'Date',
                             color: '#64748b',
                             font: { size: 14, weight: '600' }
                         },
                         ticks: {
-                            maxRotation: 45,
-                            minRotation: 45,
+                            maxRotation: data.granularity === 'HOURLY' ? 0 : 45,
+                            minRotation: data.granularity === 'HOURLY' ? 0 : 45,
                             font: { size: 11 }
                         },
                         grid: {
@@ -1098,12 +1222,418 @@ class DashboardManager {
 
     getTimeRangeLabel(timeRange) {
         const labels = {
+            'TODAY': 'Today',
             'LAST_7_DAYS': 'Last 7 Days',
             'LAST_30_DAYS': 'Last 30 Days',
             'THIS_MONTH': 'This Month',
             'LAST_MONTH': 'Last Month'
         };
         return labels[timeRange] || timeRange;
+    }
+
+    // ===== SENSOR SELECTION =====
+
+    initializeSensorSelection() {
+        console.log('=== Initializing Sensor Selection ===');
+
+        // Sensor selection state (uses main filter values)
+        this.sensorSelection = {
+            selectedSensors: [],
+            availableSensors: []
+        };
+
+        // Add event listeners
+        const loadBtn = document.getElementById('sensor-load-btn');
+        const selectAllBtn = document.getElementById('select-all-sensors-btn');
+
+        if (loadBtn) {
+            loadBtn.addEventListener('click', () => this.loadSensors());
+        }
+
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', () => this.toggleSelectAll());
+        }
+    }
+
+    async loadSensors() {
+        console.log('Loading sensors with filters:', this.filters);
+
+        // Prevent duplicate concurrent requests
+        if (this.activeRequests.sensors) {
+            console.log('Sensors request already in progress, skipping...');
+            return;
+        }
+
+        try {
+            this.activeRequests.sensors = true;
+
+            const params = new URLSearchParams({
+                building: this.filters.building,
+                floor: this.filters.floor,
+                sensorType: this.filters.sensorType
+            });
+
+            const response = await fetch('/api/dashboard/sensors?' + params);
+            if (!response.ok) throw new Error('Failed to load sensors');
+
+            const sensors = await response.json();
+            this.sensorSelection.availableSensors = sensors;
+
+            console.log('Loaded sensors:', sensors);
+
+            // Show sensor list container
+            const containerEl = document.getElementById('sensor-list-container');
+            if (containerEl) {
+                containerEl.style.display = 'block';
+            }
+
+            this.renderSensorList(sensors);
+        } catch (error) {
+            console.error('Error loading sensors:', error);
+            alert('Failed to load sensors. Please try again.');
+        } finally {
+            this.activeRequests.sensors = false;
+        }
+    }
+
+    renderSensorList(sensors) {
+        const sensorListEl = document.getElementById('sensor-list');
+        const sensorCountEl = document.getElementById('sensor-count');
+
+        if (!sensorListEl) return;
+
+        // Update count
+        if (sensorCountEl) {
+            sensorCountEl.textContent = sensors.length;
+        }
+
+        // Clear existing list
+        sensorListEl.innerHTML = '';
+
+        if (sensors.length === 0) {
+            sensorListEl.innerHTML = '<div class="sensor-list-placeholder">No sensors found</div>';
+            return;
+        }
+
+        // Render each sensor
+        sensors.forEach(sensor => {
+            const isSelected = this.sensorSelection.selectedSensors.includes(sensor.idSensor);
+
+            const sensorItem = document.createElement('div');
+            sensorItem.className = 'sensor-item' + (isSelected ? ' selected' : '');
+            sensorItem.dataset.sensorId = sensor.idSensor;
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = 'sensor-' + sensor.idSensor;
+            checkbox.checked = isSelected;
+            checkbox.addEventListener('change', () => this.toggleSensorSelection(sensor.idSensor));
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'sensor-item-info';
+            infoDiv.innerHTML = '<span class="sensor-item-name">' + sensor.idSensor + '</span>' +
+                '<div class="sensor-item-details">' +
+                    '<span>' + (sensor.location || 'No location') + '</span>' +
+                    '<span>Floor ' + sensor.floor + '</span>' +
+                    '<span class="sensor-badge ' + (sensor.active ? 'active' : 'inactive') + '">' +
+                        (sensor.active ? 'Active' : 'Inactive') +
+                    '</span>' +
+                '</div>';
+
+            sensorItem.appendChild(checkbox);
+            sensorItem.appendChild(infoDiv);
+
+            // Click on item toggles checkbox
+            sensorItem.addEventListener('click', (e) => {
+                if (e.target.tagName !== 'INPUT') {
+                    checkbox.checked = !checkbox.checked;
+                    this.toggleSensorSelection(sensor.idSensor);
+                }
+            });
+
+            sensorListEl.appendChild(sensorItem);
+        });
+    }
+
+    toggleSensorSelection(sensorId) {
+        const index = this.sensorSelection.selectedSensors.indexOf(sensorId);
+
+        if (index > -1) {
+            // Deselect
+            this.sensorSelection.selectedSensors.splice(index, 1);
+        } else {
+            // Select
+            this.sensorSelection.selectedSensors.push(sensorId);
+        }
+
+        // Update UI
+        const sensorItem = document.querySelector('[data-sensor-id="' + sensorId + '"]');
+        if (sensorItem) {
+            sensorItem.classList.toggle('selected');
+        }
+
+        console.log('Selected sensors:', this.sensorSelection.selectedSensors);
+
+        // Update occupation history when sensors are selected/deselected (debounced)
+        this.debouncedUpdateOccupationHistory();
+    }
+
+    toggleSelectAll() {
+        const allSelected = this.sensorSelection.selectedSensors.length === this.sensorSelection.availableSensors.length;
+
+        if (allSelected) {
+            // Deselect all
+            this.sensorSelection.selectedSensors = [];
+        } else {
+            // Select all
+            this.sensorSelection.selectedSensors = this.sensorSelection.availableSensors.map(s => s.idSensor);
+        }
+
+        // Re-render
+        this.renderSensorList(this.sensorSelection.availableSensors);
+
+        // Update occupation history (debounced)
+        this.debouncedUpdateOccupationHistory();
+    }
+
+    async updateOccupationHistory() {
+        const historyTable = document.querySelector('.history-table tbody');
+        if (!historyTable) return;
+
+        // If no sensors selected, clear table and chart
+        if (!this.sensorSelection.selectedSensors || this.sensorSelection.selectedSensors.length === 0) {
+            historyTable.innerHTML = '<tr><td colspan="2" style="text-align: center;">Select sensors to view occupation history</td></tr>';
+            this.clearOccupationHistoryChart();
+            return;
+        }
+
+        // Prevent duplicate concurrent requests
+        if (this.activeRequests.occupationHistory) {
+            console.log('Occupation history request already in progress, skipping...');
+            return;
+        }
+
+        try {
+            this.activeRequests.occupationHistory = true;
+            // Build query parameters
+            const params = new URLSearchParams();
+            this.sensorSelection.selectedSensors.forEach(id => params.append('sensorIds', id));
+            params.append('days', '30');
+
+            const response = await fetch('/api/dashboard/occupation-history?' + params.toString());
+            if (!response.ok) throw new Error('Failed to fetch occupation history');
+
+            const history = await response.json();
+            console.log('Occupation history received:', history);
+
+            // Clear existing rows
+            historyTable.innerHTML = '';
+
+            if (history.length === 0) {
+                historyTable.innerHTML = '<tr><td colspan="2" style="text-align: center;">No data available</td></tr>';
+                this.clearOccupationHistoryChart();
+                return;
+            }
+
+            // Populate table
+            history.forEach(entry => {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td>' + entry.date + '</td>' +
+                               '<td>' + entry.occupancyRate.toFixed(1) + '%</td>';
+                historyTable.appendChild(row);
+            });
+
+            // Render the occupation history chart
+            this.renderOccupationHistoryChart(history);
+
+        } catch (error) {
+            console.error('Error updating occupation history:', error);
+            historyTable.innerHTML = '<tr><td colspan="2" style="text-align: center; color: red;">Error loading history</td></tr>';
+            this.clearOccupationHistoryChart();
+        } finally {
+            this.activeRequests.occupationHistory = false;
+        }
+    }
+
+    renderOccupationHistoryChart(history) {
+        console.log('=== Rendering Occupation History Chart ===');
+
+        const chartElement = document.getElementById('chart-historical-bar');
+        if (!chartElement) {
+            console.warn('Chart element not found: chart-historical-bar');
+            return;
+        }
+
+        // Destroy existing chart
+        if (this.charts.historicalBar) {
+            this.charts.historicalBar.destroy();
+            this.charts.historicalBar = null;
+        }
+
+        const existingChart = Chart.getChart(chartElement);
+        if (existingChart) {
+            existingChart.destroy();
+        }
+
+        // Reverse history to show oldest to newest
+        const sortedHistory = [...history].reverse();
+
+        // Prepare data - split into used and free
+        const dates = sortedHistory.map(entry => entry.date);
+        const usedData = sortedHistory.map(entry => entry.occupancyRate);
+        const freeData = sortedHistory.map(entry => 100 - entry.occupancyRate);
+
+        // Create stacked bar chart
+        this.charts.historicalBar = new Chart(chartElement, {
+            type: 'bar',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: 'Occupied',
+                        data: usedData,
+                        backgroundColor: '#ef4444',
+                        borderRadius: 4,
+                        barPercentage: 0.8
+                    },
+                    {
+                        label: 'Free',
+                        data: freeData,
+                        backgroundColor: '#10b981',
+                        borderRadius: 4,
+                        barPercentage: 0.8
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date',
+                            color: '#64748b',
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            },
+                            padding: { top: 10 }
+                        },
+                        stacked: true,
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            autoSkip: true,
+                            maxTicksLimit: 15,
+                            color: '#64748b',
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Occupancy Rate (%)',
+                            color: '#64748b',
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            },
+                            padding: { bottom: 10 }
+                        },
+                        stacked: true,
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            color: '#64748b',
+                            font: {
+                                size: 11
+                            },
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.5)',
+                            lineWidth: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            color: '#64748b'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Update chart title
+        const chartTitle = document.getElementById('histogram-chart-title');
+        if (chartTitle) {
+            chartTitle.textContent = `📊 Occupation History - Last ${history.length} Days`;
+        }
+
+        // Update summary with occupation history stats
+        const avgOccupancy = sortedHistory.reduce((sum, entry) => sum + entry.occupancyRate, 0) / sortedHistory.length;
+        const minOccupancy = Math.min(...sortedHistory.map(entry => entry.occupancyRate));
+        const maxOccupancy = Math.max(...sortedHistory.map(entry => entry.occupancyRate));
+
+        this.updateHistogramSummary({
+            totalSensors: this.sensorSelection.selectedSensors.length,
+            activeSensors: this.sensorSelection.selectedSensors.length,
+            avgValue: avgOccupancy / 100, // Convert to decimal
+            minValue: minOccupancy / 100,
+            maxValue: maxOccupancy / 100
+        });
+
+        console.log('Occupation history chart rendered successfully');
+    }
+
+    clearOccupationHistoryChart() {
+        const chartElement = document.getElementById('chart-historical-bar');
+        if (!chartElement) return;
+
+        // Destroy existing chart
+        if (this.charts.historicalBar) {
+            this.charts.historicalBar.destroy();
+            this.charts.historicalBar = null;
+        }
+
+        const existingChart = Chart.getChart(chartElement);
+        if (existingChart) {
+            existingChart.destroy();
+        }
+
+        // Reset chart title
+        const chartTitle = document.getElementById('histogram-chart-title');
+        if (chartTitle) {
+            chartTitle.textContent = '📊 Sensor Data Trends - Occupancy';
+        }
+
+        // Clear summary
+        document.getElementById('summary-total-sensors').textContent = '--';
+        document.getElementById('summary-active-sensors').textContent = '--';
+        document.getElementById('summary-avg-value').textContent = '--';
+        document.getElementById('summary-min-value').textContent = '--';
+        document.getElementById('summary-max-value').textContent = '--';
     }
 }
 
