@@ -184,7 +184,7 @@ function renderHistoricalCharts(data) {
     });
 }
 
-async function loadHistoricalT0List(horizon) {
+async function loadHistoricalT0List(horizon = "1d") {
     const select = document.getElementById("historical-t0-select");
     const statusEl = document.getElementById("historical-status");
     if (!select) return;
@@ -217,7 +217,7 @@ async function loadHistoricalT0List(horizon) {
             });
 
             // default: last t0
-            select.value = list[list.length - 1];
+            select.value = list[0];
         }
 
         historicalT0Loaded = true;
