@@ -1,6 +1,8 @@
 // Глобальное хранилище активных графиков Chart.js
 const predictionCharts = {};
 const historicalCharts = {};
+const scenarioCharts = {};
+
 let historicalT0Loaded = false;
 
 /**
@@ -184,32 +186,118 @@ function renderHistoricalCharts(data) {
     });
 }
 
-/**
- * Загружаем список t0 для HISTORICAL.
- */
-async function loadHistoricalT0List() {
+function renderScenarioChart(data) {
+    const canvas = document.getElementById("chart-scenarios");
+    if (!canvas) {
+        console.warn("Scenario canvas not found");
+        return;
+    }
+
+    if (scenarioCharts["main"]) {
+        scenarioCharts["main"].destroy();
+    }
+
+    const ctx = canvas.getContext("2d");
+
+    const scenarios = data.scenarios || [];
+    const labels = scenarios.map(s => s.scenario);
+    const values = scenarios.map(s => s.predictedConsumption ?? s.predicted_consumption);
+    const deltas = scenarios.map(s => s.delta);
+
+    scenarioCharts["main"] = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "Predicted daily consumption",
+                    data: values,
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: true },
+                tooltip: {
+                    callbacks: {
+                        label: function (ctx) {
+                            const idx = ctx.dataIndex;
+                            const val = values[idx];
+                            const d = deltas[idx];
+                            const sign = d > 0 ? "+" : "";
+                            return ` ${val.toFixed(1)} (Δ ${sign}${d.toFixed(1)})`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: "Scenario" } },
+                y: { title: { display: true, text: "Consumption (kWh)" } }
+            }
+        }
+    });
+}
+
+async function loadScenarios() {
+    try {
+        const resp = await fetch("/prediction/scenarios/data");
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const data = await resp.json();
+        renderScenarioChart(data);
+    } catch (err) {
+        console.error("Error loading scenarios", err);
+    }
+}
+
+
+async function loadHistoricalT0List(horizon = "1d") {
     const select = document.getElementById("historical-t0-select");
     const statusEl = document.getElementById("historical-status");
     if (!select) return;
 
     try {
         if (statusEl) statusEl.textContent = "Loading t0 list...";
-        const resp = await fetch("/prediction/historical/t0-list");
+
+        const resp = await fetch(
+            "/prediction/historical/t0-list?horizon=" + encodeURIComponent(horizon)
+        );
         if (!resp.ok) throw new Error("HTTP " + resp.status);
+
         const data = await resp.json();
 
         select.innerHTML = "";
-        (data.t0_list || []).forEach(t0 => {
-            const opt = document.createElement("option");
-            opt.value = t0;
-            opt.textContent = t0;
-            select.appendChild(opt);
-        });
+        const list = data.t0_list || [];
 
-        if (data.t0_list && data.t0_list.length > 0) {
-            // например, выбираем последнее t0
-            select.value = data.t0_list[data.t0_list.length - 1];
+        if (list.length === 0) {
+            const opt = document.createElement("option");
+            opt.value = "";
+            opt.textContent = "No t0 available";
+            select.appendChild(opt);
+        } else {
+            const ordered = [...list].reverse();
+            ordered.forEach(t0 => {
+                const opt = document.createElement("option");
+                opt.value = t0;
+                opt.textContent = t0;
+                select.appendChild(opt);
+            });
+
+            // 🎯 хотим по умолчанию 2024-08-06 09:30:00+00:00 для всех горизонтов
+            const DEFAULT_T0 = "2024-08-06T09:30:00+00:00";
+
+            if (ordered.includes(DEFAULT_T0)) {
+                // если такая дата есть в списке – выбираем именно её
+                select.value = DEFAULT_T0;
+            } else {
+                // иначе fallback – берём самую старую (первую в ordered)
+                select.value = ordered[0];
+            }
         }
+
+
         historicalT0Loaded = true;
         if (statusEl) statusEl.textContent = "";
     } catch (err) {
@@ -271,9 +359,23 @@ document.addEventListener("DOMContentLoaded", () => {
             const panel = document.getElementById("panel-" + target);
             if (panel) panel.classList.add("active");
 
-            // если впервые открыли Historical — грузим t0 список
+            // если открыли Historical — грузим t0 список (один раз при первом входе)
             if (target === "historical" && !historicalT0Loaded) {
-                loadHistoricalT0List();
+                const horizonSelect = document.getElementById("historical-horizon-select");
+                const h = horizonSelect ? horizonSelect.value : "1d";
+                loadHistoricalT0List(h);
+            }
+            if (target === "scenarios") {
+                loadScenarios();
+            }
+            // если открыли Online — подгружаем текущий активный горизонт
+            if (target === "online") {
+                const activeHorizonBtn = document.querySelector('.horizon-tab.active')
+                    || document.querySelector('.horizon-tab[data-horizon="1h"]');
+                if (activeHorizonBtn) {
+                    const h = activeHorizonBtn.dataset.horizon;
+                    loadPredictionForHorizon(h);
+                }
             }
         });
     });
@@ -299,19 +401,45 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // --- первичная загрузка по умолчанию (1h) ---
-    const defaultHorizonBtn = document.querySelector('.horizon-tab.active')
-        || document.querySelector('.horizon-tab[data-horizon="1h"]');
+    // --- смена горизонта в HISTORICAL → перезагрузить список t0 ---
+    const historicalHorizonSelect = document.getElementById("historical-horizon-select");
+    if (historicalHorizonSelect) {
+        historicalHorizonSelect.addEventListener("change", () => {
+            const h = historicalHorizonSelect.value || "1d";
+            loadHistoricalT0List(h);
+        });
+    }
 
-    if (defaultHorizonBtn) {
-        const defaultHorizon = defaultHorizonBtn.dataset.horizon;
+    // --- Инициализация при загрузке страницы ---
+    const historicalPanel = document.getElementById("panel-historical");
+    const onlinePanel = document.getElementById("panel-online");
 
-        document.querySelectorAll("#panel-online .prediction-card")
-            .forEach(c => c.classList.add("hidden"));
-        const card = document.getElementById("card-online-" + defaultHorizon);
-        if (card) card.classList.remove("hidden");
+    // Если по умолчанию активен Historical — сразу грузим t0 список с учётом выбранного горизонта
+    if (historicalPanel && historicalPanel.classList.contains("active")) {
+        const horizonSelect = document.getElementById("historical-horizon-select");
+        const h = horizonSelect ? horizonSelect.value : "1d";
+        loadHistoricalT0List(h);
+    }
+    if (scenariosPanel && scenariosPanel.classList.contains("active")) {
+        loadScenarios();
+    }
 
-        loadPredictionForHorizon(defaultHorizon);
+
+    // Если по умолчанию активен Online — ведём себя как раньше
+    if (onlinePanel && onlinePanel.classList.contains("active")) {
+        const defaultHorizonBtn = document.querySelector('.horizon-tab.active')
+            || document.querySelector('.horizon-tab[data-horizon="1h"]');
+
+        if (defaultHorizonBtn) {
+            const defaultHorizon = defaultHorizonBtn.dataset.horizon;
+
+            document.querySelectorAll("#panel-online .prediction-card")
+                .forEach(c => c.classList.add("hidden"));
+            const card = document.getElementById("card-online-" + defaultHorizon);
+            if (card) card.classList.remove("hidden");
+
+            loadPredictionForHorizon(defaultHorizon);
+        }
     }
 
     // --- кнопка "Run backtest" для Historical ---

@@ -3,6 +3,7 @@ package com.amaris.sensorprocessor.service;
 import com.amaris.sensorprocessor.model.prediction.PredictionResponse;
 import com.amaris.sensorprocessor.model.prediction.T0ListResponse;
 import com.amaris.sensorprocessor.model.prediction.HistoricalResponse;
+import com.amaris.sensorprocessor.model.prediction.ScenarioResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -26,7 +27,7 @@ public class PredictionClientService {
     public PredictionResponse getPrediction(String horizon) {
         try {
             URI uri = UriComponentsBuilder
-                    .fromHttpUrl(pythonOnlineUrl)
+                    .fromUriString(pythonOnlineUrl)
                     .queryParam("horizon", horizon)
                     .build()
                     .toUri();
@@ -39,17 +40,23 @@ public class PredictionClientService {
     }
 
     /**
-     * Historical: /historical/t0-list
+     * Historical: /prediction/historical/t0-list?horizon=...
      */
-    public T0ListResponse getHistoricalT0List() {
+    public T0ListResponse getHistoricalT0List(String horizon) {
         try {
-            String url = pythonBaseUrl + "/historical/t0-list";
-            return restTemplate.getForObject(url, T0ListResponse.class);
+            URI uri = UriComponentsBuilder
+                    .fromUriString(pythonBaseUrl + "/prediction/historical/t0-list")
+                    .queryParam("horizon", horizon)
+                    .build(true)
+                    .toUri();
+
+            return restTemplate.getForObject(uri, T0ListResponse.class);
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
         }
     }
+
 
     /**
      * Historical: /predict/historical?horizon=...&t0=...
@@ -57,7 +64,7 @@ public class PredictionClientService {
     public HistoricalResponse getHistoricalPrediction(String horizon, String t0Iso) {
         try {
             URI uri = UriComponentsBuilder
-                    .fromHttpUrl(pythonBaseUrl + "/predict/historical")
+                    .fromUriString(pythonBaseUrl + "/predict/historical")
                     .queryParam("horizon", horizon)
                     .queryParam("t0", t0Iso)
                     .build()
@@ -69,4 +76,21 @@ public class PredictionClientService {
             throw e;
         }
     }
+    /**
+     * Scenarios: /predict/scenarios
+     */
+    public ScenarioResponse getScenarioPrediction() {
+        try {
+            URI uri = UriComponentsBuilder
+                    .fromUriString(pythonBaseUrl + "/predict/scenarios")
+                    .build()
+                    .toUri();
+
+            return restTemplate.getForObject(uri, ScenarioResponse.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
 }
