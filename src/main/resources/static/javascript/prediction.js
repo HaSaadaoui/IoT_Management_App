@@ -208,7 +208,8 @@ async function loadHistoricalT0List(horizon) {
             opt.textContent = "No t0 available";
             select.appendChild(opt);
         } else {
-            list.forEach(t0 => {
+            const ordered = [...list].reverse();
+            ordered.forEach(t0 => {
                 const opt = document.createElement("option");
                 opt.value = t0;
                 opt.textContent = t0;
