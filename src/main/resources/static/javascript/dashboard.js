@@ -61,7 +61,7 @@ class DashboardManager {
             building: 'all',
             floor: 'all',
             sensorType: 'DESK',
-            timeSlot: 'afternoon'
+            timeSlot: 'all'
         };
 
         // Cached data
