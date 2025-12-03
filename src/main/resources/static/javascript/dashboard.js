@@ -97,6 +97,14 @@ class DashboardManager {
             sensors: false
         };
 
+        // Loading indicator labels
+        this.loadingLabels = {
+            dashboard: { title: 'Loading Dashboard', details: 'Fetching live and historical data...' },
+            histogram: { title: 'Loading Histogram', details: 'Computing sensor statistics...' },
+            occupationHistory: { title: 'Loading History', details: 'Fetching occupation data...' },
+            sensors: { title: 'Loading Sensors', details: 'Retrieving sensor list...' }
+        };
+
         // Create debounced/throttled versions of fetch-heavy methods
         // Debounce: Wait for user to stop changing filters before fetching
         this.debouncedLoadDashboardData = debounce(() => this.loadDashboardData(), 500);
@@ -229,9 +237,7 @@ class DashboardManager {
 
         try {
             this.activeRequests.dashboard = true;
-
-            // Show loading state
-            this.showLoading();
+            this.showGlobalLoading('dashboard');
 
             // Fetch data from API
             const params = new URLSearchParams({
@@ -283,6 +289,7 @@ class DashboardManager {
             // this.loadSampleData();
         } finally {
             this.activeRequests.dashboard = false;
+            this.hideGlobalLoading();
         }
     }
 
@@ -845,16 +852,71 @@ class DashboardManager {
 
     showLoading() {
         console.log('⏳ Loading data...');
-        // Could add a loading spinner
+        // Legacy method - now handled by showGlobalLoading
     }
 
     hideLoading() {
         console.log('✅ Data loaded successfully');
+        // Legacy method - now handled by hideGlobalLoading
     }
 
     showError(message) {
         console.error('❌ Error:', message);
         // Could show a toast notification
+    }
+
+    // ===== LOADING INDICATOR MANAGEMENT =====
+
+    /**
+     * Show the global loading indicator with specific request details
+     * @param {string} requestType - Type of request (dashboard, histogram, occupationHistory, sensors)
+     */
+    showGlobalLoading(requestType) {
+        const indicator = document.getElementById('global-loading-indicator');
+        const titleEl = document.getElementById('loading-title');
+        const detailsEl = document.getElementById('loading-details');
+
+        if (!indicator || !titleEl || !detailsEl) return;
+
+        const label = this.loadingLabels[requestType] || { title: 'Loading...', details: '' };
+
+        titleEl.textContent = label.title;
+        detailsEl.textContent = label.details;
+        indicator.classList.add('show');
+
+        console.log(`⏳ ${label.title} - ${label.details}`);
+    }
+
+    /**
+     * Hide the global loading indicator if no requests are active
+     */
+    hideGlobalLoading() {
+        // Check if any requests are still active
+        const hasActiveRequests = Object.values(this.activeRequests).some(active => active);
+
+        if (!hasActiveRequests) {
+            const indicator = document.getElementById('global-loading-indicator');
+            if (indicator) {
+                indicator.classList.remove('show');
+            }
+            console.log('✅ All requests completed');
+        }
+    }
+
+    /**
+     * Update loading indicator to show current active request
+     * If multiple requests are active, shows the most recent one
+     */
+    updateLoadingIndicator() {
+        // Find the first active request to display
+        for (const [requestType, isActive] of Object.entries(this.activeRequests)) {
+            if (isActive) {
+                this.showGlobalLoading(requestType);
+                return;
+            }
+        }
+        // No active requests, hide indicator
+        this.hideGlobalLoading();
     }
 
     // ===== HISTOGRAM FUNCTIONALITY =====
@@ -931,6 +993,8 @@ class DashboardManager {
 
         try {
             this.activeRequests.histogram = true;
+            this.showGlobalLoading('histogram');
+
             // If single sensor is selected, use sensor-by-sensor approach
             if (this.sensorSelection && this.sensorSelection.selectedSensors.length === 1) {
                 const sensorId = this.sensorSelection.selectedSensors[0];
@@ -1009,6 +1073,7 @@ class DashboardManager {
             this.showError('Failed to load histogram data: ' + error.message);
         } finally {
             this.activeRequests.histogram = false;
+            this.hideGlobalLoading();
             // Hide loading indicator
             if (loadingEl) {
                 loadingEl.style.display = 'none';
@@ -1266,6 +1331,7 @@ class DashboardManager {
 
         try {
             this.activeRequests.sensors = true;
+            this.showGlobalLoading('sensors');
 
             const params = new URLSearchParams({
                 building: this.filters.building,
@@ -1293,6 +1359,7 @@ class DashboardManager {
             alert('Failed to load sensors. Please try again.');
         } finally {
             this.activeRequests.sensors = false;
+            this.hideGlobalLoading();
         }
     }
 
@@ -1415,6 +1482,8 @@ class DashboardManager {
 
         try {
             this.activeRequests.occupationHistory = true;
+            this.showGlobalLoading('occupationHistory');
+
             // Build query parameters
             const params = new URLSearchParams();
             this.sensorSelection.selectedSensors.forEach(id => params.append('sensorIds', id));
@@ -1452,6 +1521,7 @@ class DashboardManager {
             this.clearOccupationHistoryChart();
         } finally {
             this.activeRequests.occupationHistory = false;
+            this.hideGlobalLoading();
         }
     }
 
