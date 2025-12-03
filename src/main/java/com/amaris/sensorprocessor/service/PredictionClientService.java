@@ -26,7 +26,7 @@ public class PredictionClientService {
     public PredictionResponse getPrediction(String horizon) {
         try {
             URI uri = UriComponentsBuilder
-                    .fromHttpUrl(pythonOnlineUrl)
+                    .fromUriString(pythonOnlineUrl)
                     .queryParam("horizon", horizon)
                     .build()
                     .toUri();
@@ -39,14 +39,14 @@ public class PredictionClientService {
     }
 
     /**
-     * Historical: /historical/t0-list?horizon=...
+     * Historical: /prediction/historical/t0-list?horizon=...
      */
     public T0ListResponse getHistoricalT0List(String horizon) {
         try {
             URI uri = UriComponentsBuilder
-                    .fromUriString(pythonBaseUrl + "/historical/t0-list")
+                    .fromUriString(pythonBaseUrl + "/prediction/historical/t0-list")
                     .queryParam("horizon", horizon)
-                    .build()
+                    .build(true)
                     .toUri();
 
             return restTemplate.getForObject(uri, T0ListResponse.class);
@@ -56,13 +56,14 @@ public class PredictionClientService {
         }
     }
 
+
     /**
      * Historical: /predict/historical?horizon=...&t0=...
      */
     public HistoricalResponse getHistoricalPrediction(String horizon, String t0Iso) {
         try {
             URI uri = UriComponentsBuilder
-                    .fromHttpUrl(pythonBaseUrl + "/predict/historical")
+                    .fromUriString(pythonBaseUrl + "/predict/historical")
                     .queryParam("horizon", horizon)
                     .queryParam("t0", t0Iso)
                     .build()
