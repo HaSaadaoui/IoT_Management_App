@@ -71,6 +71,7 @@
         <div class="loading-indicator-title" id="loading-title">Loading...</div>
         <div class="loading-indicator-details" id="loading-details"></div>
     </div>
+    <button id="cancel-requests-btn" class="cancel-requests-btn" title="Cancel all active requests">✕</button>
 </div>
 
 <main>
@@ -107,8 +108,8 @@
             <div class="filter-card">
                 <label>📍 Building</label>
                 <select id="filter-building">
-                    <option value="all">All Buildings</option>
-                    <option value="chateaudun" selected>Châteaudun Office</option>
+                    <option value="all" selected>All Buildings</option>
+                    <option value="chateaudun">Châteaudun Office</option>
                     <option value="levallois">Levallois Office</option>
                     <option value="lille">Lille Office</option>
                 </select>
@@ -116,9 +117,9 @@
             <div class="filter-card">
                 <label>🏢 Floor</label>
                 <select id="filter-floor">
-                    <option value="all">All Floors</option>
+                    <option value="all" selected>All Floors</option>
                     <option value="0">Ground Floor</option>
-                    <option value="1" selected>Floor 1</option>
+                    <option value="1">Floor 1</option>
                     <option value="2">Floor 2</option>
                     <option value="3">Floor 3</option>
                     <option value="4">Floor 4</option>
@@ -354,12 +355,12 @@
 
             <!-- Daily History Table -->
             <div class="chart-card">
-                <h4>Desk Occupation History</h4>
+                <h4 id="occupation-history-title">📊 Occupation History - Last 30 Days</h4>
                 <div class="history-table-container">
                     <table class="history-table">
                         <thead>
                             <tr>
-                                <th>Date</th>
+                                <th>Date & Time</th>
                                 <th>Occupancy</th>
                             </tr>
                         </thead>

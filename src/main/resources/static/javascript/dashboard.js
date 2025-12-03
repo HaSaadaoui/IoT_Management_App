@@ -58,8 +58,8 @@ class DashboardManager {
         this.filters = {
             year: '2025',
             month: '11',
-            building: 'chateaudun',
-            floor: '1',
+            building: 'all',
+            floor: 'all',
             sensorType: 'DESK',
             timeSlot: 'afternoon'
         };
@@ -90,11 +90,12 @@ class DashboardManager {
         };
 
         // Request tracking to prevent concurrent duplicate requests
+        // Each entry stores: { active: boolean, controller: AbortController }
         this.activeRequests = {
-            dashboard: false,
-            histogram: false,
-            occupationHistory: false,
-            sensors: false
+            dashboard: { active: false, controller: null },
+            histogram: { active: false, controller: null },
+            occupationHistory: { active: false, controller: null },
+            sensors: { active: false, controller: null }
         };
 
         // Loading indicator labels
@@ -124,11 +125,19 @@ class DashboardManager {
         this.initializeFilters();
         this.initializeHistogramControls();
         this.initializeSensorSelection();
+        this.initializeCancelButton();
         // this.loadSampleData(); // TODO: remove sample data
         this.loadDashboardData();
 
         // Auto-refresh every 30 seconds
         setInterval(() => this.refreshData(), 30000);
+    }
+
+    initializeCancelButton() {
+        const cancelBtn = document.getElementById('cancel-requests-btn');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => this.cancelAllRequests());
+        }
     }
 
     // ===== FILTER MANAGEMENT =====
@@ -230,13 +239,17 @@ class DashboardManager {
         console.log('=== Loading Dashboard Data ===');
 
         // Prevent duplicate concurrent requests
-        if (this.activeRequests.dashboard) {
+        if (this.activeRequests.dashboard.active) {
             console.log('Dashboard request already in progress, skipping...');
             return;
         }
 
+        // Create AbortController for this request
+        const controller = new AbortController();
+
         try {
-            this.activeRequests.dashboard = true;
+            this.activeRequests.dashboard.active = true;
+            this.activeRequests.dashboard.controller = controller;
             this.showGlobalLoading('dashboard');
 
             // Fetch data from API
@@ -253,7 +266,7 @@ class DashboardManager {
             console.log('API URL:', apiUrl);
             console.log('Request parameters:', Object.fromEntries(params));
 
-            const response = await fetch(apiUrl);
+            const response = await fetch(apiUrl, { signal: controller.signal });
             console.log('Response status:', response.status, response.statusText);
 
             if (!response.ok) {
@@ -279,6 +292,11 @@ class DashboardManager {
             console.log('Dashboard data loaded successfully!');
 
         } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('Dashboard request was cancelled');
+                return;
+            }
+
             console.error('=== Error Loading Dashboard Data ===');
             console.error('Error:', error);
             console.error('Stack:', error.stack);
@@ -288,7 +306,8 @@ class DashboardManager {
             // console.log('Falling back to sample data...');
             // this.loadSampleData();
         } finally {
-            this.activeRequests.dashboard = false;
+            this.activeRequests.dashboard.active = false;
+            this.activeRequests.dashboard.controller = null;
             this.hideGlobalLoading();
         }
     }
@@ -892,7 +911,7 @@ class DashboardManager {
      */
     hideGlobalLoading() {
         // Check if any requests are still active
-        const hasActiveRequests = Object.values(this.activeRequests).some(active => active);
+        const hasActiveRequests = Object.values(this.activeRequests).some(req => req.active);
 
         if (!hasActiveRequests) {
             const indicator = document.getElementById('global-loading-indicator');
@@ -909,14 +928,59 @@ class DashboardManager {
      */
     updateLoadingIndicator() {
         // Find the first active request to display
-        for (const [requestType, isActive] of Object.entries(this.activeRequests)) {
-            if (isActive) {
+        for (const [requestType, req] of Object.entries(this.activeRequests)) {
+            if (req.active) {
                 this.showGlobalLoading(requestType);
                 return;
             }
         }
         // No active requests, hide indicator
         this.hideGlobalLoading();
+    }
+
+    /**
+     * Cancel all active requests
+     */
+    cancelAllRequests() {
+        console.log('🛑 Cancelling all active requests...');
+        let cancelledCount = 0;
+
+        for (const [requestType, req] of Object.entries(this.activeRequests)) {
+            if (req.active && req.controller) {
+                console.log(`  Cancelling ${requestType} request`);
+                req.controller.abort();
+                req.active = false;
+                req.controller = null;
+                cancelledCount++;
+            }
+        }
+
+        this.hideGlobalLoading();
+        console.log(`✅ Cancelled ${cancelledCount} request(s)`);
+
+        // Show feedback to user
+        if (cancelledCount > 0) {
+            this.showTemporaryMessage('Requests cancelled', 'info');
+        }
+    }
+
+    /**
+     * Show temporary message to user
+     */
+    showTemporaryMessage(message, type = 'info') {
+        const indicator = document.getElementById('global-loading-indicator');
+        if (!indicator) return;
+
+        const titleEl = document.getElementById('loading-title');
+        const detailsEl = document.getElementById('loading-details');
+
+        titleEl.textContent = message;
+        detailsEl.textContent = '';
+        indicator.classList.add('show');
+
+        setTimeout(() => {
+            indicator.classList.remove('show');
+        }, 2000);
     }
 
     // ===== HISTOGRAM FUNCTIONALITY =====
@@ -944,6 +1008,11 @@ class DashboardManager {
             timeRangeEl.addEventListener('change', (e) => {
                 this.histogramConfig.timeRange = e.target.value;
                 console.log('Time range changed:', this.histogramConfig.timeRange);
+
+                // If sensors are selected, refresh occupation history with new time range
+                if (this.sensorSelection && this.sensorSelection.selectedSensors.length > 0) {
+                    this.debouncedUpdateOccupationHistory();
+                }
             });
         }
 
@@ -980,10 +1049,13 @@ class DashboardManager {
         console.log('Config:', this.histogramConfig);
 
         // Prevent duplicate concurrent requests
-        if (this.activeRequests.histogram) {
+        if (this.activeRequests.histogram.active) {
             console.log('Histogram request already in progress, skipping...');
             return;
         }
+
+        // Create AbortController for this request
+        const controller = new AbortController();
 
         // Show loading indicator
         const loadingEl = document.getElementById('histogram-loading');
@@ -992,7 +1064,8 @@ class DashboardManager {
         }
 
         try {
-            this.activeRequests.histogram = true;
+            this.activeRequests.histogram.active = true;
+            this.activeRequests.histogram.controller = controller;
             this.showGlobalLoading('histogram');
 
             // If single sensor is selected, use sensor-by-sensor approach
@@ -1016,7 +1089,7 @@ class DashboardManager {
                 const url = '/api/dashboard/histogram?' + params.toString();
                 console.log('Fetching single sensor:', url);
 
-                const response = await fetch(url);
+                const response = await fetch(url, { signal: controller.signal });
 
                 if (!response.ok) {
                     throw new Error('HTTP error! status: ' + response.status);
@@ -1049,7 +1122,7 @@ class DashboardManager {
                 const url = '/api/dashboard/histogram?' + params.toString();
                 console.log('Fetching:', url);
 
-                const response = await fetch(url);
+                const response = await fetch(url, { signal: controller.signal });
 
                 if (!response.ok) {
                     throw new Error('HTTP error! status: ' + response.status);
@@ -1069,10 +1142,16 @@ class DashboardManager {
             }
 
         } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('Histogram request was cancelled');
+                return;
+            }
+
             console.error('Error loading histogram data:', error);
             this.showError('Failed to load histogram data: ' + error.message);
         } finally {
-            this.activeRequests.histogram = false;
+            this.activeRequests.histogram.active = false;
+            this.activeRequests.histogram.controller = null;
             this.hideGlobalLoading();
             // Hide loading indicator
             if (loadingEl) {
@@ -1324,13 +1403,17 @@ class DashboardManager {
         console.log('Loading sensors with filters:', this.filters);
 
         // Prevent duplicate concurrent requests
-        if (this.activeRequests.sensors) {
+        if (this.activeRequests.sensors.active) {
             console.log('Sensors request already in progress, skipping...');
             return;
         }
 
+        // Create AbortController for this request
+        const controller = new AbortController();
+
         try {
-            this.activeRequests.sensors = true;
+            this.activeRequests.sensors.active = true;
+            this.activeRequests.sensors.controller = controller;
             this.showGlobalLoading('sensors');
 
             const params = new URLSearchParams({
@@ -1339,7 +1422,7 @@ class DashboardManager {
                 sensorType: this.filters.sensorType
             });
 
-            const response = await fetch('/api/dashboard/sensors?' + params);
+            const response = await fetch('/api/dashboard/sensors?' + params, { signal: controller.signal });
             if (!response.ok) throw new Error('Failed to load sensors');
 
             const sensors = await response.json();
@@ -1355,10 +1438,16 @@ class DashboardManager {
 
             this.renderSensorList(sensors);
         } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('Sensors request was cancelled');
+                return;
+            }
+
             console.error('Error loading sensors:', error);
             alert('Failed to load sensors. Please try again.');
         } finally {
-            this.activeRequests.sensors = false;
+            this.activeRequests.sensors.active = false;
+            this.activeRequests.sensors.controller = null;
             this.hideGlobalLoading();
         }
     }
@@ -1471,25 +1560,63 @@ class DashboardManager {
         if (!this.sensorSelection.selectedSensors || this.sensorSelection.selectedSensors.length === 0) {
             historyTable.innerHTML = '<tr><td colspan="2" style="text-align: center;">Select sensors to view occupation history</td></tr>';
             this.clearOccupationHistoryChart();
+
+            // Reset title
+            const titleElement = document.getElementById('occupation-history-title');
+            if (titleElement) {
+                titleElement.textContent = '📊 Occupation History - Last 30 Days';
+            }
             return;
         }
 
         // Prevent duplicate concurrent requests
-        if (this.activeRequests.occupationHistory) {
+        if (this.activeRequests.occupationHistory.active) {
             console.log('Occupation history request already in progress, skipping...');
             return;
         }
 
+        // Create AbortController for this request
+        const controller = new AbortController();
+
         try {
-            this.activeRequests.occupationHistory = true;
+            this.activeRequests.occupationHistory.active = true;
+            this.activeRequests.occupationHistory.controller = controller;
             this.showGlobalLoading('occupationHistory');
 
             // Build query parameters
             const params = new URLSearchParams();
             this.sensorSelection.selectedSensors.forEach(id => params.append('sensorIds', id));
-            params.append('days', '30');
 
-            const response = await fetch('/api/dashboard/occupation-history?' + params.toString());
+            // Calculate days based on histogram time range
+            let days = 30; // default
+            switch (this.histogramConfig.timeRange) {
+                case 'TODAY':
+                    days = 1;
+                    break;
+                case 'LAST_7_DAYS':
+                    days = 7;
+                    break;
+                case 'LAST_30_DAYS':
+                    days = 30;
+                    break;
+                case 'THIS_MONTH':
+                    // Calculate days in current month
+                    const now = new Date();
+                    days = now.getDate(); // Days elapsed in current month
+                    break;
+                case 'LAST_MONTH':
+                    // Get days in previous month
+                    const lastMonth = new Date();
+                    lastMonth.setMonth(lastMonth.getMonth() - 1);
+                    days = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0).getDate();
+                    break;
+                default:
+                    days = 30;
+            }
+
+            params.append('days', days.toString());
+
+            const response = await fetch('/api/dashboard/occupation-history?' + params.toString(), { signal: controller.signal });
             if (!response.ok) throw new Error('Failed to fetch occupation history');
 
             const history = await response.json();
@@ -1501,26 +1628,45 @@ class DashboardManager {
             if (history.length === 0) {
                 historyTable.innerHTML = '<tr><td colspan="2" style="text-align: center;">No data available</td></tr>';
                 this.clearOccupationHistoryChart();
+
+                // Reset title
+                const titleElement = document.getElementById('occupation-history-title');
+                if (titleElement) {
+                    titleElement.textContent = '📊 Occupation History - No Data';
+                }
                 return;
             }
 
             // Populate table
             history.forEach(entry => {
                 const row = document.createElement('tr');
-                row.innerHTML = '<td>' + entry.date + '</td>' +
+
+                // Format date/time - handle both date-only and date+time formats
+                let displayDate = entry.date;
+
+                row.innerHTML = '<td>' + displayDate + '</td>' +
                                '<td>' + entry.occupancyRate.toFixed(1) + '%</td>';
                 historyTable.appendChild(row);
             });
+
+            // Update title with actual period
+            this.updateOccupationHistoryTitle(history);
 
             // Render the occupation history chart
             this.renderOccupationHistoryChart(history);
 
         } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('Occupation history request was cancelled');
+                return;
+            }
+
             console.error('Error updating occupation history:', error);
             historyTable.innerHTML = '<tr><td colspan="2" style="text-align: center; color: red;">Error loading history</td></tr>';
             this.clearOccupationHistoryChart();
         } finally {
-            this.activeRequests.occupationHistory = false;
+            this.activeRequests.occupationHistory.active = false;
+            this.activeRequests.occupationHistory.controller = null;
             this.hideGlobalLoading();
         }
     }
@@ -1655,10 +1801,13 @@ class DashboardManager {
             }
         });
 
-        // Update chart title
+        // Update chart title using consistent period calculation
         const chartTitle = document.getElementById('histogram-chart-title');
         if (chartTitle) {
-            chartTitle.textContent = `📊 Occupation History - Last ${history.length} Days`;
+            const periodInfo = this.calculateHistoryPeriod(history);
+            if (periodInfo) {
+                chartTitle.textContent = `📊 Occupation History - ${periodInfo.titleText}`;
+            }
         }
 
         // Update summary with occupation history stats
@@ -1704,6 +1853,94 @@ class DashboardManager {
         document.getElementById('summary-avg-value').textContent = '--';
         document.getElementById('summary-min-value').textContent = '--';
         document.getElementById('summary-max-value').textContent = '--';
+
+        // Reset occupation history title
+        const occupationTitle = document.getElementById('occupation-history-title');
+        if (occupationTitle) {
+            occupationTitle.textContent = '📊 Occupation History - Last 30 Days';
+        }
+    }
+
+    /**
+     * Parse date string - handles both "yyyy-MM-dd" and "dd/MM/yyyy" formats
+     * @param {string} dateStr - Date string to parse
+     * @returns {Date} Parsed date object
+     */
+    parseHistoryDate(dateStr) {
+        if (dateStr.includes('-')) {
+            // ISO format: yyyy-MM-dd or yyyy-MM-dd HH:mm
+            return new Date(dateStr);
+        } else if (dateStr.includes('/')) {
+            // European format: dd/MM/yyyy
+            const [day, month, year] = dateStr.split('/');
+            return new Date(year, month - 1, day);
+        }
+        return new Date(dateStr);
+    }
+
+    /**
+     * Format date for display in European format
+     * @param {Date} date - Date object to format
+     * @returns {string} Formatted date string (dd/MM/yyyy)
+     */
+    formatHistoryDate(date) {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
+
+    /**
+     * Calculate period information from history data
+     * @param {Array} history - Array of occupation history entries with dates
+     * @returns {Object} Object with firstDate, lastDate, daysDiff, and titleText
+     */
+    calculateHistoryPeriod(history) {
+        if (!history || history.length === 0) {
+            return null;
+        }
+
+        // Parse first and last dates from the data
+        const oldestDateStr = history[0].date; // Oldest date
+        const newestDateStr = history[history.length - 1].date; // Most recent date
+
+        const oldestDate = this.parseHistoryDate(oldestDateStr);
+        const newestDate = this.parseHistoryDate(newestDateStr);
+
+        // Calculate actual number of days between dates
+        const daysDiff = Math.round((newestDate - oldestDate) / (1000 * 60 * 60 * 24)) + 1;
+
+        // Generate title based on the period - show newest to oldest (reverse chronological)
+        let titleText;
+        if (daysDiff === 1) {
+            titleText = `${this.formatHistoryDate(newestDate)}`;
+        } else {
+            // Show date range from newest to oldest
+            titleText = `${this.formatHistoryDate(newestDate)} to ${this.formatHistoryDate(oldestDate)}`;
+        }
+
+        return {
+            firstDate: oldestDate,
+            lastDate: newestDate,
+            daysDiff,
+            titleText
+        };
+    }
+
+    /**
+     * Update the occupation history title with the actual period covered by the data
+     * @param {Array} history - Array of occupation history entries with dates
+     */
+    updateOccupationHistoryTitle(history) {
+        const titleElement = document.getElementById('occupation-history-title');
+        if (!titleElement || !history || history.length === 0) return;
+
+        const periodInfo = this.calculateHistoryPeriod(history);
+        if (!periodInfo) return;
+
+        const fullTitle = `📊 Occupation History - ${periodInfo.titleText}`;
+        titleElement.textContent = fullTitle;
+        console.log(`Updated occupation history title: ${fullTitle} (${periodInfo.daysDiff} days)`);
     }
 }
 
