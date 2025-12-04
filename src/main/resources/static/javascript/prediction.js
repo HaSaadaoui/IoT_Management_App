@@ -243,7 +243,7 @@ function renderScenarioChart(data) {
 
 async function loadScenarios() {
     try {
-        const resp = await fetch("/prediction/scenarios/data");
+        const resp = await fetch("/predict/scenarios");
         if (!resp.ok) throw new Error("HTTP " + resp.status);
         const data = await resp.json();
         renderScenarioChart(data);
@@ -325,7 +325,7 @@ async function loadHistoricalPrediction() {
     try {
         if (statusEl) statusEl.textContent = "Loading historical prediction...";
 
-        const url = "/prediction/historical/data?horizon=" +
+        const url = "/predict/historical?horizon=" +
             encodeURIComponent(horizon) +
             "&t0=" + encodeURIComponent(t0);
 
@@ -413,6 +413,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- Инициализация при загрузке страницы ---
     const historicalPanel = document.getElementById("panel-historical");
     const onlinePanel = document.getElementById("panel-online");
+    const scenariosPanel = document.getElementById("panel-scenarios"); // 👈 добавить
+
 
     // Если по умолчанию активен Historical — сразу грузим t0 список с учётом выбранного горизонта
     if (historicalPanel && historicalPanel.classList.contains("active")) {
