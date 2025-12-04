@@ -163,7 +163,7 @@ class Building3D {
         };
         
         this.init();
-        this.loadRealOccupancyData();
+        // this.loadRealOccupancyData();
     }
 
     init() {
@@ -177,12 +177,21 @@ class Building3D {
         this.animate();
     }
 
+    getDeskSensor(floorNumber, deskId) {
+        // Use shared configuration for desk-sensor mapping
+        return window.DeskSensorConfig
+            ? window.DeskSensorConfig.getSensor(floorNumber, deskId)
+            : null;
+    }
+
     async loadRealOccupancyData() {
         console.log('=== Loading Real Occupancy Data for 3D Building ===');
 
-        // Iterate through each floor and fetch real occupancy data
-        for (let [floorNumber, floorInfo] of Object.entries(this.floorData)) {
-            floorNumber = parseInt(floorNumber, 10) + 1;
+        // Only load data for the current floor if in 2D view
+        if (!this.isIn3DView && this.currentFloorNumber !== null) {
+            const floorNumber = this.currentFloorNumber; // TODO: Check off-by-one error
+            const floorInfo = this.floorData[this.currentFloorNumber];
+
             try {
                 // Fetch occupancy data for this floor using the dashboard API
                 const response = await fetch(`/api/dashboard/occupancy?floor=${floorNumber}`);
@@ -197,42 +206,69 @@ class Building3D {
                         deskStatusMap.set(desk.id, desk.status);
                     });
 
+                    // Create temporary deskOccupancy object for this floor
+                    const deskOccupancy = {};
+
                     // Update desk statuses in floor data
-                    Object.values(floorInfo.desks).map((desk, floorNumber) => {
-                        // Construct expected desk ID format (desk-NN-XX)
-                        const padding = 0 // or 1 if ground floor is 1
-                        const paddedFloor = String(parseInt(floorNumber) + padding).padStart(2, '0');
-                        const deskNumber = desk.id.replace('D', '');
-                        const paddedDesk = deskNumber.padStart(2, '0');
-                        const expectedIdDesk = `desk-${paddedFloor}-${paddedDesk}`;
-                        const expectedIdVS41 = `desk-vs40-${paddedFloor}-${paddedDesk}`;
-                        const expectedIdVS40 = `desk-vs41-${paddedFloor}-${paddedDesk}`;
+                    Object.values(floorInfo.desks).forEach((desk) => {
+                        // Get the sensor ID from the desk configuration
+                        const sensorId = this.getDeskSensor(this.currentFloorNumber, desk.id);
 
                         // Look for matching desk in API response
-                        if (deskStatusMap.has(expectedIdDesk) || deskStatusMap.has(expectedIdVS40) || deskStatusMap.has(expectedIdVS41)) {
-                            const newStatus = deskStatusMap.get(expectedIdDesk) || deskStatusMap.get(expectedIdVS40) || deskStatusMap.get(expectedIdVS41);
+                        if (sensorId && deskStatusMap.has(sensorId)) {
+                            const newStatus = deskStatusMap.get(sensorId);
                             desk.status = newStatus;
-                            if (this.currentArchPlan)
-                                this.currentArchPlan.deskOccupancy[desk.id] = newStatus;
-                            console.log(`Updated ${desk.id}: ${newStatus}`);
+                            // Store in temporary variable
+                            deskOccupancy[desk.id] = newStatus;
+                            console.log(`Updated ${desk.id} (sensor: ${sensorId}): ${newStatus}`);
                         }
                     });
-                    if (this.currentArchPlan)
-                        this.currentArchPlan.drawFloorPlan();
+
+                    // Pass deskOccupancy to drawFloorPlan
+                    if (this.currentArchPlan) {
+                        this.currentArchPlan.drawFloorPlan(deskOccupancy);
+                    }
+
+                    console.log('=== Real Occupancy Data Loaded for Floor', floorNumber, '===');
                 } else {
                     console.warn(`Failed to fetch occupancy data for floor ${floorNumber}: ${response.status}`);
                 }
             } catch (error) {
                 console.error(`Error loading occupancy data for floor ${floorNumber}:`, error);
             }
-        }
+        } else {
+            // In 3D view, update all floors for the hover info
+            for (let [floorNumberKey, floorInfo] of Object.entries(this.floorData)) {
+                const floorNumber = parseInt(floorNumberKey, 10) + 1;
+                try {
+                    const response = await fetch(`/api/dashboard/occupancy?floor=${floorNumber}`);
 
-        console.log('=== Real Occupancy Data Loaded ===');
-        console.log('Updated floor data:', this.floorData);
+                    if (response.ok) {
+                        const occupancyData = await response.json();
+                        const deskStatusMap = new Map();
+                        occupancyData.forEach(desk => {
+                            deskStatusMap.set(desk.id, desk.status);
+                        });
 
-        // Refresh the floor info overlay if currently hovering over a floor
-        if (this.hoveredFloor && this.isIn3DView) {
-            this.showFloorInfo(this.hoveredFloor.userData.floorNumber);
+                        // Update desk statuses in floor data
+                        Object.values(floorInfo.desks).forEach((desk) => {
+                            const sensorId = this.getDeskSensor(parseInt(floorNumberKey, 10), desk.id);
+                            if (sensorId && deskStatusMap.has(sensorId)) {
+                                desk.status = deskStatusMap.get(sensorId);
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error(`Error loading occupancy data for floor ${floorNumber}:`, error);
+                }
+            }
+
+            console.log('=== Real Occupancy Data Loaded for All Floors ===');
+
+            // Refresh the floor info overlay if currently hovering over a floor
+            if (this.hoveredFloor && this.isIn3DView) {
+                this.showFloorInfo(this.hoveredFloor.userData.floorNumber);
+            }
         }
     }
     
@@ -479,7 +515,6 @@ class Building3D {
             const floor = intersects[0].object;
             if (floor.userData.clickable) {
                 this.enterFloor(floor.userData.floorNumber);
-                this.loadRealOccupancyData();
             }
         }
     }
@@ -592,10 +627,8 @@ class Building3D {
         if (window.ArchitecturalFloorPlan) {
             this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', floorData, this.currentSensorMode);
 
-            // Load desk occupancy data if in DESK mode
-            if (this.currentSensorMode === 'DESK') {
-                this.currentArchPlan.loadDeskOccupancy();
-            }
+            // Load real occupancy data from API
+            this.loadRealOccupancyData();
         } else {
             console.error('ArchitecturalFloorPlan not loaded');
             // Fallback to simple grid

@@ -49,69 +49,11 @@ function showBuildingView() {
 
 function loadFloorDesks(floorNumber) {
     const deskGrid = document.getElementById('desk-grid');
-    
-    // Sample desk configurations for each floor
-    // Desk ID format: desk-{floor+1}-{number} (e.g., desk-01-01 for floor 0, desk-03-15 for floor 2)
-    const floorDesks = {
-        0: [
-            { id: 'desk-01-01', status: 'invalid' },
-            { id: 'desk-01-02', status: 'invalid' },
-            { id: 'desk-01-03', status: 'invalid' },
-            { id: 'desk-01-04', status: 'invalid' },
-            { id: 'desk-01-05', status: 'invalid' },
-            { id: 'desk-01-06', status: 'invalid' },
-            { id: 'desk-01-07', status: 'invalid' },
-            { id: 'desk-01-08', status: 'invalid' }
-        ],
-        1: [
-            { id: 'desk-02-01', status: 'invalid' },
-            { id: 'desk-02-02', status: 'invalid' },
-            { id: 'desk-02-03', status: 'invalid' },
-            { id: 'desk-02-04', status: 'invalid' },
-            { id: 'desk-02-05', status: 'invalid' },
-            { id: 'desk-02-06', status: 'invalid' },
-            { id: 'desk-02-07', status: 'invalid' },
-            { id: 'desk-02-08', status: 'invalid' },
-            { id: 'desk-02-09', status: 'invalid' },
-            { id: 'desk-02-10', status: 'invalid' },
-            { id: 'desk-02-11', status: 'invalid' },
-            { id: 'desk-02-12', status: 'invalid' }
-        ],
-        2: [
-            { id: 'desk-03-01', status: 'invalid' },
-            { id: 'desk-03-02', status: 'invalid' },
-            { id: 'desk-03-03', status: 'invalid' },
-            { id: 'desk-03-04', status: 'invalid' },
-            { id: 'desk-03-05', status: 'invalid' },
-            { id: 'desk-03-06', status: 'invalid' },
-            { id: 'desk-03-07', status: 'invalid' },
-            { id: 'desk-03-08', status: 'invalid' },
-            { id: 'desk-03-09', status: 'invalid' },
-            { id: 'desk-03-10', status: 'invalid' },
-            { id: 'desk-03-11', status: 'invalid' },
-            { id: 'desk-03-12', status: 'invalid' },
-            { id: 'desk-03-13', status: 'invalid' },
-            { id: 'desk-03-14', status: 'invalid' },
-            { id: 'desk-03-15', status: 'invalid' },
-            { id: 'desk-03-16', status: 'invalid' }
-        ],
-        3: [
-            { id: 'desk-04-01', status: 'invalid' },
-            { id: 'desk-04-02', status: 'invalid' },
-            { id: 'desk-04-03', status: 'invalid' },
-            { id: 'desk-04-04', status: 'invalid' },
-            { id: 'desk-04-05', status: 'invalid' },
-            { id: 'desk-04-06', status: 'invalid' },
-            { id: 'desk-04-07', status: 'invalid' },
-            { id: 'desk-04-08', status: 'invalid' },
-            { id: 'desk-04-09', status: 'invalid' },
-            { id: 'desk-04-10', status: 'invalid' },
-            { id: 'desk-04-11', status: 'invalid' },
-            { id: 'desk-04-12', status: 'invalid' }
-        ]
-    };
-    
-    const desks = floorDesks[floorNumber] || floorDesks[1];
+
+    // Use shared configuration for desk-sensor mapping
+    const desks = window.DeskSensorConfig
+        ? window.DeskSensorConfig.getFloorDesks(floorNumber, 'invalid')
+        : [];
     
     // Clear and rebuild desk grid
     deskGrid.innerHTML = '';
