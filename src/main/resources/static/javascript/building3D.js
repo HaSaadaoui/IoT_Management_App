@@ -704,7 +704,7 @@ class Building3D {
 
         // Initialize architectural plan with sensor mode
         if (window.ArchitecturalFloorPlan) {
-            this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', floorData, this.currentSensorMode);
+            this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', floorData, this.currentSensorMode, this.config.id);
 
             // Load desk occupancy data if in DESK mode
             if (this.currentSensorMode === 'DESK') {

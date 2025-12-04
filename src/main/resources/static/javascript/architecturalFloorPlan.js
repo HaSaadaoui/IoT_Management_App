@@ -2,7 +2,7 @@
 // Professional architectural drawing system matching "Occupation Live" style
 
 class ArchitecturalFloorPlan {
-    constructor(containerId, floorData, sensorMode = 'DESK') {
+    constructor(containerId, floorData, sensorMode = 'DESK', buildingKey = 'CHATEAUDUN') {
         this.container = document.getElementById(containerId);
         this.floorData = floorData;
         this.sensorMode = sensorMode;
@@ -14,7 +14,8 @@ class ArchitecturalFloorPlan {
         this.deskOccupancy = {
             // Example: {'D1':'free'}
         }
-        
+        this.buildingKey = buildingKey;
+
         // Colors matching screenshot
         this.colors = {
             wallStroke: '#000000',
@@ -60,7 +61,14 @@ class ArchitecturalFloorPlan {
         // Draw based on floor number
         switch(this.floorData.floorNumber) {
             case 0:
-                this.drawGroundFloor();
+                switch (this.buildingKey) {
+                    case "CHATEAUDUN" :
+                        this.drawGroundFloorChateaudun();
+                        break;
+                    case "LEVALLOIS" :
+                        this.drawGroundFloorLevallois();
+                        break;
+                }
                 break;
             case 1:
                 this.drawFloor1();
@@ -130,8 +138,38 @@ class ArchitecturalFloorPlan {
             default: return 0;
         }
     }
+
+    drawGroundFloorLevallois() {
+        const g = this.createGroup('ground-floor');
+        
+        // Main building outline
+        const outerWall = [
+            { x: 300, y: 500 },
+            { x: 1050, y: 500 },
+            { x: 1050, y: 200 },
+            { x: 850, y: 200 },
+            { x: 850, y: 300 },
+            { x: 300, y: 300 }
+        ];
+        this.drawWall(g, outerWall, true);
+        this.drawCircle(g, 300, 300, 100, 100, 0, 0, 0, 300, 500, true);
+        
+        // Internal separator lines (offices, meeting rooms, open space, stairs, etc.)
+        //this.drawLine(g, [{ x: 750, y: 55 }, { x: 750, y: 240 }], this.colors.interiorLine, 2);
+        
+        // Windows 
+        //this.drawWindow(g, 120, 50, 80, 'horizontal');
+
+        // ONLY DRAW DESKS IF IN DESK MODE
+       /* if (this.sensorMode === 'DESK') {
+            // Ground floor desks - 84 (BLUE) + 2 (ORANGE) + 2 (PURPLE) + 1 (RED)
+            this.drawWorkstation(g, 120, 60, 'invalid', 'D01', 30, 50, 'left');
+        }*/
+        
+        this.svg.appendChild(g);
+    }
     
-    drawGroundFloor() {
+    drawGroundFloorChateaudun() {
         const g = this.createGroup('ground-floor');
         
         // Main building outline - Same as Floor 2
@@ -824,9 +862,21 @@ class ArchitecturalFloorPlan {
         for (let i = 1; i < points.length; i++) {
             d += ` L ${points[i].x} ${points[i].y}`;
         }
-        if (isOutline) {
-            d += ' Z';
-        }
+        
+        path.setAttribute("d", d);
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", this.colors.wallStroke);
+        path.setAttribute("stroke-width", isOutline ? 4 : 2);
+        path.setAttribute("stroke-linecap", "square");
+        path.setAttribute("stroke-linejoin", "miter");
+        
+        parent.appendChild(path);
+    }
+
+    drawCircle(parent, xStart, yStart, xRadii, yRadii, xAxisRotation, largeArcFlag, sweepFlag, xEnd, yEnd, isOutline) {
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+
+        let d = `M ${xStart} ${yStart} A ${xRadii} ${yRadii} ${xAxisRotation} ${largeArcFlag} ${sweepFlag} ${xEnd} ${yEnd}`;
         
         path.setAttribute("d", d);
         path.setAttribute("fill", "none");
