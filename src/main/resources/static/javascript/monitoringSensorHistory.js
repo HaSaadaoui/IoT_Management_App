@@ -168,7 +168,15 @@ async function loadHistory(fromISO, toISO) {
             return totalKWh;
         });
 
-        updateCard('kpi-card-conso', 'kpi-conso', groupTotals[0] > 0 ? groupTotals[0].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '', ' kWh');
+        // Sum all groups for the total consumption display
+        const totalAllGroups = groupTotals.reduce((sum, val) => sum + val, 0);
+
+        // Update the hist-total-total element (below the histogram chart)
+        const histTotalEl = document.getElementById('hist-total-total');
+        if (histTotalEl) histTotalEl.textContent = totalAllGroups.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // Update the KPI card
+        updateCard('kpi-card-conso', 'kpi-conso', totalAllGroups > 0 ? totalAllGroups.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '', ' kWh');
     }
 
     const networkMetrics = ['RSSI', 'SNR'];
