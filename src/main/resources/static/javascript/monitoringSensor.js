@@ -1369,6 +1369,29 @@ function fetchAndUpdateCurrentConsumption() {
     totalCurrentConsumptionWh = 0; // Reset total before fetching
     await Promise.all(Object.entries(oldChannelGroups).map(([id, group]) => fetchGroupConsumption(id, group)));
 
+    // Apply white outlets formula: white = |channels 3,4,5 - channels 6,7,8|
+    const whiteRawConsumption = groupConsumptionData['white-outlets'] || 0;
+    const ventConsumption = groupConsumptionData['ventilation'] || 0;
+    const whiteAdjustedConsumption = Math.abs(whiteRawConsumption - ventConsumption);
+
+    // Update white outlets with adjusted value
+    groupConsumptionData['white-outlets'] = whiteAdjustedConsumption;
+
+    // Recalculate total with adjusted white value
+    totalCurrentConsumptionWh = (groupConsumptionData['red-outlets'] || 0) +
+                                 whiteAdjustedConsumption +
+                                 ventConsumption +
+                                 (groupConsumptionData['other'] || 0);
+
+    // Update the UI for white outlets with adjusted value
+    const whiteGroupEl = el(`#energy-group-white-outlets`);
+    if (whiteGroupEl) {
+      const kwhEl = whiteGroupEl.querySelector('.kwh-value');
+      const whEl = whiteGroupEl.querySelector('.wh-value');
+      if (kwhEl) kwhEl.textContent = `${(whiteAdjustedConsumption / 1000).toFixed(3)} kWh`;
+      if (whEl) whEl.textContent = `${whiteAdjustedConsumption} Wh`;
+    }
+
     // Prepare data for updateEnergyChart
     const chartDataForUpdate = {};
     Object.entries(channelGroups).forEach(([groupId, group]) => {
@@ -1379,7 +1402,7 @@ function fetchAndUpdateCurrentConsumption() {
         chartDataForUpdate[channel] = { value: (index === 0 ? consumption : 0) };
       });
     });
-    
+
     // After all groups are fetched, update the total display
     const totalEl = el('#energy-total');
     if (totalEl) {
