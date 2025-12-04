@@ -201,9 +201,9 @@
                         ← Back to 3D View
                     </button>
                 </div>
-                
+
                 <!-- 3D Canvas Container -->
-                <div id="building-3d-container" class="building-3d-container">
+                <div id="building-3d-container" class="building-3d-container" data-site="CHATEAUDUN">
                     <canvas id="building-canvas"></canvas>
                     <div class="building-controls">
                         <div class="control-hint">
@@ -214,19 +214,19 @@
                     </div>
                     <div id="floor-info-overlay" class="floor-info-overlay"></div>
                 </div>
-                
+
                 <!-- 2D Floor Plan View (Hidden by default) -->
                 <div id="floor-plan-2d" class="floor-plan-2d" style="display: none;">
                     <div class="floor-plan-header">
                         <h4 id="current-floor-title">Floor 1 - Ceiling View</h4>
                     </div>
-                    
+
                     <div class="floor-plan">
                         <!-- Desk Grid -->
                         <div class="desk-grid" id="desk-grid">
                             <!-- Desks will be dynamically generated -->
                         </div>
-                        
+
                         <!-- Legend -->
                         <div class="floor-legend">
                             <div class="legend-item">
@@ -248,7 +248,6 @@
 
             <!-- Dynamic Sensor Stats -->
             <div class="office-stats" id="sensor-stats-container">
-                <!-- Stats cards will be dynamically generated based on sensor type -->
                 <div class="stat-card" data-chart-index="0">
                     <h4 class="stat-card-title">Open_05-01</h4>
                     <div class="chart-container">
@@ -291,26 +290,26 @@
                 <div class="history-table-container">
                     <table class="history-table">
                         <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Occupancy</th>
-                            </tr>
+                        <tr>
+                            <th>Date</th>
+                            <th>Occupancy</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            <tr><td>17/10/2025</td><td>29%</td></tr>
-                            <tr><td>16/10/2025</td><td>30%</td></tr>
-                            <tr><td>15/10/2025</td><td>37%</td></tr>
-                            <tr><td>14/10/2025</td><td>36%</td></tr>
-                            <tr><td>13/10/2025</td><td>35%</td></tr>
-                            <tr><td>10/10/2025</td><td>18%</td></tr>
-                            <tr><td>09/10/2025</td><td>35%</td></tr>
-                            <tr><td>08/10/2025</td><td>24%</td></tr>
-                            <tr><td>07/10/2025</td><td>35%</td></tr>
+                        <tr><td>17/10/2025</td><td>29%</td></tr>
+                        <tr><td>16/10/2025</td><td>30%</td></tr>
+                        <tr><td>15/10/2025</td><td>37%</td></tr>
+                        <tr><td>14/10/2025</td><td>36%</td></tr>
+                        <tr><td>13/10/2025</td><td>35%</td></tr>
+                        <tr><td>10/10/2025</td><td>18%</td></tr>
+                        <tr><td>09/10/2025</td><td>35%</td></tr>
+                        <tr><td>08/10/2025</td><td>24%</td></tr>
+                        <tr><td>07/10/2025</td><td>35%</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-            
+
             <!-- Daily Sensor Cost Chart -->
             <div class="chart-card">
                 <div class="cost-summary">
@@ -330,7 +329,6 @@
                 </div>
             </div>
 
-            
             <!-- Global Stats -->
             <div class="chart-card">
                 <h4 id="global-chart-title">Global Statistics</h4>
@@ -349,7 +347,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Bar Chart -->
             <div class="chart-card large">
                 <h4 id="historical-chart-title">Sensor Data Trends (08:00 - 19:00)</h4>
@@ -357,12 +355,9 @@
                     <canvas id="chart-historical-bar"></canvas>
                 </div>
             </div>
-
-            
         </div>
     </section>
 </main>
-
 
 <script src="/javascript/sensorOverlays.js"></script>
 <script src="/javascript/architecturalFloorPlan.js"></script>
@@ -376,7 +371,10 @@
 
     window.onclick = function(event) {
         if (!event.target.closest('.dropdown')) {
-            document.getElementById("dropdownMenu").classList.remove("show");
+            const menu = document.getElementById("dropdownMenu");
+            if (menu) {
+                menu.classList.remove("show");
+            }
         }
     }
 </script>

@@ -1,31 +1,279 @@
-// ===== 3D BUILDING DIGITAL TWIN VISUALIZATION =====
+// ================== SHAPES ==================
+
+// Shape Châteaudun (basé sur ton SVG 1100x500)
+function createChateaudunShape(scale = 0.01) {
+    const shape = new THREE.Shape();
+
+    // SVG coordinates: x: 50-1050, y: 50-450
+    shape.moveTo(50 * scale, 50 * scale);
+    shape.lineTo(950 * scale, 50 * scale);
+    shape.lineTo(1050 * scale, 50 * scale);
+    shape.lineTo(1050 * scale, 450 * scale);
+    shape.lineTo(200 * scale, 280 * scale);
+    shape.lineTo(50 * scale, 200 * scale);
+    shape.lineTo(50 * scale, 50 * scale);
+
+    const centerX = (50 + 1050) * scale / 2;
+    const centerZ = (50 + 450) * scale / 2;
+
+    return { shape, centerX, centerZ };
+}
+
+// Shape Levallois (arrondi à gauche + bloc rectangulaire en haut à droite)
+function createLevalloisShape(scale = 1) {
+    const shape = new THREE.Shape();
+
+    // Dimensions de base
+    const bodyLength    = 55 * scale;   // longueur open space
+    const rectRightLen  = 20 * scale;   // profondeur bloc droit
+    const halfDepth     = 10 * scale;   // demi-hauteur corps central
+    const extraTop      = 10 * scale;   // dépassement du bloc droit vers le haut
+
+    const radiusLeft = halfDepth;
+
+    // Coordonnées clés
+    const xBodyLeft   = -bodyLength / 2;
+    const xBodyRight  =  bodyLength / 2;
+    const xHeadRight  =  xBodyRight + rectRightLen;
+
+    const yBottom     = -halfDepth;
+    const yTop        =  halfDepth;
+    const yHeadTop    =  yTop + extraTop;
+
+    // On dessine dans le sens horaire
+
+    // 1) Coin bas droit bloc
+    shape.moveTo(xHeadRight, yBottom);
+
+    // 2) Bas bloc → bas corps
+    shape.lineTo(xBodyRight, yBottom);
+
+    // 3) Bas corps → bas arrondi gauche
+    shape.lineTo(xBodyLeft, yBottom);
+
+    // 4) Arrondi à gauche (demi-disque)
+    shape.absarc(
+        xBodyLeft,      // centre X
+        0,              // centre Y
+        radiusLeft,     // rayon
+        -Math.PI / 2,   // départ en bas
+        Math.PI / 2,    // fin en haut
+        true            // sens horaire
+    );
+
+    // On arrive en haut à gauche (xBodyLeft, yTop)
+
+    // 5) Haut corps → haut droit corps
+    shape.lineTo(xBodyRight, yTop);
+
+    // 6) On monte pour former le bloc rectangulaire en haut
+    shape.lineTo(xBodyRight, yHeadTop);
+
+    // 7) Top du bloc droit
+    shape.lineTo(xHeadRight, yHeadTop);
+
+    // 8) Fermeture (retour au bas droit bloc)
+    shape.lineTo(xHeadRight, yBottom);
+
+    // Centre approximatif pour positionner le mesh
+    const minX = xBodyLeft;
+    const maxX = xHeadRight;
+    const minY = yBottom;
+    const maxY = yHeadTop;
+
+    const centerX = (minX + maxX) / 2;
+    const centerZ = (minY + maxY) / 2;
+
+    return { shape, centerX, centerZ };
+}
+
+// ================== FLOOR DATA ==================
+
+const BASE_FLOOR_DATA = {
+    0: {
+        name: 'Ground Floor',
+        desks: [
+            { id: 'D01', status: 'invalid', x: -3, y: -2 },
+            { id: 'D02', status: 'invalid', x: -1, y: -2 },
+            { id: 'D03', status: 'invalid', x:  1, y: -2 },
+            { id: 'D04', status: 'invalid', x:  3, y: -2 },
+            { id: 'D05', status: 'invalid', x: -3, y:  2 },
+            { id: 'D06', status: 'invalid', x: -1, y:  2 },
+            { id: 'D07', status: 'invalid', x:  1, y:  2 },
+            { id: 'D08', status: 'invalid', x:  3, y:  2 }
+        ]
+    },
+    1: {
+        name: 'Floor 1',
+        desks: [
+            { id: 'D01', status: 'invalid', x: -3, y: -2 },
+            { id: 'D02', status: 'invalid', x: -1, y: -2 },
+            { id: 'D03', status: 'invalid', x:  1, y: -2 },
+            { id: 'D04', status: 'invalid', x:  3, y: -2 },
+            { id: 'D05', status: 'invalid', x: -3, y:  0 },
+            { id: 'D06', status: 'invalid', x: -1, y:  0 },
+            { id: 'D07', status: 'invalid', x:  1, y:  0 },
+            { id: 'D08', status: 'invalid', x:  3, y:  0 },
+            { id: 'D09', status: 'invalid', x: -3, y:  2 },
+            { id: 'D10', status: 'invalid', x: -1, y:  2 },
+            { id: 'D11', status: 'invalid', x:  1, y:  2 },
+            { id: 'D12', status: 'invalid', x:  3, y:  2 }
+        ]
+    },
+    2: {
+        name: 'Floor 2',
+        desks: [
+            { id: 'D01', status: 'invalid', x: -3, y: -2 },
+            { id: 'D02', status: 'invalid', x: -1, y: -2 },
+            { id: 'D03', status: 'invalid', x:  1, y: -2 },
+            { id: 'D04', status: 'invalid', x:  3, y: -2 },
+            { id: 'D05', status: 'invalid', x: -3, y: -0.5 },
+            { id: 'D06', status: 'invalid', x: -1, y: -0.5 },
+            { id: 'D07', status: 'invalid', x:  1, y: -0.5 },
+            { id: 'D08', status: 'invalid', x:  3, y: -0.5 },
+            { id: 'D09', status: 'invalid', x: -3, y:  1 },
+            { id: 'D10', status: 'invalid', x: -1, y:  1 },
+            { id: 'D11', status: 'invalid', x:  1, y:  1 },
+            { id: 'D12', status: 'invalid', x:  3, y:  1 },
+            { id: 'D13', status: 'invalid', x: -3, y:  2.5 },
+            { id: 'D14', status: 'invalid', x: -1, y:  2.5 },
+            { id: 'D15', status: 'invalid', x:  1, y:  2.5 },
+            { id: 'D16', status: 'invalid', x:  3, y:  2.5 }
+        ]
+    },
+    3: {
+        name: 'Floor 3',
+        desks: [
+            { id: 'D01', status: 'invalid', x: -3, y: -2 },
+            { id: 'D02', status: 'invalid', x: -1, y: -2 },
+            { id: 'D03', status: 'invalid', x:  1, y: -2 },
+            { id: 'D04', status: 'invalid', x:  3, y: -2 },
+            { id: 'D05', status: 'invalid', x: -3, y:  0 },
+            { id: 'D06', status: 'invalid', x: -1, y:  0 },
+            { id: 'D07', status: 'invalid', x:  1, y:  0 },
+            { id: 'D08', status: 'invalid', x:  3, y:  0 },
+            { id: 'D09', status: 'invalid', x: -3, y:  2 },
+            { id: 'D10', status: 'invalid', x: -1, y:  2 },
+            { id: 'D11', status: 'invalid', x:  1, y:  2 },
+            { id: 'D12', status: 'invalid', x:  3, y:  2 }
+        ]
+    },
+    4: {
+        name: 'Floor 4',
+        desks: [
+            { id: 'D01', status: 'invalid', x: -3, y: -2 },
+            { id: 'D02', status: 'invalid', x: -1, y: -2 },
+            { id: 'D03', status: 'invalid', x:  1, y: -2 },
+            { id: 'D04', status: 'invalid', x:  3, y: -2 },
+            { id: 'D05', status: 'invalid', x: -3, y: -0.5 },
+            { id: 'D06', status: 'invalid', x: -1, y: -0.5 },
+            { id: 'D07', status: 'invalid', x:  1, y: -0.5 },
+            { id: 'D08', status: 'invalid', x:  3, y: -0.5 },
+            { id: 'D09', status: 'invalid', x: -3, y:  1 },
+            { id: 'D10', status: 'invalid', x: -1, y:  1 },
+            { id: 'D11', status: 'invalid', x:  1, y:  1 },
+            { id: 'D12', status: 'invalid', x:  3, y:  1 }
+        ]
+    },
+    5: {
+        name: 'Floor 5',
+        desks: [
+            { id: 'D01', status: 'invalid', x: -3, y: -2 },
+            { id: 'D02', status: 'invalid', x: -1, y: -2 },
+            { id: 'D03', status: 'invalid', x:  1, y: -2 },
+            { id: 'D04', status: 'invalid', x:  3, y: -2 },
+            { id: 'D05', status: 'invalid', x: -3, y:  0 },
+            { id: 'D06', status: 'invalid', x: -1, y:  0 },
+            { id: 'D07', status: 'invalid', x:  1, y:  0 },
+            { id: 'D08', status: 'invalid', x:  3, y:  0 },
+            { id: 'D09', status: 'invalid', x: -3, y:  2 },
+            { id: 'D10', status: 'invalid', x: -1, y:  2 },
+            { id: 'D11', status: 'invalid', x:  1, y:  2 },
+            { id: 'D12', status: 'invalid', x:  3, y:  2 }
+        ]
+    },
+    6: {
+        name: 'Floor 6',
+        desks: [
+            { id: 'D01', status: 'invalid', x: -3, y: -2 },
+            { id: 'D02', status: 'invalid', x: -1, y: -2 },
+            { id: 'D03', status: 'invalid', x:  1, y: -2 },
+            { id: 'D04', status: 'invalid', x:  3, y: -2 },
+            { id: 'D05', status: 'invalid', x: -3, y:  0 },
+            { id: 'D06', status: 'invalid', x: -1, y:  0 },
+            { id: 'D07', status: 'invalid', x:  1, y:  0 },
+            { id: 'D08', status: 'invalid', x:  3, y:  0 },
+            { id: 'D09', status: 'invalid', x: -3, y:  2 },
+            { id: 'D10', status: 'invalid', x: -1, y:  2 },
+            { id: 'D11', status: 'invalid', x:  1, y:  2 },
+            { id: 'D12', status: 'invalid', x:  3, y:  2 }
+        ]
+    }
+};
+
+// FloorData par site
+const CHATEAUDUN_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
+
+const LEVALLOIS_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
+LEVALLOIS_FLOOR_DATA[0].name = 'Levallois - Ground';
+LEVALLOIS_FLOOR_DATA[1].name = 'Levallois - Floor 1';
+LEVALLOIS_FLOOR_DATA[2].name = 'Levallois - Floor 2';
+
+// ================== CONFIG BUILDINGS ==================
+
+const BUILDINGS = {
+    CHATEAUDUN: {
+        id: 'CHATEAUDUN',
+        floors: 7,
+        scale: 0.01,
+        createShape: createChateaudunShape,
+        floorData: CHATEAUDUN_FLOOR_DATA
+    },
+    LEVALLOIS: {
+        id: 'LEVALLOIS',
+        floors: 1,        // 🔹 un seul étage modélisé
+        scale: 0.06,      // 🔹 bâtiment réduit
+        createShape: createLevalloisShape,
+        floorData: LEVALLOIS_FLOOR_DATA
+    }
+};
+
+// ================== CLASS BUILDING3D ==================
 
 class Building3D {
-    constructor(containerId) {
+    constructor(containerId, buildingKey = 'CHATEAUDUN') {
         this.container = document.getElementById(containerId);
         this.canvas = document.getElementById('building-canvas');
-        
-        // Three.js components
+
+        this.buildingKey = buildingKey.toUpperCase();
+        this.config = BUILDINGS[this.buildingKey] || BUILDINGS.CHATEAUDUN;
+
+        this.floorData = JSON.parse(JSON.stringify(this.config.floorData));
+
+        // Three.js
         this.scene = null;
         this.camera = null;
         this.renderer = null;
         this.controls = null;
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
-        
-        // Building components
+
+        // building
         this.building = null;
         this.floors = [];
         this.roofs = [];
         this.hoveredFloor = null;
         this.selectedFloor = null;
-        
-        // State
+
+        // sol / grille mémorisés
+        this.ground = null;
+        this.gridHelper = null;
+
+        // state
         this.isIn3DView = true;
         this.currentFloorNumber = null;
         this.currentSensorMode = 'DESK';
-        
-        // Colors
+
         this.colors = {
             primary: 0x662179,
             primaryLight: 0x8b2fa3,
@@ -38,130 +286,7 @@ class Building3D {
             used: 0xef4444,
             invalid: 0x94a3b8
         };
-        
-        // Floor data
-        this.floorData = {
-            0: {
-                name: 'Ground Floor',
-                desks: [
-                    { id: 'D01', status: 'invalid', x: -3, y: -2 },
-                    { id: 'D02', status: 'invalid', x: -1, y: -2 },
-                    { id: 'D03', status: 'invalid', x: 1, y: -2 },
-                    { id: 'D04', status: 'invalid', x: 3, y: -2 },
-                    { id: 'D05', status: 'invalid', x: -3, y: 2 },
-                    { id: 'D06', status: 'invalid', x: -1, y: 2 },
-                    { id: 'D07', status: 'invalid', x: 1, y: 2 },
-                    { id: 'D08', status: 'invalid', x: 3, y: 2 }
-                ]
-            },
-            1: {
-                name: 'Floor 1',
-                desks: [
-                    { id: 'D01', status: 'invalid', x: -3, y: -2 },
-                    { id: 'D02', status: 'invalid', x: -1, y: -2 },
-                    { id: 'D03', status: 'invalid', x: 1, y: -2 },
-                    { id: 'D04', status: 'invalid', x: 3, y: -2 },
-                    { id: 'D05', status: 'invalid', x: -3, y: 0 },
-                    { id: 'D06', status: 'invalid', x: -1, y: 0 },
-                    { id: 'D07', status: 'invalid', x: 1, y: 0 },
-                    { id: 'D08', status: 'invalid', x: 3, y: 0 },
-                    { id: 'D09', status: 'invalid', x: -3, y: 2 },
-                    { id: 'D10', status: 'invalid', x: -1, y: 2 },
-                    { id: 'D11', status: 'invalid', x: 1, y: 2 },
-                    { id: 'D12', status: 'invalid', x: 3, y: 2 }
-                ]
-            },
-            2: {
-                name: 'Floor 2',
-                desks: [
-                    { id: 'D01', status: 'invalid', x: -3, y: -2 },
-                    { id: 'D02', status: 'invalid', x: -1, y: -2 },
-                    { id: 'D03', status: 'invalid', x: 1, y: -2 },
-                    { id: 'D04', status: 'invalid', x: 3, y: -2 },
-                    { id: 'D05', status: 'invalid', x: -3, y: -0.5 },
-                    { id: 'D06', status: 'invalid', x: -1, y: -0.5 },
-                    { id: 'D07', status: 'invalid', x: 1, y: -0.5 },
-                    { id: 'D08', status: 'invalid', x: 3, y: -0.5 },
-                    { id: 'D09', status: 'invalid', x: -3, y: 1 },
-                    { id: 'D10', status: 'invalid', x: -1, y: 1 },
-                    { id: 'D11', status: 'invalid', x: 1, y: 1 },
-                    { id: 'D12', status: 'invalid', x: 3, y: 1 },
-                    { id: 'D13', status: 'invalid', x: -3, y: 2.5 },
-                    { id: 'D14', status: 'invalid', x: -1, y: 2.5 },
-                    { id: 'D15', status: 'invalid', x: 1, y: 2.5 },
-                    { id: 'D16', status: 'invalid', x: 3, y: 2.5 }
-                ]
-            },
-            3: {
-                name: 'Floor 3',
-                desks: [
-                    { id: 'D01', status: 'invalid', x: -3, y: -2 },
-                    { id: 'D02', status: 'invalid', x: -1, y: -2 },
-                    { id: 'D03', status: 'invalid', x: 1, y: -2 },
-                    { id: 'D04', status: 'invalid', x: 3, y: -2 },
-                    { id: 'D05', status: 'invalid', x: -3, y: 0 },
-                    { id: 'D06', status: 'invalid', x: -1, y: 0 },
-                    { id: 'D07', status: 'invalid', x: 1, y: 0 },
-                    { id: 'D08', status: 'invalid', x: 3, y: 0 },
-                    { id: 'D09', status: 'invalid', x: -3, y: 2 },
-                    { id: 'D10', status: 'invalid', x: -1, y: 2 },
-                    { id: 'D11', status: 'invalid', x: 1, y: 2 },
-                    { id: 'D12', status: 'invalid', x: 3, y: 2 }
-                ]
-            },
-            4: {
-                name: 'Floor 4',
-                desks: [
-                    { id: 'D01', status: 'invalid', x: -3, y: -2 },
-                    { id: 'D02', status: 'invalid', x: -1, y: -2 },
-                    { id: 'D03', status: 'invalid', x: 1, y: -2 },
-                    { id: 'D04', status: 'invalid', x: 3, y: -2 },
-                    { id: 'D05', status: 'invalid', x: -3, y: -0.5 },
-                    { id: 'D06', status: 'invalid', x: -1, y: -0.5 },
-                    { id: 'D07', status: 'invalid', x: 1, y: -0.5 },
-                    { id: 'D08', status: 'invalid', x: 3, y: -0.5 },
-                    { id: 'D09', status: 'invalid', x: -3, y: 1 },
-                    { id: 'D10', status: 'invalid', x: -1, y: 1 },
-                    { id: 'D11', status: 'invalid', x: 1, y: 1 },
-                    { id: 'D12', status: 'invalid', x: 3, y: 1 }
-                ]
-            },
-            5: {
-                name: 'Floor 5',
-                desks: [
-                    { id: 'D01', status: 'invalid', x: -3, y: -2 },
-                    { id: 'D02', status: 'invalid', x: -1, y: -2 },
-                    { id: 'D03', status: 'invalid', x: 1, y: -2 },
-                    { id: 'D04', status: 'invalid', x: 3, y: -2 },
-                    { id: 'D05', status: 'invalid', x: -3, y: 0 },
-                    { id: 'D06', status: 'invalid', x: -1, y: 0 },
-                    { id: 'D07', status: 'invalid', x: 1, y: 0 },
-                    { id: 'D08', status: 'invalid', x: 3, y: 0 },
-                    { id: 'D09', status: 'invalid', x: -3, y: 2 },
-                    { id: 'D10', status: 'invalid', x: -1, y: 2 },
-                    { id: 'D11', status: 'invalid', x: 1, y: 2 },
-                    { id: 'D12', status: 'invalid', x: 3, y: 2 }
-                ]
-            },
-            6: {
-                name: 'Floor 6',
-                desks: [
-                    { id: 'D01', status: 'invalid', x: -3, y: -2 },
-                    { id: 'D02', status: 'invalid', x: -1, y: -2 },
-                    { id: 'D03', status: 'invalid', x: 1, y: -2 },
-                    { id: 'D04', status: 'invalid', x: 3, y: -2 },
-                    { id: 'D05', status: 'invalid', x: -3, y: 0 },
-                    { id: 'D06', status: 'invalid', x: -1, y: 0 },
-                    { id: 'D07', status: 'invalid', x: 1, y: 0 },
-                    { id: 'D08', status: 'invalid', x: 3, y: 0 },
-                    { id: 'D09', status: 'invalid', x: -3, y: 2 },
-                    { id: 'D10', status: 'invalid', x: -1, y: 2 },
-                    { id: 'D11', status: 'invalid', x: 1, y: 2 },
-                    { id: 'D12', status: 'invalid', x: 3, y: 2 }
-                ]
-            }
-        };
-        
+
         this.init();
         this.loadRealOccupancyData();
     }
@@ -178,77 +303,78 @@ class Building3D {
     }
 
     async loadRealOccupancyData() {
-        console.log('=== Loading Real Occupancy Data for 3D Building ===');
+        console.log('=== Loading Real Occupancy Data for', this.buildingKey, '===');
 
-        // Iterate through each floor and fetch real occupancy data
-        for (let [floorNumber, floorInfo] of Object.entries(this.floorData)) {
-            floorNumber = parseInt(floorNumber, 10) + 1;
+        for (const [floorKey, floorInfo] of Object.entries(this.floorData)) {
+            const floorIndex = parseInt(floorKey, 10);
+            const apiFloor = floorIndex + 1;
+
             try {
-                // Fetch occupancy data for this floor using the dashboard API
-                const response = await fetch(`/api/dashboard/occupancy?floor=${floorNumber}`);
+                const response = await fetch(`/api/dashboard/occupancy?floor=${apiFloor}`);
+                // const response = await fetch(`/api/dashboard/occupancy?site=${this.config.id}&floor=${apiFloor}`);
 
-                if (response.ok) {
-                    const occupancyData = await response.json();
-                    console.log(`Floor ${floorNumber} occupancy data:`, occupancyData);
-
-                    // Create a map of desk statuses
-                    const deskStatusMap = new Map();
-                    occupancyData.forEach(desk => {
-                        deskStatusMap.set(desk.id, desk.status);
-                    });
-
-                    // Update desk statuses in floor data
-                    Object.values(floorInfo.desks).map((desk, floorNumber) => {
-                        // Construct expected desk ID format (desk-NN-XX)
-                        const padding = 0 // or 1 if ground floor is 1
-                        const paddedFloor = String(parseInt(floorNumber) + padding).padStart(2, '0');
-                        const deskNumber = desk.id.replace('D', '');
-                        const paddedDesk = deskNumber.padStart(2, '0');
-                        const expectedIdDesk = `desk-${paddedFloor}-${paddedDesk}`;
-                        const expectedIdVS41 = `desk-vs40-${paddedFloor}-${paddedDesk}`;
-                        const expectedIdVS40 = `desk-vs41-${paddedFloor}-${paddedDesk}`;
-
-                        // Look for matching desk in API response
-                        if (deskStatusMap.has(expectedIdDesk) || deskStatusMap.has(expectedIdVS40) || deskStatusMap.has(expectedIdVS41)) {
-                            const newStatus = deskStatusMap.get(expectedIdDesk) || deskStatusMap.get(expectedIdVS40) || deskStatusMap.get(expectedIdVS41);
-                            desk.status = newStatus;
-                            if (this.currentArchPlan)
-                                this.currentArchPlan.deskOccupancy[desk.id] = newStatus;
-                            console.log(`Updated ${desk.id}: ${newStatus}`);
-                        }
-                    });
-                    if (this.currentArchPlan)
-                        this.currentArchPlan.drawFloorPlan();
-                } else {
-                    console.warn(`Failed to fetch occupancy data for floor ${floorNumber}: ${response.status}`);
+                if (!response.ok) {
+                    console.warn(`Failed to fetch occupancy data for floor ${apiFloor}: ${response.status}`);
+                    continue;
                 }
-            } catch (error) {
-                console.error(`Error loading occupancy data for floor ${floorNumber}:`, error);
+
+                const occupancyData = await response.json();
+                const deskStatusMap = new Map();
+                occupancyData.forEach(desk => deskStatusMap.set(desk.id, desk.status));
+
+                floorInfo.desks.forEach((desk) => {
+                    const paddedFloor = String(apiFloor).padStart(2, '0');
+                    const deskNumber = desk.id.replace('D', '');
+                    const paddedDesk = deskNumber.padStart(2, '0');
+
+                    const expectedIdDesk  = `desk-${paddedFloor}-${paddedDesk}`;
+                    const expectedIdVS40  = `desk-vs40-${paddedFloor}-${paddedDesk}`;
+                    const expectedIdVS41  = `desk-vs41-${paddedFloor}-${paddedDesk}`;
+
+                    if (deskStatusMap.has(expectedIdDesk) ||
+                        deskStatusMap.has(expectedIdVS40) ||
+                        deskStatusMap.has(expectedIdVS41)) {
+
+                        const newStatus =
+                            deskStatusMap.get(expectedIdDesk) ||
+                            deskStatusMap.get(expectedIdVS40) ||
+                            deskStatusMap.get(expectedIdVS41);
+
+                        desk.status = newStatus;
+
+                        if (this.currentArchPlan) {
+                            this.currentArchPlan.deskOccupancy[desk.id] = newStatus;
+                        }
+                    }
+                });
+
+                if (this.currentArchPlan) {
+                    this.currentArchPlan.drawFloorPlan();
+                }
+
+            } catch (err) {
+                console.error(`Error loading occupancy data for floor ${apiFloor}:`, err);
             }
         }
 
-        console.log('=== Real Occupancy Data Loaded ===');
-        console.log('Updated floor data:', this.floorData);
-
-        // Refresh the floor info overlay if currently hovering over a floor
         if (this.hoveredFloor && this.isIn3DView) {
             this.showFloorInfo(this.hoveredFloor.userData.floorNumber);
         }
     }
-    
+
     setupScene() {
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x0f172a);
         this.scene.fog = new THREE.Fog(0x0f172a, 20, 50);
     }
-    
+
     setupCamera() {
         const aspect = this.container.clientWidth / this.container.clientHeight;
         this.camera = new THREE.PerspectiveCamera(70, aspect, 0.1, 1000);
         this.camera.position.set(20, 18, 20);
         this.camera.lookAt(0, 10, 0);
     }
-    
+
     setupRenderer() {
         this.renderer = new THREE.WebGLRenderer({
             canvas: this.canvas,
@@ -260,13 +386,11 @@ class Building3D {
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     }
-    
+
     setupLights() {
-        // Ambient light
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         this.scene.add(ambientLight);
-        
-        // Directional light (sun)
+
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
         dirLight.position.set(10, 20, 10);
         dirLight.castShadow = true;
@@ -277,22 +401,20 @@ class Building3D {
         dirLight.shadow.mapSize.width = 2048;
         dirLight.shadow.mapSize.height = 2048;
         this.scene.add(dirLight);
-        
-        // Hemisphere light
+
         const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
         hemiLight.position.set(0, 20, 0);
         this.scene.add(hemiLight);
-        
-        // Point lights for accent
+
         const pointLight1 = new THREE.PointLight(this.colors.primary, 0.5, 30);
         pointLight1.position.set(-10, 10, -10);
         this.scene.add(pointLight1);
-        
+
         const pointLight2 = new THREE.PointLight(this.colors.primaryLight, 0.5, 30);
         pointLight2.position.set(10, 10, 10);
         this.scene.add(pointLight2);
     }
-    
+
     setupControls() {
         this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
@@ -302,38 +424,26 @@ class Building3D {
         this.controls.maxPolarAngle = Math.PI / 2.1;
         this.controls.target.set(0, 5, 0);
     }
-    
+
     createBuilding() {
         this.building = new THREE.Group();
-        
+
         const floorHeight = 3;
-        const scale = 0.01; // Scale down from SVG coordinates (1100x500) to 3D (11x5)
-        
-        // Define angular building shape (from 2D floor plan)
-        // SVG coordinates: x: 50-1050, y: 50-450
-        const buildingShape = new THREE.Shape();
-        buildingShape.moveTo(50 * scale, 50 * scale);
-        buildingShape.lineTo(950 * scale, 50 * scale);
-        buildingShape.lineTo(1050 * scale, 50 * scale);
-        buildingShape.lineTo(1050 * scale, 450 * scale);
-        buildingShape.lineTo(200 * scale, 280 * scale);
-        buildingShape.lineTo(50 * scale, 200 * scale);
-        buildingShape.lineTo(50 * scale, 50 * scale);
-        
-        // Center the shape (shift by half of bounding box)
-        const centerX = (50 + 1050) * scale / 2;
-        const centerZ = (50 + 450) * scale / 2;
-        
-        // Create 7 floors (0-6)
-        for (let i = 0; i < 7; i++) {
+        const { shape: buildingShape, centerX, centerZ } =
+            this.config.createShape(this.config.scale);
+        const floorsCount = this.config.floors;
+
+        // reset
+        this.floors = [];
+        this.roofs  = [];
+
+        for (let i = 0; i < floorsCount; i++) {
             const floorGroup = new THREE.Group();
             floorGroup.userData = { floorNumber: i, type: 'floor' };
-            
-            // Floor base (extruded shape)
-            const extrudeSettings = {
-                depth: 0.3,
-                bevelEnabled: false
-            };
+
+            const extrudeSettings = { depth: 0.3, bevelEnabled: false };
+
+            // Plateau
             const floorGeometry = new THREE.ExtrudeGeometry(buildingShape, extrudeSettings);
             const floorMaterial = new THREE.MeshStandardMaterial({
                 color: this.colors.floorBase,
@@ -341,19 +451,16 @@ class Building3D {
                 roughness: 0.8
             });
             const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-            floor.rotation.x = -Math.PI / 2; // Rotate to horizontal
+            floor.rotation.x = -Math.PI / 2;
             floor.position.set(-centerX, i * floorHeight, -centerZ);
             floor.castShadow = true;
             floor.receiveShadow = true;
             floor.userData = { floorNumber: i, type: 'floor', clickable: true };
             floorGroup.add(floor);
             this.floors.push(floor);
-            
-            // Walls (extruded outline)
-            const wallExtrudeSettings = {
-                depth: floorHeight,
-                bevelEnabled: false
-            };
+
+            // Murs translucides
+            const wallExtrudeSettings = { depth: floorHeight, bevelEnabled: false };
             const wallGeometry = new THREE.ExtrudeGeometry(buildingShape, wallExtrudeSettings);
             const wallMaterial = new THREE.MeshStandardMaterial({
                 color: this.colors.walls,
@@ -368,8 +475,8 @@ class Building3D {
             walls.position.set(-centerX, i * floorHeight, -centerZ);
             walls.castShadow = true;
             floorGroup.add(walls);
-            
-            // Roof
+
+            // Toit
             const roofGeometry = new THREE.ExtrudeGeometry(buildingShape, extrudeSettings);
             const roofMaterial = new THREE.MeshStandardMaterial({
                 color: this.colors.roof,
@@ -383,8 +490,8 @@ class Building3D {
             roof.userData = { type: 'roof', floorNumber: i };
             floorGroup.add(roof);
             this.roofs.push(roof);
-            
-            // Add purple accent edges
+
+            // Edges
             const edgeGeometry = new THREE.EdgesGeometry(floorGeometry);
             const edgeMaterial = new THREE.LineBasicMaterial({
                 color: this.colors.primary,
@@ -394,58 +501,55 @@ class Building3D {
             edges.position.copy(floor.position);
             edges.rotation.copy(floor.rotation);
             floorGroup.add(edges);
-            
+
             this.building.add(floorGroup);
         }
-        
-        // Ground
-        const groundGeometry = new THREE.PlaneGeometry(50, 50);
-        const groundMaterial = new THREE.MeshStandardMaterial({
-            color: 0x1e293b,
-            metalness: 0.1,
-            roughness: 0.9
-        });
-        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        ground.rotation.x = -Math.PI / 2;
-        ground.position.y = -0.5;
-        ground.receiveShadow = true;
-        this.scene.add(ground);
-        
-        // Grid helper
-        const gridHelper = new THREE.GridHelper(50, 50, this.colors.primary, 0x334155);
-        gridHelper.position.y = -0.4;
-        this.scene.add(gridHelper);
-        
+
+        // Sol & grille (une seule fois)
+        if (!this.ground) {
+            const groundGeometry = new THREE.PlaneGeometry(50, 50);
+            const groundMaterial = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                metalness: 0.1,
+                roughness: 0.9
+            });
+            this.ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            this.ground.rotation.x = -Math.PI / 2;
+            this.ground.position.y = -0.5;
+            this.ground.receiveShadow = true;
+            this.scene.add(this.ground);
+        }
+
+        if (!this.gridHelper) {
+            this.gridHelper = new THREE.GridHelper(50, 50, this.colors.primary, 0x334155);
+            this.gridHelper.position.y = -0.4;
+            this.scene.add(this.gridHelper);
+        }
+
         this.scene.add(this.building);
     }
-    
+
     setupEventListeners() {
-        // Mouse move for hover
         this.canvas.addEventListener('mousemove', (event) => this.onMouseMove(event));
-        
-        // Click for selection
-        this.canvas.addEventListener('click', (event) => this.onMouseClick(event));
-        
-        // Window resize
+        this.canvas.addEventListener('click',    (event) => this.onMouseClick(event));
         window.addEventListener('resize', () => this.onWindowResize());
     }
-    
+
     onMouseMove(event) {
         if (!this.isIn3DView) return;
-        
+
         const rect = this.canvas.getBoundingClientRect();
         this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-        
+
         this.raycaster.setFromCamera(this.mouse, this.camera);
         const intersects = this.raycaster.intersectObjects(this.floors);
-        
-        // Reset previous hover
+
         if (this.hoveredFloor && this.hoveredFloor !== this.selectedFloor) {
             this.hoveredFloor.material.color.setHex(this.colors.floorBase);
             this.hoveredFloor.material.emissive.setHex(0x000000);
         }
-        
+
         if (intersects.length > 0) {
             const floor = intersects[0].object;
             if (floor.userData.clickable) {
@@ -464,17 +568,17 @@ class Building3D {
             this.hideFloorInfo();
         }
     }
-    
+
     onMouseClick(event) {
         if (!this.isIn3DView) return;
-        
+
         const rect = this.canvas.getBoundingClientRect();
         this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-        
+
         this.raycaster.setFromCamera(this.mouse, this.camera);
         const intersects = this.raycaster.intersectObjects(this.floors);
-        
+
         if (intersects.length > 0) {
             const floor = intersects[0].object;
             if (floor.userData.clickable) {
@@ -483,40 +587,43 @@ class Building3D {
             }
         }
     }
-    
+
     showFloorInfo(floorNumber) {
         const overlay = document.getElementById('floor-info-overlay');
+        if (!overlay) return;
+
         const data = this.floorData[floorNumber];
         const freeDesks = data.desks.filter(d => d.status === 'free').length;
         const usedDesks = data.desks.filter(d => d.status === 'used').length;
-        
+
         overlay.innerHTML = `
-            <h4 style="margin: 0 0 0.5rem; color: var(--primary); font-size: 1rem;">${data.name}</h4>
-            <p style="margin: 0.25rem 0; font-size: 0.9rem;">Total Desks: ${data.desks.length}</p>
-            <p style="margin: 0.25rem 0; font-size: 0.9rem; color: #10b981;">🟢 Free: ${freeDesks}</p>
-            <p style="margin: 0.25rem 0; font-size: 0.9rem; color: #ef4444;">🔴 Used: ${usedDesks}</p>
-            <p style="margin-top: 0.75rem; font-size: 0.85rem; color: var(--text-secondary); font-style: italic;">Click to enter</p>
+            <h4 style="margin:0 0 0.5rem;color:#662179;font-size:1rem;">${data.name}</h4>
+            <p style="margin:0.25rem 0;font-size:0.9rem;">Total Desks: ${data.desks.length}</p>
+            <p style="margin:0.25rem 0;font-size:0.9rem;color:#10b981;">🟢 Free: ${freeDesks}</p>
+            <p style="margin:0.25rem 0;font-size:0.9rem;color:#ef4444;">🔴 Used: ${usedDesks}</p>
+            <p style="margin-top:0.75rem;font-size:0.85rem;color:#9ca3af;font-style:italic;">Click to enter</p>
         `;
         overlay.classList.add('active');
     }
-    
+
     hideFloorInfo() {
         const overlay = document.getElementById('floor-info-overlay');
+        if (!overlay) return;
         overlay.classList.remove('active');
     }
-    
+
     enterFloor(floorNumber) {
         this.currentFloorNumber = floorNumber;
-        const data = this.floorData[floorNumber];
-        
-        // Animate roof opening
+
         const roof = this.roofs[floorNumber];
+        const targetY = floorNumber * 3 + 1.5;
+
         gsap.to(roof.position, {
             y: roof.position.y + 5,
             duration: 1,
             ease: 'power2.inOut'
         });
-        
+
         gsap.to(roof.material, {
             opacity: 0,
             duration: 0.8,
@@ -525,20 +632,16 @@ class Building3D {
                 roof.material.transparent = true;
             }
         });
-        
-        // Animate camera
-        const targetY = floorNumber * 3 + 1.5;
+
         gsap.to(this.camera.position, {
             x: 0,
             y: targetY + 15,
             z: 0,
             duration: 1.5,
             ease: 'power2.inOut',
-            onComplete: () => {
-                this.switch2DFloorView(floorNumber);
-            }
+            onComplete: () => this.switch2DFloorView(floorNumber)
         });
-        
+
         gsap.to(this.controls.target, {
             x: 0,
             y: targetY,
@@ -547,31 +650,42 @@ class Building3D {
             ease: 'power2.inOut'
         });
     }
-    
+
+    // ===== 2D VIEW (ancienne logique réinjectée) =====
+
     switch2DFloorView(floorNumber) {
         this.isIn3DView = false;
-        
+
         // Hide 3D container
-        document.getElementById('building-3d-container').style.display = 'none';
-        
+        const container3D = document.getElementById('building-3d-container');
+        if (container3D) {
+            container3D.style.display = 'none';
+        }
+
         // Show 2D floor plan
         const floorPlan2D = document.getElementById('floor-plan-2d');
-        floorPlan2D.style.display = 'block';
-        
-        // Update title
-        const data = this.floorData[floorNumber];
-        document.getElementById('current-floor-title').textContent = `${data.name} - Architectural Ceiling View`;
-        
+        if (floorPlan2D) {
+            floorPlan2D.style.display = 'block';
+        }
+
         // Show back button
-        document.getElementById('back-to-3d-btn').style.display = 'block';
-        
+        const backBtn = document.getElementById('back-to-3d-btn');
+        if (backBtn) {
+            backBtn.style.display = 'block';
+        }
+
         // Load architectural floor plan
         this.loadArchitecturalPlan(floorNumber);
     }
-    
+
     loadArchitecturalPlan(floorNumber) {
-        // Clear the desk grid container
         const deskGrid = document.getElementById('desk-grid');
+        if (!deskGrid) {
+            console.error('desk-grid not found');
+            return;
+        }
+
+        // Clear the desk grid container
         deskGrid.innerHTML = '';
         deskGrid.style.display = 'block';
         deskGrid.style.gridTemplateColumns = '1fr';
@@ -580,14 +694,14 @@ class Building3D {
         deskGrid.style.borderRadius = '12px';
         deskGrid.style.border = '2px solid #e2e8f0';
         deskGrid.style.minHeight = '600px';
-        
+
         // Create architectural floor plan
         const floorData = {
             floorNumber: floorNumber,
             name: this.floorData[floorNumber].name,
             desks: this.floorData[floorNumber].desks
         };
-        
+
         // Initialize architectural plan with sensor mode
         if (window.ArchitecturalFloorPlan) {
             this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', floorData, this.currentSensorMode);
@@ -601,12 +715,15 @@ class Building3D {
             // Fallback to simple grid
             this.load2DDesks(floorNumber);
         }
-        
+
         // Update title with sensor type
         this.updateFloorTitle(floorNumber);
     }
-    
+
     updateFloorTitle(floorNumber) {
+        const titleEl = document.getElementById('current-floor-title');
+        if (!titleEl) return;
+
         const data = this.floorData[floorNumber];
         const sensorNames = {
             'DESK': 'Occupancy',
@@ -620,13 +737,14 @@ class Building3D {
             'PR': 'Presence & Light',
             'SECURITY': 'Security Alerts'
         };
-        const title = `${data.name} - ${sensorNames[this.currentSensorMode]} Visualization`;
-        document.getElementById('current-floor-title').textContent = title;
+        const label = sensorNames[this.currentSensorMode] || this.currentSensorMode;
+        const title = `${data.name} - ${label} Visualization`;
+        titleEl.textContent = title;
     }
-    
+
     setSensorMode(mode) {
         this.currentSensorMode = mode;
-        // If in 2D view, reload with new sensor mode
+        // Si on est déjà en 2D, on recharge le plan avec le nouveau mode
         if (!this.isIn3DView && this.currentFloorNumber !== null) {
             this.loadArchitecturalPlan(this.currentFloorNumber);
         }
@@ -638,17 +756,19 @@ class Building3D {
             this.currentArchPlan.loadDeskOccupancy();
         }
     }
-    
+
     load2DDesks(floorNumber) {
         const deskGrid = document.getElementById('desk-grid');
+        if (!deskGrid) return;
+
         const data = this.floorData[floorNumber];
-        
+
         // Reset grid styles
         deskGrid.style.display = 'grid';
         deskGrid.style.gridTemplateColumns = 'repeat(4, 1fr)';
         deskGrid.style.padding = '1.5rem';
         deskGrid.style.background = 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)';
-        
+
         deskGrid.innerHTML = '';
         data.desks.forEach(desk => {
             const deskElement = document.createElement('div');
@@ -661,36 +781,38 @@ class Building3D {
             deskGrid.appendChild(deskElement);
         });
     }
-    
+
     return3DView() {
         this.isIn3DView = true;
-        
-        // Show 3D container
-        document.getElementById('building-3d-container').style.display = 'block';
-        
-        // Hide 2D floor plan
-        document.getElementById('floor-plan-2d').style.display = 'none';
-        
-        // Hide back button
-        document.getElementById('back-to-3d-btn').style.display = 'none';
-        
+
+        const container3D   = document.getElementById('building-3d-container');
+        const floorPlan2D   = document.getElementById('floor-plan-2d');
+        const backBtn       = document.getElementById('back-to-3d-btn');
+
+        if (container3D) container3D.style.display = 'block';
+        if (floorPlan2D) floorPlan2D.style.display = 'none';
+        if (backBtn)     backBtn.style.display     = 'none';
+
         // Reset roof
-        const roof = this.roofs[this.currentFloorNumber];
-        const targetY = this.currentFloorNumber * 3 + 3;
-        
-        gsap.to(roof.position, {
-            y: targetY,
-            duration: 1,
-            ease: 'power2.inOut'
-        });
-        
-        gsap.to(roof.material, {
-            opacity: 1,
-            duration: 0.8,
-            ease: 'power2.inOut'
-        });
-        
-        // Reset camera
+        if (this.currentFloorNumber !== null && this.roofs[this.currentFloorNumber]) {
+            const roof = this.roofs[this.currentFloorNumber];
+            const targetY = this.currentFloorNumber * 3 + 3;
+
+            gsap.to(roof.position, {
+                y: targetY,
+                duration: 1,
+                ease: 'power2.inOut'
+            });
+
+            gsap.to(roof.material, {
+                opacity: 1,
+                duration: 0.8,
+                ease: 'power2.inOut',
+                onStart: () => { roof.material.transparent = false; }
+            });
+        }
+
+        // Reset camera (ancienne position)
         gsap.to(this.camera.position, {
             x: 15,
             y: 12,
@@ -698,7 +820,7 @@ class Building3D {
             duration: 1.5,
             ease: 'power2.inOut'
         });
-        
+
         gsap.to(this.controls.target, {
             x: 0,
             y: 5,
@@ -706,37 +828,64 @@ class Building3D {
             duration: 1.5,
             ease: 'power2.inOut'
         });
-        
+
         this.currentFloorNumber = null;
     }
-    
+
+    setBuilding(buildingKey) {
+        const key = (buildingKey || 'CHATEAUDUN').toUpperCase();
+
+        if (!BUILDINGS[key]) {
+            console.warn('Unknown building key:', key);
+            return;
+        }
+
+        this.buildingKey = key;
+        this.config = BUILDINGS[this.buildingKey];
+
+        this.floorData = JSON.parse(JSON.stringify(this.config.floorData));
+
+        this.currentFloorNumber = null;
+        this.isIn3DView = true;
+        this.currentArchPlan = null;
+
+        const container3D   = document.getElementById('building-3d-container');
+        const floorPlan2D   = document.getElementById('floor-plan-2d');
+        const backBtn       = document.getElementById('back-to-3d-btn');
+
+        if (container3D) container3D.style.display = 'block';
+        if (floorPlan2D) floorPlan2D.style.display = 'none';
+        if (backBtn)     backBtn.style.display     = 'none';
+
+        if (this.building) {
+            this.scene.remove(this.building);
+        }
+        this.building = null;
+        this.floors = [];
+        this.roofs  = [];
+
+        this.createBuilding();
+        this.loadRealOccupancyData();
+    }
+
     onWindowResize() {
         this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
     }
-    
+
     animate() {
         requestAnimationFrame(() => this.animate());
-        
-        if (this.controls) {
-            this.controls.update();
-        }
-        
-        // Subtle building rotation animation
+        if (this.controls) this.controls.update();
         if (this.building && this.isIn3DView) {
             this.building.rotation.y += 0.0005;
         }
-        
         this.renderer.render(this.scene, this.camera);
     }
-    
-    // Public method to update desk data in real-time
+
     updateDeskData(floorNumber, desks) {
         if (this.floorData[floorNumber]) {
             this.floorData[floorNumber].desks = desks;
-            
-            // If currently viewing this floor in 2D, update display
             if (!this.isIn3DView && this.currentFloorNumber === floorNumber) {
                 this.load2DDesks(floorNumber);
             }
@@ -744,18 +893,61 @@ class Building3D {
     }
 }
 
-// Global function for back button
-function return3DView() {
+// ================== GLOBAL HELPERS & INIT ==================
+
+window.return3DView = function () {
     if (window.building3D) {
         window.building3D.return3DView();
     }
-}
+};
 
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Wait a bit for the container to be ready
-    setTimeout(() => {
-        window.building3D = new Building3D('building-3d-container');
-        console.log('3D Building Digital Twin initialized');
-    }, 100);
+document.addEventListener('DOMContentLoaded', function () {
+    const container = document.getElementById('building-3d-container');
+    if (!container) return;
+
+    const siteAttr = (container.dataset.site || 'CHATEAUDUN').toUpperCase();
+    window.building3D = new Building3D('building-3d-container', siteAttr);
+    console.log('3D Building Digital Twin initialized for site:', siteAttr);
+
+    // Select "Sensor Type"
+    const sensorSelect = document.getElementById('filter-sensor-type');
+    if (sensorSelect) {
+        sensorSelect.addEventListener('change', () => {
+            if (window.building3D) {
+                window.building3D.setSensorMode(sensorSelect.value);
+            }
+        });
+    }
+
+    // Select "Building" (Châteaudun / Levallois / Lille)
+    const buildingSelect = document.getElementById('filter-building');
+    if (buildingSelect) {
+        buildingSelect.addEventListener('change', () => {
+            let val = buildingSelect.value.toUpperCase(); // "CHATEAUDUN", "LEVALLOIS", "LILLE", "ALL"
+
+            if (val === 'ALL') {
+                val = 'CHATEAUDUN'; // fallback
+            }
+
+            if (window.building3D && typeof window.building3D.setBuilding === 'function') {
+                window.building3D.setBuilding(val);
+            }
+
+            // Met à jour les titres textes autour
+            const labels = {
+                CHATEAUDUN: 'Châteaudun Office',
+                LEVALLOIS: 'Levallois Office',
+                LILLE: 'Lille Office'
+            };
+            const label = labels[val] || 'Office';
+
+            const liveTitle     = document.getElementById('live-section-title');
+            const histTitle     = document.getElementById('historical-section-title');
+            const buildingTitle = document.getElementById('building-title');
+
+            if (liveTitle)     liveTitle.textContent     = `📊 Live Desk Occupancy - ${label}`;
+            if (histTitle)     histTitle.textContent     = `📈 Historical Sensor Data - ${label}`;
+            if (buildingTitle) buildingTitle.textContent = `🏢 ${label} Building`;
+        });
+    }
 });
