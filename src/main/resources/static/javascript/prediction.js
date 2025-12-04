@@ -243,7 +243,7 @@ function renderScenarioChart(data) {
 
 async function loadScenarios() {
     try {
-        const resp = await fetch("/predict/scenarios");
+        const resp = await fetch("/prediction/scenarios/data");
         if (!resp.ok) throw new Error("HTTP " + resp.status);
         const data = await resp.json();
         renderScenarioChart(data);
@@ -325,7 +325,7 @@ async function loadHistoricalPrediction() {
     try {
         if (statusEl) statusEl.textContent = "Loading historical prediction...";
 
-        const url = "/predict/historical?horizon=" +
+        const url = "/prediction/historical/data?horizon=" +
             encodeURIComponent(horizon) +
             "&t0=" + encodeURIComponent(t0);
 
