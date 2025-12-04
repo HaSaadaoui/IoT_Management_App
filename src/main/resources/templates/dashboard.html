@@ -77,16 +77,16 @@
 <main>
     <!-- Filters Section -->
     <section class="filters-section">
-        <h3 class="section-title">🔍 Filters & Sensor Selection</h3>
+        <h3 class="section-title">🔍 Filters & Controls</h3>
         <div class="filters-grid">
-            <div class="filter-card">
+            <!-- <div class="filter-card">
                 <label>📅 Year</label>
                 <select id="filter-year">
                     <option value="2025">2025</option>
                     <option value="2024">2024</option>
                     <option value="2023">2023</option>
                 </select>
-            </div>
+            </div> -->
             <div class="filter-card">
                 <label>📆 Month</label>
                 <select id="filter-month">
@@ -106,10 +106,19 @@
                 </select>
             </div>
             <div class="filter-card">
+                <label>⏰ Time Slot</label>
+                <select id="filter-time">
+                    <option value="all">All Day</option>
+                    <option value="morning">Morning (08:00-12:00)</option>
+                    <option value="afternoon" selected>Afternoon (12:00-19:00)</option>
+                    <option value="evening">Evening (19:00-22:00)</option>
+                </select>
+            </div>
+            <div class="filter-card">
                 <label>📍 Building</label>
                 <select id="filter-building">
-                    <option value="all" selected>All Buildings</option>
-                    <option value="chateaudun">Châteaudun Office</option>
+                    <option value="all">All Buildings</option>
+                    <option value="chateaudun" selected>Châteaudun Office</option>
                     <option value="levallois">Levallois Office</option>
                     <option value="lille">Lille Office</option>
                 </select>
@@ -117,9 +126,9 @@
             <div class="filter-card">
                 <label>🏢 Floor</label>
                 <select id="filter-floor">
-                    <option value="all" selected>All Floors</option>
+                    <option value="all">All Floors</option>
                     <option value="0">Ground Floor</option>
-                    <option value="1">Floor 1</option>
+                    <option value="1" selected>Floor 1</option>
                     <option value="2">Floor 2</option>
                     <option value="3">Floor 3</option>
                     <option value="4">Floor 4</option>
@@ -142,21 +151,21 @@
                     <option value="SECURITY">Security Alerts</option>
                 </select>
             </div>
+        </div>
+        <div class="filters-actions">
             <div class="filter-card">
-                <label>⏰ Time Slot</label>
-                <select id="filter-time">
-                    <option value="all" selected>All Day</option>
-                    <option value="morning">Morning (08:00-12:00)</option>
-                    <option value="afternoon">Afternoon (12:00-19:00)</option>
-                    <option value="evening">Evening (19:00-22:00)</option>
-                </select>
-            </div>
-            <div class="filter-card">
-                <label>🎯 Sensor Selection</label>
+                <label>&nbsp;</label>
                 <button id="sensor-load-btn" class="refresh-btn" style="width: 100%;">🔍 Load Sensors</button>
             </div>
+            <div class="filter-card">
+                <label>&nbsp;</label>
+                <button id="histogram-refresh-btn" class="refresh-btn">🔄 Update Histogram</button>
+            </div>
         </div>
-
+        <div class="last-refresh">
+            <span>🔄 Last refresh: <strong id="last-refresh-time">17/11/2025 11:23:47</strong></span>
+        </div>
+    
         <!-- Sensor List Container -->
         <div class="sensor-list-container" id="sensor-list-container" style="display: none; margin-top: 20px;">
             <div class="sensor-list-header">
@@ -168,10 +177,6 @@
                     Click "Load Sensors" to display available sensors
                 </div>
             </div>
-        </div>
-
-        <div class="last-refresh">
-            <span>🔄 Last refresh: <strong id="last-refresh-time">17/11/2025 11:23:47</strong></span>
         </div>
     </section>
 
@@ -312,50 +317,16 @@
     <section class="historical-section">
         <h3 class="section-title" id="historical-section-title">📈 Historical Sensor Data - Châteaudun Office</h3>
 
-        <!-- Histogram Controls -->
-        <div class="histogram-controls-section">
-            <h4 class="controls-subtitle">📊 Histogram Configuration</h4>
-            <div class="histogram-controls-grid">
-                <div class="control-group">
-                    <label>📅 Time Range</label>
-                    <select id="histogram-time-range">
-                        <option value="TODAY">Today</option>
-                        <option value="LAST_7_DAYS" selected>Last 7 Days</option>
-                        <option value="LAST_30_DAYS">Last 30 Days</option>
-                        <option value="THIS_MONTH">This Month</option>
-                        <option value="LAST_MONTH">Last Month</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <label>⏱️ Granularity</label>
-                    <select id="histogram-granularity">
-                        <option value="DAILY" selected>Daily</option>
-                        <option value="HOURLY">Hourly</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <label>📈 Metric Type</label>
-                    <select id="histogram-metric-type">
-                        <option value="OCCUPANCY" selected>Occupancy</option>
-                        <option value="TEMPERATURE">Temperature</option>
-                        <option value="CO2">CO₂ Level</option>
-                        <option value="HUMIDITY">Humidity</option>
-                        <option value="ILLUMINANCE">Light Level</option>
-                        <option value="LAEQ">Noise Level</option>
-                        <option value="MOTION">Motion Events</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <button id="histogram-refresh-btn" class="refresh-btn">🔄 Update Histogram</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="historical-grid">
-
-            <!-- Daily History Table -->
-            <div class="chart-card">
-                <h4 id="occupation-history-title">📊 Occupation History - Last 30 Days</h4>
+        
+    
+    
+    
+    
+    <div class="historical-grid">
+        
+        <!-- Daily History Table -->
+        <div class="chart-card">
+            <h4 id="occupation-history-title">📊 Occupation History - Last 30 Days</h4>
                 <div class="history-table-container">
                     <table class="history-table">
                         <thead>
@@ -414,7 +385,7 @@
                 </div>
             </div>
             
-            <!-- Sensor Data Trends / Histogram Chart -->
+            <!-- Histogram Chart (New) -->
             <div class="chart-card full-width">
                 <div class="histogram-header">
                     <h4 id="histogram-chart-title">📊 Sensor Data Trends - Occupancy (Last 7 Days, Daily)</h4>

@@ -126,7 +126,7 @@ class DashboardManager {
         this.initializeHistogramControls();
         this.initializeSensorSelection();
         this.initializeCancelButton();
-        // this.loadSampleData(); // TODO: remove sample data
+        this.loadSampleData(); // TODO: remove sample data
         this.loadDashboardData();
 
         // Auto-refresh every 30 seconds
@@ -300,11 +300,11 @@ class DashboardManager {
             console.error('=== Error Loading Dashboard Data ===');
             console.error('Error:', error);
             console.error('Stack:', error.stack);
-            // this.showError('Failed to load dashboard data. Using sample data.');
+            this.showError('Failed to load dashboard data. Using sample data.');
 
-            // // Fall back to sample data
-            // console.log('Falling back to sample data...');
-            // this.loadSampleData();
+            // Fall back to sample data
+            console.log('Falling back to sample data...');
+            this.loadSampleData();
         } finally {
             this.activeRequests.dashboard.active = false;
             this.activeRequests.dashboard.controller = null;

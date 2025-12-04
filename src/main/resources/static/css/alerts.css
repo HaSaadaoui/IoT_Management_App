@@ -157,6 +157,18 @@ main {
     color: var(--text-secondary);
 }
 
+.filters-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    justify-content: flex-end;
+}
+
+.filters-actions .filter-card {
+    flex: 0 0 auto;
+    min-width: 180px;
+}
+
 .last-refresh strong {
     color: var(--primary);
     font-weight: 600;
