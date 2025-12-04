@@ -613,7 +613,7 @@ function mkBarChart(ctx, label, color) {
 const networkMetricsContainer = el('#network-metrics-container');
 const sensorMetricsContainer = el('#sensor-metrics-container');
 const consumptionCharts = {
-  'red': { id: 'histConsumptionRed', channels: [0, 1, 2], label: 'Red Outlets (Ch 0,1,2)', color: 'rgb(239, 68, 68, 1)' }, 'white': { id: 'histConsumptionWhite', channels: [3, 4, 5], label: 'White Outlets & Lightning (Ch 3,4,5)', color: 'rgb(100, 116, 139, 1)' }, 'vent': { id: 'histConsumptionVent', channels: [6, 7, 8], label: 'Ventilation & Heaters (Ch 6,7,8)', color: 'rgb(59, 130, 246, 1)' }, 'other': { id: 'histConsumptionOther', channels: [9, 10, 11], label: 'Other Circuits (Ch 9,10,11)', color: 'rgb(245, 158, 11, 1)' }
+  'red': { id: 'histConsumptionAll', channels: [0, 1, 2], label: 'Red Outlets (Ch 0,1,2)', color: 'rgb(239, 68, 68, 1)' }, 'white': { id: 'histConsumptionAll', channels: [3, 4, 5], label: 'White Outlets & Lightning (Ch 3,4,5 - Ch 6,7,8)', color: 'rgb(100, 116, 139, 1)' }, 'vent': { id: 'histConsumptionAll', channels: [6, 7, 8], label: 'Ventilation & Heaters (Ch 6,7,8)', color: 'rgb(59, 130, 246, 1)' }, 'other': { id: 'histConsumptionAll', channels: [9, 10, 11], label: 'Other Circuits (Ch 9,10,11)', color: 'rgb(245, 158, 11, 1)' }
 };
 let combinedConsumptionChart = null;
 
@@ -760,16 +760,6 @@ async function loadHistory(fromISO, toISO) {
 
   const devType = (document.documentElement.dataset.devType || '').toUpperCase();
   if (devType === 'ENERGY' || devType === 'CONSO') {
-    // Hide all but the first chart container
-    const whiteContainer = el('#histConsumptionWhite-container');
-    if (whiteContainer) whiteContainer.style.display = 'none';
-
-    const ventContainer = el('#histConsumptionVent-container');
-    if (ventContainer) ventContainer.style.display = 'none';
-
-    const otherContainer = el('#histConsumptionOther-container');
-    if (otherContainer) otherContainer.style.display = 'none';
-
     // Fetch all data
     const allGroupData = await Promise.all(
       Object.values(consumptionCharts).map(group =>
@@ -795,7 +785,7 @@ async function loadHistory(fromISO, toISO) {
     });
 
     if (!combinedConsumptionChart) {
-        const chartCtx = ctx('histConsumptionRed'); // Use the first canvas
+        const chartCtx = ctx('histConsumptionAll');
         if (chartCtx) {
             combinedConsumptionChart = new Chart(chartCtx, { type: 'bar', data: { labels: [], datasets: [] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false }, y: { beginAtZero: true, title: { display: true, text: 'Total Consumption (kWh)' } } } } });
         }
@@ -2062,10 +2052,13 @@ function updateRealtimeCharts(data) {
           return sum + channelData;
         }, 0);
         
-        const whiteOutlets = [3, 4, 5].reduce((sum, ch) => {
+        const whiteOutlets = Math.abs([3, 4, 5].reduce((sum, ch) => {
           const channelData = channelConsumptionData[ch];
           return sum + channelData;
-        }, 0);
+        }, 0) - [6, 7, 8].reduce((sum, ch) => {
+          const channelData = channelConsumptionData[ch];
+          return sum + channelData;
+        }, 0));
         
         const ventilation = [6, 7, 8].reduce((sum, ch) => {
           const channelData = channelConsumptionData[ch];
