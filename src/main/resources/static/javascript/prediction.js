@@ -413,6 +413,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- Инициализация при загрузке страницы ---
     const historicalPanel = document.getElementById("panel-historical");
     const onlinePanel = document.getElementById("panel-online");
+    const scenariosPanel = document.getElementById("panel-scenarios"); // 👈 добавить
+
 
     // Если по умолчанию активен Historical — сразу грузим t0 список с учётом выбранного горизонта
     if (historicalPanel && historicalPanel.classList.contains("active")) {
