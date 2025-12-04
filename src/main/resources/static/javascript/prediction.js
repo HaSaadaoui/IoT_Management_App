@@ -201,8 +201,12 @@ function renderScenarioChart(data) {
 
     const scenarios = data.scenarios || [];
     const labels = scenarios.map(s => s.scenario);
-    const values = scenarios.map(s => s.predictedConsumption ?? s.predicted_consumption);
-    const deltas = scenarios.map(s => s.delta);
+    const values = scenarios.map(s =>
+        Number(s.predictedConsumption ?? s.predicted_consumption)
+    );
+    const deltas = scenarios.map(s =>
+        Number(s.delta ?? s.delta_pct)
+    );
 
     scenarioCharts["main"] = new Chart(ctx, {
         type: "bar",
