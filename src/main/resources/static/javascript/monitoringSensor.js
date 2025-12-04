@@ -613,7 +613,11 @@ function mkBarChart(ctx, label, color) {
 const networkMetricsContainer = el('#network-metrics-container');
 const sensorMetricsContainer = el('#sensor-metrics-container');
 const consumptionCharts = {
-  'red': { id: 'histConsumptionAll', channels: [0, 1, 2], label: 'Red Outlets (Ch 0,1,2)', color: 'rgb(239, 68, 68, 1)' }, 'white': { id: 'histConsumptionAll', channels: [3, 4, 5], label: 'White Outlets & Lightning (Ch 3,4,5 - Ch 6,7,8)', color: 'rgb(100, 116, 139, 1)' }, 'vent': { id: 'histConsumptionAll', channels: [6, 7, 8], label: 'Ventilation & Heaters (Ch 6,7,8)', color: 'rgb(59, 130, 246, 1)' }, 'other': { id: 'histConsumptionAll', channels: [9, 10, 11], label: 'Other Circuits (Ch 9,10,11)', color: 'rgb(245, 158, 11, 1)' }
+  'red': {
+     id: 'histConsumptionAll', channels: [0, 1, 2], label: 'Red Outlets', color: 'rgb(239, 68, 68, 1)' }, 'white': {
+     id: 'histConsumptionAll', channels: [3, 4, 5], label: 'White Outlets & Lightning', color: 'rgb(100, 116, 139, 1)' }, 'vent': {
+     id: 'histConsumptionAll', channels: [6, 7, 8], label: 'Ventilation & Heaters', color: 'rgb(59, 130, 246, 1)' }, 'other': {
+     id: 'histConsumptionAll', channels: [9, 10, 11], label: 'Other Circuits', color: 'rgb(245, 158, 11, 1)' }
 };
 let combinedConsumptionChart = null;
 
