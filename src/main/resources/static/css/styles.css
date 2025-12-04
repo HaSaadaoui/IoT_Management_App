@@ -195,9 +195,156 @@ body {
     .footer-bar {
         height: 50px;
     }
-    
+
     body {
         margin-bottom: 50px;
+    }
+}
+
+/* ===== HISTOGRAM CONTROLS STYLING ===== */
+.histogram-controls-section {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.controls-subtitle {
+    color: #662179;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.histogram-controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    align-items: end;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-group label {
+    font-weight: 600;
+    color: #34495e;
+    font-size: 0.9rem;
+}
+
+.control-group select {
+    padding: 10px 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background-color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.control-group select:hover {
+    border-color: #662179;
+}
+
+.control-group select:focus {
+    outline: none;
+    border-color: #662179;
+    box-shadow: 0 0 0 3px rgba(102, 33, 121, 0.1);
+}
+
+.refresh-btn {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #662179 0%, #8e44ad 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.refresh-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(102, 33, 121, 0.3);
+}
+
+.refresh-btn:active {
+    transform: translateY(0);
+}
+
+/* ===== HISTOGRAM CHART STYLING ===== */
+.chart-card.full-width {
+    grid-column: 1 / -1;
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.histogram-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.histogram-header h4 {
+    color: #662179;
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.histogram-summary {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 8px;
+}
+
+.summary-item {
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.summary-item strong {
+    color: #662179;
+    font-weight: 700;
+}
+
+.histogram-loading {
+    text-align: center;
+    padding: 40px;
+    color: #662179;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .histogram-controls-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .histogram-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .histogram-summary {
+        width: 100%;
+        justify-content: space-between;
     }
 }
 

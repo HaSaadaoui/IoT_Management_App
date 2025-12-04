@@ -7,8 +7,8 @@ const getComputedColor = (varName) => {
     return color || '#94a3b8'; // Fallback color
 };
 
-const okColor = '#8b2fa3';
-const notOkColor = '#4a1857';
+const okColor = '#10b981';
+const notOkColor = '#ef4444';
 const otherColor = '#94a3b8';
 
 /**

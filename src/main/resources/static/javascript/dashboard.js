@@ -46,7 +46,8 @@ class DashboardManager {
         console.log('=== Dashboard Manager Initialized ===');
         console.log('Initial filters:', this.filters);
         this.initializeFilters();
-        this.loadSampleData();
+        this.initializeHistogramControls();
+        this.loadSampleData(); // TODO: remove sample data
         this.loadDashboardData();
 
         // Auto-refresh every 30 seconds
@@ -139,9 +140,9 @@ class DashboardManager {
 
     getBuildingName() {
         const buildingNames = {
-            'chateaudun': 'Châteaudun Office',
-            'levallois': 'Levallois Office',
-            'lille': 'Lille Office'
+            'rpi-mantu-appli': 'Châteaudun Office',
+            'lil-rpi-mantu-appli': 'Levallois Office',
+            'lorawan-network-mantu': 'Lille Office'
         };
         return buildingNames[this.filters.building] || 'Office';
     }
@@ -773,6 +774,336 @@ class DashboardManager {
     showError(message) {
         console.error('❌ Error:', message);
         // Could show a toast notification
+    }
+
+    // ===== HISTOGRAM FUNCTIONALITY =====
+
+    initializeHistogramControls() {
+        console.log('=== Initializing Histogram Controls ===');
+
+        // Histogram state
+        this.histogramConfig = {
+            timeRange: 'LAST_7_DAYS',
+            granularity: 'DAILY',
+            metricType: 'OCCUPANCY'
+        };
+
+        // Initialize chart reference
+        this.charts.histogram = null;
+
+        // Add event listeners
+        const timeRangeEl = document.getElementById('histogram-time-range');
+        const granularityEl = document.getElementById('histogram-granularity');
+        const metricTypeEl = document.getElementById('histogram-metric-type');
+        const refreshBtn = document.getElementById('histogram-refresh-btn');
+
+        if (timeRangeEl) {
+            timeRangeEl.addEventListener('change', (e) => {
+                this.histogramConfig.timeRange = e.target.value;
+                console.log('Time range changed:', this.histogramConfig.timeRange);
+            });
+        }
+
+        if (granularityEl) {
+            granularityEl.addEventListener('change', (e) => {
+                this.histogramConfig.granularity = e.target.value;
+                console.log('Granularity changed:', this.histogramConfig.granularity);
+            });
+        }
+
+        if (metricTypeEl) {
+            metricTypeEl.addEventListener('change', (e) => {
+                this.histogramConfig.metricType = e.target.value;
+                console.log('Metric type changed:', this.histogramConfig.metricType);
+            });
+        }
+
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                console.log('Refresh histogram button clicked');
+                this.loadHistogramData();
+            });
+        }
+
+        // Load initial histogram data
+        this.loadHistogramData();
+    }
+
+    async loadHistogramData() {
+        console.log('=== Loading Histogram Data ===');
+        console.log('Config:', this.histogramConfig);
+
+        // Show loading indicator
+        const loadingEl = document.getElementById('histogram-loading');
+        if (loadingEl) {
+            loadingEl.style.display = 'block';
+        }
+
+        try {
+            // Build query parameters
+            const params = new URLSearchParams({
+                building: this.filters.building !== 'all' ? this.filters.building : '',
+                floor: this.filters.floor !== 'all' ? this.filters.floor : '',
+                sensorType: this.filters.sensorType,
+                metricType: this.histogramConfig.metricType,
+                timeRange: this.histogramConfig.timeRange,
+                granularity: this.histogramConfig.granularity,
+                timeSlot: this.filters.timeSlot.toUpperCase()
+            });
+
+            // Remove empty parameters
+            for (const [key, value] of [...params]) {
+                if (!value) params.delete(key);
+            }
+
+            const url = `/api/dashboard/histogram?${params.toString()}`;
+            console.log('Fetching:', url);
+
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Histogram data received:', data);
+
+            // Render the histogram
+            this.renderHistogramChart(data);
+
+            // Update summary statistics
+            this.updateHistogramSummary(data.summary);
+
+            // Update title
+            this.updateHistogramTitle(data);
+
+        } catch (error) {
+            console.error('Error loading histogram data:', error);
+            this.showError('Failed to load histogram data: ' + error.message);
+        } finally {
+            // Hide loading indicator
+            if (loadingEl) {
+                loadingEl.style.display = 'none';
+            }
+        }
+    }
+
+    renderHistogramChart(data) {
+        console.log('=== Rendering Histogram Chart ===');
+
+        const chartElement = document.getElementById('chart-histogram');
+        if (!chartElement) {
+            console.warn('Histogram chart element not found');
+            return;
+        }
+
+        // Destroy existing chart
+        if (this.charts.histogram) {
+            this.charts.histogram.destroy();
+            this.charts.histogram = null;
+        }
+
+        const existingChart = Chart.getChart(chartElement);
+        if (existingChart) {
+            existingChart.destroy();
+        }
+
+        // Prepare data
+        const labels = data.dataPoints.map(dp => {
+            if (data.granularity === 'HOURLY') {
+                // Format: "2025-11-25 14:00"
+                const date = new Date(dp.timestamp);
+                return date.toLocaleString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } else {
+                // Format: "25/11"
+                const date = new Date(dp.timestamp);
+                return date.toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit'
+                });
+            }
+        });
+
+        const values = data.dataPoints.map(dp => dp.value);
+
+        // Determine color based on metric type
+        let barColor = '#662179';
+        let borderColor = '#8e44ad';
+
+        if (data.metricType === 'TEMPERATURE') {
+            barColor = '#ff6b6b';
+            borderColor = '#ff5252';
+        } else if (data.metricType === 'CO2') {
+            barColor = '#4ecdc4';
+            borderColor = '#45b7d1';
+        } else if (data.metricType === 'HUMIDITY') {
+            barColor = '#95e1d3';
+            borderColor = '#7ec4b8';
+        } else if (data.metricType === 'ILLUMINANCE') {
+            barColor = '#f9ca24';
+            borderColor = '#f0b90b';
+        } else if (data.metricType === 'LAEQ') {
+            barColor = '#ff9ff3';
+            borderColor = '#ff79e1';
+        }
+
+        // Create chart
+        this.charts.histogram = new Chart(chartElement, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: this.getMetricLabel(data.metricType),
+                    data: values,
+                    backgroundColor: barColor,
+                    borderColor: borderColor,
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    barPercentage: 0.8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: data.granularity === 'HOURLY' ? 'Date & Time' : 'Date',
+                            color: '#64748b',
+                            font: { size: 14, weight: '600' }
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            font: { size: 11 }
+                        },
+                        grid: {
+                            display: false
+                        },
+                        stacked: true,
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: this.getMetricUnit(data.metricType, data.aggregationType),
+                            color: '#64748b',
+                            font: { size: 14, weight: '600' }
+                        },
+                        beginAtZero: true,
+                        ticks: {
+                            font: { size: 11 }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: { size: 12, weight: '600' },
+                            color: '#34495e'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        borderColor: barColor,
+                        borderWidth: 2,
+                        callbacks: {
+                            title: (context) => 'Time: ' + context[0].label,
+                            label: (context) => {
+                                const value = context.parsed.y.toFixed(2);
+                                const unit = this.getMetricUnit(data.metricType, data.aggregationType);
+                                return `${context.dataset.label}: ${value} ${unit}`;
+                            },
+                            afterLabel: (context) => {
+                                const dp = data.dataPoints[context.dataIndex];
+                                return `Sensors: ${dp.sensorCount}\nData Points: ${dp.dataPointCount}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        console.log('Histogram chart rendered successfully');
+    }
+
+    updateHistogramSummary(summary) {
+        console.log('=== Updating Histogram Summary ===', summary);
+
+        const totalEl = document.getElementById('summary-total-sensors');
+        const activeEl = document.getElementById('summary-active-sensors');
+        const avgEl = document.getElementById('summary-avg-value');
+        const minEl = document.getElementById('summary-min-value');
+        const maxEl = document.getElementById('summary-max-value');
+
+        if (totalEl) totalEl.textContent = summary.totalSensors || '--';
+        if (activeEl) activeEl.textContent = summary.activeSensors || '--';
+        if (avgEl) avgEl.textContent = summary.avgValue ? summary.avgValue.toFixed(2) : '--';
+        if (minEl) minEl.textContent = summary.minValue ? summary.minValue.toFixed(2) : '--';
+        if (maxEl) maxEl.textContent = summary.maxValue ? summary.maxValue.toFixed(2) : '--';
+    }
+
+    updateHistogramTitle(data) {
+        const titleEl = document.getElementById('histogram-chart-title');
+        if (titleEl) {
+            const metricLabel = this.getMetricLabel(data.metricType);
+            const timeRangeLabel = this.getTimeRangeLabel(data.timeRange);
+            const granularityLabel = data.granularity === 'DAILY' ? 'Daily' : 'Hourly';
+
+            titleEl.textContent = `📊 Histogram - ${metricLabel} (${timeRangeLabel}, ${granularityLabel})`;
+        }
+    }
+
+    getMetricLabel(metricType) {
+        const labels = {
+            'OCCUPANCY': 'Occupancy',
+            'TEMPERATURE': 'Temperature',
+            'CO2': 'CO₂ Level',
+            'HUMIDITY': 'Humidity',
+            'ILLUMINANCE': 'Light Level',
+            'LAEQ': 'Noise Level',
+            'MOTION': 'Motion Events'
+        };
+        return labels[metricType] || metricType;
+    }
+
+    getMetricUnit(metricType, aggregationType) {
+        const units = {
+            'OCCUPANCY': 'count',
+            'TEMPERATURE': '°C',
+            'CO2': 'ppm',
+            'HUMIDITY': '%',
+            'ILLUMINANCE': 'lux',
+            'LAEQ': 'dB',
+            'MOTION': 'events'
+        };
+
+        if (aggregationType === 'COUNT') {
+            return 'count';
+        }
+
+        return units[metricType] || '';
+    }
+
+    getTimeRangeLabel(timeRange) {
+        const labels = {
+            'LAST_7_DAYS': 'Last 7 Days',
+            'LAST_30_DAYS': 'Last 30 Days',
+            'THIS_MONTH': 'This Month',
+            'LAST_MONTH': 'Last Month'
+        };
+        return labels[timeRange] || timeRange;
     }
 }
 
