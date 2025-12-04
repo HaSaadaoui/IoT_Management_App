@@ -194,6 +194,12 @@ class DashboardManager {
         // Refresh data with new filters (debounced to prevent excessive requests)
         console.log('Refreshing dashboard data with new filters...');
         this.debouncedLoadDashboardData();
+
+        // Automatically reload sensors when filters that affect sensor list change
+        if (['building', 'floor', 'sensor-type'].includes(filterId)) {
+            console.log('Filter affecting sensor list changed, reloading sensors...');
+            this.debouncedLoadSensors();
+        }
     }
 
     updateSensorTypeUI(sensorType) {
@@ -1387,16 +1393,15 @@ class DashboardManager {
         };
 
         // Add event listeners
-        const loadBtn = document.getElementById('sensor-load-btn');
         const selectAllBtn = document.getElementById('select-all-sensors-btn');
-
-        if (loadBtn) {
-            loadBtn.addEventListener('click', () => this.loadSensors());
-        }
 
         if (selectAllBtn) {
             selectAllBtn.addEventListener('click', () => this.toggleSelectAll());
         }
+
+        // Automatically load sensors on page load with initial filters
+        console.log('Loading sensors automatically on page load...');
+        this.debouncedLoadSensors();
     }
 
     async loadSensors() {

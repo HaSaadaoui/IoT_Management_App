@@ -63,7 +63,7 @@ function loadFloorDesks(floorNumber) {
         deskElement.setAttribute('data-desk', desk.id);
         deskElement.textContent = desk.id;
         deskElement.addEventListener('click', function() {
-            alert(`Desk ${desk.id}\nStatus: $invaliddesk.status}\n\nClick to view detailed information.`);
+            alert(`Desk ${desk.id}\nStatus: ${desk.status}\n\nClick to view detailed information.`);
         });
         deskGrid.appendChild(deskElement);
     });
