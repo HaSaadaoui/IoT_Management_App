@@ -115,12 +115,31 @@
                 </select>
             </div>
             <div class="filter-card">
+                <label>⏱️ Granularity</label>
+                <select id="histogram-granularity">
+                    <option value="DAILY" selected>Daily</option>
+                    <option value="HOURLY">Hourly</option>
+                </select>
+            </div>
+            <div class="filter-card">
                 <label>📍 Building</label>
                 <select id="filter-building">
                     <option value="all">All Buildings</option>
                     <option value="chateaudun" selected>Châteaudun Office</option>
                     <option value="levallois">Levallois Office</option>
                     <option value="lille">Lille Office</option>
+                </select>
+            </div>
+            <div class="filter-card">
+                <label>📈 Metric Type</label>
+                <select id="histogram-metric-type">
+                    <option value="OCCUPANCY" selected>Occupancy</option>
+                    <option value="TEMPERATURE">Temperature</option>
+                    <option value="CO2">CO₂ Level</option>
+                    <option value="HUMIDITY">Humidity</option>
+                    <option value="ILLUMINANCE">Light Level</option>
+                    <option value="LAEQ">Noise Level</option>
+                    <option value="MOTION">Motion Events</option>
                 </select>
             </div>
             <div class="filter-card">
@@ -152,20 +171,12 @@
                 </select>
             </div>
         </div>
-        <div class="filters-actions">
-            <div class="filter-card">
-                <label>&nbsp;</label>
-                <button id="sensor-load-btn" class="refresh-btn" style="width: 100%;">🔍 Load Sensors</button>
-            </div>
-            <div class="filter-card">
-                <label>&nbsp;</label>
-                <button id="histogram-refresh-btn" class="refresh-btn">🔄 Update Histogram</button>
-            </div>
-        </div>
-        <div class="last-refresh">
-            <span>🔄 Last refresh: <strong id="last-refresh-time">17/11/2025 11:23:47</strong></span>
-        </div>
     
+        <div class="last-refresh" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+            <span>🔄 Last refresh: <strong id="last-refresh-time">17/11/2025 11:23:47</strong></span>
+            <button id="histogram-refresh-btn" class="refresh-btn" style="margin: 0; width: auto; min-width: 180px;">🔄 Update Histogram</button>
+        </div>
+
         <!-- Sensor List Container -->
         <div class="sensor-list-container" id="sensor-list-container" style="display: none; margin-top: 20px;">
             <div class="sensor-list-header">
@@ -174,12 +185,12 @@
             </div>
             <div class="sensor-list" id="sensor-list">
                 <div class="sensor-list-placeholder">
-                    Click "Load Sensors" to display available sensors
+                    Sensors will load automatically based on your filters...
                 </div>
             </div>
         </div>
     </section>
-
+    
     <!-- Alerts Section -->
     <section class="alerts-section">
         <h3 class="section-title">🚨 Active Alerts</h3>
@@ -317,16 +328,11 @@
     <section class="historical-section">
         <h3 class="section-title" id="historical-section-title">📈 Historical Sensor Data - Châteaudun Office</h3>
 
-        
-    
-    
-    
-    
-    <div class="historical-grid">
-        
-        <!-- Daily History Table -->
-        <div class="chart-card">
-            <h4 id="occupation-history-title">📊 Occupation History - Last 30 Days</h4>
+        <div class="historical-grid">
+
+            <!-- Daily History Table -->
+            <div class="chart-card">
+                <h4>Desk Occupation History</h4>
                 <div class="history-table-container">
                     <table class="history-table">
                         <thead>
