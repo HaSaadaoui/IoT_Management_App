@@ -40,8 +40,6 @@ function createLevalloisShape(scale = 1) {
     const yTop        =  halfDepth;
     const yHeadTop    =  yTop + extraTop;
 
-    // On dessine dans le sens horaire
-
     // 1) Coin bas droit bloc
     shape.moveTo(xHeadRight, yBottom);
 
@@ -60,8 +58,6 @@ function createLevalloisShape(scale = 1) {
         Math.PI / 2,    // fin en haut
         true            // sens horaire
     );
-
-    // On arrive en haut à gauche (xBodyLeft, yTop)
 
     // 5) Haut corps → haut droit corps
     shape.lineTo(xBodyRight, yTop);
@@ -86,6 +82,54 @@ function createLevalloisShape(scale = 1) {
 
     return { shape, centerX, centerZ };
 }
+
+// Shape Lille : grand rectangle + extension triangulaire en haut
+// Shape Lille : basée sur le path du SVG, centrée et triangulaire à droite
+function createLilleShape(scale = 0.01) {
+    const shape = new THREE.Shape();
+
+    // Points bruts issus du SVG (layer2)
+    const p1 = { x: 253.32256,  y: 736.20180 }; // bas gauche
+    const p2 = { x: 934.43075,  y: 186.88615 }; // haut "gauche"
+    const p3 = { x: 1487.52730, y: 186.34602 }; // haut droite
+    const p4 = { x: 1486.98720, y: 736.20180 }; // bas droite
+
+    // On calcule le centre du trapèze pour le recentrer autour de (0,0)
+    const minX = Math.min(p1.x, p2.x, p3.x, p4.x);
+    const maxX = Math.max(p1.x, p2.x, p3.x, p4.x);
+    const minY = Math.min(p1.y, p2.y, p3.y, p4.y);
+    const maxY = Math.max(p1.y, p2.y, p3.y, p4.y);
+
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+
+    // Helper : recentrer + mettre à l'échelle + flip horizontal
+    function mapAndFlip(pt) {
+        const localX = (pt.x - cx) * scale;  // recentré
+        const localY = (pt.y - cy) * scale;  // recentré
+        const flippedX = -localX;            // flip horizontal → triangle passe à droite
+        return { x: flippedX, y: localY };
+    }
+
+    const q1 = mapAndFlip(p1);
+    const q2 = mapAndFlip(p2);
+    const q3 = mapAndFlip(p3);
+    const q4 = mapAndFlip(p4);
+
+    // Dessin dans l'ordre
+    shape.moveTo(q1.x, q1.y);
+    shape.lineTo(q2.x, q2.y);
+    shape.lineTo(q3.x, q3.y);
+    shape.lineTo(q4.x, q4.y);
+    shape.lineTo(q1.x, q1.y); // fermeture
+
+    // On est déjà centré autour de (0,0)
+    const centerX = 0;
+    const centerZ = 0;
+
+    return { shape, centerX, centerZ };
+}
+
 
 // ================== FLOOR DATA ==================
 
@@ -216,8 +260,9 @@ const CHATEAUDUN_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
 
 const LEVALLOIS_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
 LEVALLOIS_FLOOR_DATA[0].name = 'Levallois - Ground';
-LEVALLOIS_FLOOR_DATA[1].name = 'Levallois - Floor 1';
-LEVALLOIS_FLOOR_DATA[2].name = 'Levallois - Floor 2';
+
+const LILLE_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
+LILLE_FLOOR_DATA[0].name = 'Lille - Ground';
 
 // ================== CONFIG BUILDINGS ==================
 
@@ -231,11 +276,19 @@ const BUILDINGS = {
     },
     LEVALLOIS: {
         id: 'LEVALLOIS',
-        floors: 1,        // 🔹 un seul étage modélisé
-        scale: 0.06,      // 🔹 bâtiment réduit
+        floors: 1,              // un seul étage modélisé
+        scale: 0.06,
         createShape: createLevalloisShape,
         floorData: LEVALLOIS_FLOOR_DATA
-    }
+    },
+LILLE: {
+    id: 'LILLE',
+    floors: 4,
+    scale: 0.01,
+    createShape: createLilleShape,
+    floorData: LILLE_FLOOR_DATA
+}
+
 };
 
 // ================== CLASS BUILDING3D ==================
@@ -273,6 +326,7 @@ class Building3D {
         this.isIn3DView = true;
         this.currentFloorNumber = null;
         this.currentSensorMode = 'DESK';
+        this.currentArchPlan = null;
 
         this.colors = {
             primary: 0x662179,
@@ -298,6 +352,7 @@ class Building3D {
         this.setupLights();
         this.setupControls();
         this.createBuilding();
+        this.resetCameraForBuilding();
         this.setupEventListeners();
         this.animate();
     }
@@ -418,11 +473,36 @@ class Building3D {
     setupControls() {
         this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
-        this.controls.dampingFactor = 0.05;
+               this.controls.dampingFactor = 0.05;
         this.controls.minDistance = 8;
         this.controls.maxDistance = 40;
         this.controls.maxPolarAngle = Math.PI / 2.1;
         this.controls.target.set(0, 5, 0);
+    }
+
+    resetCameraForBuilding() {
+        if (!this.camera || !this.controls) return;
+
+        if (this.buildingKey === 'LEVALLOIS') {
+            this.camera.position.set(8, 6, 8);
+            this.controls.target.set(0, 2, 0);
+            this.controls.minDistance = 3;
+            this.controls.maxDistance = 15;
+        } else if (this.buildingKey === 'LILLE') {
+            // Lille : bâtiment plus large, on recule un peu
+            this.camera.position.set(14, 9, 14);
+            this.controls.target.set(0, 3, 0);
+            this.controls.minDistance = 6;
+            this.controls.maxDistance = 25;
+        } else {
+            this.camera.position.set(20, 18, 20);
+            this.controls.target.set(0, 5, 0);
+            this.controls.minDistance = 8;
+            this.controls.maxDistance = 40;
+        }
+
+        this.camera.updateProjectionMatrix();
+        this.controls.update();
     }
 
     createBuilding() {
@@ -651,30 +731,20 @@ class Building3D {
         });
     }
 
-    // ===== 2D VIEW (ancienne logique réinjectée) =====
+    // ===== 2D VIEW =====
 
     switch2DFloorView(floorNumber) {
         this.isIn3DView = false;
 
-        // Hide 3D container
         const container3D = document.getElementById('building-3d-container');
-        if (container3D) {
-            container3D.style.display = 'none';
-        }
+        if (container3D) container3D.style.display = 'none';
 
-        // Show 2D floor plan
         const floorPlan2D = document.getElementById('floor-plan-2d');
-        if (floorPlan2D) {
-            floorPlan2D.style.display = 'block';
-        }
+        if (floorPlan2D) floorPlan2D.style.display = 'block';
 
-        // Show back button
         const backBtn = document.getElementById('back-to-3d-btn');
-        if (backBtn) {
-            backBtn.style.display = 'block';
-        }
+        if (backBtn) backBtn.style.display = 'block';
 
-        // Load architectural floor plan
         this.loadArchitecturalPlan(floorNumber);
     }
 
@@ -695,28 +765,23 @@ class Building3D {
         deskGrid.style.border = '2px solid #e2e8f0';
         deskGrid.style.minHeight = '600px';
 
-        // Create architectural floor plan
         const floorData = {
             floorNumber: floorNumber,
             name: this.floorData[floorNumber].name,
             desks: this.floorData[floorNumber].desks
         };
 
-        // Initialize architectural plan with sensor mode
         if (window.ArchitecturalFloorPlan) {
             this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', floorData, this.currentSensorMode);
 
-            // Load desk occupancy data if in DESK mode
             if (this.currentSensorMode === 'DESK') {
                 this.currentArchPlan.loadDeskOccupancy();
             }
         } else {
             console.error('ArchitecturalFloorPlan not loaded');
-            // Fallback to simple grid
             this.load2DDesks(floorNumber);
         }
 
-        // Update title with sensor type
         this.updateFloorTitle(floorNumber);
     }
 
@@ -744,13 +809,11 @@ class Building3D {
 
     setSensorMode(mode) {
         this.currentSensorMode = mode;
-        // Si on est déjà en 2D, on recharge le plan avec le nouveau mode
         if (!this.isIn3DView && this.currentFloorNumber !== null) {
             this.loadArchitecturalPlan(this.currentFloorNumber);
         }
     }
 
-    // Public method to refresh desk occupancy data
     refreshDeskOccupancy() {
         if (this.currentArchPlan && this.currentSensorMode === 'DESK') {
             this.currentArchPlan.loadDeskOccupancy();
@@ -763,7 +826,6 @@ class Building3D {
 
         const data = this.floorData[floorNumber];
 
-        // Reset grid styles
         deskGrid.style.display = 'grid';
         deskGrid.style.gridTemplateColumns = 'repeat(4, 1fr)';
         deskGrid.style.padding = '1.5rem';
@@ -812,19 +874,27 @@ class Building3D {
             });
         }
 
-        // Reset camera (ancienne position)
+        // caméra adaptée au building courant
+        let camPos, target;
+        if (this.buildingKey === 'LEVALLOIS') {
+            camPos = { x: 8,  y: 6,  z: 8 };
+            target = { x: 0,  y: 2,  z: 0 };
+        } else if (this.buildingKey === 'LILLE') {
+            camPos = { x: 14, y: 9, z: 14 };
+            target = { x: 0,  y: 3, z: 0 };
+        } else {
+            camPos = { x: 20, y: 18, z: 20 };
+            target = { x: 0,  y: 5,  z: 0 };
+        }
+
         gsap.to(this.camera.position, {
-            x: 15,
-            y: 12,
-            z: 15,
+            ...camPos,
             duration: 1.5,
             ease: 'power2.inOut'
         });
 
         gsap.to(this.controls.target, {
-            x: 0,
-            y: 5,
-            z: 0,
+            ...target,
             duration: 1.5,
             ease: 'power2.inOut'
         });
@@ -865,6 +935,7 @@ class Building3D {
         this.roofs  = [];
 
         this.createBuilding();
+        this.resetCameraForBuilding();
         this.loadRealOccupancyData();
     }
 
@@ -919,7 +990,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Select "Building" (Châteaudun / Levallois / Lille)
     const buildingSelect = document.getElementById('filter-building');
     if (buildingSelect) {
         buildingSelect.addEventListener('change', () => {
@@ -933,7 +1003,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 window.building3D.setBuilding(val);
             }
 
-            // Met à jour les titres textes autour
             const labels = {
                 CHATEAUDUN: 'Châteaudun Office',
                 LEVALLOIS: 'Levallois Office',
