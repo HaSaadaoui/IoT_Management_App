@@ -198,11 +198,18 @@ function renderScenarioChart(data) {
     }
 
     const ctx = canvas.getContext("2d");
-
-    const scenarios = data.scenarios || [];
+    const rawScenarios = data.scenarios || [];
+    const scenarios = rawScenarios.filter(s =>
+        !String(s.scenario).startsWith("Low temperature") &&
+        !String(s.scenario).startsWith("High temperature")
+    );
     const labels = scenarios.map(s => s.scenario);
-    const values = scenarios.map(s => s.predictedConsumption ?? s.predicted_consumption);
-    const deltas = scenarios.map(s => s.delta);
+    const values = scenarios.map(s =>
+        Number(s.predictedConsumption ?? s.predicted_consumption)
+    );
+    const deltas = scenarios.map(s =>
+        Number(s.delta ?? s.delta_pct)
+    );
 
     scenarioCharts["main"] = new Chart(ctx, {
         type: "bar",
@@ -235,7 +242,7 @@ function renderScenarioChart(data) {
             },
             scales: {
                 x: { title: { display: true, text: "Scenario" } },
-                y: { title: { display: true, text: "Consumption (kWh)" } }
+                y: { title: { display: true, text: "Consumption (W)" } }
             }
         }
     });
@@ -371,7 +378,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // если открыли Online — подгружаем текущий активный горизонт
             if (target === "online") {
                 const activeHorizonBtn = document.querySelector('.horizon-tab.active')
-                    || document.querySelector('.horizon-tab[data-horizon="1h"]');
+                    || document.querySelector('.horizon-tab[data-horizon="1d"]');
                 if (activeHorizonBtn) {
                     const h = activeHorizonBtn.dataset.horizon;
                     loadPredictionForHorizon(h);
@@ -430,7 +437,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Если по умолчанию активен Online — ведём себя как раньше
     if (onlinePanel && onlinePanel.classList.contains("active")) {
         const defaultHorizonBtn = document.querySelector('.horizon-tab.active')
-            || document.querySelector('.horizon-tab[data-horizon="1h"]');
+            || document.querySelector('.horizon-tab[data-horizon="1d"]');
 
         if (defaultHorizonBtn) {
             const defaultHorizon = defaultHorizonBtn.dataset.horizon;
