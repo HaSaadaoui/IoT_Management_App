@@ -163,10 +163,10 @@
         <main class="prediction-main">
             <!-- Top-level tabs (reusing .tabs and .tab-btn from monitoringSensor.css) -->
             <nav class="tabs">
+                <button class="tab-btn" data-tab="online">⚡ Online</button>
                 <button class="tab-btn is-active" data-tab="historical">
                     📚 Historical
                 </button>
-                <button class="tab-btn" data-tab="online">⚡ Online</button>
                 <button class="tab-btn" data-tab="scenarios">
                     🧪 Scenarios
                 </button>
@@ -232,6 +232,30 @@
                 <div class="histogram-controls-section">
                     <div class="histogram-controls-grid">
                         <div class="control-group">
+                            <label for="historical-building-select"
+                                >Building</label
+                            >
+                            <select
+                                id="historical-building-select"
+                                data-filter="building"
+                            >
+                                <option value="">All Buildings</option>
+                                <!-- Options populated dynamically -->
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="historical-floor-select">Floor</label>
+                            <select
+                                id="historical-floor-select"
+                                data-filter="floor"
+                            >
+                                <option value="">All Floors</option>
+                                <!-- Options populated dynamically -->
+                            </select>
+                        </div>
+
+                        <div class="control-group">
                             <label for="historical-horizon-select"
                                 >Horizon</label
                             >
@@ -254,10 +278,16 @@
                             Run backtest
                         </button>
                     </div>
-                    <span
-                        id="historical-status"
-                        class="prediction-status"
-                    ></span>
+                    <div class="controls-footer">
+                        <span
+                            id="historical-status"
+                            class="prediction-status"
+                        ></span>
+                        <span
+                            id="historical-last-refresh"
+                            class="last-refresh"
+                        ></span>
+                    </div>
                 </div>
 
                 <div class="prediction-grid">
@@ -273,6 +303,7 @@
                     <div class="card chart-card">
                         <h4>Absolute Error</h4>
                         <canvas id="chart-historical-scenarios"></canvas>
+                        <div id="error-summary" class="chart-summary"></div>
                     </div>
                 </div>
             </section>

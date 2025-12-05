@@ -8,6 +8,134 @@ const scenarioCharts = {};
 
 let historicalT0Loaded = false;
 
+// ===== FILTER STATE =====
+const filterState = {
+    building: "",
+    floor: "",
+};
+
+// ===== FILTER UTILITIES =====
+
+/**
+ * Gets the current filter values
+ * @returns {Object} Current filter state
+ */
+function getFilterValues() {
+    const buildingSelect = document.getElementById(
+        "historical-building-select",
+    );
+    const floorSelect = document.getElementById("historical-floor-select");
+
+    return {
+        building: buildingSelect ? buildingSelect.value : "",
+        floor: floorSelect ? floorSelect.value : "",
+    };
+}
+
+/**
+ * Populates a filter select with options
+ * @param {string} selectId - The select element ID
+ * @param {Array} options - Array of {value, label} objects
+ * @param {string} defaultLabel - Label for the default "All" option
+ */
+function populateFilterSelect(selectId, options, defaultLabel = "All") {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    // Preserve current value
+    const currentValue = select.value;
+
+    // Clear and add default option
+    select.innerHTML = "";
+    addOption(select, "", defaultLabel);
+
+    // Add options
+    options.forEach((opt) => {
+        addOption(select, opt.value, opt.label);
+    });
+
+    // Restore value if still valid
+    if (
+        currentValue &&
+        [...select.options].some((o) => o.value === currentValue)
+    ) {
+        select.value = currentValue;
+    }
+}
+
+/**
+ * Loads building options from backend
+ * TODO: Implement backend endpoint /prediction/buildings
+ */
+async function loadBuildingOptions() {
+    // Stub: Replace with actual API call
+    // const resp = await fetch('/prediction/buildings');
+    // const data = await resp.json();
+    // populateFilterSelect('historical-building-select', data.buildings, 'All Buildings');
+
+    // Placeholder data for development
+    const placeholderBuildings = [
+        { value: "building-a", label: "Building A" },
+        { value: "building-b", label: "Building B" },
+        { value: "building-c", label: "Building C" },
+    ];
+    populateFilterSelect(
+        "historical-building-select",
+        placeholderBuildings,
+        "All Buildings",
+    );
+}
+
+/**
+ * Loads floor options based on selected building
+ * TODO: Implement backend endpoint /prediction/floors?building={building}
+ * @param {string} building - Selected building ID
+ */
+async function loadFloorOptions(building) {
+    // Stub: Replace with actual API call
+    // const url = building
+    //     ? `/prediction/floors?building=${encodeURIComponent(building)}`
+    //     : '/prediction/floors';
+    // const resp = await fetch(url);
+    // const data = await resp.json();
+    // populateFilterSelect('historical-floor-select', data.floors, 'All Floors');
+
+    // Placeholder data for development
+    const placeholderFloors = [
+        { value: "floor-1", label: "Floor 1" },
+        { value: "floor-2", label: "Floor 2" },
+        { value: "floor-3", label: "Floor 3" },
+    ];
+    populateFilterSelect(
+        "historical-floor-select",
+        placeholderFloors,
+        "All Floors",
+    );
+}
+
+/**
+ * Updates the last refresh timestamp
+ * @param {string} elementId - The element ID to update
+ */
+function updateLastRefresh(elementId) {
+    const el = document.getElementById(elementId);
+    if (el) {
+        const now = new Date();
+        el.textContent = now.toLocaleTimeString();
+    }
+}
+
+/**
+ * Clears the last refresh timestamp
+ * @param {string} elementId - The element ID to clear
+ */
+function clearLastRefresh(elementId) {
+    const el = document.getElementById(elementId);
+    if (el) {
+        el.textContent = "";
+    }
+}
+
 // ===== DATA EXTRACTION HELPERS =====
 
 /**
@@ -328,6 +456,21 @@ function renderHistoricalCharts(data, granularity = "hourly") {
             timestamps,
         }),
     });
+
+    // Update error summary text below the chart
+    const avgError =
+        absErrorKWh.reduce((a, b) => a + b, 0) / absErrorKWh.length;
+    const minError = Math.min(...absErrorKWh);
+    const maxError = Math.max(...absErrorKWh);
+
+    const errorSummaryEl = document.getElementById("error-summary");
+    if (errorSummaryEl) {
+        errorSummaryEl.innerHTML = `
+            <span><strong>Avg:</strong> ${avgError.toFixed(3)} kWh</span>
+            <span><strong>Min:</strong> ${minError.toFixed(3)} kWh</span>
+            <span><strong>Max:</strong> ${maxError.toFixed(3)} kWh</span>
+        `;
+    }
 }
 
 /**
@@ -603,6 +746,7 @@ async function loadHistoricalPrediction() {
     const horizon = horizonSelect.value;
     const t0 = t0Select.value;
     const granularity = getGranularityForHorizon(horizon);
+    const filters = getFilterValues();
 
     if (!t0) {
         setStatus(statusEl, "Please select t0");
@@ -612,13 +756,23 @@ async function loadHistoricalPrediction() {
     try {
         setStatus(statusEl, "Loading historical prediction...");
 
-        const url = `/prediction/historical/data?horizon=${encodeURIComponent(horizon)}&t0=${encodeURIComponent(t0)}`;
+        // Build URL with filters
+        // TODO: Backend should accept building and floor parameters
+        let url = `/prediction/historical/data?horizon=${encodeURIComponent(horizon)}&t0=${encodeURIComponent(t0)}`;
+        if (filters.building) {
+            url += `&building=${encodeURIComponent(filters.building)}`;
+        }
+        if (filters.floor) {
+            url += `&floor=${encodeURIComponent(filters.floor)}`;
+        }
+
         const resp = await fetch(url);
         if (!resp.ok) throw new Error("HTTP " + resp.status);
 
         const data = await resp.json();
         renderHistoricalCharts(data, granularity);
         setStatus(statusEl, "");
+        updateLastRefresh("historical-last-refresh");
     } catch (err) {
         console.error("Error loading historical prediction", err);
         setStatus(statusEl, "Failed to load historical prediction");
@@ -798,11 +952,28 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // Building filter change
+    const buildingSelect = document.getElementById(
+        "historical-building-select",
+    );
+    if (buildingSelect) {
+        buildingSelect.addEventListener("change", () => {
+            // Load floors for selected building
+            loadFloorOptions(buildingSelect.value);
+        });
+    }
+
+    // Floor filter change (no additional action needed, filters applied on Run backtest)
+
     // Run backtest button
     const histBtn = document.getElementById("historical-load-btn");
     if (histBtn) {
         histBtn.addEventListener("click", loadHistoricalPrediction);
     }
+
+    // Load initial filter options
+    loadBuildingOptions();
+    loadFloorOptions("");
 
     // Initial panel load
     initializeDefaultPanel();

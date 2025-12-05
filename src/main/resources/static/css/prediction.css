@@ -93,13 +93,35 @@
     }
 }
 
+/* ===== CONTROLS FOOTER ===== */
+.controls-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
 /* ===== PREDICTION STATUS ===== */
 .prediction-status {
     font-size: 0.85rem;
     color: var(--text-secondary);
     font-style: italic;
-    margin-top: 0.75rem;
-    display: block;
+}
+
+/* ===== LAST REFRESH ===== */
+.last-refresh {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.last-refresh::before {
+    content: "Last refresh: ";
+}
+
+.last-refresh:empty::before {
+    content: "";
 }
 
 /* ===== CHART CARD CANVAS SIZING ===== */
