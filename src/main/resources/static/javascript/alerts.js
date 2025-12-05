@@ -49,69 +49,11 @@ function showBuildingView() {
 
 function loadFloorDesks(floorNumber) {
     const deskGrid = document.getElementById('desk-grid');
-    
-    // Sample desk configurations for each floor
-    // Desk ID format: desk-{floor+1}-{number} (e.g., desk-01-01 for floor 0, desk-03-15 for floor 2)
-    const floorDesks = {
-        0: [
-            { id: 'desk-01-01', status: 'invalid' },
-            { id: 'desk-01-02', status: 'invalid' },
-            { id: 'desk-01-03', status: 'invalid' },
-            { id: 'desk-01-04', status: 'invalid' },
-            { id: 'desk-01-05', status: 'invalid' },
-            { id: 'desk-01-06', status: 'invalid' },
-            { id: 'desk-01-07', status: 'invalid' },
-            { id: 'desk-01-08', status: 'invalid' }
-        ],
-        1: [
-            { id: 'desk-02-01', status: 'invalid' },
-            { id: 'desk-02-02', status: 'invalid' },
-            { id: 'desk-02-03', status: 'invalid' },
-            { id: 'desk-02-04', status: 'invalid' },
-            { id: 'desk-02-05', status: 'invalid' },
-            { id: 'desk-02-06', status: 'invalid' },
-            { id: 'desk-02-07', status: 'invalid' },
-            { id: 'desk-02-08', status: 'invalid' },
-            { id: 'desk-02-09', status: 'invalid' },
-            { id: 'desk-02-10', status: 'invalid' },
-            { id: 'desk-02-11', status: 'invalid' },
-            { id: 'desk-02-12', status: 'invalid' }
-        ],
-        2: [
-            { id: 'desk-03-01', status: 'invalid' },
-            { id: 'desk-03-02', status: 'invalid' },
-            { id: 'desk-03-03', status: 'invalid' },
-            { id: 'desk-03-04', status: 'invalid' },
-            { id: 'desk-03-05', status: 'invalid' },
-            { id: 'desk-03-06', status: 'invalid' },
-            { id: 'desk-03-07', status: 'invalid' },
-            { id: 'desk-03-08', status: 'invalid' },
-            { id: 'desk-03-09', status: 'invalid' },
-            { id: 'desk-03-10', status: 'invalid' },
-            { id: 'desk-03-11', status: 'invalid' },
-            { id: 'desk-03-12', status: 'invalid' },
-            { id: 'desk-03-13', status: 'invalid' },
-            { id: 'desk-03-14', status: 'invalid' },
-            { id: 'desk-03-15', status: 'invalid' },
-            { id: 'desk-03-16', status: 'invalid' }
-        ],
-        3: [
-            { id: 'desk-04-01', status: 'invalid' },
-            { id: 'desk-04-02', status: 'invalid' },
-            { id: 'desk-04-03', status: 'invalid' },
-            { id: 'desk-04-04', status: 'invalid' },
-            { id: 'desk-04-05', status: 'invalid' },
-            { id: 'desk-04-06', status: 'invalid' },
-            { id: 'desk-04-07', status: 'invalid' },
-            { id: 'desk-04-08', status: 'invalid' },
-            { id: 'desk-04-09', status: 'invalid' },
-            { id: 'desk-04-10', status: 'invalid' },
-            { id: 'desk-04-11', status: 'invalid' },
-            { id: 'desk-04-12', status: 'invalid' }
-        ]
-    };
-    
-    const desks = floorDesks[floorNumber] || floorDesks[1];
+
+    // Use shared configuration for desk-sensor mapping
+    const desks = window.DeskSensorConfig
+        ? window.DeskSensorConfig.getFloorDesks(floorNumber, 'invalid')
+        : [];
     
     // Clear and rebuild desk grid
     deskGrid.innerHTML = '';
@@ -121,7 +63,7 @@ function loadFloorDesks(floorNumber) {
         deskElement.setAttribute('data-desk', desk.id);
         deskElement.textContent = desk.id;
         deskElement.addEventListener('click', function() {
-            alert(`Desk ${desk.id}\nStatus: $invaliddesk.status}\n\nClick to view detailed information.`);
+            alert(`Desk ${desk.id}\nStatus: ${desk.status}\n\nClick to view detailed information.`);
         });
         deskGrid.appendChild(deskElement);
     });
@@ -160,127 +102,9 @@ function initCharts() {
             window.ChartUtils.createDoughnutChart(chartElement, [63.64, 36.36, 0]);
         }
     }
-    
-    // Historical Bar Chart
-    const ctxBar = document.getElementById('chart-historical-bar');
-    if (ctxBar) {
-        const dates = [];
-        const usedData = [];
-        const freeData = [];
-        
-        // Generate sample data for the last 30 days
-        for (let i = 29; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            dates.push(date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
-            
-            // Random data for demonstration
-            const used = Math.floor(Math.random() * 40) + 20;
-            const free = 100 - used;
-            usedData.push(used);
-            freeData.push(free);
-        }
-        
-        new Chart(ctxBar, {
-            type: 'bar',
-            data: {
-                labels: dates,
-                datasets: [
-                    {
-                        label: 'Used',
-                        data: usedData,
-                        backgroundColor: notOkColor,
-                        borderRadius: 4,
-                        barPercentage: 0.8
-                    },
-                    {
-                        label: 'Free',
-                        data: freeData,
-                        backgroundColor: okColor,
-                        borderRadius: 4,
-                        barPercentage: 0.8
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Date (day)',
-                            color: '#64748b',
-                            font: {
-                                size: 12,
-                                weight: '600'
-                            },
-                            padding: { top: 10 }
-                        },
-                        stacked: true,
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            maxRotation: 0,
-                            minRotation: 0,
-                            autoSkip: true,
-                            maxTicksLimit: 15,
-                            color: '#64748b',
-                            font: {
-                                size: 10
-                            }
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Occupancy Rate (%)',
-                            color: '#64748b',
-                            font: {
-                                size: 12,
-                                weight: '600'
-                            },
-                            padding: { bottom: 10 }
-                        },
-                        stacked: true,
-                        beginAtZero: true,
-                        max: 100,
-                        ticks: {
-                            color: '#64748b',
-                            font: {
-                                size: 11
-                            },
-                            callback: function(value) {
-                                return value + '%';
-                            }
-                        },
-                        grid: {
-                            color: 'rgba(226, 232, 240, 0.5)',
-                            lineWidth: 1
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 15
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ' + context.parsed.y + '%';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
+
+    // Historical Bar Chart is now handled by dashboard.js
+    // Removed to prevent conflicts with the real histogram implementation
     
     // Global Occupation Donut Chart
     // const ctxGlobal = document.getElementById('chart-global');

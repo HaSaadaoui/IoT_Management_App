@@ -224,7 +224,9 @@ public class SensorService {
         // Create hourly time series and resample data efficiently.
         Instant startInstant = adjustedStartInstant.truncatedTo(ChronoUnit.HOURS);
         Instant endInstant = endDate.toInstant();
-        Map<Instant, Double> hourlyTotals = new LinkedHashMap<>();
+
+        // Store per-channel values for each hour
+        Map<Instant, Map<PayloadValueType, Double>> hourlyChannelValues = new LinkedHashMap<>();
 
         // Get initial values at the start of the period for each channel
         Map<PayloadValueType, Double> lastKnownValues = new HashMap<>();
@@ -254,32 +256,43 @@ public class SensorService {
                 dataIndex++;
             }
 
-            // Calculate the total for the current hour using the last known values
-            double totalForHour = lastKnownValues.values().stream().mapToDouble(Double::doubleValue).sum();
-            hourlyTotals.put(currentHour, totalForHour);
+            // Store per-channel values for this hour
+            hourlyChannelValues.put(currentHour, new HashMap<>(lastKnownValues));
 
             currentHour = currentHour.plus(1, ChronoUnit.HOURS);
         }
 
-        // Calculate differential consumption from the hourly totals
+        // Calculate differential consumption per channel, then sum across channels
         Map<Date, Double> finalHourlyConsumption = new LinkedHashMap<>();
-        List<Instant> hours = new ArrayList<>(hourlyTotals.keySet());
+        List<Instant> hours = new ArrayList<>(hourlyChannelValues.keySet());
         hours.sort(Instant::compareTo);
 
         for (int i = 1; i < hours.size(); i++) {
             Instant currentHourKey = hours.get(i);
             Instant previousHourKey = hours.get(i - 1);
 
-            double currentTotalValue = hourlyTotals.get(currentHourKey);
-            double previousTotalValue = hourlyTotals.get(previousHourKey);
-            double consumption;
+            Map<PayloadValueType, Double> currentValues = hourlyChannelValues.get(currentHourKey);
+            Map<PayloadValueType, Double> previousValues = hourlyChannelValues.get(previousHourKey);
 
-            if (currentTotalValue < previousTotalValue) {
-                consumption = currentTotalValue; // Assume counter reset
-            } else {
-                consumption = currentTotalValue - previousTotalValue;
+            double totalConsumption = 0.0;
+
+            // Calculate consumption per channel with reset detection
+            for (PayloadValueType channel : consumptionChannels) {
+                double currentValue = currentValues.getOrDefault(channel, 0.0);
+                double previousValue = previousValues.getOrDefault(channel, 0.0);
+                double channelConsumption;
+
+                if (currentValue < previousValue) {
+                    // Counter reset detected for this channel
+                    channelConsumption = currentValue;
+                } else {
+                    channelConsumption = currentValue - previousValue;
+                }
+
+                totalConsumption += channelConsumption;
             }
-            finalHourlyConsumption.put(Date.from(currentHourKey), consumption);
+
+            finalHourlyConsumption.put(Date.from(currentHourKey), totalConsumption);
         }
 
         return finalHourlyConsumption;

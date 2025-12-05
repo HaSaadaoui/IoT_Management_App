@@ -109,7 +109,7 @@ main {
 
 .filters-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(0em, 1fr));
     gap: 1rem;
     margin-top: 1rem;
 }
@@ -152,9 +152,21 @@ main {
     margin-top: 1.5rem;
     padding-top: 1rem;
     border-top: 1px solid var(--border);
-    text-align: right;
+    text-align: left;
     font-size: 0.9rem;
     color: var(--text-secondary);
+}
+
+.filters-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    justify-content: flex-end;
+}
+
+.filters-actions .filter-card {
+    flex: 0 0 auto;
+    min-width: 180px;
 }
 
 .last-refresh strong {

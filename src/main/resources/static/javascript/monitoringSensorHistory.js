@@ -54,11 +54,38 @@ async function loadHistory(fromISO, toISO) {
     if (devType === 'ENERGY' || devType === 'CONSO') {
         document.getElementById('consumption-histogram-section').style.display = 'block';
 
-        const allGroupData = await Promise.all(
-            Object.values(consumptionCharts).map(group =>
-                loadChannelHistogramData(group.channels, fromISO, toISO)
-            )
-        );
+        // Fetch raw data for all channel groups
+        const redData = await loadChannelHistogramData([0, 1, 2], fromISO, toISO);
+        const whiteRawData = await loadChannelHistogramData([3, 4, 5], fromISO, toISO);
+        const ventData = await loadChannelHistogramData([6, 7, 8], fromISO, toISO);
+        const otherData = await loadChannelHistogramData([9, 10, 11], fromISO, toISO);
+
+        // Calculate white outlets by subtracting ventilation from channels 3,4,5
+        const whiteData = {};
+        if (whiteRawData && ventData) {
+            // Collect all unique timestamps from both datasets
+            const allTimestamps = new Set([
+                ...Object.keys(whiteRawData),
+                ...Object.keys(ventData)
+            ]);
+
+            // Calculate white = |Ch 3,4,5 - Ch 6,7,8| for each timestamp
+            for (const timestamp of allTimestamps) {
+                const whiteValue = whiteRawData[timestamp] || 0;
+                const ventValue = ventData[timestamp] || 0;
+                whiteData[timestamp] = Math.abs(whiteValue - ventValue);
+            }
+
+            console.log('White calculation debug:');
+            console.log('Sample whiteRawData (first 3):', Object.entries(whiteRawData).slice(0, 3));
+            console.log('Sample ventData (first 3):', Object.entries(ventData).slice(0, 3));
+            console.log('Sample whiteData (first 3):', Object.entries(whiteData).slice(0, 3));
+        } else if (whiteRawData) {
+            Object.assign(whiteData, whiteRawData);
+        }
+
+        // Group data in the same order as consumptionCharts
+        const allGroupData = [redData, whiteData, ventData, otherData];
 
         // Helper to group data by a specified interval in hours
         const groupDataByInterval = (data, intervalHours = 1) => {
@@ -132,7 +159,7 @@ async function loadHistory(fromISO, toISO) {
         });
 
         if (!combinedConsumptionChart) {
-            const chartCtx = ctx('histConsumptionRed');
+            const chartCtx = ctx('histConsumptionAll');
             if (chartCtx) {
                 const chartOptions = {
                     responsive: true,
@@ -168,7 +195,15 @@ async function loadHistory(fromISO, toISO) {
             return totalKWh;
         });
 
-        updateCard('kpi-card-conso', 'kpi-conso', groupTotals[0] > 0 ? groupTotals[0].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '', ' kWh');
+        // Sum all groups for the total consumption display
+        const totalAllGroups = groupTotals.reduce((sum, val) => sum + val, 0);
+
+        // Update the hist-total-total element (below the histogram chart)
+        const histTotalEl = document.getElementById('hist-total-total');
+        if (histTotalEl) histTotalEl.textContent = totalAllGroups.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // Update the KPI card
+        updateCard('kpi-card-conso', 'kpi-conso', totalAllGroups > 0 ? totalAllGroups.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '', ' kWh');
     }
 
     const networkMetrics = ['RSSI', 'SNR'];
