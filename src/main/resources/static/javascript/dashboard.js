@@ -1,6 +1,56 @@
 // ===== DASHBOARD MAIN FUNCTIONALITY =====
 // Handles sensor search, filtering, visualization, and cost calculations
 
+// ===== UTILITY: THROTTLE AND DEBOUNCE =====
+//
+// Request Optimization Strategy:
+// 1. DEBOUNCING: Applied to user-triggered actions (filter changes, sensor selection)
+//    - Waits for user to finish interactions before making API calls
+//    - Prevents excessive requests during rapid filter changes
+//    - Delays: 300-500ms depending on action frequency
+//
+// 2. THROTTLING: Applied to periodic actions (auto-refresh)
+//    - Limits execution frequency to prevent server overload
+//    - Ensures minimum time between requests
+//    - Limit: 2000ms for auto-refresh
+//
+// 3. REQUEST GUARDS: Prevents duplicate concurrent requests
+//    - Tracks active requests and skips duplicates
+//    - Applied to all async fetch methods
+//    - Releases lock in finally block to ensure cleanup
+
+/**
+ * Throttle function - limits function execution to once per interval.
+ * Useful for events that fire frequently (scroll, resize, etc.)
+ * @param {Function} func - Function to throttle
+ * @param {number} limit - Minimum time (ms) between executions
+ * @returns {Function} Throttled function
+ */
+function throttle(func, limit) {
+    let inThrottle;
+    return function(...args) {
+        if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    };
+}
+
+/**
+ * Debounce function - delays execution until after a pause in calls.
+ * Useful for search inputs, filter changes, etc.
+ * @param {Function} func - Function to debounce
+ * @param {number} delay - Time (ms) to wait after last call
+ * @returns {Function} Debounced function
+ */
+function debounce(func, delay) {
+    let timeoutId;
+    return function(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func.apply(this, args), delay);
+    };
+}
 
 class DashboardManager {
     constructor() {
@@ -8,10 +58,10 @@ class DashboardManager {
         this.filters = {
             year: '2025',
             month: '11',
-            building: 'chateaudun',
-            floor: '1',
+            building: 'all',
+            floor: 'all',
             sensorType: 'DESK',
-            timeSlot: 'afternoon'
+            timeSlot: 'all'
         };
 
         // Cached data
@@ -39,6 +89,33 @@ class DashboardManager {
             sensorCost: null
         };
 
+        // Request tracking to prevent concurrent duplicate requests
+        // Each entry stores: { active: boolean, controller: AbortController }
+        this.activeRequests = {
+            dashboard: { active: false, controller: null },
+            histogram: { active: false, controller: null },
+            occupationHistory: { active: false, controller: null },
+            sensors: { active: false, controller: null }
+        };
+
+        // Loading indicator labels
+        this.loadingLabels = {
+            dashboard: { title: 'Loading Dashboard', details: 'Fetching live and historical data...' },
+            histogram: { title: 'Loading Histogram', details: 'Computing sensor statistics...' },
+            occupationHistory: { title: 'Loading History', details: 'Fetching occupation data...' },
+            sensors: { title: 'Loading Sensors', details: 'Retrieving sensor list...' }
+        };
+
+        // Create debounced/throttled versions of fetch-heavy methods
+        // Debounce: Wait for user to stop changing filters before fetching
+        this.debouncedLoadDashboardData = debounce(() => this.loadDashboardData(), 500);
+        this.debouncedLoadHistogramData = debounce(() => this.loadHistogramData(), 300);
+        this.debouncedUpdateOccupationHistory = debounce(() => this.updateOccupationHistory(), 300);
+        this.debouncedLoadSensors = debounce(() => this.loadSensors(), 300);
+
+        // Throttle: Limit refresh rate to prevent hammering the server
+        this.throttledRefreshData = throttle(() => this.refreshData(), 2000);
+
         this.init();
     }
 
@@ -47,11 +124,20 @@ class DashboardManager {
         console.log('Initial filters:', this.filters);
         this.initializeFilters();
         this.initializeHistogramControls();
+        this.initializeSensorSelection();
+        this.initializeCancelButton();
         this.loadSampleData(); // TODO: remove sample data
         this.loadDashboardData();
 
         // Auto-refresh every 30 seconds
         setInterval(() => this.refreshData(), 30000);
+    }
+
+    initializeCancelButton() {
+        const cancelBtn = document.getElementById('cancel-requests-btn');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => this.cancelAllRequests());
+        }
     }
 
     // ===== FILTER MANAGEMENT =====
@@ -105,9 +191,15 @@ class DashboardManager {
             }
         }
 
-        // Refresh data with new filters
+        // Refresh data with new filters (debounced to prevent excessive requests)
         console.log('Refreshing dashboard data with new filters...');
-        this.loadDashboardData();
+        this.debouncedLoadDashboardData();
+
+        // Automatically reload sensors when filters that affect sensor list change
+        if (['building', 'floor', 'sensor-type'].includes(filterId)) {
+            console.log('Filter affecting sensor list changed, reloading sensors...');
+            this.debouncedLoadSensors();
+        }
     }
 
     updateSensorTypeUI(sensorType) {
@@ -151,9 +243,20 @@ class DashboardManager {
 
     async loadDashboardData() {
         console.log('=== Loading Dashboard Data ===');
+
+        // Prevent duplicate concurrent requests
+        if (this.activeRequests.dashboard.active) {
+            console.log('Dashboard request already in progress, skipping...');
+            return;
+        }
+
+        // Create AbortController for this request
+        const controller = new AbortController();
+
         try {
-            // Show loading state
-            this.showLoading();
+            this.activeRequests.dashboard.active = true;
+            this.activeRequests.dashboard.controller = controller;
+            this.showGlobalLoading('dashboard');
 
             // Fetch data from API
             const params = new URLSearchParams({
@@ -169,7 +272,7 @@ class DashboardManager {
             console.log('API URL:', apiUrl);
             console.log('Request parameters:', Object.fromEntries(params));
 
-            const response = await fetch(apiUrl);
+            const response = await fetch(apiUrl, { signal: controller.signal });
             console.log('Response status:', response.status, response.statusText);
 
             if (!response.ok) {
@@ -187,7 +290,7 @@ class DashboardManager {
 
             // Update all visualizations
             console.log('Updating dashboard visualizations...');
-            throw "TODO: updateDashboard(data)";
+            // throw "TODO: updateDashboard(data)";
             this.updateDashboard(data);
 
             // Update last refresh time
@@ -195,6 +298,11 @@ class DashboardManager {
             console.log('Dashboard data loaded successfully!');
 
         } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('Dashboard request was cancelled');
+                return;
+            }
+
             console.error('=== Error Loading Dashboard Data ===');
             console.error('Error:', error);
             console.error('Stack:', error.stack);
@@ -203,6 +311,10 @@ class DashboardManager {
             // Fall back to sample data
             console.log('Falling back to sample data...');
             this.loadSampleData();
+        } finally {
+            this.activeRequests.dashboard.active = false;
+            this.activeRequests.dashboard.controller = null;
+            this.hideGlobalLoading();
         }
     }
 
@@ -283,8 +395,9 @@ class DashboardManager {
         console.log('Updating live data...');
         this.updateLiveData(data.liveSensorData);
 
-        console.log('Updating historical data...');
-        this.updateHistoricalData(data.historicalData);
+        // Histogram is now only updated via sensor selection, not global updates
+        // console.log('Updating historical data...');
+        // this.updateHistoricalData(data.historicalData);
 
         console.log('Updating occupation history...');
         this.updateOccupationHistory(data.historicalData);
@@ -764,16 +877,116 @@ class DashboardManager {
 
     showLoading() {
         console.log('⏳ Loading data...');
-        // Could add a loading spinner
+        // Legacy method - now handled by showGlobalLoading
     }
 
     hideLoading() {
         console.log('✅ Data loaded successfully');
+        // Legacy method - now handled by hideGlobalLoading
     }
 
     showError(message) {
         console.error('❌ Error:', message);
         // Could show a toast notification
+    }
+
+    // ===== LOADING INDICATOR MANAGEMENT =====
+
+    /**
+     * Show the global loading indicator with specific request details
+     * @param {string} requestType - Type of request (dashboard, histogram, occupationHistory, sensors)
+     */
+    showGlobalLoading(requestType) {
+        const indicator = document.getElementById('global-loading-indicator');
+        const titleEl = document.getElementById('loading-title');
+        const detailsEl = document.getElementById('loading-details');
+
+        if (!indicator || !titleEl || !detailsEl) return;
+
+        const label = this.loadingLabels[requestType] || { title: 'Loading...', details: '' };
+
+        titleEl.textContent = label.title;
+        detailsEl.textContent = label.details;
+        indicator.classList.add('show');
+
+        console.log(`⏳ ${label.title} - ${label.details}`);
+    }
+
+    /**
+     * Hide the global loading indicator if no requests are active
+     */
+    hideGlobalLoading() {
+        // Check if any requests are still active
+        const hasActiveRequests = Object.values(this.activeRequests).some(req => req.active);
+
+        if (!hasActiveRequests) {
+            const indicator = document.getElementById('global-loading-indicator');
+            if (indicator) {
+                indicator.classList.remove('show');
+            }
+            console.log('✅ All requests completed');
+        }
+    }
+
+    /**
+     * Update loading indicator to show current active request
+     * If multiple requests are active, shows the most recent one
+     */
+    updateLoadingIndicator() {
+        // Find the first active request to display
+        for (const [requestType, req] of Object.entries(this.activeRequests)) {
+            if (req.active) {
+                this.showGlobalLoading(requestType);
+                return;
+            }
+        }
+        // No active requests, hide indicator
+        this.hideGlobalLoading();
+    }
+
+    /**
+     * Cancel all active requests
+     */
+    cancelAllRequests() {
+        console.log('🛑 Cancelling all active requests...');
+        let cancelledCount = 0;
+
+        for (const [requestType, req] of Object.entries(this.activeRequests)) {
+            if (req.active && req.controller) {
+                console.log(`  Cancelling ${requestType} request`);
+                req.controller.abort();
+                req.active = false;
+                req.controller = null;
+                cancelledCount++;
+            }
+        }
+
+        this.hideGlobalLoading();
+        console.log(`✅ Cancelled ${cancelledCount} request(s)`);
+
+        // Show feedback to user
+        if (cancelledCount > 0) {
+            this.showTemporaryMessage('Requests cancelled', 'info');
+        }
+    }
+
+    /**
+     * Show temporary message to user
+     */
+    showTemporaryMessage(message, type = 'info') {
+        const indicator = document.getElementById('global-loading-indicator');
+        if (!indicator) return;
+
+        const titleEl = document.getElementById('loading-title');
+        const detailsEl = document.getElementById('loading-details');
+
+        titleEl.textContent = message;
+        detailsEl.textContent = '';
+        indicator.classList.add('show');
+
+        setTimeout(() => {
+            indicator.classList.remove('show');
+        }, 2000);
     }
 
     // ===== HISTOGRAM FUNCTIONALITY =====
@@ -801,6 +1014,11 @@ class DashboardManager {
             timeRangeEl.addEventListener('change', (e) => {
                 this.histogramConfig.timeRange = e.target.value;
                 console.log('Time range changed:', this.histogramConfig.timeRange);
+
+                // If sensors are selected, refresh occupation history with new time range
+                if (this.sensorSelection && this.sensorSelection.selectedSensors.length > 0) {
+                    this.debouncedUpdateOccupationHistory();
+                }
             });
         }
 
@@ -821,17 +1039,29 @@ class DashboardManager {
         if (refreshBtn) {
             refreshBtn.addEventListener('click', () => {
                 console.log('Refresh histogram button clicked');
-                this.loadHistogramData();
+                // Histogram is now populated by occupation history when sensors are selected
+                if (this.sensorSelection && this.sensorSelection.selectedSensors.length > 0) {
+                    this.debouncedUpdateOccupationHistory();
+                }
             });
         }
 
-        // Load initial histogram data
-        this.loadHistogramData();
+        // Chart is now populated by occupation history when sensors are selected
+        // Initial state shows empty chart until sensors are selected
     }
 
     async loadHistogramData() {
         console.log('=== Loading Histogram Data ===');
         console.log('Config:', this.histogramConfig);
+
+        // Prevent duplicate concurrent requests
+        if (this.activeRequests.histogram.active) {
+            console.log('Histogram request already in progress, skipping...');
+            return;
+        }
+
+        // Create AbortController for this request
+        const controller = new AbortController();
 
         // Show loading indicator
         const loadingEl = document.getElementById('histogram-loading');
@@ -840,47 +1070,95 @@ class DashboardManager {
         }
 
         try {
-            // Build query parameters
-            const params = new URLSearchParams({
-                building: this.filters.building !== 'all' ? this.filters.building : '',
-                floor: this.filters.floor !== 'all' ? this.filters.floor : '',
-                sensorType: this.filters.sensorType,
-                metricType: this.histogramConfig.metricType,
-                timeRange: this.histogramConfig.timeRange,
-                granularity: this.histogramConfig.granularity,
-                timeSlot: this.filters.timeSlot.toUpperCase()
-            });
+            this.activeRequests.histogram.active = true;
+            this.activeRequests.histogram.controller = controller;
+            this.showGlobalLoading('histogram');
 
-            // Remove empty parameters
-            for (const [key, value] of [...params]) {
-                if (!value) params.delete(key);
+            // If single sensor is selected, use sensor-by-sensor approach
+            if (this.sensorSelection && this.sensorSelection.selectedSensors.length === 1) {
+                const sensorId = this.sensorSelection.selectedSensors[0];
+                console.log('Loading histogram for single sensor:', sensorId);
+
+                const params = new URLSearchParams({
+                    sensorId: sensorId,
+                    metricType: this.histogramConfig.metricType,
+                    timeRange: this.histogramConfig.timeRange,
+                    granularity: this.histogramConfig.granularity,
+                    timeSlot: this.filters.timeSlot.toUpperCase()
+                });
+
+                // Remove empty parameters
+                for (const [key, value] of [...params]) {
+                    if (!value) params.delete(key);
+                }
+
+                const url = '/api/dashboard/histogram?' + params.toString();
+                console.log('Fetching single sensor:', url);
+
+                const response = await fetch(url, { signal: controller.signal });
+
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+
+                const data = await response.json();
+                console.log('Histogram data received:', data);
+
+                this.renderHistogramChart(data);
+                this.updateHistogramSummary(data.summary);
+                this.updateHistogramTitle(data);
+
+            } else {
+                // Multiple sensors or no selection - use group approach
+                const params = new URLSearchParams({
+                    building: this.filters.building !== 'all' ? this.filters.building : '',
+                    floor: this.filters.floor !== 'all' ? this.filters.floor : '',
+                    sensorType: this.filters.sensorType,
+                    metricType: this.histogramConfig.metricType,
+                    timeRange: this.histogramConfig.timeRange,
+                    granularity: this.histogramConfig.granularity,
+                    timeSlot: this.filters.timeSlot.toUpperCase()
+                });
+
+                // Remove empty parameters
+                for (const [key, value] of [...params]) {
+                    if (!value) params.delete(key);
+                }
+
+                const url = '/api/dashboard/histogram?' + params.toString();
+                console.log('Fetching:', url);
+
+                const response = await fetch(url, { signal: controller.signal });
+
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+
+                const data = await response.json();
+                console.log('Histogram data received:', data);
+
+                // Render the histogram
+                this.renderHistogramChart(data);
+
+                // Update summary statistics
+                this.updateHistogramSummary(data.summary);
+
+                // Update title
+                this.updateHistogramTitle(data);
             }
-
-            const url = `/api/dashboard/histogram?${params.toString()}`;
-            console.log('Fetching:', url);
-
-            const response = await fetch(url);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log('Histogram data received:', data);
-
-            // Render the histogram
-            this.renderHistogramChart(data);
-
-            // Update summary statistics
-            this.updateHistogramSummary(data.summary);
-
-            // Update title
-            this.updateHistogramTitle(data);
 
         } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('Histogram request was cancelled');
+                return;
+            }
+
             console.error('Error loading histogram data:', error);
             this.showError('Failed to load histogram data: ' + error.message);
         } finally {
+            this.activeRequests.histogram.active = false;
+            this.activeRequests.histogram.controller = null;
+            this.hideGlobalLoading();
             // Hide loading indicator
             if (loadingEl) {
                 loadingEl.style.display = 'none';
@@ -891,7 +1169,7 @@ class DashboardManager {
     renderHistogramChart(data) {
         console.log('=== Rendering Histogram Chart ===');
 
-        const chartElement = document.getElementById('chart-histogram');
+        const chartElement = document.getElementById('chart-historical-bar');
         if (!chartElement) {
             console.warn('Histogram chart element not found');
             return;
@@ -911,16 +1189,12 @@ class DashboardManager {
         // Prepare data
         const labels = data.dataPoints.map(dp => {
             if (data.granularity === 'HOURLY') {
-                // Format: "2025-11-25 14:00"
-                const date = new Date(dp.timestamp);
-                return date.toLocaleString('fr-FR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+                // Format: "14:00" (time only for hourly data)
+                const timestamp = dp.timestamp; // Format: "yyyy-MM-dd HH:00"
+                const timePart = timestamp.split(' ')[1]; // Extract "HH:00"
+                return timePart || timestamp;
             } else {
-                // Format: "25/11"
+                // Format: "25/11" (date only for daily data)
                 const date = new Date(dp.timestamp);
                 return date.toLocaleDateString('fr-FR', {
                     day: '2-digit',
@@ -974,13 +1248,13 @@ class DashboardManager {
                     x: {
                         title: {
                             display: true,
-                            text: data.granularity === 'HOURLY' ? 'Date & Time' : 'Date',
+                            text: data.granularity === 'HOURLY' ? 'Time (Hour)' : 'Date',
                             color: '#64748b',
                             font: { size: 14, weight: '600' }
                         },
                         ticks: {
-                            maxRotation: 45,
-                            minRotation: 45,
+                            maxRotation: data.granularity === 'HOURLY' ? 0 : 45,
+                            minRotation: data.granularity === 'HOURLY' ? 0 : 45,
                             font: { size: 11 }
                         },
                         grid: {
@@ -1098,12 +1372,580 @@ class DashboardManager {
 
     getTimeRangeLabel(timeRange) {
         const labels = {
+            'TODAY': 'Today',
             'LAST_7_DAYS': 'Last 7 Days',
             'LAST_30_DAYS': 'Last 30 Days',
             'THIS_MONTH': 'This Month',
             'LAST_MONTH': 'Last Month'
         };
         return labels[timeRange] || timeRange;
+    }
+
+    // ===== SENSOR SELECTION =====
+
+    initializeSensorSelection() {
+        console.log('=== Initializing Sensor Selection ===');
+
+        // Sensor selection state (uses main filter values)
+        this.sensorSelection = {
+            selectedSensors: [],
+            availableSensors: []
+        };
+
+        // Add event listeners
+        const selectAllBtn = document.getElementById('select-all-sensors-btn');
+
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', () => this.toggleSelectAll());
+        }
+
+        // Automatically load sensors on page load with initial filters
+        console.log('Loading sensors automatically on page load...');
+        this.debouncedLoadSensors();
+    }
+
+    async loadSensors() {
+        console.log('Loading sensors with filters:', this.filters);
+
+        // Prevent duplicate concurrent requests
+        if (this.activeRequests.sensors.active) {
+            console.log('Sensors request already in progress, skipping...');
+            return;
+        }
+
+        // Create AbortController for this request
+        const controller = new AbortController();
+
+        try {
+            this.activeRequests.sensors.active = true;
+            this.activeRequests.sensors.controller = controller;
+            this.showGlobalLoading('sensors');
+
+            const params = new URLSearchParams({
+                building: this.filters.building,
+                floor: this.filters.floor,
+                sensorType: this.filters.sensorType
+            });
+
+            const response = await fetch('/api/dashboard/sensors?' + params, { signal: controller.signal });
+            if (!response.ok) throw new Error('Failed to load sensors');
+
+            const sensors = await response.json();
+            this.sensorSelection.availableSensors = sensors;
+
+            console.log('Loaded sensors:', sensors);
+
+            // Show sensor list container
+            const containerEl = document.getElementById('sensor-list-container');
+            if (containerEl) {
+                containerEl.style.display = 'block';
+            }
+
+            this.renderSensorList(sensors);
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('Sensors request was cancelled');
+                return;
+            }
+
+            console.error('Error loading sensors:', error);
+            alert('Failed to load sensors. Please try again.');
+        } finally {
+            this.activeRequests.sensors.active = false;
+            this.activeRequests.sensors.controller = null;
+            this.hideGlobalLoading();
+        }
+    }
+
+    renderSensorList(sensors) {
+        const sensorListEl = document.getElementById('sensor-list');
+        const sensorCountEl = document.getElementById('sensor-count');
+
+        if (!sensorListEl) return;
+
+        // Update count
+        if (sensorCountEl) {
+            sensorCountEl.textContent = sensors.length;
+        }
+
+        // Clear existing list
+        sensorListEl.innerHTML = '';
+
+        if (sensors.length === 0) {
+            sensorListEl.innerHTML = '<div class="sensor-list-placeholder">No sensors found</div>';
+            return;
+        }
+
+        // Render each sensor
+        sensors.forEach(sensor => {
+            const isSelected = this.sensorSelection.selectedSensors.includes(sensor.idSensor);
+
+            const sensorItem = document.createElement('div');
+            sensorItem.className = 'sensor-item' + (isSelected ? ' selected' : '');
+            sensorItem.dataset.sensorId = sensor.idSensor;
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = 'sensor-' + sensor.idSensor;
+            checkbox.checked = isSelected;
+            checkbox.addEventListener('change', () => this.toggleSensorSelection(sensor.idSensor));
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'sensor-item-info';
+            infoDiv.innerHTML = '<span class="sensor-item-name">' + sensor.idSensor + '</span>' +
+                '<div class="sensor-item-details">' +
+                    '<span>' + (sensor.location || 'No location') + '</span>' +
+                    '<span>Floor ' + sensor.floor + '</span>' +
+                    '<span class="sensor-badge ' + (sensor.active ? 'active' : 'inactive') + '">' +
+                        (sensor.active ? 'Active' : 'Inactive') +
+                    '</span>' +
+                '</div>';
+
+            sensorItem.appendChild(checkbox);
+            sensorItem.appendChild(infoDiv);
+
+            // Click on item toggles checkbox
+            sensorItem.addEventListener('click', (e) => {
+                if (e.target.tagName !== 'INPUT') {
+                    checkbox.checked = !checkbox.checked;
+                    this.toggleSensorSelection(sensor.idSensor);
+                }
+            });
+
+            sensorListEl.appendChild(sensorItem);
+        });
+    }
+
+    toggleSensorSelection(sensorId) {
+        const index = this.sensorSelection.selectedSensors.indexOf(sensorId);
+
+        if (index > -1) {
+            // Deselect
+            this.sensorSelection.selectedSensors.splice(index, 1);
+        } else {
+            // Select
+            this.sensorSelection.selectedSensors.push(sensorId);
+        }
+
+        // Update UI
+        const sensorItem = document.querySelector('[data-sensor-id="' + sensorId + '"]');
+        if (sensorItem) {
+            sensorItem.classList.toggle('selected');
+        }
+
+        console.log('Selected sensors:', this.sensorSelection.selectedSensors);
+
+        // Update occupation history when sensors are selected/deselected (debounced)
+        this.debouncedUpdateOccupationHistory();
+    }
+
+    toggleSelectAll() {
+        const allSelected = this.sensorSelection.selectedSensors.length === this.sensorSelection.availableSensors.length;
+
+        if (allSelected) {
+            // Deselect all
+            this.sensorSelection.selectedSensors = [];
+        } else {
+            // Select all
+            this.sensorSelection.selectedSensors = this.sensorSelection.availableSensors.map(s => s.idSensor);
+        }
+
+        // Re-render
+        this.renderSensorList(this.sensorSelection.availableSensors);
+
+        // Update occupation history (debounced)
+        this.debouncedUpdateOccupationHistory();
+    }
+
+    async updateOccupationHistory() {
+        const historyTable = document.querySelector('.history-table tbody');
+        if (!historyTable) return;
+
+        // If no sensors selected, clear table and chart
+        if (!this.sensorSelection.selectedSensors || this.sensorSelection.selectedSensors.length === 0) {
+            historyTable.innerHTML = '<tr><td colspan="2" style="text-align: center;">Select sensors to view occupation history</td></tr>';
+            this.clearOccupationHistoryChart();
+
+            // Reset title
+            const titleElement = document.getElementById('occupation-history-title');
+            if (titleElement) {
+                titleElement.textContent = '📊 Occupation History - Last 30 Days';
+            }
+            return;
+        }
+
+        // Prevent duplicate concurrent requests
+        if (this.activeRequests.occupationHistory.active) {
+            console.log('Occupation history request already in progress, skipping...');
+            return;
+        }
+
+        // Create AbortController for this request
+        const controller = new AbortController();
+
+        try {
+            this.activeRequests.occupationHistory.active = true;
+            this.activeRequests.occupationHistory.controller = controller;
+            this.showGlobalLoading('occupationHistory');
+
+            // Build query parameters
+            const params = new URLSearchParams();
+            this.sensorSelection.selectedSensors.forEach(id => params.append('sensorIds', id));
+
+            // Calculate days based on histogram time range
+            let days = 30; // default
+            switch (this.histogramConfig.timeRange) {
+                case 'TODAY':
+                    days = 1;
+                    break;
+                case 'LAST_7_DAYS':
+                    days = 7;
+                    break;
+                case 'LAST_30_DAYS':
+                    days = 30;
+                    break;
+                case 'THIS_MONTH':
+                    // Calculate days in current month
+                    const now = new Date();
+                    days = now.getDate(); // Days elapsed in current month
+                    break;
+                case 'LAST_MONTH':
+                    // Get days in previous month
+                    const lastMonth = new Date();
+                    lastMonth.setMonth(lastMonth.getMonth() - 1);
+                    days = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0).getDate();
+                    break;
+                default:
+                    days = 30;
+            }
+
+            params.append('days', days.toString());
+
+            const response = await fetch('/api/dashboard/occupation-history?' + params.toString(), { signal: controller.signal });
+            if (!response.ok) throw new Error('Failed to fetch occupation history');
+
+            const history = await response.json();
+            console.log('Occupation history received:', history);
+
+            // Clear existing rows
+            historyTable.innerHTML = '';
+
+            if (history.length === 0) {
+                historyTable.innerHTML = '<tr><td colspan="2" style="text-align: center;">No data available</td></tr>';
+                this.clearOccupationHistoryChart();
+
+                // Reset title
+                const titleElement = document.getElementById('occupation-history-title');
+                if (titleElement) {
+                    titleElement.textContent = '📊 Occupation History - No Data';
+                }
+                return;
+            }
+
+            // Populate table
+            history.forEach(entry => {
+                const row = document.createElement('tr');
+
+                // Format date/time - handle both date-only and date+time formats
+                let displayDate = entry.date;
+
+                row.innerHTML = '<td>' + displayDate + '</td>' +
+                               '<td>' + entry.occupancyRate.toFixed(1) + '%</td>';
+                historyTable.appendChild(row);
+            });
+
+            // Update title with actual period
+            this.updateOccupationHistoryTitle(history);
+
+            // Render the occupation history chart
+            this.renderOccupationHistoryChart(history);
+
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('Occupation history request was cancelled');
+                return;
+            }
+
+            console.error('Error updating occupation history:', error);
+            historyTable.innerHTML = '<tr><td colspan="2" style="text-align: center; color: red;">Error loading history</td></tr>';
+            this.clearOccupationHistoryChart();
+        } finally {
+            this.activeRequests.occupationHistory.active = false;
+            this.activeRequests.occupationHistory.controller = null;
+            this.hideGlobalLoading();
+        }
+    }
+
+    renderOccupationHistoryChart(history) {
+        console.log('=== Rendering Occupation History Chart ===');
+
+        const chartElement = document.getElementById('chart-historical-bar');
+        if (!chartElement) {
+            console.warn('Chart element not found: chart-historical-bar');
+            return;
+        }
+
+        // Destroy existing chart
+        if (this.charts.historicalBar) {
+            this.charts.historicalBar.destroy();
+            this.charts.historicalBar = null;
+        }
+
+        const existingChart = Chart.getChart(chartElement);
+        if (existingChart) {
+            existingChart.destroy();
+        }
+
+        // Reverse history to show oldest to newest
+        const sortedHistory = [...history].reverse();
+
+        // Prepare data - split into used and free
+        const dates = sortedHistory.map(entry => entry.date);
+        const usedData = sortedHistory.map(entry => entry.occupancyRate);
+        const freeData = sortedHistory.map(entry => 100 - entry.occupancyRate);
+
+        // Create stacked bar chart
+        this.charts.historicalBar = new Chart(chartElement, {
+            type: 'bar',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: 'Occupied',
+                        data: usedData,
+                        backgroundColor: '#ef4444',
+                        borderRadius: 4,
+                        barPercentage: 0.8
+                    },
+                    {
+                        label: 'Free',
+                        data: freeData,
+                        backgroundColor: '#10b981',
+                        borderRadius: 4,
+                        barPercentage: 0.8
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date',
+                            color: '#64748b',
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            },
+                            padding: { top: 10 }
+                        },
+                        stacked: true,
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            autoSkip: true,
+                            maxTicksLimit: 15,
+                            color: '#64748b',
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Occupancy Rate (%)',
+                            color: '#64748b',
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            },
+                            padding: { bottom: 10 }
+                        },
+                        stacked: true,
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            color: '#64748b',
+                            font: {
+                                size: 11
+                            },
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.5)',
+                            lineWidth: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            color: '#64748b'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Update chart title using consistent period calculation
+        const chartTitle = document.getElementById('histogram-chart-title');
+        if (chartTitle) {
+            const periodInfo = this.calculateHistoryPeriod(history);
+            if (periodInfo) {
+                chartTitle.textContent = `📊 Occupation History - ${periodInfo.titleText}`;
+            }
+        }
+
+        // Update summary with occupation history stats
+        const avgOccupancy = sortedHistory.reduce((sum, entry) => sum + entry.occupancyRate, 0) / sortedHistory.length;
+        const minOccupancy = Math.min(...sortedHistory.map(entry => entry.occupancyRate));
+        const maxOccupancy = Math.max(...sortedHistory.map(entry => entry.occupancyRate));
+
+        this.updateHistogramSummary({
+            totalSensors: this.sensorSelection.selectedSensors.length,
+            activeSensors: this.sensorSelection.selectedSensors.length,
+            avgValue: avgOccupancy / 100, // Convert to decimal
+            minValue: minOccupancy / 100,
+            maxValue: maxOccupancy / 100
+        });
+
+        console.log('Occupation history chart rendered successfully');
+    }
+
+    clearOccupationHistoryChart() {
+        const chartElement = document.getElementById('chart-historical-bar');
+        if (!chartElement) return;
+
+        // Destroy existing chart
+        if (this.charts.historicalBar) {
+            this.charts.historicalBar.destroy();
+            this.charts.historicalBar = null;
+        }
+
+        const existingChart = Chart.getChart(chartElement);
+        if (existingChart) {
+            existingChart.destroy();
+        }
+
+        // Reset chart title
+        const chartTitle = document.getElementById('histogram-chart-title');
+        if (chartTitle) {
+            chartTitle.textContent = '📊 Sensor Data Trends - Occupancy';
+        }
+
+        // Clear summary
+        document.getElementById('summary-total-sensors').textContent = '--';
+        document.getElementById('summary-active-sensors').textContent = '--';
+        document.getElementById('summary-avg-value').textContent = '--';
+        document.getElementById('summary-min-value').textContent = '--';
+        document.getElementById('summary-max-value').textContent = '--';
+
+        // Reset occupation history title
+        const occupationTitle = document.getElementById('occupation-history-title');
+        if (occupationTitle) {
+            occupationTitle.textContent = '📊 Occupation History - Last 30 Days';
+        }
+    }
+
+    /**
+     * Parse date string - handles both "yyyy-MM-dd" and "dd/MM/yyyy" formats
+     * @param {string} dateStr - Date string to parse
+     * @returns {Date} Parsed date object
+     */
+    parseHistoryDate(dateStr) {
+        if (dateStr.includes('-')) {
+            // ISO format: yyyy-MM-dd or yyyy-MM-dd HH:mm
+            return new Date(dateStr);
+        } else if (dateStr.includes('/')) {
+            // European format: dd/MM/yyyy
+            const [day, month, year] = dateStr.split('/');
+            return new Date(year, month - 1, day);
+        }
+        return new Date(dateStr);
+    }
+
+    /**
+     * Format date for display in European format
+     * @param {Date} date - Date object to format
+     * @returns {string} Formatted date string (dd/MM/yyyy)
+     */
+    formatHistoryDate(date) {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
+
+    /**
+     * Calculate period information from history data
+     * @param {Array} history - Array of occupation history entries with dates
+     * @returns {Object} Object with firstDate, lastDate, daysDiff, and titleText
+     */
+    calculateHistoryPeriod(history) {
+        if (!history || history.length === 0) {
+            return null;
+        }
+
+        // Parse first and last dates from the data
+        const oldestDateStr = history[0].date; // Oldest date
+        const newestDateStr = history[history.length - 1].date; // Most recent date
+
+        const oldestDate = this.parseHistoryDate(oldestDateStr);
+        const newestDate = this.parseHistoryDate(newestDateStr);
+
+        // Calculate actual number of days between dates
+        const daysDiff = Math.round((newestDate - oldestDate) / (1000 * 60 * 60 * 24)) + 1;
+
+        // Generate title based on the period - show newest to oldest (reverse chronological)
+        let titleText;
+        if (daysDiff === 1) {
+            titleText = `${this.formatHistoryDate(newestDate)}`;
+        } else {
+            // Show date range from newest to oldest
+            titleText = `${this.formatHistoryDate(newestDate)} to ${this.formatHistoryDate(oldestDate)}`;
+        }
+
+        return {
+            firstDate: oldestDate,
+            lastDate: newestDate,
+            daysDiff,
+            titleText
+        };
+    }
+
+    /**
+     * Update the occupation history title with the actual period covered by the data
+     * @param {Array} history - Array of occupation history entries with dates
+     */
+    updateOccupationHistoryTitle(history) {
+        const titleElement = document.getElementById('occupation-history-title');
+        if (!titleElement || !history || history.length === 0) return;
+
+        const periodInfo = this.calculateHistoryPeriod(history);
+        if (!periodInfo) return;
+
+        const fullTitle = `📊 Occupation History - ${periodInfo.titleText}`;
+        titleElement.textContent = fullTitle;
+        console.log(`Updated occupation history title: ${fullTitle} (${periodInfo.daysDiff} days)`);
     }
 }
 
