@@ -1,0 +1,108 @@
+/* ========= CONTEXTE GLOBAL DE LA PAGE CONFIG ========= */
+
+body {
+    background-color: #f5f4fa;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.config-page {
+    max-width: 1400px;
+    margin: 30px auto;
+    padding: 0 15px;
+}
+
+/* ========= CARDS ========= */
+
+.config-card {
+    background: #ffffff;
+    padding: 25px;
+    margin-bottom: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.config-card h2 {
+    color: #662179;
+    margin-bottom: 20px;
+    font-size: 1.5em;
+}
+
+/* ========= FORMULAIRES ========= */
+
+label {
+    font-weight: 500;
+}
+
+.form-control,
+.form-select,
+textarea {
+    border-radius: 8px;
+}
+
+/* Optionnel : un peu de marge entre les inline checkboxes */
+.form-check-inline {
+    margin-right: 15px;
+}
+
+/* ========= BOUTONS ========= */
+
+.btn-violet {
+    background-color: #662179;
+    color: #fff;
+    border: none;
+}
+
+.btn-violet:hover {
+    background-color: #7f3fbf;
+    color: #fff;
+}
+
+/* ========= PAYLOAD EDITOR ========= */
+
+#payload-editor {
+    width: 100%;
+    height: 300px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+#test-decoded {
+    background: #f0f0f0;
+    padding: 10px;
+    border-radius: 8px;
+    min-height: 50px;
+    margin-top: 10px;
+    white-space: pre-wrap;
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+
+/* ========= 3D / 2D VIEWERS ========= */
+
+#three-container {
+    width: 100%;
+    height: 600px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin-top: 15px;
+}
+
+#plan2D {
+    width: 100%;
+    height: 400px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin-top: 15px;
+    display: none;
+    background-color: #e0e0e0;
+}
+
+/* ========= BUILDING SCRIPT EDITOR ========= */
+
+#building-editor {
+    width: 100%;
+    height: 300px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    margin-top: 8px;
+}
