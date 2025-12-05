@@ -613,7 +613,11 @@ function mkBarChart(ctx, label, color) {
 const networkMetricsContainer = el('#network-metrics-container');
 const sensorMetricsContainer = el('#sensor-metrics-container');
 const consumptionCharts = {
-  'red': { id: 'histConsumptionRed', channels: [0, 1, 2], label: 'Red Outlets (Ch 0,1,2)', color: 'rgb(239, 68, 68, 1)' }, 'white': { id: 'histConsumptionWhite', channels: [3, 4, 5], label: 'White Outlets & Lightning (Ch 3,4,5)', color: 'rgb(100, 116, 139, 1)' }, 'vent': { id: 'histConsumptionVent', channels: [6, 7, 8], label: 'Ventilation & Heaters (Ch 6,7,8)', color: 'rgb(59, 130, 246, 1)' }, 'other': { id: 'histConsumptionOther', channels: [9, 10, 11], label: 'Other Circuits (Ch 9,10,11)', color: 'rgb(245, 158, 11, 1)' }
+  'red': {
+     id: 'histConsumptionAll', channels: [0, 1, 2], label: 'Red Outlets', color: 'rgb(239, 68, 68, 1)' }, 'white': {
+     id: 'histConsumptionAll', channels: [3, 4, 5], label: 'White Outlets & Lightning', color: 'rgb(100, 116, 139, 1)' }, 'vent': {
+     id: 'histConsumptionAll', channels: [6, 7, 8], label: 'Ventilation & Heaters', color: 'rgb(59, 130, 246, 1)' }, 'other': {
+     id: 'histConsumptionAll', channels: [9, 10, 11], label: 'Other Circuits', color: 'rgb(245, 158, 11, 1)' }
 };
 let combinedConsumptionChart = null;
 
@@ -760,16 +764,6 @@ async function loadHistory(fromISO, toISO) {
 
   const devType = (document.documentElement.dataset.devType || '').toUpperCase();
   if (devType === 'ENERGY' || devType === 'CONSO') {
-    // Hide all but the first chart container
-    const whiteContainer = el('#histConsumptionWhite-container');
-    if (whiteContainer) whiteContainer.style.display = 'none';
-
-    const ventContainer = el('#histConsumptionVent-container');
-    if (ventContainer) ventContainer.style.display = 'none';
-
-    const otherContainer = el('#histConsumptionOther-container');
-    if (otherContainer) otherContainer.style.display = 'none';
-
     // Fetch all data
     const allGroupData = await Promise.all(
       Object.values(consumptionCharts).map(group =>
@@ -795,7 +789,7 @@ async function loadHistory(fromISO, toISO) {
     });
 
     if (!combinedConsumptionChart) {
-        const chartCtx = ctx('histConsumptionRed'); // Use the first canvas
+        const chartCtx = ctx('histConsumptionAll');
         if (chartCtx) {
             combinedConsumptionChart = new Chart(chartCtx, { type: 'bar', data: { labels: [], datasets: [] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: false }, y: { beginAtZero: true, title: { display: true, text: 'Total Consumption (kWh)' } } } } });
         }
@@ -1375,6 +1369,29 @@ function fetchAndUpdateCurrentConsumption() {
     totalCurrentConsumptionWh = 0; // Reset total before fetching
     await Promise.all(Object.entries(oldChannelGroups).map(([id, group]) => fetchGroupConsumption(id, group)));
 
+    // Apply white outlets formula: white = |channels 3,4,5 - channels 6,7,8|
+    const whiteRawConsumption = groupConsumptionData['white-outlets'] || 0;
+    const ventConsumption = groupConsumptionData['ventilation'] || 0;
+    const whiteAdjustedConsumption = Math.abs(whiteRawConsumption - ventConsumption);
+
+    // Update white outlets with adjusted value
+    groupConsumptionData['white-outlets'] = whiteAdjustedConsumption;
+
+    // Recalculate total with adjusted white value
+    totalCurrentConsumptionWh = (groupConsumptionData['red-outlets'] || 0) +
+                                 whiteAdjustedConsumption +
+                                 ventConsumption +
+                                 (groupConsumptionData['other'] || 0);
+
+    // Update the UI for white outlets with adjusted value
+    const whiteGroupEl = el(`#energy-group-white-outlets`);
+    if (whiteGroupEl) {
+      const kwhEl = whiteGroupEl.querySelector('.kwh-value');
+      const whEl = whiteGroupEl.querySelector('.wh-value');
+      if (kwhEl) kwhEl.textContent = `${(whiteAdjustedConsumption / 1000).toFixed(3)} kWh`;
+      if (whEl) whEl.textContent = `${whiteAdjustedConsumption} Wh`;
+    }
+
     // Prepare data for updateEnergyChart
     const chartDataForUpdate = {};
     Object.entries(channelGroups).forEach(([groupId, group]) => {
@@ -1385,7 +1402,7 @@ function fetchAndUpdateCurrentConsumption() {
         chartDataForUpdate[channel] = { value: (index === 0 ? consumption : 0) };
       });
     });
-    
+
     // After all groups are fetched, update the total display
     const totalEl = el('#energy-total');
     if (totalEl) {
@@ -2062,10 +2079,13 @@ function updateRealtimeCharts(data) {
           return sum + channelData;
         }, 0);
         
-        const whiteOutlets = [3, 4, 5].reduce((sum, ch) => {
+        const whiteOutlets = Math.abs([3, 4, 5].reduce((sum, ch) => {
           const channelData = channelConsumptionData[ch];
           return sum + channelData;
-        }, 0);
+        }, 0) - [6, 7, 8].reduce((sum, ch) => {
+          const channelData = channelConsumptionData[ch];
+          return sum + channelData;
+        }, 0));
         
         const ventilation = [6, 7, 8].reduce((sum, ch) => {
           const channelData = channelConsumptionData[ch];
