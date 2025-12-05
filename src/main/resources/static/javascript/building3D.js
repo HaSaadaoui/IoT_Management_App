@@ -772,7 +772,7 @@ class Building3D {
         };
 
         if (window.ArchitecturalFloorPlan) {
-            this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', floorData, this.currentSensorMode);
+            this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', floorData, this.currentSensorMode, this.config.id);
 
             if (this.currentSensorMode === 'DESK') {
                 this.currentArchPlan.loadDeskOccupancy();
