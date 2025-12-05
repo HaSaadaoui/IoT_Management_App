@@ -108,6 +108,23 @@
     max-height: 280px !important;
 }
 
+/* ===== CHART SUMMARY ===== */
+.chart-summary {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.chart-summary span {
+    color: var(--text-primary, #333);
+}
+
 #panel-scenarios .chart-card canvas {
     /*height: 400px !important;*/
     max-height: 400px !important;

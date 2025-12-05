@@ -24,6 +24,78 @@ function extractConsumptionData(data) {
 }
 
 /**
+ * Aggregates time-series data by hour or day
+ * @param {Object} data - Consumption data with timestamps and values
+ * @param {string} granularity - 'raw', 'hourly', or 'daily'
+ * @returns {Object} Aggregated data
+ */
+function aggregateData(data, granularity) {
+    if (granularity === "raw") {
+        return data;
+    }
+
+    const { timestamps, predicted, truth, absError } = data;
+
+    if (!timestamps.length) {
+        return data;
+    }
+
+    const aggregated = {};
+
+    timestamps.forEach((ts, idx) => {
+        const date = new Date(ts);
+        let key;
+
+        if (granularity === "hourly") {
+            // Group by date + hour (e.g., "2024-08-06T09")
+            key = ts.substring(0, 13); // "YYYY-MM-DDTHH"
+        } else if (granularity === "daily") {
+            // Group by date (e.g., "2024-08-06")
+            key = ts.substring(0, 10); // "YYYY-MM-DD"
+        }
+
+        if (!aggregated[key]) {
+            aggregated[key] = {
+                timestamp: key,
+                predicted: [],
+                truth: [],
+                absError: [],
+                count: 0,
+            };
+        }
+
+        aggregated[key].predicted.push(predicted[idx]);
+        aggregated[key].truth.push(truth[idx]);
+        aggregated[key].absError.push(absError[idx]);
+        aggregated[key].count++;
+    });
+
+    // Calculate averages for each bucket
+    const keys = Object.keys(aggregated).sort();
+    const newTimestamps = [];
+    const newPredicted = [];
+    const newTruth = [];
+    const newAbsError = [];
+
+    keys.forEach((key) => {
+        const bucket = aggregated[key];
+        const avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+
+        newTimestamps.push(bucket.timestamp);
+        newPredicted.push(avg(bucket.predicted));
+        newTruth.push(avg(bucket.truth));
+        newAbsError.push(avg(bucket.absError));
+    });
+
+    return {
+        timestamps: newTimestamps,
+        predicted: newPredicted,
+        truth: newTruth,
+        absError: newAbsError,
+    };
+}
+
+/**
  * Extracts scenario data from API response
  */
 function extractScenarioData(data) {
@@ -100,9 +172,11 @@ function renderPredictionChart(canvasId, data, labelSuffix) {
 }
 
 /**
- * Renders historical charts (backtest + error)
+ * Renders historical charts (backtest + error) as histograms
+ * @param {Object} data - Raw data from API
+ * @param {string} granularity - 'raw', 'hourly', or 'daily'
  */
-function renderHistoricalCharts(data) {
+function renderHistoricalCharts(data, granularity = "hourly") {
     const canvas1 = document.getElementById("chart-historical-backtest");
     const canvas2 = document.getElementById("chart-historical-scenarios");
 
@@ -111,66 +185,145 @@ function renderHistoricalCharts(data) {
         return;
     }
 
-    const { timestamps, predicted, truth, absError } =
-        extractConsumptionData(data);
+    // Extract and aggregate data
+    const rawData = extractConsumptionData(data);
+    const aggregatedData = aggregateData(rawData, granularity);
+    const { timestamps, predicted, truth, absError } = aggregatedData;
+
     const {
         COLORS,
-        createLineDataset,
+        createBarDataset,
         createOrUpdateChart,
         formatTimestamp,
         findDayBoundaries,
+        hexToRgba,
     } = ChartUtils;
 
     const dayBoundaries = findDayBoundaries(timestamps);
-    const formattedLabels = timestamps.map((ts) =>
-        formatTimestamp(ts, "short"),
-    );
 
-    // Chart 1: Predicted vs Real
+    // Format labels based on granularity
+    const formattedLabels = timestamps.map((ts) => {
+        if (granularity === "daily") {
+            return formatTimestamp(ts + "T00:00:00Z", "date");
+        } else if (granularity === "hourly") {
+            return formatTimestamp(ts + ":00:00Z", "short");
+        } else {
+            return formatTimestamp(ts, "short");
+        }
+    });
+
+    // Convert W to kWh and calculate difference
+    const predictedKWh = predicted.map((w) => w / 1000);
+    const truthKWh = truth.map((w) => w / 1000);
+    const differenceKWh = predicted.map((p, i) => (p - truth[i]) / 1000);
+
+    // Chart 1: Predicted vs Real (Bar chart)
     destroyChart(historicalCharts, "backtest");
     historicalCharts["backtest"] = createOrUpdateChart(canvas1, {
-        type: "line",
+        type: "bar",
         data: {
             labels: formattedLabels,
             datasets: [
-                createLineDataset({
-                    label: "Predicted consumption",
-                    data: predicted,
-                    color: COLORS.primary,
-                    fill: false,
-                }),
-                createLineDataset({
-                    label: "True consumption",
-                    data: truth,
-                    color: COLORS.success,
-                    fill: false,
-                }),
+                {
+                    label: "Predicted (kWh)",
+                    data: predictedKWh,
+                    backgroundColor: hexToRgba(COLORS.primary, 0.7),
+                    borderColor: COLORS.primary,
+                    borderWidth: 1,
+                    borderRadius: 2,
+                    barPercentage: 0.9,
+                    categoryPercentage: 0.9,
+                },
+                {
+                    label: "Real (kWh)",
+                    data: truthKWh,
+                    backgroundColor: hexToRgba(COLORS.success, 0.7),
+                    borderColor: COLORS.success,
+                    borderWidth: 1,
+                    borderRadius: 2,
+                    barPercentage: 0.9,
+                    categoryPercentage: 0.9,
+                },
             ],
         },
-        options: buildLineChartOptions({
-            yAxisTitle: "Consumption (W)",
-            dayBoundaries,
-            timestamps,
-        }),
+        options: {
+            ...buildBarChartOptions({
+                xAxisTitle: "Time",
+                yAxisTitle: "Consumption (kWh)",
+                dayBoundaries,
+                timestamps,
+            }),
+            scales: {
+                ...buildBarChartOptions({
+                    xAxisTitle: "Time",
+                    yAxisTitle: "Consumption (kWh)",
+                    dayBoundaries,
+                    timestamps,
+                }).scales,
+                x: {
+                    ...buildBarChartOptions({
+                        xAxisTitle: "Time",
+                        yAxisTitle: "Consumption (kWh)",
+                        dayBoundaries,
+                        timestamps,
+                    }).scales.x,
+                    stacked: true,
+                },
+                y: {
+                    ...buildBarChartOptions({
+                        xAxisTitle: "Time",
+                        yAxisTitle: "Consumption (kWh)",
+                        dayBoundaries,
+                        timestamps,
+                    }).scales.y,
+                    stacked: true,
+                },
+            },
+        },
     });
 
-    // Chart 2: Absolute Error
+    // Update summary text below the chart
+    const totalPredicted = predictedKWh.reduce((a, b) => a + b, 0);
+    const totalReal = truthKWh.reduce((a, b) => a + b, 0);
+    const totalDifference = totalPredicted - totalReal;
+
+    const summaryEl = document.getElementById("historical-summary");
+    if (summaryEl) {
+        summaryEl.innerHTML = `
+            <span><strong>Predicted:</strong> ${totalPredicted.toFixed(3)} kWh</span>
+            <span><strong>Real:</strong> ${totalReal.toFixed(3)} kWh</span>
+            <span><strong>Difference:</strong> ${totalDifference.toFixed(3)} kWh</span>
+        `;
+    }
+
+    // Convert absolute error to kWh
+    const absErrorKWh = absError.map((w) => w / 1000);
+
+    // Chart 2: Absolute Error (Line chart)
     destroyChart(historicalCharts, "error");
     historicalCharts["error"] = createOrUpdateChart(canvas2, {
         type: "line",
         data: {
             labels: formattedLabels,
             datasets: [
-                createLineDataset({
-                    label: "Absolute error",
-                    data: absError,
-                    color: COLORS.danger,
+                {
+                    label: "Absolute error (kWh)",
+                    data: absErrorKWh,
+                    backgroundColor: hexToRgba(COLORS.danger, 0.1),
+                    borderColor: COLORS.danger,
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: COLORS.danger,
+                    pointBorderColor: COLORS.danger,
+                    pointBorderWidth: 2,
                     fill: true,
-                }),
+                    tension: 0.3,
+                },
             ],
         },
         options: buildLineChartOptions({
-            yAxisTitle: "Error (W)",
+            yAxisTitle: "Error (kWh)",
             dayBoundaries,
             timestamps,
         }),
@@ -268,14 +421,21 @@ function buildLineChartOptions({
 }
 
 /**
- * Builds bar chart options
+ * Builds bar chart options with optional day boundaries
  */
-function buildBarChartOptions({ xAxisTitle, yAxisTitle, tooltipCallback }) {
+function buildBarChartOptions({
+    xAxisTitle,
+    yAxisTitle,
+    tooltipCallback,
+    dayBoundaries = [],
+    timestamps = [],
+}) {
     const {
         createBaseChartOptions,
         createAxisTitle,
         createGridOptions,
         createTooltipOptions,
+        createDayAnnotations,
     } = ChartUtils;
 
     const baseOptions = createBaseChartOptions({});
@@ -286,6 +446,11 @@ function buildBarChartOptions({ xAxisTitle, yAxisTitle, tooltipCallback }) {
             x: {
                 title: createAxisTitle(xAxisTitle),
                 grid: createGridOptions(false),
+                ticks: {
+                    maxTicksLimit: 15,
+                    autoSkip: true,
+                    font: { size: 10 },
+                },
             },
             y: {
                 beginAtZero: true,
@@ -301,6 +466,10 @@ function buildBarChartOptions({ xAxisTitle, yAxisTitle, tooltipCallback }) {
                     ? { label: tooltipCallback }
                     : undefined,
             },
+            annotation:
+                dayBoundaries.length > 0
+                    ? createDayAnnotations(dayBoundaries, timestamps)
+                    : undefined,
         },
     };
 }
@@ -402,6 +571,26 @@ async function loadHistoricalT0List(horizon = "1h") {
 }
 
 /**
+ * Determines appropriate granularity based on horizon
+ * @param {string} horizon - Horizon value (1h, 1d, 1w, 3m)
+ * @returns {string} Granularity ('raw', 'hourly', or 'daily')
+ */
+function getGranularityForHorizon(horizon) {
+    switch (horizon) {
+        case "1h":
+            return "raw"; // Show all data points for 1 hour
+        case "1d":
+            return "hourly"; // Aggregate by hour for 1 day
+        case "1w":
+            return "daily"; // Aggregate by day for 1 week
+        case "3m":
+            return "daily"; // Aggregate by day for 3 months
+        default:
+            return "hourly";
+    }
+}
+
+/**
  * Loads historical prediction data
  */
 async function loadHistoricalPrediction() {
@@ -413,6 +602,7 @@ async function loadHistoricalPrediction() {
 
     const horizon = horizonSelect.value;
     const t0 = t0Select.value;
+    const granularity = getGranularityForHorizon(horizon);
 
     if (!t0) {
         setStatus(statusEl, "Please select t0");
@@ -427,7 +617,7 @@ async function loadHistoricalPrediction() {
         if (!resp.ok) throw new Error("HTTP " + resp.status);
 
         const data = await resp.json();
-        renderHistoricalCharts(data);
+        renderHistoricalCharts(data, granularity);
         setStatus(statusEl, "");
     } catch (err) {
         console.error("Error loading historical prediction", err);
