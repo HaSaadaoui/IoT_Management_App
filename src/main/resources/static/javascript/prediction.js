@@ -242,7 +242,7 @@ function renderScenarioChart(data) {
             },
             scales: {
                 x: { title: { display: true, text: "Scenario" } },
-                y: { title: { display: true, text: "Consumption (kWh)" } }
+                y: { title: { display: true, text: "Consumption (W)" } }
             }
         }
     });
