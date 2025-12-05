@@ -17,14 +17,34 @@ const filterState = {
 // ===== FILTER UTILITIES =====
 
 /**
- * Gets the current filter values
+ * Gets the current filter values for a specific tab
+ * @param {string} tabName - The tab name (online, historical, scenarios)
  * @returns {Object} Current filter state
  */
-function getFilterValues() {
-    const buildingSelect = document.getElementById(
-        "historical-building-select",
-    );
-    const floorSelect = document.getElementById("historical-floor-select");
+function getFilterValues(tabName = null) {
+    // Determine which tab to use
+    if (!tabName) {
+        const activeTab = document.querySelector(".tabs .tab-btn.is-active");
+        tabName = activeTab ? activeTab.dataset.tab : "historical";
+    }
+
+    let buildingSelect, floorSelect;
+
+    // Get tab-specific selects
+    if (tabName === "online") {
+        buildingSelect = document.getElementById("online-building-select");
+        floorSelect = document.getElementById("online-floor-select");
+    } else if (tabName === "scenarios") {
+        buildingSelect = document.getElementById("scenarios-building-select");
+        floorSelect = document.getElementById("scenarios-floor-select");
+    } else if (tabName === "historical") {
+        buildingSelect = document.getElementById("historical-building-select");
+        floorSelect = document.getElementById("historical-floor-select");
+    } else {
+        // Fallback to shared filters
+        buildingSelect = document.getElementById("shared-building-select");
+        floorSelect = document.getElementById("shared-floor-select");
+    }
 
     return {
         building: buildingSelect ? buildingSelect.value : "",
@@ -34,33 +54,37 @@ function getFilterValues() {
 
 /**
  * Populates a filter select with options
- * @param {string} selectId - The select element ID
+ * @param {string|string[]} selectId - The select element ID or array of IDs
  * @param {Array} options - Array of {value, label} objects
  * @param {string} defaultLabel - Label for the default "All" option
  */
 function populateFilterSelect(selectId, options, defaultLabel = "All") {
-    const select = document.getElementById(selectId);
-    if (!select) return;
+    const selectIds = Array.isArray(selectId) ? selectId : [selectId];
 
-    // Preserve current value
-    const currentValue = select.value;
+    selectIds.forEach((id) => {
+        const select = document.getElementById(id);
+        if (!select) return;
 
-    // Clear and add default option
-    select.innerHTML = "";
-    addOption(select, "", defaultLabel);
+        // Preserve current value
+        const currentValue = select.value;
 
-    // Add options
-    options.forEach((opt) => {
-        addOption(select, opt.value, opt.label);
+        // Clear and add default option
+        select.innerHTML = "";
+        addOption(select, "", defaultLabel);
+
+        // Add options
+        options.forEach((opt) => {
+            addOption(select, opt.value, opt.label);
+        });
+
+        // Restore value if still valid
+        if (
+            currentValue &&
+            [...select.options].some((o) => o.value === currentValue)
+        ) {
+            select.value = currentValue;
+        }
     });
-
-    // Restore value if still valid
-    if (
-        currentValue &&
-        [...select.options].some((o) => o.value === currentValue)
-    ) {
-        select.value = currentValue;
-    }
 }
 
 /**
@@ -75,15 +99,35 @@ async function loadBuildingOptions() {
 
     // Placeholder data for development
     const placeholderBuildings = [
-        { value: "building-a", label: "Building A" },
-        { value: "building-b", label: "Building B" },
-        { value: "building-c", label: "Building C" },
+        { value: "chateaudun", label: "Châteaudun Office" },
+        { value: "levallois", label: "Levallois Office" },
+        { value: "lille", label: "Lille Office" },
     ];
+
+    // Populate all building selects
     populateFilterSelect(
-        "historical-building-select",
+        [
+            "shared-building-select",
+            "online-building-select",
+            "scenarios-building-select",
+            "historical-building-select",
+        ],
         placeholderBuildings,
         "All Buildings",
     );
+
+    // Set default to chateaudun for all selects
+    [
+        "shared-building-select",
+        "online-building-select",
+        "scenarios-building-select",
+        "historical-building-select",
+    ].forEach((id) => {
+        const select = document.getElementById(id);
+        if (select) {
+            select.value = "chateaudun";
+        }
+    });
 }
 
 /**
@@ -106,8 +150,14 @@ async function loadFloorOptions(building) {
         { value: "floor-2", label: "Floor 2" },
         { value: "floor-3", label: "Floor 3" },
     ];
+    // Populate all floor selects
     populateFilterSelect(
-        "historical-floor-select",
+        [
+            "shared-floor-select",
+            "online-floor-select",
+            "scenarios-floor-select",
+            "historical-floor-select",
+        ],
         placeholderFloors,
         "All Floors",
     );
@@ -265,6 +315,23 @@ function renderPredictionChart(canvasId, data, labelSuffix) {
         createDayAnnotations,
     } = ChartUtils;
 
+    // Convert Watts to kWh
+    const predictedKWh = predicted.map((w) => w / 1000);
+
+    // Calculate Energy Prediction (difference between first and last value)
+    if (predictedKWh.length > 0) {
+        const firstValue = predictedKWh[0];
+        const lastValue = predictedKWh[predictedKWh.length - 1];
+        const energyPredict = Math.abs(lastValue - firstValue);
+
+        // Update the summary element
+        const horizon = canvasId.replace("chart-online-", "");
+        const summaryEl = document.getElementById(`energy-predict-${horizon}`);
+        if (summaryEl) {
+            summaryEl.textContent = energyPredict.toFixed(3);
+        }
+    }
+
     // Destroy existing chart
     if (predictionCharts[canvasId]) {
         predictionCharts[canvasId].destroy();
@@ -283,14 +350,14 @@ function renderPredictionChart(canvasId, data, labelSuffix) {
                     label:
                         "Predicted consumption" +
                         (labelSuffix ? ` (${labelSuffix})` : ""),
-                    data: predicted,
+                    data: predictedKWh,
                     color: COLORS.primary,
                     fill: true,
                 }),
             ],
         },
         options: buildLineChartOptions({
-            yAxisTitle: "Consumption (W)",
+            yAxisTitle: "Consumption (kWh)",
             dayBoundaries,
             timestamps,
         }),
@@ -486,6 +553,9 @@ function renderScenarioChart(data) {
     const { labels, values, deltas } = extractScenarioData(data);
     const { COLORS, hexToRgba, createOrUpdateChart } = ChartUtils;
 
+    // Convert Watts to kWh
+    const valuesKWh = values.map((w) => w / 1000);
+
     destroyChart(scenarioCharts, "main");
 
     // Color bars based on delta direction
@@ -498,7 +568,7 @@ function renderScenarioChart(data) {
             datasets: [
                 {
                     label: "Predicted daily consumption",
-                    data: values,
+                    data: valuesKWh,
                     backgroundColor: barColors.map((c) => hexToRgba(c, 0.8)),
                     borderColor: barColors,
                     borderWidth: 2,
@@ -509,9 +579,9 @@ function renderScenarioChart(data) {
         },
         options: buildBarChartOptions({
             xAxisTitle: "Scenario",
-            yAxisTitle: "Consumption (W)",
+            yAxisTitle: "Consumption (kWh)",
             tooltipCallback: (ctx) =>
-                formatScenarioTooltip(ctx, values, deltas),
+                formatScenarioTooltip(ctx, valuesKWh, deltas),
         }),
     });
 }
@@ -637,7 +707,7 @@ function formatScenarioTooltip(ctx, values, deltas) {
     const val = values[idx];
     const d = deltas[idx];
     const sign = d > 0 ? "+" : "";
-    return ` ${val.toFixed(1)} W (${sign}${d.toFixed(1)}%)`;
+    return ` ${val.toFixed(3)} kWh (${sign}${d.toFixed(1)}%)`;
 }
 
 /**
@@ -650,6 +720,58 @@ function destroyChart(storage, key) {
     }
 }
 
+/**
+ * Updates the scenario information display
+ */
+function updateScenarioInfo(data) {
+    const horizonEl = document.getElementById("scenarios-horizon");
+    const lowOccupancyEl = document.getElementById("scenarios-low-occupancy");
+    const maxOccupancyEl = document.getElementById("scenarios-max-occupancy");
+
+    if (horizonEl) {
+        horizonEl.textContent = data.horizon || "--";
+    }
+
+    // Find specific scenarios from the data
+    if (data.scenarios && Array.isArray(data.scenarios)) {
+        const lowOccupancy = data.scenarios.find(
+            (s) =>
+                s.scenario &&
+                s.scenario.toLowerCase().includes("low occupancy") &&
+                s.scenario.includes("0 desk"),
+        );
+        const maxOccupancy = data.scenarios.find(
+            (s) =>
+                s.scenario &&
+                s.scenario.toLowerCase().includes("max occupancy"),
+        );
+
+        if (lowOccupancyEl) {
+            if (
+                lowOccupancy &&
+                lowOccupancy.predicted_consumption !== undefined
+            ) {
+                const valueKWh = lowOccupancy.predicted_consumption / 1000;
+                lowOccupancyEl.textContent = valueKWh.toFixed(3);
+            } else {
+                lowOccupancyEl.textContent = "--";
+            }
+        }
+
+        if (maxOccupancyEl) {
+            if (
+                maxOccupancy &&
+                maxOccupancy.predicted_consumption !== undefined
+            ) {
+                const valueKWh = maxOccupancy.predicted_consumption / 1000;
+                maxOccupancyEl.textContent = valueKWh.toFixed(3);
+            } else {
+                maxOccupancyEl.textContent = "--";
+            }
+        }
+    }
+}
+
 // ===== API DATA LOADERS =====
 
 /**
@@ -657,11 +779,19 @@ function destroyChart(storage, key) {
  */
 async function loadPredictionForHorizon(horizon) {
     const canvasId = "chart-online-" + horizon;
+    const filters = getFilterValues("online");
 
     try {
-        const response = await fetch(
-            `/prediction/realtime/data?horizon=${encodeURIComponent(horizon)}`,
-        );
+        // Build URL with filters
+        let url = `/prediction/realtime/data?horizon=${encodeURIComponent(horizon)}`;
+        if (filters.building) {
+            url += `&building=${encodeURIComponent(filters.building)}`;
+        }
+        if (filters.floor) {
+            url += `&floor=${encodeURIComponent(filters.floor)}`;
+        }
+
+        const response = await fetch(url);
         if (!response.ok) throw new Error("HTTP error " + response.status);
 
         const data = await response.json();
@@ -675,12 +805,33 @@ async function loadPredictionForHorizon(horizon) {
  * Loads scenario data
  */
 async function loadScenarios() {
+    const filters = getFilterValues("scenarios");
+    const metricSelect = document.getElementById("scenarios-metric-select");
+    const metricType = metricSelect ? metricSelect.value : "energy";
+
     try {
-        const resp = await fetch("/prediction/scenarios/data");
+        // Build URL with filters
+        let url = "/prediction/scenarios/data";
+        const params = [];
+        if (filters.building) {
+            params.push(`building=${encodeURIComponent(filters.building)}`);
+        }
+        if (filters.floor) {
+            params.push(`floor=${encodeURIComponent(filters.floor)}`);
+        }
+        if (metricType) {
+            params.push(`metricType=${encodeURIComponent(metricType)}`);
+        }
+        if (params.length > 0) {
+            url += "?" + params.join("&");
+        }
+
+        const resp = await fetch(url);
         if (!resp.ok) throw new Error("HTTP " + resp.status);
 
         const data = await resp.json();
         renderScenarioChart(data);
+        updateScenarioInfo(data);
     } catch (err) {
         console.error("Error loading scenarios", err);
     }
@@ -746,7 +897,7 @@ async function loadHistoricalPrediction() {
     const horizon = horizonSelect.value;
     const t0 = t0Select.value;
     const granularity = getGranularityForHorizon(horizon);
-    const filters = getFilterValues();
+    const filters = getFilterValues("historical");
 
     if (!t0) {
         setStatus(statusEl, "Please select t0");
@@ -969,6 +1120,62 @@ document.addEventListener("DOMContentLoaded", () => {
     const histBtn = document.getElementById("historical-load-btn");
     if (histBtn) {
         histBtn.addEventListener("click", loadHistoricalPrediction);
+    }
+
+    // Scenarios metric type filter change
+    const scenariosMetricSelect = document.getElementById(
+        "scenarios-metric-select",
+    );
+    if (scenariosMetricSelect) {
+        scenariosMetricSelect.addEventListener("change", () => {
+            loadScenarios();
+        });
+    }
+
+    // Scenarios building filter change
+    const scenariosBuildingSelect = document.getElementById(
+        "scenarios-building-select",
+    );
+    if (scenariosBuildingSelect) {
+        scenariosBuildingSelect.addEventListener("change", () => {
+            loadFloorOptions(scenariosBuildingSelect.value);
+            loadScenarios();
+        });
+    }
+
+    // Scenarios floor filter change
+    const scenariosFloorSelect = document.getElementById(
+        "scenarios-floor-select",
+    );
+    if (scenariosFloorSelect) {
+        scenariosFloorSelect.addEventListener("change", () => {
+            loadScenarios();
+        });
+    }
+
+    // Online building filter change
+    const onlineBuildingSelect = document.getElementById(
+        "online-building-select",
+    );
+    if (onlineBuildingSelect) {
+        onlineBuildingSelect.addEventListener("change", () => {
+            loadFloorOptions(onlineBuildingSelect.value);
+            const activeHorizon = document.querySelector(".horizon-tab.active");
+            if (activeHorizon) {
+                loadPredictionForHorizon(activeHorizon.dataset.horizon);
+            }
+        });
+    }
+
+    // Online floor filter change
+    const onlineFloorSelect = document.getElementById("online-floor-select");
+    if (onlineFloorSelect) {
+        onlineFloorSelect.addEventListener("change", () => {
+            const activeHorizon = document.querySelector(".horizon-tab.active");
+            if (activeHorizon) {
+                loadPredictionForHorizon(activeHorizon.dataset.horizon);
+            }
+        });
     }
 
     // Load initial filter options

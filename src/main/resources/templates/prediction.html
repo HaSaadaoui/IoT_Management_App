@@ -195,25 +195,74 @@
                     </div>
                 </div>
 
+                <!-- Tab-specific filters -->
+                <div class="histogram-controls-section">
+                    <div class="histogram-controls-grid">
+                        <div class="control-group">
+                            <label for="online-building-select">Building</label>
+                            <select
+                                id="online-building-select"
+                                data-filter="building"
+                            >
+                                <option value="">All Buildings</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="online-floor-select">Floor</label>
+                            <select
+                                id="online-floor-select"
+                                data-filter="floor"
+                            >
+                                <option value="">All Floors</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="prediction-grid">
                     <div class="card chart-card" id="card-online-1d">
                         <h4>Next 24 hours</h4>
                         <canvas id="chart-online-1d"></canvas>
+                        <div class="chart-summary">
+                            <span
+                                ><strong>Energy Prediction:</strong>
+                                <span id="energy-predict-1d">--</span> kWh</span
+                            >
+                        </div>
                     </div>
 
                     <div class="card chart-card hidden" id="card-online-1w">
                         <h4>Next 7 days</h4>
                         <canvas id="chart-online-1w"></canvas>
+                        <div class="chart-summary">
+                            <span
+                                ><strong>Energy Prediction:</strong>
+                                <span id="energy-predict-1w">--</span> kWh</span
+                            >
+                        </div>
                     </div>
 
                     <div class="card chart-card hidden" id="card-online-1m">
                         <h4>Next 4 weeks</h4>
                         <canvas id="chart-online-1m"></canvas>
+                        <div class="chart-summary">
+                            <span
+                                ><strong>Energy Prediction:</strong>
+                                <span id="energy-predict-1m">--</span> kWh</span
+                            >
+                        </div>
                     </div>
 
                     <div class="card chart-card hidden" id="card-online-3m">
                         <h4>Next 12 weeks</h4>
                         <canvas id="chart-online-3m"></canvas>
+                        <div class="chart-summary">
+                            <span
+                                ><strong>Energy Prediction:</strong>
+                                <span id="energy-predict-3m">--</span> kWh</span
+                            >
+                        </div>
                     </div>
                 </div>
             </section>
@@ -316,8 +365,63 @@
                         energy consumption.
                     </p>
                 </div>
+
+                <!-- Tab-specific filters -->
+                <div class="histogram-controls-section">
+                    <div class="histogram-controls-grid">
+                        <div class="control-group">
+                            <label for="scenarios-building-select"
+                                >Building</label
+                            >
+                            <select
+                                id="scenarios-building-select"
+                                data-filter="building"
+                            >
+                                <option value="">All Buildings</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="scenarios-floor-select">Floor</label>
+                            <select
+                                id="scenarios-floor-select"
+                                data-filter="floor"
+                            >
+                                <option value="">All Floors</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="scenarios-metric-select"
+                                >Metric Type</label
+                            >
+                            <select id="scenarios-metric-select">
+                                <option value="energy" selected>
+                                    Energy Consumption
+                                </option>
+                                <option value="occupancy">Occupancy</option>
+                                <option value="temperature">Temperature</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card chart-card">
                     <canvas id="chart-scenarios"></canvas>
+                    <div id="scenarios-info" class="chart-summary">
+                        <span
+                            ><strong>Horizon:</strong>
+                            <span id="scenarios-horizon">--</span></span
+                        >
+                        <!--<span
+                            ><strong>Base Timestamp:</strong>
+                            <span id="scenarios-timestamp">--</span></span
+                        >
+                        <span
+                            ><strong>Model Version:</strong>
+                            <span id="scenarios-model">--</span></span
+                        >-->
+                    </div>
                 </div>
             </section>
         </main>
