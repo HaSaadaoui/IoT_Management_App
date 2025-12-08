@@ -531,7 +531,14 @@ function renderScenarioChart(data) {
         return;
     }
 
-    const { labels, values, deltas } = extractScenarioData(data);
+    // Use dummy data instead of backend fetching
+    const dummyData = {
+        labels: ["Baseline", "Low Occupancy", "High Occupancy"],
+        values: [6200, 4800, 7600], // Values in Watts
+        deltas: [0, 1400, 2800] // Deltas in Watts
+    };
+
+    const { labels, values, deltas } = dummyData;
     const { COLORS, hexToRgba, createOrUpdateChart } = ChartUtils;
 
     // Convert Watts to kWh
@@ -676,41 +683,64 @@ function destroyChart(storage, key) {
  * Updates the scenario information display
  */
 function updateScenarioInfo(data) {
-    const horizonEl = document.getElementById("scenarios-horizon");
-    const lowOccupancyEl = document.getElementById("scenarios-low-occupancy");
-    const maxOccupancyEl = document.getElementById("scenarios-max-occupancy");
+    const horizonEl = document.getElementById("scenarios-baseline");
+    const lowOccupancyEl = document.getElementById("scenarios-low");
+    const maxOccupancyEl = document.getElementById("scenarios-high");
 
     if (horizonEl) {
         horizonEl.textContent = data.horizon || "--";
     }
 
-    // Find specific scenarios from the data
-    if (data.scenarios && Array.isArray(data.scenarios)) {
-        const lowOccupancy = data.scenarios.find(
-            (s) => s.scenario && s.scenario.toLowerCase().includes("low occupancy") && s.scenario.includes("0 desk"),
-        );
-        const maxOccupancy = data.scenarios.find(
-            (s) => s.scenario && s.scenario.toLowerCase().includes("max occupancy"),
-        );
+    // Use dummy values instead of backend fetching
+    const dummyValues = {
+        baseline: 6.2, // kWh
+        lowOccupancy: 4.8, // kWh
+        maxOccupancy: 17.8 // kWh
+    };
 
-        if (lowOccupancyEl) {
-            if (lowOccupancy && lowOccupancy.predicted_consumption !== undefined) {
-                const valueKWh = lowOccupancy.predicted_consumption / 1000;
-                lowOccupancyEl.textContent = valueKWh.toFixed(3);
-            } else {
-                lowOccupancyEl.textContent = "--";
-            }
-        }
-
-        if (maxOccupancyEl) {
-            if (maxOccupancy && maxOccupancy.predicted_consumption !== undefined) {
-                const valueKWh = maxOccupancy.predicted_consumption / 1000;
-                maxOccupancyEl.textContent = valueKWh.toFixed(3);
-            } else {
-                maxOccupancyEl.textContent = "--";
-            }
-        }
+    // Update baseline span
+    const baselineEl = document.getElementById("scenarios-baseline");
+    if (baselineEl) {
+        baselineEl.textContent = dummyValues.baseline.toFixed(3);
     }
+
+    // Update low occupancy span
+    if (lowOccupancyEl) {
+        lowOccupancyEl.textContent = dummyValues.lowOccupancy.toFixed(3);
+    }
+
+    // Update max occupancy span
+    if (maxOccupancyEl) {
+        maxOccupancyEl.textContent = dummyValues.maxOccupancy.toFixed(3);
+    }
+
+    // // Find specific scenarios from the data
+    // if (data.scenarios && Array.isArray(data.scenarios)) {
+    //     const lowOccupancy = data.scenarios.find(
+    //         (s) => s.scenario && s.scenario.toLowerCase().includes("low occupancy") && s.scenario.includes("0 desk"),
+    //     );
+    //     const maxOccupancy = data.scenarios.find(
+    //         (s) => s.scenario && s.scenario.toLowerCase().includes("max occupancy"),
+    //     );
+
+    //     if (lowOccupancyEl) {
+    //         if (lowOccupancy && lowOccupancy.predicted_consumption !== undefined) {
+    //             const valueKWh = lowOccupancy.predicted_consumption / 1000;
+    //             lowOccupancyEl.textContent = valueKWh.toFixed(3);
+    //         } else {
+    //             lowOccupancyEl.textContent = "--";
+    //         }
+    //     }
+
+    //     if (maxOccupancyEl) {
+    //         if (maxOccupancy && maxOccupancy.predicted_consumption !== undefined) {
+    //             const valueKWh = maxOccupancy.predicted_consumption / 1000;
+    //             maxOccupancyEl.textContent = valueKWh.toFixed(3);
+    //         } else {
+    //             maxOccupancyEl.textContent = "--";
+    //         }
+    //     }
+    // }
 }
 
 // ===== API DATA LOADERS =====
@@ -751,28 +781,18 @@ async function loadScenarios() {
     const metricType = metricSelect ? metricSelect.value : "energy";
 
     try {
-        // Build URL with filters
-        let url = "/prediction/scenarios/data";
-        const params = [];
-        if (filters.building) {
-            params.push(`building=${encodeURIComponent(filters.building)}`);
-        }
-        if (filters.floor) {
-            params.push(`floor=${encodeURIComponent(filters.floor)}`);
-        }
-        if (metricType) {
-            params.push(`metricType=${encodeURIComponent(metricType)}`);
-        }
-        if (params.length > 0) {
-            url += "?" + params.join("&");
-        }
+        // Use dummy data instead of backend fetching
+        const dummyData = {
+            horizon: "1 day",
+            scenarios: [
+                { scenario: "Baseline", predicted_consumption: 6200 },
+                { scenario: "Low Occupancy", predicted_consumption: 4800 },
+                { scenario: "High Occupancy", predicted_consumption: 7600 }
+            ]
+        };
 
-        const resp = await fetch(url);
-        if (!resp.ok) throw new Error("HTTP " + resp.status);
-
-        const data = await resp.json();
-        renderScenarioChart(data);
-        updateScenarioInfo(data);
+        renderScenarioChart(dummyData);
+        updateScenarioInfo(dummyData);
     } catch (err) {
         console.error("Error loading scenarios", err);
     }
