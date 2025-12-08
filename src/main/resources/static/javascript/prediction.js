@@ -447,7 +447,7 @@ function renderHistoricalCharts(data, granularity = "hourly") {
     // Update summary text below the chart
     const totalPredicted = predictedKWh.reduce((a, b) => a + b, 0);
     const totalReal = truthKWh.reduce((a, b) => a + b, 0);
-    const totalDifference = totalPredicted - totalReal;
+    const totalDifference = Math.abs(totalPredicted - totalReal);
 
     const summaryEl = document.getElementById("historical-summary");
     if (summaryEl) {
