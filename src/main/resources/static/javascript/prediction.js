@@ -78,10 +78,7 @@ function populateFilterSelect(selectId, options, defaultLabel = "All") {
         });
 
         // Restore value if still valid
-        if (
-            currentValue &&
-            [...select.options].some((o) => o.value === currentValue)
-        ) {
+        if (currentValue && [...select.options].some((o) => o.value === currentValue)) {
             select.value = currentValue;
         }
     });
@@ -106,12 +103,7 @@ async function loadBuildingOptions() {
 
     // Populate all building selects
     populateFilterSelect(
-        [
-            "shared-building-select",
-            "online-building-select",
-            "scenarios-building-select",
-            "historical-building-select",
-        ],
+        ["shared-building-select", "online-building-select", "scenarios-building-select", "historical-building-select"],
         placeholderBuildings,
         "All Buildings",
     );
@@ -152,12 +144,7 @@ async function loadFloorOptions(building) {
     ];
     // Populate all floor selects
     populateFilterSelect(
-        [
-            "shared-floor-select",
-            "online-floor-select",
-            "scenarios-floor-select",
-            "historical-floor-select",
-        ],
+        ["shared-floor-select", "online-floor-select", "scenarios-floor-select", "historical-floor-select"],
         placeholderFloors,
         "All Floors",
     );
@@ -194,8 +181,7 @@ function clearLastRefresh(elementId) {
 function extractConsumptionData(data) {
     return {
         timestamps: data.timestamps || [],
-        predicted:
-            data.predicted_consumption ?? data.predictedConsumption ?? [],
+        predicted: data.predicted_consumption ?? data.predictedConsumption ?? [],
         truth: data.true_consumption ?? data.trueConsumption ?? [],
         absError: data.abs_error ?? data.absError ?? [],
     };
@@ -279,16 +265,12 @@ function aggregateData(data, granularity) {
 function extractScenarioData(data) {
     const rawScenarios = data.scenarios || [];
     const filtered = rawScenarios.filter(
-        (s) =>
-            !String(s.scenario).startsWith("Low temperature") &&
-            !String(s.scenario).startsWith("High temperature"),
+        (s) => !String(s.scenario).startsWith("Low temperature") && !String(s.scenario).startsWith("High temperature"),
     );
 
     return {
         labels: filtered.map((s) => s.scenario),
-        values: filtered.map((s) =>
-            Number(s.predictedConsumption ?? s.predicted_consumption),
-        ),
+        values: filtered.map((s) => Number(s.predictedConsumption ?? s.predicted_consumption)),
         deltas: filtered.map((s) => Number(s.delta ?? s.delta_pct)),
     };
 }
@@ -306,14 +288,8 @@ function renderPredictionChart(canvasId, data, labelSuffix) {
     }
 
     const { timestamps, predicted } = extractConsumptionData(data);
-    const {
-        COLORS,
-        createLineDataset,
-        createOrUpdateChart,
-        formatTimestamp,
-        findDayBoundaries,
-        createDayAnnotations,
-    } = ChartUtils;
+    const { COLORS, createLineDataset, createOrUpdateChart, formatTimestamp, findDayBoundaries, createDayAnnotations } =
+        ChartUtils;
 
     // Convert Watts to kWh
     const predictedKWh = predicted.map((w) => w / 1000);
@@ -347,9 +323,7 @@ function renderPredictionChart(canvasId, data, labelSuffix) {
             labels: timestamps.map((ts) => formatTimestamp(ts, "short")),
             datasets: [
                 createLineDataset({
-                    label:
-                        "Predicted consumption" +
-                        (labelSuffix ? ` (${labelSuffix})` : ""),
+                    label: "Predicted consumption" + (labelSuffix ? ` (${labelSuffix})` : ""),
                     data: predictedKWh,
                     color: COLORS.primary,
                     fill: true,
@@ -385,14 +359,7 @@ function renderHistoricalCharts(data, granularity = "hourly") {
     const aggregatedData = aggregateData(rawData, granularity);
     const { timestamps, predicted, truth, absError } = aggregatedData;
 
-    const {
-        COLORS,
-        createBarDataset,
-        createOrUpdateChart,
-        formatTimestamp,
-        findDayBoundaries,
-        hexToRgba,
-    } = ChartUtils;
+    const { COLORS, createBarDataset, createOrUpdateChart, formatTimestamp, findDayBoundaries, hexToRgba } = ChartUtils;
 
     const dayBoundaries = findDayBoundaries(timestamps);
 
@@ -462,7 +429,7 @@ function renderHistoricalCharts(data, granularity = "hourly") {
                         dayBoundaries,
                         timestamps,
                     }).scales.x,
-                    stacked: true,
+                    stacked: false,
                 },
                 y: {
                     ...buildBarChartOptions({
@@ -471,7 +438,7 @@ function renderHistoricalCharts(data, granularity = "hourly") {
                         dayBoundaries,
                         timestamps,
                     }).scales.y,
-                    stacked: true,
+                    stacked: false,
                 },
             },
         },
@@ -517,16 +484,30 @@ function renderHistoricalCharts(data, granularity = "hourly") {
                 },
             ],
         },
-        options: buildLineChartOptions({
-            yAxisTitle: "Error (kWh)",
-            dayBoundaries,
-            timestamps,
-        }),
+        options: {
+            ...buildLineChartOptions({
+                yAxisTitle: "Error (kWh)",
+                dayBoundaries,
+                timestamps,
+            }),
+            scales: {
+                ...buildLineChartOptions({
+                    yAxisTitle: "Error (kWh)",
+                    dayBoundaries,
+                    timestamps,
+                }).scales,
+                y: {
+                    beginAtZero: true,
+                    max: 10, // Fixed maximum for easier comparison
+                    title: { display: true, text: "Error (kWh)" },
+                    grid: { display: true },
+                },
+            },
+        },
     });
 
     // Update error summary text below the chart
-    const avgError =
-        absErrorKWh.reduce((a, b) => a + b, 0) / absErrorKWh.length;
+    const avgError = absErrorKWh.reduce((a, b) => a + b, 0) / absErrorKWh.length;
     const minError = Math.min(...absErrorKWh);
     const maxError = Math.max(...absErrorKWh);
 
@@ -580,8 +561,7 @@ function renderScenarioChart(data) {
         options: buildBarChartOptions({
             xAxisTitle: "Scenario",
             yAxisTitle: "Consumption (kWh)",
-            tooltipCallback: (ctx) =>
-                formatScenarioTooltip(ctx, valuesKWh, deltas),
+            tooltipCallback: (ctx) => formatScenarioTooltip(ctx, valuesKWh, deltas),
         }),
     });
 }
@@ -591,17 +571,8 @@ function renderScenarioChart(data) {
 /**
  * Builds line chart options with day boundaries
  */
-function buildLineChartOptions({
-    yAxisTitle,
-    dayBoundaries = [],
-    timestamps = [],
-}) {
-    const {
-        createBaseChartOptions,
-        createAxisTitle,
-        createGridOptions,
-        createDayAnnotations,
-    } = ChartUtils;
+function buildLineChartOptions({ yAxisTitle, dayBoundaries = [], timestamps = [] }) {
+    const { createBaseChartOptions, createAxisTitle, createGridOptions, createDayAnnotations } = ChartUtils;
 
     const baseOptions = createBaseChartOptions({});
 
@@ -625,10 +596,7 @@ function buildLineChartOptions({
         },
         plugins: {
             ...baseOptions.plugins,
-            annotation:
-                dayBoundaries.length > 0
-                    ? createDayAnnotations(dayBoundaries, timestamps)
-                    : undefined,
+            annotation: dayBoundaries.length > 0 ? createDayAnnotations(dayBoundaries, timestamps) : undefined,
         },
     };
 }
@@ -636,20 +604,9 @@ function buildLineChartOptions({
 /**
  * Builds bar chart options with optional day boundaries
  */
-function buildBarChartOptions({
-    xAxisTitle,
-    yAxisTitle,
-    tooltipCallback,
-    dayBoundaries = [],
-    timestamps = [],
-}) {
-    const {
-        createBaseChartOptions,
-        createAxisTitle,
-        createGridOptions,
-        createTooltipOptions,
-        createDayAnnotations,
-    } = ChartUtils;
+function buildBarChartOptions({ xAxisTitle, yAxisTitle, tooltipCallback, dayBoundaries = [], timestamps = [] }) {
+    const { createBaseChartOptions, createAxisTitle, createGridOptions, createTooltipOptions, createDayAnnotations } =
+        ChartUtils;
 
     const baseOptions = createBaseChartOptions({});
 
@@ -675,14 +632,9 @@ function buildBarChartOptions({
             ...baseOptions.plugins,
             tooltip: {
                 ...createTooltipOptions({}),
-                callbacks: tooltipCallback
-                    ? { label: tooltipCallback }
-                    : undefined,
+                callbacks: tooltipCallback ? { label: tooltipCallback } : undefined,
             },
-            annotation:
-                dayBoundaries.length > 0
-                    ? createDayAnnotations(dayBoundaries, timestamps)
-                    : undefined,
+            annotation: dayBoundaries.length > 0 ? createDayAnnotations(dayBoundaries, timestamps) : undefined,
         },
     };
 }
@@ -735,22 +687,14 @@ function updateScenarioInfo(data) {
     // Find specific scenarios from the data
     if (data.scenarios && Array.isArray(data.scenarios)) {
         const lowOccupancy = data.scenarios.find(
-            (s) =>
-                s.scenario &&
-                s.scenario.toLowerCase().includes("low occupancy") &&
-                s.scenario.includes("0 desk"),
+            (s) => s.scenario && s.scenario.toLowerCase().includes("low occupancy") && s.scenario.includes("0 desk"),
         );
         const maxOccupancy = data.scenarios.find(
-            (s) =>
-                s.scenario &&
-                s.scenario.toLowerCase().includes("max occupancy"),
+            (s) => s.scenario && s.scenario.toLowerCase().includes("max occupancy"),
         );
 
         if (lowOccupancyEl) {
-            if (
-                lowOccupancy &&
-                lowOccupancy.predicted_consumption !== undefined
-            ) {
+            if (lowOccupancy && lowOccupancy.predicted_consumption !== undefined) {
                 const valueKWh = lowOccupancy.predicted_consumption / 1000;
                 lowOccupancyEl.textContent = valueKWh.toFixed(3);
             } else {
@@ -759,10 +703,7 @@ function updateScenarioInfo(data) {
         }
 
         if (maxOccupancyEl) {
-            if (
-                maxOccupancy &&
-                maxOccupancy.predicted_consumption !== undefined
-            ) {
+            if (maxOccupancy && maxOccupancy.predicted_consumption !== undefined) {
                 const valueKWh = maxOccupancy.predicted_consumption / 1000;
                 maxOccupancyEl.textContent = valueKWh.toFixed(3);
             } else {
@@ -848,9 +789,7 @@ async function loadHistoricalT0List(horizon = "1h") {
     try {
         setStatus(statusEl, "Loading t0 list...");
 
-        const resp = await fetch(
-            `/prediction/historical/t0-list?horizon=${encodeURIComponent(horizon)}`,
-        );
+        const resp = await fetch(`/prediction/historical/t0-list?horizon=${encodeURIComponent(horizon)}`);
         if (!resp.ok) throw new Error("HTTP " + resp.status);
 
         const data = await resp.json();
@@ -958,9 +897,7 @@ function populateT0Select(select, list) {
 
     // Show warning if list was truncated
     if (ordered.length > MAX_ITEMS) {
-        console.warn(
-            `T0 list truncated: showing ${MAX_ITEMS} of ${ordered.length} items`,
-        );
+        console.warn(`T0 list truncated: showing ${MAX_ITEMS} of ${ordered.length} items`);
         addOption(select, "", `-- Showing most recent ${MAX_ITEMS} items --`);
         select.options[0].disabled = true;
     }
@@ -970,10 +907,7 @@ function populateT0Select(select, list) {
     let currentIndex = 0;
 
     function renderBatch() {
-        const endIndex = Math.min(
-            currentIndex + BATCH_SIZE,
-            limitedList.length,
-        );
+        const endIndex = Math.min(currentIndex + BATCH_SIZE, limitedList.length);
 
         // Add options for this batch
         for (let i = currentIndex; i < endIndex; i++) {
@@ -988,9 +922,7 @@ function populateT0Select(select, list) {
         } else {
             // All items rendered - set default selection
             const DEFAULT_T0 = "2024-08-06T09:30:00+00:00";
-            select.value = limitedList.includes(DEFAULT_T0)
-                ? DEFAULT_T0
-                : limitedList[0];
+            select.value = limitedList.includes(DEFAULT_T0) ? DEFAULT_T0 : limitedList[0];
         }
     }
 
@@ -1017,15 +949,11 @@ function handleTabClick(btn) {
     const target = btn.dataset.tab;
 
     // Update tab active states
-    document
-        .querySelectorAll(".tabs .tab-btn")
-        .forEach((b) => b.classList.remove("is-active"));
+    document.querySelectorAll(".tabs .tab-btn").forEach((b) => b.classList.remove("is-active"));
     btn.classList.add("is-active");
 
     // Update panel visibility
-    document
-        .querySelectorAll(".prediction-panel")
-        .forEach((p) => p.classList.remove("active"));
+    document.querySelectorAll(".prediction-panel").forEach((p) => p.classList.remove("active"));
     const panel = document.getElementById("panel-" + target);
     if (panel) panel.classList.add("active");
 
@@ -1040,9 +968,7 @@ function onPanelActivated(panelName) {
     switch (panelName) {
         case "historical":
             if (!historicalT0Loaded) {
-                const h =
-                    document.getElementById("historical-horizon-select")
-                        ?.value || "1h";
+                const h = document.getElementById("historical-horizon-select")?.value || "1h";
                 loadHistoricalT0List(h);
             }
             break;
@@ -1065,15 +991,11 @@ function handleHorizonClick(btn) {
     const horizon = btn.dataset.horizon;
 
     // Update active state
-    document
-        .querySelectorAll(".horizon-tab")
-        .forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".horizon-tab").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
 
     // Show/hide cards
-    document
-        .querySelectorAll("#panel-online .chart-card")
-        .forEach((c) => c.classList.add("hidden"));
+    document.querySelectorAll("#panel-online .chart-card").forEach((c) => c.classList.add("hidden"));
     const card = document.getElementById("card-online-" + horizon);
     if (card) card.classList.remove("hidden");
 
@@ -1094,9 +1016,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Historical horizon select change
-    const historicalHorizonSelect = document.getElementById(
-        "historical-horizon-select",
-    );
+    const historicalHorizonSelect = document.getElementById("historical-horizon-select");
     if (historicalHorizonSelect) {
         historicalHorizonSelect.addEventListener("change", () => {
             loadHistoricalT0List(historicalHorizonSelect.value || "1h");
@@ -1104,9 +1024,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Building filter change
-    const buildingSelect = document.getElementById(
-        "historical-building-select",
-    );
+    const buildingSelect = document.getElementById("historical-building-select");
     if (buildingSelect) {
         buildingSelect.addEventListener("change", () => {
             // Load floors for selected building
@@ -1123,9 +1041,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Scenarios metric type filter change
-    const scenariosMetricSelect = document.getElementById(
-        "scenarios-metric-select",
-    );
+    const scenariosMetricSelect = document.getElementById("scenarios-metric-select");
     if (scenariosMetricSelect) {
         scenariosMetricSelect.addEventListener("change", () => {
             loadScenarios();
@@ -1133,9 +1049,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Scenarios building filter change
-    const scenariosBuildingSelect = document.getElementById(
-        "scenarios-building-select",
-    );
+    const scenariosBuildingSelect = document.getElementById("scenarios-building-select");
     if (scenariosBuildingSelect) {
         scenariosBuildingSelect.addEventListener("change", () => {
             loadFloorOptions(scenariosBuildingSelect.value);
@@ -1144,9 +1058,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Scenarios floor filter change
-    const scenariosFloorSelect = document.getElementById(
-        "scenarios-floor-select",
-    );
+    const scenariosFloorSelect = document.getElementById("scenarios-floor-select");
     if (scenariosFloorSelect) {
         scenariosFloorSelect.addEventListener("change", () => {
             loadScenarios();
@@ -1154,9 +1066,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Online building filter change
-    const onlineBuildingSelect = document.getElementById(
-        "online-building-select",
-    );
+    const onlineBuildingSelect = document.getElementById("online-building-select");
     if (onlineBuildingSelect) {
         onlineBuildingSelect.addEventListener("change", () => {
             loadFloorOptions(onlineBuildingSelect.value);
