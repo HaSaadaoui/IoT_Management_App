@@ -5,12 +5,22 @@
 // --- 3D / SVG ---
 let scene, camera, renderer, controls;
 let svgShape = null;
+let buildingGroup = null; // groupe du bâtiment extrudé
 
-// --- Payload formatter (Ace) ---
-let payloadEditor = null;
+// Palette identique au viewer 3D
+const COLORS = {
+    primary: 0x662179,
+    primaryLight: 0x8b2fa3,
+    floorBase: 0xe2e8f0,
+    roof: 0x94a3b8,
+    walls: 0xf8fafc
+};
+
+// Ace editor pour le payload
+let editor;
 
 // ======================================================
-// ===============  PAYLOAD FORMATTER  ==================
+// ===============  TEMPLATE PAYLOAD ELSYS  =============
 // ======================================================
 
 const defaultPayloadCode = `
@@ -57,89 +67,6 @@ function decodePayload(bytes){
 }
 `;
 
-// Init de l’éditeur Ace du payload au chargement
-window.addEventListener("load", () => {
-    const editorDiv = document.getElementById("payload-editor");
-    if (editorDiv && window.ace) {
-        payloadEditor = ace.edit("payload-editor");
-        payloadEditor.setTheme("ace/theme/monokai");
-        payloadEditor.session.setMode("ace/mode/javascript");
-        payloadEditor.setValue(defaultPayloadCode, -1);
-    }
-});
-
-// Changement de langage (juste pour la coloration)
-function changeEditorLanguage(select) {
-    if (!payloadEditor) {
-        console.warn("Payload Ace editor not initialized");
-        return;
-    }
-
-    const lang = select.value.toLowerCase();
-    let mode = "javascript";
-    if (lang === "python") mode = "python";
-    else if (lang === "java") mode = "java";
-    else if (lang === "c++") mode = "c_cpp";
-
-    payloadEditor.session.setMode("ace/mode/" + mode);
-}
-
-function hexToBytes(hex) {
-    const clean = hex.replace(/[^0-9a-fA-F]/g, "");
-    const bytes = [];
-    for (let c = 0; c < clean.length; c += 2) {
-        bytes.push(parseInt(clean.substr(c, 2), 16));
-    }
-    return bytes;
-}
-
-function testDecoder() {
-    if (!payloadEditor) {
-        alert("Payload editor not ready.");
-        return;
-    }
-
-    const hexInput = document.getElementById("test-byte-payload").value;
-    if (!hexInput) {
-        alert("Please enter a hex payload!");
-        return;
-    }
-
-    const byteArray = hexToBytes(hexInput);
-    const editorCode = payloadEditor.getValue();
-
-    let result = {};
-    try {
-        const func = new Function("bytes", editorCode + "\nreturn decodePayload(bytes);");
-        result = func(byteArray);
-    } catch (err) {
-        console.error(err);
-        result = { error: err.message };
-    }
-
-    const out = document.getElementById("test-decoded");
-    if (out) {
-        out.innerText = JSON.stringify(result, null, 2);
-    }
-}
-
-// Alert channels (email / phone)
-function toggleChannelInput() {
-    const emailChecked = document.getElementById("alert-email")?.checked;
-    const smsChecked   = document.getElementById("alert-sms")?.checked;
-
-    const emailDiv = document.getElementById("channel-email");
-    const phoneDiv = document.getElementById("channel-phone");
-
-    if (emailDiv) emailDiv.style.display = emailChecked ? "block" : "none";
-    if (phoneDiv) phoneDiv.style.display = smsChecked ? "block" : "none";
-}
-
-// On exporte ces fonctions pour les attributs onclick HTML
-window.changeEditorLanguage = changeEditorLanguage;
-window.testDecoder = testDecoder;
-window.toggleChannelInput = toggleChannelInput;
-
 // ======================================================
 // ==================  SVG → SHAPE LOADER  ===============
 // ======================================================
@@ -176,7 +103,6 @@ function loadSVGShape(file, callback) {
         }
 
         svgShape = shapes[0];
-
         console.log("SVG shape loaded:", svgShape);
         callback(svgShape);
     };
@@ -197,37 +123,86 @@ function initScene() {
         return;
     }
 
+    // Affiche le wrapper 3D et nettoie l'ancien canvas
     wrapper.style.display = "block";
     container.innerHTML = "";
 
     const width  = wrapper.clientWidth;
     const height = wrapper.clientHeight;
 
+    // Même fond + fog que dans Building3D
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf0f2f5);
+    scene.background = new THREE.Color(0x0f172a);
+    scene.fog = new THREE.Fog(0x0f172a, 20, 50);
 
-    camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
-    camera.position.set(0, 35, 45);
-    camera.lookAt(0, 0, 0);
+    camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 1000);
+    camera.position.set(20, 18, 20);
+    camera.lookAt(0, 10, 0);
 
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(width, height);
+    // Renderer avec alpha pour voir le gradient CSS derrière
+    renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true
+    });
     renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(width, height);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
     container.appendChild(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    // Lumières proches du dashboard
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
 
-    const sun = new THREE.DirectionalLight(0xffffff, 1);
-    sun.position.set(30, 60, 30);
-    sun.castShadow = true;
-    scene.add(sun);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(10, 20, 10);
+    dirLight.castShadow = true;
+    dirLight.shadow.camera.left = -15;
+    dirLight.shadow.camera.right = 15;
+    dirLight.shadow.camera.top = 15;
+    dirLight.shadow.camera.bottom = -15;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    scene.add(dirLight);
 
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
+    hemiLight.position.set(0, 20, 0);
+    scene.add(hemiLight);
+
+    const pointLight1 = new THREE.PointLight(COLORS.primary, 0.5, 30);
+    pointLight1.position.set(-10, 10, -10);
+    scene.add(pointLight1);
+
+    const pointLight2 = new THREE.PointLight(COLORS.primaryLight, 0.5, 30);
+    pointLight2.position.set(10, 10, 10);
+    scene.add(pointLight2);
+
+    // Sol foncé + grille
+    const groundGeometry = new THREE.PlaneGeometry(50, 50);
+    const groundMaterial = new THREE.MeshStandardMaterial({
+        color: 0x1e293b,
+        metalness: 0.1,
+        roughness: 0.9
+    });
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.5;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const grid = new THREE.GridHelper(50, 50, COLORS.primary, 0x334155);
+    grid.position.y = -0.4;
+    scene.add(grid);
+
+    // Contrôles
     controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 0, 0);
+    controls.target.set(0, 5, 0);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.minDistance = 10;
-    controls.maxDistance = 120;
+    controls.minDistance = 8;
+    controls.maxDistance = 40;
+    controls.maxPolarAngle = Math.PI / 2.1;
     controls.update();
 
     window.addEventListener("resize", onWindowResize);
@@ -250,6 +225,12 @@ function onWindowResize() {
 function animate() {
     requestAnimationFrame(animate);
     if (controls) controls.update();
+
+    // Légère rotation du bâtiment
+    if (buildingGroup) {
+        buildingGroup.rotation.y += 0.0005;
+    }
+
     if (renderer && scene && camera) {
         renderer.render(scene, camera);
     }
@@ -260,51 +241,95 @@ function animate() {
 // ======================================================
 
 function extrudeBuilding(originalShape, floors, scale) {
+    if (buildingGroup && scene) {
+        scene.remove(buildingGroup);
+    }
+
     const group = new THREE.Group();
     const floorHeight = 3;
 
     const shape = originalShape.clone();
 
+    // ---------- GÉOMÉTRIE DE BASE (DALLE) ----------
+    const baseExtrudeSettings = { depth: 0.3, bevelEnabled: false };
+    const baseFloorGeom = new THREE.ExtrudeGeometry(shape, baseExtrudeSettings);
+    baseFloorGeom.scale(scale, scale, scale); // XY scalés, Z = épaisseur de la dalle
+
+    // Centre approximatif
+    baseFloorGeom.computeBoundingBox();
+    const bbox = baseFloorGeom.boundingBox;
+    const centerX = (bbox.min.x + bbox.max.x) / 2;
+    const centerZ = (bbox.min.y + bbox.max.y) / 2; // l’axe Y devient Z après rotation
+
+    // ---------- MATÉRIAUX ----------
     const floorMaterial = new THREE.MeshStandardMaterial({
-        color: 0xe2e8f0,
+        color: COLORS.floorBase,
         metalness: 0.1,
         roughness: 0.8
     });
 
     const roofMaterial = new THREE.MeshStandardMaterial({
-        color: 0x94a3b8,
+        color: COLORS.roof,
         metalness: 0.3,
         roughness: 0.7
     });
 
+    const wallMaterial = new THREE.MeshStandardMaterial({
+        color: COLORS.walls,
+        transparent: true,
+        opacity: 0.35,
+        metalness: 0.1,
+        roughness: 0.9,
+        side: THREE.DoubleSide
+    });
+
+    // ---------- GÉOMÉTRIE DES MURS ----------
+    const baseWallGeom = new THREE.ExtrudeGeometry(
+        shape,
+        { depth: floorHeight, bevelEnabled: false }
+    );
+    baseWallGeom.scale(scale, scale, 1); // on ne touche pas à la hauteur
+
     for (let i = 0; i < floors; i++) {
-        const extrudeSettings = { depth: 0.3, bevelEnabled: false };
+        const yBase = i * floorHeight;
 
-        // FLOOR
-        const floorGeom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-        floorGeom.scale(-scale, scale, scale);  // miroir X + scale
-        floorGeom.center();
-
-        const floorMesh = new THREE.Mesh(floorGeom, floorMaterial);
+        // ===== FLOOR =====
+        const floorMesh = new THREE.Mesh(baseFloorGeom, floorMaterial);
         floorMesh.rotation.x = -Math.PI / 2;
-        floorMesh.position.y = i * floorHeight;
+        floorMesh.position.set(-centerX, yBase, -centerZ);
         floorMesh.castShadow = true;
         floorMesh.receiveShadow = true;
         group.add(floorMesh);
 
-        // ROOF
-        const roofGeom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-        roofGeom.scale(-scale, scale, scale);
-        roofGeom.center();
+        // ===== MURS =====
+        const walls = new THREE.Mesh(baseWallGeom, wallMaterial);
+        walls.rotation.x = -Math.PI / 2;
+        walls.position.set(-centerX, yBase, -centerZ);
+        walls.castShadow = true;
+        group.add(walls);
 
-        const roofMesh = new THREE.Mesh(roofGeom, roofMaterial);
+        // ===== TOIT =====
+        const roofMesh = new THREE.Mesh(baseFloorGeom, roofMaterial);
         roofMesh.rotation.x = -Math.PI / 2;
-        roofMesh.position.y = i * floorHeight + floorHeight;
+        roofMesh.position.set(-centerX, yBase + floorHeight, -centerZ);
         roofMesh.castShadow = true;
         group.add(roofMesh);
+
+        // ===== EDGES VIOLETS =====
+        const edgeGeometry = new THREE.EdgesGeometry(baseFloorGeom);
+        const edgeMaterial = new THREE.LineBasicMaterial({
+            color: COLORS.primary,
+            linewidth: 2
+        });
+        const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+        edges.position.copy(floorMesh.position);
+        edges.rotation.copy(floorMesh.rotation);
+        group.add(edges);
     }
 
+    buildingGroup = group;
     scene.add(group);
+    console.log("Floors requested:", floors, "meshes in group:", group.children.length);
     return group;
 }
 
@@ -338,10 +363,91 @@ function generate3DFromForm() {
 }
 
 // ======================================================
-// ========================  2D MODE  ====================
+// =================  PAYLOAD EDITOR  ====================
 // ======================================================
 
-function show2D() {
+document.addEventListener("DOMContentLoaded", function () {
+    const payloadEl = document.getElementById("payload-editor");
+    if (payloadEl && window.ace) {
+        editor = ace.edit("payload-editor");
+        editor.setTheme("ace/theme/monokai");
+        editor.session.setMode("ace/mode/javascript");
+        editor.setValue(defaultPayloadCode, -1);   // <-- payload Elsys par défaut
+    }
+});
+
+// changement de langage (juste le mode Ace)
+function changeEditorLanguage(selectEl) {
+    if (!editor) return;
+    const value = (selectEl.value || "").toLowerCase();
+    let mode = "ace/mode/javascript";
+
+    if (value.includes("python")) mode = "ace/mode/python";
+    else if (value.includes("java")) mode = "ace/mode/java";
+    else if (value.includes("c++")) mode = "ace/mode/c_cpp";
+
+    editor.session.setMode(mode);
+}
+
+// Utilitaire hex → bytes
+function hexToBytes(hex) {
+    const clean = hex.replace(/[^0-9a-fA-F]/g, "");
+    const bytes = [];
+    for (let c = 0; c < clean.length; c += 2) {
+        bytes.push(parseInt(clean.substr(c, 2), 16));
+    }
+    return bytes;
+}
+
+// Test du decoder (exécute le code Ace + decodePayload)
+function testDecoder() {
+    if (!editor) {
+        alert("Payload editor not ready.");
+        return;
+    }
+
+    const hexInput = document.getElementById("test-byte-payload").value;
+    if (!hexInput) {
+        alert("Please enter a hex payload!");
+        return;
+    }
+
+    const byteArray = hexToBytes(hexInput);
+    const editorCode = editor.getValue();
+
+    let result = {};
+    try {
+        // On attend que le code définisse function decodePayload(bytes) { ... }
+        const func = new Function("bytes", editorCode + "\nreturn decodePayload(bytes);");
+        result = func(byteArray);
+    } catch (err) {
+        console.error(err);
+        result = { error: err.message };
+    }
+
+    const out = document.getElementById("test-decoded");
+    if (out) {
+        out.innerText = JSON.stringify(result, null, 2);
+    }
+}
+
+// Toggle email / phone blocks
+function toggleChannelInput() {
+    const emailChk = document.getElementById("alert-email");
+    const smsChk   = document.getElementById("alert-sms");
+    const emailDiv = document.getElementById("channel-email");
+    const phoneDiv = document.getElementById("channel-phone");
+
+    if (emailDiv) emailDiv.style.display = emailChk && emailChk.checked ? "block" : "none";
+    if (phoneDiv) phoneDiv.style.display = smsChk && smsChk.checked ? "block" : "none";
+}
+
+// ======================================================
+// ================== GLOBAL EXPORTS =====================
+// ======================================================
+
+window.generate3DFromForm = generate3DFromForm;
+window.show2D = function show2D() {
     const wrapper = document.getElementById("three-wrapper");
     const plan    = document.getElementById("plan2D");
 
@@ -350,11 +456,8 @@ function show2D() {
         plan.style.display = "block";
         plan.innerHTML = "<h3 style='text-align:center;padding-top:120px;'>2D View Placeholder</h3>";
     }
-}
+};
 
-// ======================================================
-// ================== GLOBAL EXPORTS =====================
-// ======================================================
-
-window.generate3DFromForm = generate3DFromForm;
-window.show2D = show2D;
+window.changeEditorLanguage = changeEditorLanguage;
+window.testDecoder = testDecoder;
+window.toggleChannelInput = toggleChannelInput;
