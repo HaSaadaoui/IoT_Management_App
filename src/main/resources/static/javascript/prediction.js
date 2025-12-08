@@ -498,7 +498,7 @@ function renderHistoricalCharts(data, granularity = "hourly") {
                 }).scales,
                 y: {
                     beginAtZero: true,
-                    max: 10, // Fixed maximum for easier comparison
+                    max: 1, // Fixed maximum for easier comparison
                     title: { display: true, text: "Error (kWh)" },
                     grid: { display: true },
                 },
