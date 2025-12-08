@@ -792,7 +792,7 @@ async function loadScenarios() {
         };
 
         renderScenarioChart(dummyData);
-        updateScenarioInfo(dummyData);
+        // updateScenarioInfo(dummyData);
     } catch (err) {
         console.error("Error loading scenarios", err);
     }
