@@ -521,6 +521,12 @@ function renderHistoricalCharts(data, granularity = "hourly") {
     }
 }
 
+const dummyScenarioData = {
+    labels: ["Baseline", "Low Occupancy", "High Occupancy"],
+    values: [6200, 1800, 11600], // Values in Watts
+    deltas: [0, 1800-6200, 11600-6200] // Deltas in Watts
+};
+
 /**
  * Renders scenario bar chart
  */
@@ -532,13 +538,9 @@ function renderScenarioChart(data) {
     }
 
     // Use dummy data instead of backend fetching
-    const dummyData = {
-        labels: ["Baseline", "Low Occupancy", "High Occupancy"],
-        values: [6200, 4800, 7600], // Values in Watts
-        deltas: [0, 1400, 2800] // Deltas in Watts
-    };
 
-    const { labels, values, deltas } = dummyData;
+
+    const { labels, values, deltas } = dummyScenarioData;
     const { COLORS, hexToRgba, createOrUpdateChart } = ChartUtils;
 
     // Convert Watts to kWh
@@ -693,27 +695,28 @@ function updateScenarioInfo(data) {
 
     // Use dummy values instead of backend fetching
     const dummyValues = {
-        baseline: 6.2, // kWh
-        lowOccupancy: 4.8, // kWh
-        maxOccupancy: 17.8 // kWh
+        baseline: dummyScenarioData.values[0] / 1000, // kWh
+        lowOccupancy: dummyScenarioData.values[1] / 1000, // kWh
+        maxOccupancy: dummyScenarioData.values[2] / 1000 // kWh
     };
 
     // Update baseline span
     const baselineEl = document.getElementById("scenarios-baseline");
     if (baselineEl) {
-        baselineEl.textContent = dummyValues.baseline.toFixed(3);
+        baselineEl.textContent = dummyValues.baseline.toFixed(2) + ' kWh' ;
     }
 
     // Update low occupancy span
     if (lowOccupancyEl) {
-        lowOccupancyEl.textContent = dummyValues.lowOccupancy.toFixed(3);
+        lowOccupancyEl.textContent = dummyValues.lowOccupancy.toFixed(2) + ' kWh' ;
     }
 
     // Update max occupancy span
     if (maxOccupancyEl) {
-        maxOccupancyEl.textContent = dummyValues.maxOccupancy.toFixed(3);
+        maxOccupancyEl.textContent = dummyValues.maxOccupancy.toFixed(2) + ' kWh' ;
     }
 
+    // TODO: reenable when the backend data is corrected
     // // Find specific scenarios from the data
     // if (data.scenarios && Array.isArray(data.scenarios)) {
     //     const lowOccupancy = data.scenarios.find(
@@ -785,14 +788,14 @@ async function loadScenarios() {
         const dummyData = {
             horizon: "1 day",
             scenarios: [
-                { scenario: "Baseline", predicted_consumption: 6200 },
-                { scenario: "Low Occupancy", predicted_consumption: 4800 },
-                { scenario: "High Occupancy", predicted_consumption: 7600 }
+                { scenario: dummyScenarioData.labels[0], predicted_consumption: dummyScenarioData.values[0] },
+                { scenario: dummyScenarioData.labels[1], predicted_consumption: dummyScenarioData.values[1] },
+                { scenario: dummyScenarioData.labels[2], predicted_consumption: dummyScenarioData.values[2] }
             ]
         };
 
         renderScenarioChart(dummyData);
-        // updateScenarioInfo(dummyData);
+        updateScenarioInfo(dummyData);
     } catch (err) {
         console.error("Error loading scenarios", err);
     }
