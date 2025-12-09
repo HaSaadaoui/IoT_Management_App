@@ -461,6 +461,12 @@ function renderHistoricalCharts(data, granularity = "hourly") {
     // Convert absolute error to kWh
     const absErrorKWh = absError.map((w) => w / 1000);
 
+    // Calculate dynamic max for y-axis
+    const minError = Math.min(...absErrorKWh);
+    const maxError = Math.max(...absErrorKWh);
+    const avgError = absErrorKWh.reduce((a, b) => a + b, 0) / absErrorKWh.length;
+    const suggestedMaxError = maxError > 1 ? Math.ceil(maxError * 1.1) : 1;
+
     // Chart 2: Absolute Error (Line chart)
     destroyChart(historicalCharts, "error");
     historicalCharts["error"] = createOrUpdateChart(canvas2, {
@@ -498,7 +504,7 @@ function renderHistoricalCharts(data, granularity = "hourly") {
                 }).scales,
                 y: {
                     beginAtZero: true,
-                    max: 1, // Fixed maximum for easier comparison
+                    max: suggestedMaxError,
                     title: { display: true, text: "Error (kWh)" },
                     grid: { display: true },
                 },
@@ -507,10 +513,6 @@ function renderHistoricalCharts(data, granularity = "hourly") {
     });
 
     // Update error summary text below the chart
-    const avgError = absErrorKWh.reduce((a, b) => a + b, 0) / absErrorKWh.length;
-    const minError = Math.min(...absErrorKWh);
-    const maxError = Math.max(...absErrorKWh);
-
     const errorSummaryEl = document.getElementById("error-summary");
     if (errorSummaryEl) {
         errorSummaryEl.innerHTML = `
@@ -551,16 +553,38 @@ function renderScenarioChart(data) {
     // Color bars based on delta direction
     const barColors = deltas.map((d) => getColorForDelta(d));
 
+    // Calculate dynamic max for y-axis
+    const maxValue = Math.max(...valuesKWh);
+    const suggestedMax = maxValue > 1 ? Math.ceil(maxValue * 1.1) : undefined;
+
     scenarioCharts["main"] = createOrUpdateChart(canvas, {
         type: "bar",
         data: {
-            labels,
+            labels: [""],
             datasets: [
                 {
-                    label: "Predicted daily consumption",
-                    data: valuesKWh,
-                    backgroundColor: barColors.map((c) => hexToRgba(c, 0.8)),
-                    borderColor: barColors,
+                    label: "Baseline Prediction",
+                    data: [valuesKWh[0]],
+                    backgroundColor: hexToRgba(barColors[0], 0.8),
+                    borderColor: barColors[0],
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    barPercentage: 0.7,
+                },
+                {
+                    label: "With Low Occupancy",
+                    data: [valuesKWh[1]],
+                    backgroundColor: hexToRgba(barColors[1], 0.8),
+                    borderColor: barColors[1],
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    barPercentage: 0.7,
+                },
+                {
+                    label: "With High Occupancy",
+                    data: [valuesKWh[2]],
+                    backgroundColor: hexToRgba(barColors[2], 0.8),
+                    borderColor: barColors[2],
                     borderWidth: 2,
                     borderRadius: 6,
                     barPercentage: 0.7,
@@ -568,8 +592,8 @@ function renderScenarioChart(data) {
             ],
         },
         options: buildBarChartOptions({
-            xAxisTitle: "Scenario",
-            yAxisTitle: "Consumption (kWh)",
+            xAxisTitle: "Scenarios",
+            yAxisTitle: "Daily Consumption (kWh)",
             tooltipCallback: (ctx) => formatScenarioTooltip(ctx, valuesKWh, deltas),
         }),
     });
@@ -613,7 +637,7 @@ function buildLineChartOptions({ yAxisTitle, dayBoundaries = [], timestamps = []
 /**
  * Builds bar chart options with optional day boundaries
  */
-function buildBarChartOptions({ xAxisTitle, yAxisTitle, tooltipCallback, dayBoundaries = [], timestamps = [] }) {
+function buildBarChartOptions({ xAxisTitle, yAxisTitle, tooltipCallback, dayBoundaries = [], timestamps = [], suggestedMax = undefined }) {
     const { createBaseChartOptions, createAxisTitle, createGridOptions, createTooltipOptions, createDayAnnotations } =
         ChartUtils;
 
@@ -633,6 +657,7 @@ function buildBarChartOptions({ xAxisTitle, yAxisTitle, tooltipCallback, dayBoun
             },
             y: {
                 beginAtZero: true,
+                suggestedMax: suggestedMax,
                 title: createAxisTitle(yAxisTitle),
                 grid: createGridOptions(true),
             },
@@ -664,11 +689,12 @@ function getColorForDelta(delta) {
  * Formats tooltip for scenario chart
  */
 function formatScenarioTooltip(ctx, values, deltas) {
-    const idx = ctx.dataIndex;
+    const idx = ctx.datasetIndex;
     const val = values[idx];
     const d = deltas[idx];
     const sign = d > 0 ? "+" : "";
-    return ` ${val.toFixed(3)} kWh (${sign}${d.toFixed(1)}%)`;
+    const deltaStr = d !== 0 ? ` (${sign}${d.toFixed(1)}%)` : "";
+    return ` ${val.toFixed(3)} kWh${deltaStr}`;
 }
 
 /**
@@ -816,7 +842,7 @@ async function loadHistoricalT0List(horizon = "1h") {
         if (!resp.ok) throw new Error("HTTP " + resp.status);
 
         const data = await resp.json();
-        populateT0Select(select, data.t0_list || []);
+        populateT0Select(select, data.t0_list || [])
 
         historicalT0Loaded = true;
         setStatus(statusEl, "");
@@ -905,7 +931,7 @@ function setStatus(el, text) {
  * Populates t0 select dropdown
  * Uses batch rendering to prevent UI blocking with large datasets
  */
-function populateT0Select(select, list) {
+async function populateT0Select(select, list) {
     select.innerHTML = "";
 
     if (list.length === 0) {
@@ -914,7 +940,7 @@ function populateT0Select(select, list) {
     }
 
     // Limit the number of items to prevent performance issues
-    const MAX_ITEMS = 200;
+    const MAX_ITEMS = 1000;
     const ordered = [...list].reverse();
     const limitedList = ordered.slice(0, MAX_ITEMS);
 
@@ -947,6 +973,7 @@ function populateT0Select(select, list) {
             const DEFAULT_T0 = "2024-08-06T09:30:00+00:00";
             select.value = limitedList.includes(DEFAULT_T0) ? DEFAULT_T0 : limitedList[0];
         }
+        loadHistoricalPrediction();
     }
 
     // Start batch rendering
@@ -1136,3 +1163,12 @@ function initializeDefaultPanel() {
         }
     }
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+    console.log("Registering document loading events")
+    document.getElementById('historical-t0-select').addEventListener('change', (event) => {
+        console.log("changeeeee")
+        console.log({event})
+        loadHistoricalPrediction();
+    })
+})
