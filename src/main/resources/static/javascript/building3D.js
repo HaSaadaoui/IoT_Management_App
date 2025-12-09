@@ -283,7 +283,7 @@ const BUILDINGS = {
     },
 LILLE: {
     id: 'LILLE',
-    floors: 4,
+    floors: 1,
     scale: 0.01,
     createShape: createLilleShape,
     floorData: LILLE_FLOOR_DATA
@@ -534,7 +534,7 @@ class Building3D {
     createBuilding() {
         this.building = new THREE.Group();
 
-        const floorHeight = 3;
+        const floorHeight = 2;
         const { shape: buildingShape, centerX, centerZ } =
             this.config.createShape(this.config.scale);
         const floorsCount = this.config.floors;
