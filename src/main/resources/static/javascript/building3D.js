@@ -364,90 +364,74 @@ class Building3D {
             : null;
     }
 
+    async loadOccupancyDataForFloor(floorNumber) {
+        const floorInfo = this.floorData[floorNumber];
+
+        if (!floorInfo) {
+            console.warn(`No floor data found for floor index ${floorNumber}`);
+            return null;
+        }
+
+        try {
+            const response = await fetch(`/api/dashboard/occupancy?floor=${floorNumber}`);
+            // const response = await fetch(`/api/dashboard/occupancy?site=${this.config.id}&floor=${floorNumber}`);
+
+            if (response.ok) {
+                const occupancyData = await response.json();
+                console.log(`Floor ${floorNumber} occupancy data:`, occupancyData);
+
+                // Create a map of desk statuses
+                const deskStatusMap = new Map();
+                occupancyData.forEach(desk => {
+                    deskStatusMap.set(desk.id, desk.status);
+                });
+
+                // Create deskOccupancy object for this floor
+                const deskOccupancy = {};
+
+                // Update desk statuses in floor data
+                Object.values(floorInfo.desks).forEach((desk) => {
+                    // Get the sensor ID from the desk configuration
+                    const sensorId = this.getDeskSensor(floorNumber, desk.id);
+
+                    // Look for matching desk in API response
+                    if (sensorId && deskStatusMap.has(sensorId)) {
+                        const newStatus = deskStatusMap.get(sensorId);
+                        desk.status = newStatus;
+                        // Store in deskOccupancy object
+                        deskOccupancy[desk.id] = newStatus;
+                        console.log(`Updated ${desk.id} (sensor: ${sensorId}): ${newStatus}`);
+                    }
+                });
+
+                console.log(`=== Occupancy Data Loaded for Floor ${floorNumber} ===`);
+                return deskOccupancy;
+            } else {
+                console.warn(`Failed to fetch occupancy data for floor ${floorNumber}: ${response.status}`);
+                return null;
+            }
+        } catch (err) {
+            console.error(`Error loading occupancy data for floor ${floorNumber}:`, err);
+            return null;
+        }
+    }
+
     async loadRealOccupancyData() {
         console.log('=== Loading Real Occupancy Data for', this.buildingKey, '===');
 
-        for (const [floorKey, floorInfo] of Object.entries(this.floorData)) {
-            const floorIndex = parseInt(floorKey, 10);
-            const apiFloor = floorIndex + 1;
-
         // Only load data for the current floor if in 2D view
-            if (!this.isIn3DView && this.currentFloorNumber !== null) {
-                const floorNumber = this.currentFloorNumber; // TODO: Check off-by-one error
-                const floorInfo = this.floorData[this.currentFloorNumber];
+        if (!this.isIn3DView && this.currentFloorNumber !== null) {
+            const deskOccupancy = await this.loadOccupancyDataForFloor(this.currentFloorNumber);
 
-                try {
-                    const response = await fetch(`/api/dashboard/occupancy?floor=${apiFloor}`);
-                    // const response = await fetch(`/api/dashboard/occupancy?site=${this.config.id}&floor=${apiFloor}`);
-
-                    if (response.ok) {
-                        const occupancyData = await response.json();
-                        console.log(`Floor ${floorNumber} occupancy data:`, occupancyData);
-
-                        // Create a map of desk statuses
-                        const deskStatusMap = new Map();
-                        occupancyData.forEach(desk => {
-                            deskStatusMap.set(desk.id, desk.status);
-                        });
-
-                        // Create temporary deskOccupancy object for this floor
-                        const deskOccupancy = {};
-
-                        // Update desk statuses in floor data
-                        Object.values(floorInfo.desks).forEach((desk) => {
-                            // Get the sensor ID from the desk configuration
-                            const sensorId = this.getDeskSensor(this.currentFloorNumber, desk.id);
-
-                            // Look for matching desk in API response
-                            if (sensorId && deskStatusMap.has(sensorId)) {
-                                const newStatus = deskStatusMap.get(sensorId);
-                                desk.status = newStatus;
-                                // Store in temporary variable
-                                deskOccupancy[desk.id] = newStatus;
-                                console.log(`Updated ${desk.id} (sensor: ${sensorId}): ${newStatus}`);
-                            }
-                        });
-
-                        // Pass deskOccupancy to drawFloorPlan
-                        if (this.currentArchPlan) {
-                            this.currentArchPlan.drawFloorPlan(deskOccupancy);
-                        }
-
-                        console.log('=== Real Occupancy Data Loaded for Floor', floorNumber, '===');
-                    } else {
-                        console.warn(`Failed to fetch occupancy data for floor ${floorNumber}: ${response.status}`);
-                    }
-
-
-                } catch (err) {
-                    console.error(`Error loading occupancy data for floor ${apiFloor}:`, err);
-                }
-            } else {
-                // In 3D view, update all floors for the hover info
-                for (let [floorNumberKey, floorInfo] of Object.entries(this.floorData)) {
-                    const floorNumber = parseInt(floorNumberKey, 10) + 1;
-                    try {
-                        const response = await fetch(`/api/dashboard/occupancy?floor=${floorNumber}`);
-
-                        if (response.ok) {
-                            const occupancyData = await response.json();
-                            const deskStatusMap = new Map();
-                            occupancyData.forEach(desk => {
-                                deskStatusMap.set(desk.id, desk.status);
-                            });
-
-                            // Update desk statuses in floor data
-                            Object.values(floorInfo.desks).forEach((desk) => {
-                                const sensorId = this.getDeskSensor(parseInt(floorNumberKey, 10), desk.id);
-                                if (sensorId && deskStatusMap.has(sensorId)) {
-                                    desk.status = deskStatusMap.get(sensorId);
-                                }
-                            });
-                        }
-                    } catch (error) {
-                        console.error(`Error loading occupancy data for floor ${floorNumber}:`, error);
-                    }
-                }
+            // Only draw floor plan if this is still the current floor (prevent overwrites from race conditions)
+            if (this.currentArchPlan && this.currentFloorNumber !== null) {
+                this.currentArchPlan.drawFloorPlan(deskOccupancy || {});
+            }
+        } else {
+            // In 3D view, update all floors for the hover info
+            for (let [floorNumberKey, floorInfo] of Object.entries(this.floorData)) {
+                const floorIndex = parseInt(floorNumberKey, 10);
+                await this.loadOccupancyDataForFloor(floorIndex);
             }
 
             console.log('=== Real Occupancy Data Loaded for All Floors ===');
