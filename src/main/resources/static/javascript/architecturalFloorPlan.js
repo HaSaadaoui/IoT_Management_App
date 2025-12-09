@@ -212,14 +212,29 @@ class ArchitecturalFloorPlan {
         this.drawLine(g, [{ x: 700, y: 300 }, { x: 700, y: 200 }], this.colors.wallStroke, 2);
 
         // Middle rooms
-        // this.drawLine(g, [{ x: 600, y: 200 }, { x: 600, y: 400 }], this.colors.wallStroke, 2);
-        // this.drawLine(g, [{ x: 600, y: 200 }, { x: 600, y: 400 }], this.colors.wallStroke, 2);
+        this.drawLine(g, [{ x: 920, y: 320 }, { x: 500, y: 320 }], this.colors.wallStroke, 2);
+        this.drawLine(g, [{ x: 920, y: 370 }, { x: 500, y: 370 }], this.colors.wallStroke, 2);
+        this.drawLine(g, [{ x: 920, y: 320 }, { x: 920, y: 370 }], this.colors.wallStroke, 2);
+        this.drawLine(g, [{ x: 500, y: 320 }, { x: 500, y: 370 }], this.colors.wallStroke, 2);
 
         // Windows 
-        //this.drawWindow(g, 120, 50, 80, 'horizontal');
+        this.drawWindow(g, 1100, 500, 50, 'horizontal');
 
-        // Doors (entrance and offices)
-
+        // Doors
+        this.drawDoor(g, 1000, 200, 40, 4, 'vertical'); // Main entrance
+        this.drawDoor(g, 985, 150, 30, 4, 'horizontal');
+        this.drawDoor(g, 1140, 400, 20, 4, 'horizontal');
+        this.drawDoor(g, 1060, 400, 20, 4, 'horizontal');
+        this.drawDoor(g, 1040, 400, 20, 4, 'horizontal');
+        this.drawDoor(g, 960, 400, 20, 4, 'horizontal');
+        this.drawDoor(g, 940, 400, 20, 4, 'horizontal');
+        this.drawDoor(g, 810, 400, 20, 4, 'horizontal');
+        this.drawDoor(g, 660, 400, 20, 4, 'horizontal');
+        this.drawDoor(g, 740, 300, 20, 4, 'horizontal');
+        this.drawDoor(g, 760, 300, 20, 4, 'horizontal');
+        this.drawDoor(g, 655, 320, 20, 4, 'horizontal');
+        this.drawDoor(g, 705, 370, 20, 4, 'horizontal');
+        
         // ONLY DRAW DESKS IF IN DESK MODE
         if (this.sensorMode === 'DESK') {
             // Interview room 1
@@ -232,144 +247,130 @@ class ArchitecturalFloorPlan {
             this.drawWorkstation(g, 810, 425, 'invalid', 'D04', 50, 30, 'bottom');
             // Valuement OS
             // Block 1
-            this.drawWorkstation(g, 735, 440, 'invalid', 'D05', 20, 30, 'left');
-            this.drawWorkstation(g, 735, 470, 'invalid', 'D06', 20, 30, 'left');
-            this.drawWorkstation(g, 755, 440, 'invalid', 'D07', 20, 30, 'right');
-            this.drawWorkstation(g, 755, 470, 'invalid', 'D08', 20, 30, 'right');
-            this.drawWorkstation(g, 740, 420, 'invalid', 'D09', 30, 20, 'top');
+            this.drawWorkstation(g, 735, 435, 'invalid', 'D05', 20, 30, 'left');
+            this.drawWorkstation(g, 735, 465, 'invalid', 'D06', 20, 30, 'left');
+            this.drawWorkstation(g, 755, 435, 'invalid', 'D07', 20, 30, 'right');
+            this.drawWorkstation(g, 755, 465, 'invalid', 'D08', 20, 30, 'right');
+            this.drawWorkstation(g, 740, 415, 'invalid', 'D09', 30, 20, 'top');
             // Block 2
-            this.drawWorkstation(g, 675, 440, 'invalid', 'D10', 20, 30, 'left');
-            this.drawWorkstation(g, 675, 470, 'invalid', 'D11', 20, 30, 'left');
-            this.drawWorkstation(g, 695, 440, 'invalid', 'D12', 20, 30, 'right');
-            this.drawWorkstation(g, 695, 470, 'invalid', 'D13', 20, 30, 'right');
-            this.drawWorkstation(g, 680, 420, 'invalid', 'D14', 30, 20, 'top');
-
+            this.drawWorkstation(g, 675, 435, 'invalid', 'D10', 20, 30, 'left');
+            this.drawWorkstation(g, 675, 465, 'invalid', 'D11', 20, 30, 'left');
+            this.drawWorkstation(g, 695, 435, 'invalid', 'D12', 20, 30, 'right');
+            this.drawWorkstation(g, 695, 465, 'invalid', 'D13', 20, 30, 'right');
+            this.drawWorkstation(g, 680, 415, 'invalid', 'D14', 30, 20, 'top');
             // Open Space 
             // Against the Valuement wall
             this.drawWorkstation(g, 630, 425, 'invalid', 'D15', 20, 30, 'left');
             this.drawWorkstation(g, 630, 455, 'invalid', 'D16', 20, 30, 'left');
-
             // Bottom Side
             // Block 1
-            this.drawWorkstation(g, 570, 410, 'invalid', 'D17', 20, 30, 'right');
-            this.drawWorkstation(g, 570, 440, 'invalid', 'D18', 20, 30, 'right');
-            this.drawWorkstation(g, 570, 470, 'invalid', 'D19', 20, 30, 'right');
-            this.drawWorkstation(g, 550, 410, 'invalid', 'D20', 20, 30, 'left');
-            this.drawWorkstation(g, 550, 440, 'invalid', 'D21', 20, 30, 'left');
-            this.drawWorkstation(g, 550, 470, 'invalid', 'D22', 20, 30, 'left');
-
+            this.drawWorkstation(g, 570, 405, 'invalid', 'D17', 20, 30, 'right');
+            this.drawWorkstation(g, 570, 435, 'invalid', 'D18', 20, 30, 'right');
+            this.drawWorkstation(g, 570, 465, 'invalid', 'D19', 20, 30, 'right');
+            this.drawWorkstation(g, 550, 405, 'invalid', 'D20', 20, 30, 'left');
+            this.drawWorkstation(g, 550, 435, 'invalid', 'D21', 20, 30, 'left');
+            this.drawWorkstation(g, 550, 465, 'invalid', 'D22', 20, 30, 'left');
             // Block 2
-            this.drawWorkstation(g, 490, 410, 'invalid', 'D23', 20, 30, 'right');
-            this.drawWorkstation(g, 490, 440, 'invalid', 'D24', 20, 30, 'right');
-            this.drawWorkstation(g, 490, 470, 'invalid', 'D25', 20, 30, 'right');
-            this.drawWorkstation(g, 470, 410, 'invalid', 'D26', 20, 30, 'left');
-            this.drawWorkstation(g, 470, 440, 'invalid', 'D27', 20, 30, 'left');
-            this.drawWorkstation(g, 470, 470, 'invalid', 'D28', 20, 30, 'left');
-
+            this.drawWorkstation(g, 490, 405, 'invalid', 'D23', 20, 30, 'right');
+            this.drawWorkstation(g, 490, 435, 'invalid', 'D24', 20, 30, 'right');
+            this.drawWorkstation(g, 490, 465, 'invalid', 'D25', 20, 30, 'right');
+            this.drawWorkstation(g, 470, 405, 'invalid', 'D26', 20, 30, 'left');
+            this.drawWorkstation(g, 470, 435, 'invalid', 'D27', 20, 30, 'left');
+            this.drawWorkstation(g, 470, 465, 'invalid', 'D28', 20, 30, 'left');
             // Block 3
-            this.drawWorkstation(g, 410, 410, 'invalid', 'D29', 20, 30, 'right');
-            this.drawWorkstation(g, 410, 440, 'invalid', 'D30', 20, 30, 'right');
-            this.drawWorkstation(g, 410, 470, 'invalid', 'D31', 20, 30, 'right');
-            this.drawWorkstation(g, 390, 410, 'invalid', 'D32', 20, 30, 'left');
-            this.drawWorkstation(g, 390, 440, 'invalid', 'D33', 20, 30, 'left');
-            this.drawWorkstation(g, 390, 470, 'invalid', 'D34', 20, 30, 'left');
-
+            this.drawWorkstation(g, 410, 405, 'invalid', 'D29', 20, 30, 'right');
+            this.drawWorkstation(g, 410, 435, 'invalid', 'D30', 20, 30, 'right');
+            this.drawWorkstation(g, 410, 465, 'invalid', 'D31', 20, 30, 'right');
+            this.drawWorkstation(g, 390, 405, 'invalid', 'D32', 20, 30, 'left');
+            this.drawWorkstation(g, 390, 435, 'invalid', 'D33', 20, 30, 'left');
+            this.drawWorkstation(g, 390, 465, 'invalid', 'D34', 20, 30, 'left');
             // Block 4
-            this.drawWorkstation(g, 330, 410, 'invalid', 'D35', 20, 30, 'right');
-            this.drawWorkstation(g, 330, 440, 'invalid', 'D36', 20, 30, 'right');
-            this.drawWorkstation(g, 330, 470, 'invalid', 'D37', 20, 30, 'right');
-            this.drawWorkstation(g, 310, 410, 'invalid', 'D38', 20, 30, 'left');
-            this.drawWorkstation(g, 310, 440, 'invalid', 'D39', 20, 30, 'left');
-            this.drawWorkstation(g, 310, 470, 'invalid', 'D40', 20, 30, 'left');
-
+            this.drawWorkstation(g, 330, 405, 'invalid', 'D35', 20, 30, 'right');
+            this.drawWorkstation(g, 330, 435, 'invalid', 'D36', 20, 30, 'right');
+            this.drawWorkstation(g, 330, 465, 'invalid', 'D37', 20, 30, 'right');
+            this.drawWorkstation(g, 310, 405, 'invalid', 'D38', 20, 30, 'left');
+            this.drawWorkstation(g, 310, 435, 'invalid', 'D39', 20, 30, 'left');
+            this.drawWorkstation(g, 310, 465, 'invalid', 'D40', 20, 30, 'left');
             // Block 5
-            this.drawWorkstation(g, 250, 410, 'invalid', 'D41', 20, 30, 'right');
-            this.drawWorkstation(g, 250, 440, 'invalid', 'D42', 20, 30, 'right');
-            this.drawWorkstation(g, 250, 470, 'invalid', 'D43', 20, 30, 'right');
-            this.drawWorkstation(g, 230, 410, 'invalid', 'D44', 20, 30, 'left');
-            this.drawWorkstation(g, 230, 440, 'invalid', 'D45', 20, 30, 'left');
-            this.drawWorkstation(g, 230, 470, 'invalid', 'D46', 20, 30, 'left');
-
-            // Block 6
-            this.drawWorkstation(g, 170, 410, 'invalid', 'D47', 20, 30, 'right','rotate(45 180 425)');
-            this.drawWorkstation(g, 170, 440, 'invalid', 'D48', 20, 30, 'right','rotate(45 180 455)');
-            this.drawWorkstation(g, 170, 470, 'invalid', 'D49', 20, 30, 'right','rotate(45 180 485)');
-            this.drawWorkstation(g, 150, 410, 'invalid', 'D50', 20, 30, 'left','rotate(45 160 425)');
-            this.drawWorkstation(g, 150, 440, 'invalid', 'D51', 20, 30, 'left','rotate(45 160 455)');
-            this.drawWorkstation(g, 150, 470, 'invalid', 'D52', 20, 30, 'left','rotate(45 160 485)');
-
-            // Block 7
-            // this.drawWorkstation(g, 170, 410, 'invalid', 'D53', 20, 30, 'right','rotate(45 180 425)');
-            // this.drawWorkstation(g, 170, 440, 'invalid', 'D54', 20, 30, 'right','rotate(45 180 455)');
-            // this.drawWorkstation(g, 170, 470, 'invalid', 'D55', 20, 30, 'right','rotate(45 180 485)');
-            // this.drawWorkstation(g, 150, 410, 'invalid', 'D56', 20, 30, 'left','rotate(45 160 425)');
-            // this.drawWorkstation(g, 150, 440, 'invalid', 'D57', 20, 30, 'left','rotate(45 160 455)');
-            // this.drawWorkstation(g, 150, 470, 'invalid', 'D58', 20, 30, 'left','rotate(45 160 485)');
-
-            this.drawWorkstation(g, 55, 320, 'invalid', 'D59', 30, 20, 'top');
-            this.drawWorkstation(g, 85, 320, 'invalid', 'D60', 30, 20, 'top');
-            this.drawWorkstation(g, 55, 340, 'invalid', 'D61', 30, 20, 'bottom');
-            this.drawWorkstation(g, 85, 340, 'invalid', 'D62', 30, 20, 'bottom');
-            
+            this.drawWorkstation(g, 250, 405, 'invalid', 'D41', 20, 30, 'right');
+            this.drawWorkstation(g, 250, 435, 'invalid', 'D42', 20, 30, 'right');
+            this.drawWorkstation(g, 250, 465, 'invalid', 'D43', 20, 30, 'right');
+            this.drawWorkstation(g, 230, 405, 'invalid', 'D44', 20, 30, 'left');
+            this.drawWorkstation(g, 230, 435, 'invalid', 'D45', 20, 30, 'left');
+            this.drawWorkstation(g, 230, 465, 'invalid', 'D46', 20, 30, 'left');
+            // Block 6 
+            this.drawWorkstation(g, 170, 400, 'invalid', 'D47', 20, 30, 'right','rotate(25 170 455)',215,435,195,420);
+            this.drawWorkstation(g, 170, 430, 'invalid', 'D48', 20, 30, 'right','rotate(25 170 455)',205,455,185,450);
+            this.drawWorkstation(g, 170, 460, 'invalid', 'D49', 20, 30, 'right','rotate(25 170 455)',195,480,172,480);
+            this.drawWorkstation(g, 150, 400, 'invalid', 'D50', 20, 30, 'left','rotate(25 170 455)',160,410,180,410);
+            this.drawWorkstation(g, 150, 430, 'invalid', 'D51', 20, 30, 'left','rotate(25 170 455)',150,435,165,440);
+            this.drawWorkstation(g, 150, 460, 'invalid', 'D52', 20, 30, 'left','rotate(25 170 455)',140,460,155,470);
+            // Block 7 
+            this.drawWorkstation(g, 105, 350, 'invalid', 'D53', 20, 30, 'right','rotate(65 105 405)',155,415,145,400);
+            this.drawWorkstation(g, 105, 380, 'invalid', 'D54', 20, 30, 'right','rotate(65 105 405)',125,425,120,410);
+            this.drawWorkstation(g, 105, 410, 'invalid', 'D55', 20, 30, 'right','rotate(65 105 405)',100,440,95,420);
+            this.drawWorkstation(g, 85, 350, 'invalid', 'D56', 20, 30, 'left','rotate(65 105 405)',130,360,140,375);
+            this.drawWorkstation(g, 85, 380, 'invalid', 'D57', 20, 30, 'left','rotate(65 105 405)',95,375,110,390);
+            this.drawWorkstation(g, 85, 410, 'invalid', 'D58', 20, 30, 'left','rotate(65 105 405)',80,385,80,405);
             // Open Space left side
-            //this.drawWorkstation(g, 260, 200, 'invalid', 'D63', 20, 30, 'right');
-            //this.drawWorkstation(g, 260, 230, 'invalid', 'D64', 20, 30, 'right');
-            //this.drawWorkstation(g, 240, 200, 'invalid', 'D65', 20, 30, 'left');
-            //this.drawWorkstation(g, 240, 230, 'invalid', 'D66', 20, 30, 'left');
+            this.drawWorkstation(g, 60, 320, 'invalid', 'D59', 30, 20, 'top');
+            this.drawWorkstation(g, 90, 320, 'invalid', 'D60', 30, 20, 'top');
+            this.drawWorkstation(g, 60, 340, 'invalid', 'D61', 30, 20, 'bottom');
+            this.drawWorkstation(g, 90, 340, 'invalid', 'D62', 30, 20, 'bottom');
 
-            this.drawWorkstation(g, 180, 200, 'invalid', 'D67', 20, 30, 'right');
-            this.drawWorkstation(g, 180, 230, 'invalid', 'D68', 20, 30, 'right');
-            this.drawWorkstation(g, 160, 200, 'invalid', 'D69', 20, 30, 'left');
-            this.drawWorkstation(g, 160, 230, 'invalid', 'D70', 20, 30, 'left');
+            this.drawWorkstation(g, 115, 280, 'invalid', 'D63', 20, 30, 'right','rotate(135 115 275)',80,285,95,270);
+            this.drawWorkstation(g, 115, 250, 'invalid', 'D64', 20, 30, 'right','rotate(135 115 275)',100,300,115,290);
+            this.drawWorkstation(g, 95, 280, 'invalid', 'D65', 20, 30, 'left','rotate(135 115 275)',120,235,105,250);
+            this.drawWorkstation(g, 95, 250, 'invalid', 'D66', 20, 30, 'left','rotate(135 115 275)',135,255,130,270);
 
-            this.drawWorkstation(g, 260, 200, 'invalid', 'D71', 20, 30, 'right');
-            this.drawWorkstation(g, 260, 230, 'invalid', 'D72', 20, 30, 'right');
-            this.drawWorkstation(g, 240, 200, 'invalid', 'D73', 20, 30, 'left');
-            this.drawWorkstation(g, 240, 230, 'invalid', 'D74', 20, 30, 'left');
+            this.drawWorkstation(g, 180, 210, 'invalid', 'D67', 20, 30, 'right');
+            this.drawWorkstation(g, 180, 240, 'invalid', 'D68', 20, 30, 'right');
+            this.drawWorkstation(g, 160, 210, 'invalid', 'D69', 20, 30, 'left');
+            this.drawWorkstation(g, 160, 240, 'invalid', 'D70', 20, 30, 'left');
 
-            this.drawWorkstation(g, 340, 200, 'invalid', 'D75', 20, 30, 'right');
-            this.drawWorkstation(g, 340, 230, 'invalid', 'D76', 20, 30, 'right');
-            this.drawWorkstation(g, 320, 200, 'invalid', 'D77', 20, 30, 'left');
-            this.drawWorkstation(g, 320, 230, 'invalid', 'D78', 20, 30, 'left');
+            this.drawWorkstation(g, 260, 210, 'invalid', 'D71', 20, 30, 'right');
+            this.drawWorkstation(g, 260, 240, 'invalid', 'D72', 20, 30, 'right');
+            this.drawWorkstation(g, 240, 210, 'invalid', 'D73', 20, 30, 'left');
+            this.drawWorkstation(g, 240, 240, 'invalid', 'D74', 20, 30, 'left');
 
+            this.drawWorkstation(g, 340, 210, 'invalid', 'D75', 20, 30, 'right');
+            this.drawWorkstation(g, 340, 240, 'invalid', 'D76', 20, 30, 'right');
+            this.drawWorkstation(g, 320, 210, 'invalid', 'D77', 20, 30, 'left');
+            this.drawWorkstation(g, 320, 240, 'invalid', 'D78', 20, 30, 'left');
             // Open Space top side
-            this.drawWorkstation(g, 420, 200, 'invalid', 'D79', 20, 30, 'right');
-            this.drawWorkstation(g, 420, 230, 'invalid', 'D80', 20, 30, 'right');
-            this.drawWorkstation(g, 420, 260, 'invalid', 'D81', 20, 30, 'right');
-            this.drawWorkstation(g, 400, 200, 'invalid', 'D82', 20, 30, 'left');
-            this.drawWorkstation(g, 400, 230, 'invalid', 'D83', 20, 30, 'left');
-            this.drawWorkstation(g, 400, 260, 'invalid', 'D84', 20, 30, 'left');
+            this.drawWorkstation(g, 420, 210, 'invalid', 'D79', 20, 30, 'right');
+            this.drawWorkstation(g, 420, 240, 'invalid', 'D80', 20, 30, 'right');
+            this.drawWorkstation(g, 420, 270, 'invalid', 'D81', 20, 30, 'right');
+            this.drawWorkstation(g, 400, 210, 'invalid', 'D82', 20, 30, 'left');
+            this.drawWorkstation(g, 400, 240, 'invalid', 'D83', 20, 30, 'left');
+            this.drawWorkstation(g, 400, 270, 'invalid', 'D84', 20, 30, 'left');
 
-            this.drawWorkstation(g, 500, 200, 'invalid', 'D85', 20, 30, 'right');
-            this.drawWorkstation(g, 500, 230, 'invalid', 'D86', 20, 30, 'right');
-            this.drawWorkstation(g, 500, 260, 'invalid', 'D87', 20, 30, 'right');
-            this.drawWorkstation(g, 480, 200, 'invalid', 'D88', 20, 30, 'left');
-            this.drawWorkstation(g, 480, 230, 'invalid', 'D89', 20, 30, 'left');
-            this.drawWorkstation(g, 480, 260, 'invalid', 'D90', 20, 30, 'left');
+            this.drawWorkstation(g, 500, 210, 'invalid', 'D85', 20, 30, 'right');
+            this.drawWorkstation(g, 500, 240, 'invalid', 'D86', 20, 30, 'right');
+            this.drawWorkstation(g, 500, 270, 'invalid', 'D87', 20, 30, 'right');
+            this.drawWorkstation(g, 480, 210, 'invalid', 'D88', 20, 30, 'left');
+            this.drawWorkstation(g, 480, 240, 'invalid', 'D89', 20, 30, 'left');
+            this.drawWorkstation(g, 480, 270, 'invalid', 'D90', 20, 30, 'left');
 
-            this.drawWorkstation(g, 600, 200, 'invalid', 'D91', 20, 30, 'right');
-            this.drawWorkstation(g, 600, 230, 'invalid', 'D92', 20, 30, 'right');
-            this.drawWorkstation(g, 600, 260, 'invalid', 'D93', 20, 30, 'right');
-            this.drawWorkstation(g, 580, 200, 'invalid', 'D94', 20, 30, 'left');
-            this.drawWorkstation(g, 580, 230, 'invalid', 'D95', 20, 30, 'left');
-            this.drawWorkstation(g, 580, 260, 'invalid', 'D96', 20, 30, 'left');
-           
+            this.drawWorkstation(g, 600, 210, 'invalid', 'D91', 20, 30, 'right');
+            this.drawWorkstation(g, 600, 240, 'invalid', 'D92', 20, 30, 'right');
+            this.drawWorkstation(g, 600, 270, 'invalid', 'D93', 20, 30, 'right');
+            this.drawWorkstation(g, 580, 210, 'invalid', 'D94', 20, 30, 'left');
+            this.drawWorkstation(g, 580, 240, 'invalid', 'D95', 20, 30, 'left');
+            this.drawWorkstation(g, 580, 270, 'invalid', 'D96', 20, 30, 'left');
             // Desks against the staircase
-            this.drawWorkstation(g, 270, 280, 'invalid', 'D97', 20, 30, 'left');
-            this.drawWorkstation(g, 290, 280, 'invalid', 'D98', 20, 30, 'right');
-
+            this.drawWorkstation(g, 270, 280, 'invalid', 'D97', 20, 30, 'none');
+            this.drawWorkstation(g, 290, 280, 'invalid', 'D98', 20, 30, 'none');
             // Reception
             this.drawWorkstation(g, 935, 160, 'invalid', 'D99', 30, 60, 'left');
-
             // Meeting Room 20 seats
             this.drawWorkstation(g, 925, 75, 'invalid', 'D100', 50, 50, 'top');
-
             // Desks in the middle
-            // this.drawWorkstation(g, 925, 75, 'invalid', 'D101', 50, 50, 'top');
-            // this.drawWorkstation(g, 925, 75, 'invalid', 'D102', 50, 50, 'top');
-            // this.drawWorkstation(g, 925, 75, 'invalid', 'D103', 50, 50, 'top');
-            // this.drawWorkstation(g, 925, 75, 'invalid', 'D104', 50, 50, 'top');
-            // this.drawWorkstation(g, 925, 75, 'invalid', 'D105', 50, 50, 'top');
+            this.drawWorkstation(g, 500, 320, 'invalid', 'D101', 25, 50, 'none');
+            this.drawWorkstation(g, 580, 320, 'invalid', 'D102', 50, 25, 'none');
+            this.drawWorkstation(g, 580, 345, 'invalid', 'D103', 50, 25, 'none');
+            this.drawWorkstation(g, 630, 320, 'invalid', 'D104', 50, 50, 'none');
+            this.drawWorkstation(g, 680, 320, 'invalid', 'D105', 50, 50, 'none');
 
         }
         
@@ -2614,9 +2615,9 @@ class ArchitecturalFloorPlan {
         parent.appendChild(g);
     }
 
-    drawDoor(parent, x, y, orientation) {
-        const doorWidth = orientation === "horizontal" ? 40 : 4;
-        const doorHeight = orientation === "horizontal" ? 4 : 40;
+    drawDoor(parent, x, y, width, height, orientation, arc = false) {
+        const doorWidth = orientation === "horizontal" ? width : height;
+        const doorHeight = orientation === "horizontal" ? height : width;
 
         const door = document.createElementNS(
             "http://www.w3.org/2000/svg",
@@ -2630,29 +2631,31 @@ class ArchitecturalFloorPlan {
         door.setAttribute("stroke", this.colors.wallStroke);
         door.setAttribute("stroke-width", 2);
 
-        // Door arc
-        const arc = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "path",
-        );
-        if (orientation === "horizontal") {
-            arc.setAttribute(
-                "d",
-                `M ${x - 20} ${y} Q ${x} ${y - 20} ${x + 20} ${y}`,
-            );
-        } else {
-            arc.setAttribute(
-                "d",
-                `M ${x} ${y - 20} Q ${x + 20} ${y} ${x} ${y + 20}`,
-            );
-        }
-        arc.setAttribute("fill", "none");
-        arc.setAttribute("stroke", this.colors.interiorLine);
-        arc.setAttribute("stroke-width", 1);
-        arc.setAttribute("stroke-dasharray", "2,2");
-
         parent.appendChild(door);
-        parent.appendChild(arc);
+        // Door arc
+        if (arc) {
+            const arc = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "path",
+            );
+            if (orientation === "horizontal") {
+                arc.setAttribute(
+                    "d",
+                    `M ${x - 20} ${y} Q ${x} ${y - 20} ${x + 20} ${y}`,
+                );
+            } else {
+                arc.setAttribute(
+                    "d",
+                    `M ${x} ${y - 20} Q ${x + 20} ${y} ${x} ${y + 20}`,
+                );
+            }
+            arc.setAttribute("fill", "none");
+            arc.setAttribute("stroke", this.colors.interiorLine);
+            arc.setAttribute("stroke-width", 1);
+            arc.setAttribute("stroke-dasharray", "2,2");
+            parent.appendChild(arc);
+        }
+        
     }
 
     drawWindow(parent, x, y, length, orientation) {
@@ -2820,7 +2823,10 @@ class ArchitecturalFloorPlan {
         chair.setAttribute("stroke-width", 1);
 
         g.appendChild(desk);
-        g.appendChild(chair);
+        const validPositions = ["bottom", "top", "left", "right"];
+        if (validPositions.includes(chairPosition)) {
+            g.appendChild(chair);
+        }
         g.appendChild(text);
 
         parent.appendChild(g);
