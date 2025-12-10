@@ -325,7 +325,8 @@ class DashboardManager {
 
     loadSampleData() {
         // Generate sample data for demonstration
-        this.currentData = this.generateSampleData();
+        // this.currentData = this.generateSampleData(); // Uncomment this li
+        this.currentData = {};
         this.updateDashboard(this.currentData);
         this.updateRefreshTime();
     }
@@ -1322,7 +1323,7 @@ class DashboardManager {
         const maxEl = document.getElementById('summary-max-value');
 
         // Dummy test data here TODO: enable real data after demo
-        let useMockData = true;
+        let useMockData = false;
         if (!useMockData) {
             if (totalEl) totalEl.textContent   = summary.totalSensors || '--';
             if (activeEl) activeEl.textContent = summary.activeSensors || '--';

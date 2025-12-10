@@ -195,13 +195,13 @@ public class SensorDataDao {
             LocalDateTime hourStart,
             LocalDateTime hourEnd) {
 
-        String query = "SELECT AVG(CAST(string_value AS REAL)) as avg_value " +
+        String query = "SELECT AVG(numeric_value) as avg_value " +
                       "FROM sensor_data " +
                       "WHERE id_sensor = ? " +
                       "  AND value_type = ? " +
                       "  AND received_at >= ? " +
                       "  AND received_at < ? " +
-                      "  AND string_value IS NOT NULL";
+                      "  AND numeric_value IS NOT NULL";
 
         try {
             Double avgValue = jdbcTemplate.queryForObject(
@@ -236,13 +236,13 @@ public class SensorDataDao {
             Date hourStart,
             Date hourEnd) {
 
-        String query = "SELECT AVG(CAST(string_value AS REAL)) as avg_value " +
+        String query = "SELECT AVG(numeric_value) as avg_value " +
                       "FROM sensor_data " +
                       "WHERE id_sensor = ? " +
                       "  AND value_type = ? " +
                       "  AND received_at >= ? " +
                       "  AND received_at < ? " +
-                      "  AND string_value IS NOT NULL";
+                      "  AND numeric_value IS NOT NULL";
 
         try {
             Double avgValue = jdbcTemplate.queryForObject(
@@ -278,16 +278,16 @@ public class SensorDataDao {
             LocalDateTime hourEnd) {
 
         String query = "SELECT " +
-                      "  AVG(CAST(string_value AS REAL)) as avg_value, " +
-                      "  MIN(CAST(string_value AS REAL)) as min_value, " +
-                      "  MAX(CAST(string_value AS REAL)) as max_value, " +
+                      "  AVG(numeric_value) as avg_value, " +
+                      "  MIN(numeric_value) as min_value, " +
+                      "  MAX(numeric_value) as max_value, " +
                       "  COUNT(*) as data_count " +
                       "FROM sensor_data " +
                       "WHERE id_sensor = ? " +
                       "  AND value_type = ? " +
                       "  AND received_at >= ? " +
                       "  AND received_at < ? " +
-                      "  AND string_value IS NOT NULL";
+                      "  AND numeric_value IS NOT NULL";
 
         try {
             HourlyStatistics result = jdbcTemplate.queryForObject(query, (rs, rowNum) -> {
@@ -334,16 +334,16 @@ public class SensorDataDao {
         // Query all sensors at once, grouped by sensor
         String query = "SELECT " +
                       "  id_sensor, " +
-                      "  AVG(CAST(string_value AS REAL)) as avg_value, " +
-                      "  MIN(CAST(string_value AS REAL)) as min_value, " +
-                      "  MAX(CAST(string_value AS REAL)) as max_value, " +
+                      "  AVG(numeric_value) as avg_value, " +
+                      "  MIN(numeric_value) as min_value, " +
+                      "  MAX(numeric_value) as max_value, " +
                       "  COUNT(*) as data_count " +
                       "FROM sensor_data " +
                       "WHERE id_sensor IN (" + placeholders + ") " +
                       "  AND value_type = ? " +
                       "  AND received_at >= ? " +
                       "  AND received_at < ? " +
-                      "  AND string_value IS NOT NULL " +
+                      "  AND numeric_value IS NOT NULL " +
                       "GROUP BY id_sensor";
 
         List<Object> params = new ArrayList<>(sensorIds.size() + 3);
@@ -410,16 +410,16 @@ public class SensorDataDao {
         // Query all sensors at once for the entire day, grouped by sensor
         String query = "SELECT " +
                       "  id_sensor, " +
-                      "  AVG(CAST(string_value AS REAL)) as avg_value, " +
-                      "  MIN(CAST(string_value AS REAL)) as min_value, " +
-                      "  MAX(CAST(string_value AS REAL)) as max_value, " +
+                      "  AVG(numeric_value) as avg_value, " +
+                      "  MIN(numeric_value) as min_value, " +
+                      "  MAX(numeric_value) as max_value, " +
                       "  COUNT(*) as data_count " +
                       "FROM sensor_data " +
                       "WHERE id_sensor IN (" + placeholders + ") " +
                       "  AND value_type = ? " +
                       "  AND received_at >= ? " +
                       "  AND received_at < ? " +
-                      "  AND string_value IS NOT NULL " +
+                      "  AND numeric_value IS NOT NULL " +
                       "GROUP BY id_sensor";
 
         List<Object> params = new ArrayList<>(sensorIds.size() + 3);
@@ -507,8 +507,8 @@ public class SensorDataDao {
 
         String placeholders = String.join(",", java.util.Collections.nCopies(sensorIds.size(), "?"));
 
-        // Bin by hour
-        String hourBucket = "strftime('%Y-%m-%d %H:00:00', received_at)";
+        // Bin by hour - MySQL syntax
+        String hourBucket = "DATE_FORMAT(received_at, '%Y-%m-%d %H:00:00')";
 
         // Map aggregation type
         String aggFunc = switch (aggregationType.toUpperCase()) {
@@ -522,14 +522,14 @@ public class SensorDataDao {
 
         String query = "SELECT " +
                       hourBucket + " as time_bucket, " +
-                      aggFunc + "(CAST(string_value AS REAL)) as agg_value, " +
+                      aggFunc + "(numeric_value) as agg_value, " +
                       "COUNT(*) as data_point_count, " +
                       "COUNT(DISTINCT id_sensor) as sensor_count " +
                       "FROM sensor_data " +
                       "WHERE id_sensor IN (" + placeholders + ") " +
                       "  AND received_at BETWEEN ? AND ? " +
                       "  AND value_type = ? " +
-                      "  AND string_value IS NOT NULL " +
+                      "  AND numeric_value IS NOT NULL " +
                       "GROUP BY time_bucket " +
                       "ORDER BY time_bucket ASC";
 
