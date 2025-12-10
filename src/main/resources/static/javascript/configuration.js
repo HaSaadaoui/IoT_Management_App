@@ -442,6 +442,75 @@ function toggleChannelInput() {
     if (phoneDiv) phoneDiv.style.display = smsChk && smsChk.checked ? "block" : "none";
 }
 
+async function saveBuildingConfig() {
+    const nameEl   = document.getElementById("building-name");
+    const floorsEl = document.getElementById("building-floors");
+    const scaleEl  = document.getElementById("building-scale");
+    const svgInput = document.getElementById("building-svg");
+
+    const name    = (nameEl.value || "").trim();
+    const floors  = parseInt(floorsEl.value, 10) || 1;
+    const scale   = parseFloat(scaleEl.value) || 0.01;
+    const svgFile = svgInput.files[0];
+
+    if (!name) {
+        alert("Merci de saisir un nom de bâtiment.");
+        return;
+    }
+    if (!svgFile) {
+        alert("Merci de sélectionner un fichier SVG.");
+        return;
+    }
+
+    // 1) récupérer le CSRF sur /api/buildings/csrf-token
+    let csrf;
+    try {
+        const csrfResp = await fetch("/api/buildings/csrf-token", {
+            credentials: "same-origin"
+        });
+        if (!csrfResp.ok) {
+            throw new Error("HTTP " + csrfResp.status);
+        }
+        csrf = await csrfResp.json();
+        console.log("CSRF token:", csrf);
+    } catch (e) {
+        console.error("Erreur CSRF:", e);
+        alert("Impossible de récupérer le token CSRF");
+        return;
+    }
+
+    // 2) Construire le FormData
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("floors", floors);
+    formData.append("scale", scale);
+    formData.append("svgFile", svgFile);
+
+    // ⚠️ IMPORTANT : ajouter le token CSRF comme champ de formulaire
+    // csrf.parameterName est typiquement "_csrf"
+    formData.append(csrf.parameterName, csrf.token);
+
+    // 3) POST sur /api/buildings
+    fetch("/api/buildings", {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin"
+    })
+    .then(resp => {
+        if (!resp.ok) {
+            throw new Error("HTTP error " + resp.status);
+        }
+        return resp.json();
+    })
+    .then(data => {
+        console.log("Building saved:", data);
+        alert("Building enregistré avec succès (id=" + (data.id ?? "?") + ")");
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Erreur lors de l'enregistrement du building.");
+    });
+}
 // ======================================================
 // ================== GLOBAL EXPORTS =====================
 // ======================================================
@@ -461,3 +530,4 @@ window.show2D = function show2D() {
 window.changeEditorLanguage = changeEditorLanguage;
 window.testDecoder = testDecoder;
 window.toggleChannelInput = toggleChannelInput;
+window.saveBuildingConfig = saveBuildingConfig;

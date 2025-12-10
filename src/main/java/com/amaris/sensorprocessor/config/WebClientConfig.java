@@ -59,7 +59,7 @@ public class WebClientConfig {
     @Bean
     public WebClient webClientSse() {
         ExchangeStrategies sseStrategies = ExchangeStrategies.builder()
-                .codecs(c -> c.defaultCodecs().maxInMemorySize(512 * 1024)) // petits chunks, TODO: check que ca ne plante pas
+                .codecs(c -> c.defaultCodecs().maxInMemorySize(512 * 1024)) // petits chunks
                 .build();
 
         // IMPORTANT: pas de responseTimeout -> Duration.ZERO = infini
@@ -70,7 +70,10 @@ public class WebClientConfig {
 
         return WebClient.builder()
                 .baseUrl(baseUrl)
-                .defaultHeaders(h -> h.setAccept(List.of(MediaType.TEXT_EVENT_STREAM, MediaType.APPLICATION_JSON)))
+                .defaultHeaders(h -> h.setAccept(List.of(
+                        MediaType.TEXT_EVENT_STREAM,
+                        MediaType.APPLICATION_JSON
+                )))
                 .exchangeStrategies(sseStrategies)
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
@@ -85,8 +88,9 @@ public class WebClientConfig {
     public static class WebConfig implements WebMvcConfigurer {
         @Override
         public void addResourceHandlers(ResourceHandlerRegistry registry) {
+
             registry.addResourceHandler("/uploads/**")
-                    .addResourceLocations("file:uploads/");
+                    .addResourceLocations("classpath:/static/uploads/");
             registry.addResourceHandler("/css/**")
                     .addResourceLocations("classpath:/static/css/");
             registry.addResourceHandler("/js/**")
