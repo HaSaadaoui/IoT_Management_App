@@ -19,17 +19,15 @@ public class BuildingService {
     private final BuildingDao buildingDao;
 
     /**
-     * Dossier des SVG dans les ressources statiques.
+     * Dossier des SVG des bâtiments.
      *
-     * Physiquement (en dev) :
-     *   src/main/resources/static/image/upload/building
+     * Physiquement :
+     *   <racine du projet>/uploads/buildings
      *
-     * Accessible via HTTP :
-     *   /image/upload/building/xxx.svg
+     * Accessible via HTTP (grâce au WebConfig) :
+     *   /uploads/buildings/xxx.svg
      */
-    private final Path uploadRoot = Paths.get(
-            "src", "main", "resources", "static", "image", "upload", "building"
-    );
+    private final Path uploadRoot = Paths.get("uploads", "buildings");
 
     public BuildingService(BuildingDao buildingDao) {
         this.buildingDao = buildingDao;
@@ -84,8 +82,8 @@ public class BuildingService {
     }
 
     /**
-     * Crée un Building + sauvegarde le SVG dans
-     * src/main/resources/static/image/upload/building
+     * Crée un Building + sauvegarde le SVG dans :
+     *   uploads/buildings
      */
     public Building createBuildingWithSvg(String name,
                                           int floors,
@@ -106,7 +104,7 @@ public class BuildingService {
                 ? "building.svg"
                 : originalFilename.replaceAll("[^a-zA-Z0-9._-]", "_");
 
-        // 2) Créer le dossier src/main/resources/static/image/upload/building si besoin
+        // 2) Créer le dossier uploads/buildings si besoin
         Files.createDirectories(uploadRoot);
 
         Path target = uploadRoot.resolve(cleanFilename);
@@ -117,8 +115,8 @@ public class BuildingService {
         }
 
         // 4) Chemin "public" (URL) stocké en base
-        // /image/** -> classpath:/static/image/ (déjà défini dans WebConfig)
-        String publicSvgPath = "/image/upload/building/" + cleanFilename;
+        // /uploads/** -> file:uploads/ (déjà défini dans WebConfig)
+        String publicSvgPath = "/uploads/buildings/" + cleanFilename;
 
         // 5) Construire l'entité Building
         Building building = new Building();

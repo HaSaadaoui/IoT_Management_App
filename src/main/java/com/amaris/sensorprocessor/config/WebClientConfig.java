@@ -90,7 +90,7 @@ public class WebClientConfig {
         public void addResourceHandlers(ResourceHandlerRegistry registry) {
 
             registry.addResourceHandler("/uploads/**")
-                    .addResourceLocations("classpath:/static/uploads/");
+                    .addResourceLocations("file:uploads/");
             registry.addResourceHandler("/css/**")
                     .addResourceLocations("classpath:/static/css/");
             registry.addResourceHandler("/js/**")
