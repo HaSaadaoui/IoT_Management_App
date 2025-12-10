@@ -1,85 +1,187 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8"/>
-    <title>Dashboard - IoT Monitoring</title>
-    <link rel="stylesheet" href="/css/styles.css"/>
-    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}"/>
-    <link rel="stylesheet" href="/css/alerts.css"/>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
-    <script src="/javascript/chartUtils.js"></script>
-</head>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Dashboard - IoT Monitoring</title>
+        <link rel="stylesheet" href="/css/styles.css" />
+        <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
+        <link rel="stylesheet" href="/css/alerts.css" />
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
+        <script src="/javascript/chartUtils.js"></script>
+    </head>
 
-<body>
-<header class="app-header">
-    <a href="/home" class="back-btn" title="Back to home" style="margin-right: 20px">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="30" height="30">
-            <circle cx="15" cy="15" r="13" fill="none" stroke="#662179" stroke-width="2"/>
-            <path d="M17 9 L11 15 L17 21" fill="none" stroke="#662179" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <line x1="11" y1="15" x2="22" y2="15" stroke="#662179" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-    </a>
-    <div class="header-title-gateway">
-        <span>📊 Dashboard - IoT Monitoring</span>
-    </div>
-    <div class="header-right">
-        <div class="dropdown">
-            <button onclick="toggleMenu()" class="menu-btn" aria-label="Menu">
-                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="#662179" viewBox="0 0 24 24">
-                    <path d="M3 6h18M3 12h18M3 18h18" stroke="#662179" stroke-width="2" stroke-linecap="round"/>
+    <body>
+        <header class="app-header">
+            <a
+                href="/home"
+                class="back-btn"
+                title="Back to home"
+                style="margin-right: 20px"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 30 30"
+                    width="30"
+                    height="30"
+                >
+                    <circle
+                        cx="15"
+                        cy="15"
+                        r="13"
+                        fill="none"
+                        stroke="#662179"
+                        stroke-width="2"
+                    />
+                    <path
+                        d="M17 9 L11 15 L17 21"
+                        fill="none"
+                        stroke="#662179"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    />
+                    <line
+                        x1="11"
+                        y1="15"
+                        x2="22"
+                        y2="15"
+                        stroke="#662179"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                    />
                 </svg>
-            </button>
-            <div id="dropdownMenu" class="dropdown-content">
-                <a th:href="@{/home}">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22">
-                        <path fill="#662179" d="M12 3.172 2.293 12.88a1 1 0 1 0 1.414 1.414L5 13.001V20a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-5h2v5a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-6.999l1.293 1.293a1 1 0 0 0 1.414-1.414L12 3.172z"/>
-                    </svg>
-                    Home
-                </a>
-                <a th:href="@{/users/{username}(username=${loggedUsername})}">
-                    <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22">
-                        <path fill="#662179" d="M400-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM80-160v-112q0-33 17-62t47-44q51-26 115-44t141-18h14q6 0 12 2-8 18-13.5 37.5T404-360h-4q-71 0-127.5 18T180-306q-9 5-14.5 14t-5.5 20v32h252q6 21 16 41.5t22 38.5H80Zm560 40-12-60q-12-5-22.5-10.5T584-204l-58 18-40-68 46-40q-2-14-2-26t2-26l-46-40 40-68 58 18q11-8 21.5-13.5T628-460l12-60h80l12 60q12 5 22.5 11t21.5 15l58-20 40 70-46 40q2 12 2 25t-2 25l46 40-40 68-58-18q-11 8-21.5 13.5T732-180l-12 60h-80Zm40-120q33 0 56.5-23.5T760-320q0-33-23.5-56.5T680-400q-33 0-56.5 23.5T600-320q0 33 23.5 56.5T680-240ZM400-560q33 0 56.5-23.5T480-640q0-33-23.5-56.5T400-720q-33 0-56.5 23.5T320-640q0 33 23.5 56.5T400-560Zm0-80Zm12 400Z"/>
-                    </svg>
-                    Account
-                </a>
-                <form th:action="@{/logout}" method="post" class="logout-form" style="margin:0;">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                    <button type="submit" class="logout-link">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="22" height="22" fill="#662179">
-                            <path d="M 2.174 2.314 C 0.018 4.610, 0 4.949, 0 44.140 L 0 83.651 2.250 85.699 C 4.901 88.111, 28.126 96, 32.577 96 C 36.811 96, 40 92.427, 40 87.686 L 40 84 48.050 84 C 62.336 84, 64.223 81.596, 63.785 63.959 L 63.500 52.500 61 52.500 C 58.510 52.500, 58.498 52.544, 58 63.834 C 57.397 77.497, 57 78, 46.809 78 L 40 78 40 45.174 C 40 12.406, 39.996 12.345, 37.750 10.302 C 36.513 9.176, 34.150 7.783, 32.500 7.206 C 30.082 6.361, 31.839 6.143, 41.559 6.079 C 57.716 5.973, 57.360 5.669, 58 20.166 C 58.498 31.456, 58.510 31.500, 61 31.500 L 63.500 31.500 63.785 20.041 C 63.962 12.888, 63.628 7.515, 62.894 5.744 C 60.667 0.367, 58.579 -0, 30.224 0 C 4.470 0, 4.338 0.011, 2.174 2.314 M 7.095 7.305 C 5.842 8.558, 5.527 78.748, 6.765 80.596 C 7.169 81.199, 12.970 83.514, 19.655 85.741 C 28.459 88.673, 32.113 89.487, 32.905 88.695 C 34.158 87.442, 34.473 17.252, 33.235 15.404 C 32.831 14.801, 27.030 12.486, 20.345 10.259 C 11.541 7.327, 7.887 6.513, 7.095 7.305 M 75.667 24.667 C 74.049 26.284, 75.348 28.918, 80.041 33.538 L 85.083 38.500 68.791 39 L 52.500 39.500 52.500 42 L 52.500 44.500 68.940 44.776 L 85.381 45.051 80.094 50.405 C 74.652 55.915, 73.730 59.132, 77.392 59.837 C 79.568 60.256, 96 44.506, 96 42 C 96 39.981, 79.926 24, 77.896 24 C 77.036 24, 76.033 24.300, 75.667 24.667"/>
-                        </svg>
-                        Logout
-                    </button>
-                </form>
-            </div>
-        </div>
-        <div class="header-user">
-            <a th:href="@{/users/{username}(username=${loggedUsername})}" class="header-link">
-                <img th:src="${user.icon}" class="header-avatar" alt="User Avatar" width="32" height="32">
             </a>
+            <div class="header-title-gateway">
+                <span>📊 Dashboard - IoT Monitoring</span>
+            </div>
+            <div class="header-right">
+                <div class="dropdown">
+                    <button
+                        onclick="toggleMenu()"
+                        class="menu-btn"
+                        aria-label="Menu"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="26"
+                            height="26"
+                            fill="#662179"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                d="M3 6h18M3 12h18M3 18h18"
+                                stroke="#662179"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                            />
+                        </svg>
+                    </button>
+                    <div id="dropdownMenu" class="dropdown-content">
+                        <a th:href="@{/home}">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                width="22"
+                                height="22"
+                            >
+                                <path
+                                    fill="#662179"
+                                    d="M12 3.172 2.293 12.88a1 1 0 1 0 1.414 1.414L5 13.001V20a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-5h2v5a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-6.999l1.293 1.293a1 1 0 0 0 1.414-1.414L12 3.172z"
+                                />
+                            </svg>
+                            Home
+                        </a>
+                        <a
+                            th:href="@{/users/{username}(username=${loggedUsername})}"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                height="22"
+                                viewBox="0 -960 960 960"
+                                width="22"
+                            >
+                                <path
+                                    fill="#662179"
+                                    d="M400-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM80-160v-112q0-33 17-62t47-44q51-26 115-44t141-18h14q6 0 12 2-8 18-13.5 37.5T404-360h-4q-71 0-127.5 18T180-306q-9 5-14.5 14t-5.5 20v32h252q6 21 16 41.5t22 38.5H80Zm560 40-12-60q-12-5-22.5-10.5T584-204l-58 18-40-68 46-40q-2-14-2-26t2-26l-46-40 40-68 58 18q11-8 21.5-13.5T628-460l12-60h80l12 60q12 5 22.5 11t21.5 15l58-20 40 70-46 40q2 12 2 25t-2 25l46 40-40 68-58-18q-11 8-21.5 13.5T732-180l-12 60h-80Zm40-120q33 0 56.5-23.5T760-320q0-33-23.5-56.5T680-400q-33 0-56.5 23.5T600-320q0 33 23.5 56.5T680-240ZM400-560q33 0 56.5-23.5T480-640q0-33-23.5-56.5T400-720q-33 0-56.5 23.5T320-640q0 33 23.5 56.5T400-560Zm0-80Zm12 400Z"
+                                />
+                            </svg>
+                            Account
+                        </a>
+                        <form
+                            th:action="@{/logout}"
+                            method="post"
+                            class="logout-form"
+                            style="margin: 0"
+                        >
+                            <input
+                                type="hidden"
+                                th:name="${_csrf.parameterName}"
+                                th:value="${_csrf.token}"
+                            />
+                            <button type="submit" class="logout-link">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 96 96"
+                                    width="22"
+                                    height="22"
+                                    fill="#662179"
+                                >
+                                    <path
+                                        d="M 2.174 2.314 C 0.018 4.610, 0 4.949, 0 44.140 L 0 83.651 2.250 85.699 C 4.901 88.111, 28.126 96, 32.577 96 C 36.811 96, 40 92.427, 40 87.686 L 40 84 48.050 84 C 62.336 84, 64.223 81.596, 63.785 63.959 L 63.500 52.500 61 52.500 C 58.510 52.500, 58.498 52.544, 58 63.834 C 57.397 77.497, 57 78, 46.809 78 L 40 78 40 45.174 C 40 12.406, 39.996 12.345, 37.750 10.302 C 36.513 9.176, 34.150 7.783, 32.500 7.206 C 30.082 6.361, 31.839 6.143, 41.559 6.079 C 57.716 5.973, 57.360 5.669, 58 20.166 C 58.498 31.456, 58.510 31.500, 61 31.500 L 63.500 31.500 63.785 20.041 C 63.962 12.888, 63.628 7.515, 62.894 5.744 C 60.667 0.367, 58.579 -0, 30.224 0 C 4.470 0, 4.338 0.011, 2.174 2.314 M 7.095 7.305 C 5.842 8.558, 5.527 78.748, 6.765 80.596 C 7.169 81.199, 12.970 83.514, 19.655 85.741 C 28.459 88.673, 32.113 89.487, 32.905 88.695 C 34.158 87.442, 34.473 17.252, 33.235 15.404 C 32.831 14.801, 27.030 12.486, 20.345 10.259 C 11.541 7.327, 7.887 6.513, 7.095 7.305 M 75.667 24.667 C 74.049 26.284, 75.348 28.918, 80.041 33.538 L 85.083 38.500 68.791 39 L 52.500 39.500 52.500 42 L 52.500 44.500 68.940 44.776 L 85.381 45.051 80.094 50.405 C 74.652 55.915, 73.730 59.132, 77.392 59.837 C 79.568 60.256, 96 44.506, 96 42 C 96 39.981, 79.926 24, 77.896 24 C 77.036 24, 76.033 24.300, 75.667 24.667"
+                                    />
+                                </svg>
+                                Logout
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="header-user">
+                    <a
+                        th:href="@{/users/{username}(username=${loggedUsername})}"
+                        class="header-link"
+                    >
+                        <img
+                            th:src="${user.icon}"
+                            class="header-avatar"
+                            alt="User Avatar"
+                            width="32"
+                            height="32"
+                        />
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Global Loading Indicator -->
+        <div id="global-loading-indicator" class="global-loading-indicator">
+            <div class="loading-spinner"></div>
+            <div class="loading-indicator-text">
+                <div class="loading-indicator-title" id="loading-title">
+                    Loading...
+                </div>
+                <div
+                    class="loading-indicator-details"
+                    id="loading-details"
+                ></div>
+            </div>
+            <button
+                id="cancel-requests-btn"
+                class="cancel-requests-btn"
+                title="Cancel all active requests"
+            >
+                ✕
+            </button>
         </div>
-    </div>
-</header>
 
-<!-- Global Loading Indicator -->
-<div id="global-loading-indicator" class="global-loading-indicator">
-    <div class="loading-spinner"></div>
-    <div class="loading-indicator-text">
-        <div class="loading-indicator-title" id="loading-title">Loading...</div>
-        <div class="loading-indicator-details" id="loading-details"></div>
-    </div>
-    <button id="cancel-requests-btn" class="cancel-requests-btn" title="Cancel all active requests">✕</button>
-</div>
-
-<main>
-    <!-- Filters Section -->
-    <section class="filters-section">
-        <h3 class="section-title">🔍 Filters & Controls</h3>
-        <div class="filters-grid">
-            <!-- <div class="filter-card">
+        <main>
+            <!-- Filters Section -->
+            <section class="filters-section">
+                <h3 class="section-title">🔍 Filters & Controls</h3>
+                <div class="filters-grid">
+                    <!-- <div class="filter-card">
                 <label>📅 Year</label>
                 <select id="filter-year">
                     <option value="2025">2025</option>
@@ -87,351 +189,478 @@
                     <option value="2023">2023</option>
                 </select>
             </div> -->
-            <div class="filter-card">
-                <label>📆 Month</label>
-                <select id="filter-month">
-                    <option value="all">All</option>
-                    <option value="01">January</option>
-                    <option value="02">February</option>
-                    <option value="03">March</option>
-                    <option value="04">April</option>
-                    <option value="05">May</option>
-                    <option value="06">June</option>
-                    <option value="07">July</option>
-                    <option value="08">August</option>
-                    <option value="09">September</option>
-                    <option value="10">October</option>
-                    <option value="11" selected>November</option>
-                    <option value="12">December</option>
-                </select>
-            </div>
-            <div class="filter-card">
-                <label>⏰ Time Slot</label>
-                <select id="filter-time">
-                    <option value="all">All Day</option>
-                    <option value="morning">Morning (08:00-12:00)</option>
-                    <option value="afternoon" selected>Afternoon (12:00-19:00)</option>
-                    <option value="evening">Evening (19:00-22:00)</option>
-                </select>
-            </div>
-            <div class="filter-card">
-                <label>⏱️ Granularity</label>
-                <select id="histogram-granularity">
-                    <option value="DAILY" selected>Daily</option>
-                    <option value="HOURLY">Hourly</option>
-                </select>
-            </div>
-            <div class="filter-card">
-                <label>📍 Building</label>
-                <select id="filter-building">
-                    <option value="all">All Buildings</option>
-                    <option value="chateaudun" selected>Châteaudun Office</option>
-                    <option value="levallois">Levallois Office</option>
-                    <option value="lille">Lille Office</option>
-                </select>
-            </div>
-            <div class="filter-card">
-                <label>📈 Metric Type</label>
-                <select id="histogram-metric-type">
-                    <option value="OCCUPANCY" selected>Occupancy</option>
-                    <option value="TEMPERATURE">Temperature</option>
-                    <option value="CO2">CO₂ Level</option>
-                    <option value="HUMIDITY">Humidity</option>
-                    <option value="ILLUMINANCE">Light Level</option>
-                    <option value="LAEQ">Noise Level</option>
-                    <option value="MOTION">Motion Events</option>
-                </select>
-            </div>
-            <div class="filter-card">
-                <label>🏢 Floor</label>
-                <select id="filter-floor">
-                    <option value="all">All Floors</option>
-                    <option value="0">Ground Floor</option>
-                    <option value="1" selected>Floor 1</option>
-                    <option value="2">Floor 2</option>
-                    <option value="3">Floor 3</option>
-                    <option value="4">Floor 4</option>
-                    <option value="5">Floor 5</option>
-                    <option value="6">Floor 6</option>
-                </select>
-            </div>
-            <div class="filter-card">
-                <label>📊 Sensor Type</label>
-                <select id="filter-sensor-type">
-                    <option value="DESK" selected>Desk Occupancy</option>
-                    <option value="CO2">CO₂ Air Quality</option>
-                    <option value="TEMP">Temperature</option>
-                    <option value="LIGHT">Light Levels</option>
-                    <option value="MOTION">Motion Detection</option>
-                    <option value="NOISE">Noise Levels</option>
-                    <option value="HUMIDITY">Humidity</option>
-                    <option value="TEMPEX">HVAC Flow (TEMPex)</option>
-                    <option value="PR">Presence & Light</option>
-                    <option value="SECURITY">Security Alerts</option>
-                </select>
-            </div>
-        </div>
-    
-        <div class="last-refresh" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
-            <span>🔄 Last refresh: <strong id="last-refresh-time">17/11/2025 11:23:47</strong></span>
-            <button id="histogram-refresh-btn" class="refresh-btn" style="margin: 0; width: auto; min-width: 180px;">🔄 Update Histogram</button>
-        </div>
-
-        <!-- Sensor List Container -->
-        <div class="sensor-list-container" id="sensor-list-container" style="display: none; margin-top: 20px;">
-            <div class="sensor-list-header">
-                <span>Available Sensors (<span id="sensor-count">0</span>)</span>
-                <button id="select-all-sensors-btn" class="select-all-btn">Select All</button>
-            </div>
-            <div class="sensor-list" id="sensor-list">
-                <div class="sensor-list-placeholder">
-                    Sensors will load automatically based on your filters...
+                    <div class="filter-card">
+                        <label>📆 Month</label>
+                        <select id="filter-month">
+                            <option value="all">All</option>
+                            <option value="01">January</option>
+                            <option value="02">February</option>
+                            <option value="03">March</option>
+                            <option value="04">April</option>
+                            <option value="05">May</option>
+                            <option value="06">June</option>
+                            <option value="07">July</option>
+                            <option value="08">August</option>
+                            <option value="09">September</option>
+                            <option value="10">October</option>
+                            <option value="11" selected>November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    <div class="filter-card">
+                        <label>⏰ Time Slot</label>
+                        <select id="filter-time">
+                            <option value="all">All Day</option>
+                            <option value="morning">
+                                Morning (08:00-12:00)
+                            </option>
+                            <option value="afternoon" selected>
+                                Afternoon (12:00-19:00)
+                            </option>
+                            <option value="evening">
+                                Evening (19:00-22:00)
+                            </option>
+                        </select>
+                    </div>
+                    <div class="filter-card">
+                        <label>⏱️ Granularity</label>
+                        <select id="histogram-granularity">
+                            <option value="DAILY" selected>Daily</option>
+                            <option value="HOURLY">Hourly</option>
+                        </select>
+                    </div>
+                    <div class="filter-card">
+                        <label>📍 Building</label>
+                        <select id="filter-building">
+                            <option value="all">All Buildings</option>
+                            <option value="chateaudun" selected>
+                                Châteaudun Office
+                            </option>
+                            <option value="levallois">Levallois Office</option>
+                            <option value="lille">Lille Office</option>
+                        </select>
+                    </div>
+                    <div class="filter-card" style="display: none;">
+                        <label>📈 Metric Type</label>
+                        <select id="histogram-metric-type">
+                            <option value="OCCUPANCY" selected>
+                                Occupancy
+                            </option>
+                            <option value="TEMPERATURE">Temperature</option>
+                            <option value="CO2">CO₂ Level</option>
+                            <option value="HUMIDITY">Humidity</option>
+                            <option value="ILLUMINANCE">Light Level</option>
+                            <option value="LAEQ">Noise Level</option>
+                            <option value="MOTION">Motion Events</option>
+                        </select>
+                    </div>
+                    <div class="filter-card">
+                        <label>🏢 Floor</label>
+                        <select id="filter-floor">
+                            <option value="all">All Floors</option>
+                            <option value="0">Ground Floor</option>
+                            <option value="1" selected>Floor 1</option>
+                            <option value="2">Floor 2</option>
+                            <option value="3">Floor 3</option>
+                            <option value="4">Floor 4</option>
+                            <option value="5">Floor 5</option>
+                            <option value="6">Floor 6</option>
+                        </select>
+                    </div>
+                    <div class="filter-card">
+                        <label>📊 Sensor Type</label>
+                        <select id="filter-sensor-type">
+                            <option value="DESK" selected>
+                                Desk Occupancy
+                            </option>
+                            <option value="CO2">CO₂ Air Quality</option>
+                            <option value="TEMP">Temperature</option>
+                            <option value="LIGHT">Light Levels</option>
+                            <option value="MOTION">Motion Detection</option>
+                            <option value="NOISE">Noise Levels</option>
+                            <option value="HUMIDITY">Humidity</option>
+                            <option value="TEMPEX">HVAC Flow (TEMPex)</option>
+                            <option value="PR">Presence & Light</option>
+                            <option value="SECURITY">Security Alerts</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </section>
-    
-    <!-- Alerts Section -->
-    <section class="alerts-section">
-        <h3 class="section-title">🚨 Active Alerts</h3>
-        <div class="alerts-grid">
-            <div class="alert-card critical">
-                <div class="alert-icon">⚠️</div>
-                <div class="alert-content">
-                    <h4>Critical CO2 Level</h4>
-                    <p>Sensor CO2-B2 detected 1200 ppm</p>
-                    <span class="alert-time">2 minutes ago</span>
-                </div>
-            </div>
 
-            <div class="alert-card warning">
-                <div class="alert-icon">🔔</div>
-                <div class="alert-content">
-                    <h4>High Temperature</h4>
-                    <p>Room A-103 temperature at 28°C</p>
-                    <span class="alert-time">15 minutes ago</span>
-                </div>
-            </div>
-
-            <div class="alert-card info">
-                <div class="alert-icon">ℹ️</div>
-                <div class="alert-content">
-                    <h4>Sensor Offline</h4>
-                    <p>DESK-F1-12 not responding</p>
-                    <span class="alert-time">1 hour ago</span>
-                </div>
-            </div>
-
-            <div class="alert-card success">
-                <div class="alert-icon">✅</div>
-                <div class="alert-content">
-                    <h4>System Restored</h4>
-                    <p>Gateway rpi-mantu back online</p>
-                    <span class="alert-time">2 hours ago</span>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Live Sensor Data Section -->
-    <section class="live-section">
-        <h3 class="section-title" id="live-section-title">📊 Live Desk Occupancy - Châteaudun Office</h3>
-        <div class="live-grid">
-            <!-- 3D Building Visualization -->
-            <div class="floor-plan-card">
-                <div class="building-3d-header">
-                    <h4 id="building-title">🏢 Châteaudun Office Building</h4>
-                    <button id="back-to-3d-btn" class="back-to-building" style="display: none;" onclick="return3DView()">
-                        ← Back to 3D View
+                <div
+                    class="last-refresh"
+                    style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        gap: 1rem;
+                    "
+                >
+                    <span
+                        >🔄 Last refresh:
+                        <strong id="last-refresh-time"
+                            >17/11/2025 11:23:47</strong
+                        ></span
+                    >
+                    <button
+                        id="histogram-refresh-btn"
+                        class="refresh-btn"
+                        style="margin: 0; width: auto; min-width: 180px"
+                    >
+                        🔄 Update Histogram
                     </button>
                 </div>
-                
-                <!-- 3D Canvas Container -->
-                <div id="building-3d-container" class="building-3d-container">
-                    <canvas id="building-canvas"></canvas>
-                    <div class="building-controls">
-                        <div class="control-hint">
-                            <span>🖱️ Rotate: Left Click + Drag</span>
-                            <span>🔍 Zoom: Scroll</span>
-                            <span>👆 Click floor to enter</span>
+
+                <!-- Sensor List Container -->
+                <div
+                    class="sensor-list-container"
+                    id="sensor-list-container"
+                    style="display: none; margin-top: 20px"
+                >
+                    <div class="sensor-list-header">
+                        <span
+                            >Available Sensors (<span id="sensor-count">0</span
+                            >)</span
+                        >
+                        <button
+                            id="select-all-sensors-btn"
+                            class="select-all-btn"
+                        >
+                            Select All
+                        </button>
+                    </div>
+                    <div class="sensor-list" id="sensor-list">
+                        <div class="sensor-list-placeholder">
+                            Sensors will load automatically based on your
+                            filters...
                         </div>
                     </div>
-                    <div id="floor-info-overlay" class="floor-info-overlay"></div>
                 </div>
-                
-                <!-- 2D Floor Plan View (Hidden by default) -->
-                <div id="floor-plan-2d" class="floor-plan-2d" style="display: none;">
-                    <div class="floor-plan-header">
-                        <h4 id="current-floor-title">Floor 1 - Ceiling View</h4>
-                    </div>
-                    
-                    <div class="floor-plan">
-                        <!-- Desk Grid -->
-                        <div class="desk-grid" id="desk-grid">
-                            <!-- Desks will be dynamically generated -->
+            </section>
+
+            <!-- Alerts Section -->
+            <section class="alerts-section">
+                <h3 class="section-title">🚨 Active Alerts</h3>
+                <div class="alerts-grid">
+                    <div class="alert-card critical">
+                        <div class="alert-icon">⚠️</div>
+                        <div class="alert-content">
+                            <h4>Critical CO2 Level</h4>
+                            <p>Sensor CO2-B2 detected 1200 ppm</p>
+                            <span class="alert-time">2 minutes ago</span>
                         </div>
-                        
-                        <!-- Legend -->
-                        <div class="floor-legend">
-                            <div class="legend-item">
-                                <span class="legend-dot free"></span>
-                                <span>Free</span>
+                    </div>
+
+                    <div class="alert-card warning">
+                        <div class="alert-icon">🔔</div>
+                        <div class="alert-content">
+                            <h4>High Temperature</h4>
+                            <p>Room A-103 temperature at 28°C</p>
+                            <span class="alert-time">15 minutes ago</span>
+                        </div>
+                    </div>
+
+                    <div class="alert-card info">
+                        <div class="alert-icon">ℹ️</div>
+                        <div class="alert-content">
+                            <h4>Sensor Offline</h4>
+                            <p>DESK-F1-12 not responding</p>
+                            <span class="alert-time">1 hour ago</span>
+                        </div>
+                    </div>
+
+                    <div class="alert-card success">
+                        <div class="alert-icon">✅</div>
+                        <div class="alert-content">
+                            <h4>System Restored</h4>
+                            <p>Gateway rpi-mantu back online</p>
+                            <span class="alert-time">2 hours ago</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Live Sensor Data Section -->
+            <section class="live-section">
+                <h3 class="section-title" id="live-section-title">
+                    📊 Live Desk Occupancy - Châteaudun Office
+                </h3>
+                <div class="live-grid">
+                    <!-- 3D Building Visualization -->
+                    <div class="floor-plan-card">
+                        <div class="building-3d-header">
+                            <h4 id="building-title">
+                                🏢 Châteaudun Office Building
+                            </h4>
+                            <button
+                                id="back-to-3d-btn"
+                                class="back-to-building"
+                                style="display: none"
+                                onclick="return3DView()"
+                            >
+                                ← Back to 3D View
+                            </button>
+                        </div>
+
+                        <!-- 3D Canvas Container -->
+                        <div
+                            id="building-3d-container"
+                            class="building-3d-container"
+                            data-site="CHATEAUDUN"
+                        >
+                            <canvas id="building-canvas"></canvas>
+                            <div class="building-controls">
+                                <div class="control-hint">
+                                    <span>🖱️ Rotate: Left Click + Drag</span>
+                                    <span>🔍 Zoom: Scroll</span>
+                                    <span>👆 Click floor to enter</span>
+                                </div>
                             </div>
-                            <div class="legend-item">
-                                <span class="legend-dot used"></span>
-                                <span>Used</span>
+                            <div
+                                id="floor-info-overlay"
+                                class="floor-info-overlay"
+                            ></div>
+                        </div>
+
+                        <!-- 2D Floor Plan View (Hidden by default) -->
+                        <div
+                            id="floor-plan-2d"
+                            class="floor-plan-2d"
+                            style="display: none"
+                        >
+                            <div class="floor-plan-header">
+                                <h4 id="current-floor-title">
+                                    Floor 1 - Ceiling View
+                                </h4>
                             </div>
-                            <div class="legend-item">
-                                <span class="legend-dot invalid"></span>
-                                <span>Invalid</span>
+
+                            <div class="floor-plan">
+                                <!-- Desk Grid -->
+                                <div class="desk-grid" id="desk-grid">
+                                    <!-- Desks will be dynamically generated -->
+                                </div>
+
+                                <!-- Legend -->
+                                <div class="floor-legend">
+                                    <div class="legend-item">
+                                        <span class="legend-dot free"></span>
+                                        <span>Free</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-dot used"></span>
+                                        <span>Used</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-dot invalid"></span>
+                                        <span>Invalid</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Dynamic Sensor Stats -->
-            <div class="office-stats" id="sensor-stats-container">
-                <!-- Stats cards will be dynamically generated based on sensor type -->
-                <div class="stat-card" data-chart-index="0">
-                    <h4 class="stat-card-title">Open_05-01</h4>
-                    <div class="chart-container">
-                        <canvas class="chart-office"></canvas>
-                    </div>
-                </div>
-
-                <div class="stat-card" data-chart-index="1">
-                    <h4 class="stat-card-title">Open_05-02</h4>
-                    <div class="chart-container">
-                        <canvas class="chart-office"></canvas>
-                    </div>
-                </div>
-
-                <div class="stat-card" data-chart-index="2">
-                    <h4 class="stat-card-title">Meeting Room A</h4>
-                    <div class="chart-container">
-                        <canvas class="chart-office"></canvas>
-                    </div>
-                </div>
-
-                <div class="stat-card" data-chart-type="total">
-                    <h4 class="stat-card-title">Total Live Data</h4>
-                    <div class="chart-container">
-                        <canvas id="chart-total"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Historical Data Section -->
-    <section class="historical-section">
-        <h3 class="section-title" id="historical-section-title">📈 Historical Sensor Data - Châteaudun Office</h3>
-
-        <div class="historical-grid">
-
-            <!-- Daily History Table -->
-            <div class="chart-card">
-                <h4>Desk Occupation History</h4>
-                <div class="history-table-container">
-                    <table class="history-table">
-                        <thead>
-                            <tr>
-                                <th>Date & Time</th>
-                                <th>Occupancy</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="2" style="text-align: center; color: #999;">
-                                    Select sensors to view occupation history
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Daily Sensor Cost Chart -->
-            <div class="chart-card">
-                <div class="cost-summary">
-                    <div>
-                        <div class="cost-card">
-                            <span class="cost-label">Total Monthly Cost</span>
-                            <span class="cost-value">€842.50</span>
+                    <!-- Dynamic Sensor Stats -->
+                    <div class="office-stats" id="sensor-stats-container">
+                        <div class="stat-card" data-chart-index="0">
+                            <h4 class="stat-card-title">Open_05-01</h4>
+                            <div class="chart-container">
+                                <canvas class="chart-office"></canvas>
+                            </div>
                         </div>
-                        <div class="cost-card">
-                            <span class="cost-label">Average Daily Cost</span>
-                            <span class="cost-value">€27.82</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="canvas-wrapper">
-                    <canvas id="chart-sensor-cost"></canvas>
-                </div>
-            </div>
 
-            
-            <!-- Global Stats -->
-            <div class="chart-card">
-                <h4 id="global-chart-title">Global Statistics</h4>
-                <div class="global-occupation">
-                    <div class="doughnut-container">
-                        <div class="doughnut-chart">
-                            <canvas id="chart-global"></canvas>
-                            <div class="global-percentage" id="global-percentage-value">0.0%</div>
+                        <div class="stat-card" data-chart-index="1">
+                            <h4 class="stat-card-title">Open_05-02</h4>
+                            <div class="chart-container">
+                                <canvas class="chart-office"></canvas>
+                            </div>
                         </div>
-                        <div class="doughnut-labels">
-                            <div class="stat-legend" id="global-legend">
-                                <div class="custom-label"><span class="dot free"></span> Free</div>
-                                <div class="custom-label"><span class="dot used"></span> Occupied</div>
+
+                        <div class="stat-card" data-chart-index="2">
+                            <h4 class="stat-card-title">Meeting Room A</h4>
+                            <div class="chart-container">
+                                <canvas class="chart-office"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="stat-card" data-chart-type="total">
+                            <h4 class="stat-card-title">Total Live Data</h4>
+                            <div class="chart-container">
+                                <canvas id="chart-total"></canvas>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Histogram Chart (New) -->
-            <div class="chart-card full-width">
-                <div class="histogram-header">
-                    <h4 id="histogram-chart-title">📊 Sensor Data Trends - Occupancy (Last 7 Days, Daily)</h4>
-                    <div class="histogram-summary" id="histogram-summary">
-                        <span class="summary-item">Total Sensors: <strong id="summary-total-sensors">--</strong></span>
-                        <span class="summary-item">Active: <strong id="summary-active-sensors">--</strong></span>
-                        <span class="summary-item">Avg: <strong id="summary-avg-value">--</strong></span>
-                        <span class="summary-item">Min: <strong id="summary-min-value">--</strong></span>
-                        <span class="summary-item">Max: <strong id="summary-max-value">--</strong></span>
+            </section>
+
+            <!-- Historical Data Section -->
+            <section class="historical-section">
+                <h3 class="section-title" id="historical-section-title">
+                    📈 Historical Sensor Data - Châteaudun Office
+                </h3>
+
+                <div class="historical-grid">
+                    <!-- Daily History Table -->
+                    <div class="chart-card">
+                        <h4>Desk Occupation History</h4>
+                        <div class="history-table-container">
+                            <table class="history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Occupancy</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td
+                                            colspan="2"
+                                            style="
+                                                text-align: center;
+                                                color: #999;
+                                            "
+                                        >
+                                            Select sensors to view occupation
+                                            history
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Daily Sensor Cost Chart -->
+                    <div class="chart-card">
+                        <div class="cost-summary">
+                            <div>
+                                <div class="cost-card">
+                                    <span class="cost-label"
+                                        >Total Monthly Cost</span
+                                    >
+                                    <span class="cost-value">€842.50</span>
+                                </div>
+                                <div class="cost-card">
+                                    <span class="cost-label"
+                                        >Average Daily Cost</span
+                                    >
+                                    <span class="cost-value">€27.82</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="canvas-wrapper">
+                            <canvas id="chart-sensor-cost"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Global Stats -->
+                    <div class="chart-card">
+                        <h4 id="global-chart-title">Global Statistics</h4>
+                        <div class="global-occupation">
+                            <div class="doughnut-container">
+                                <div class="doughnut-chart">
+                                    <canvas id="chart-global"></canvas>
+                                    <div
+                                        class="global-percentage"
+                                        id="global-percentage-value"
+                                    >
+                                        0.0%
+                                    </div>
+                                </div>
+                                <div class="doughnut-labels">
+                                    <div class="stat-legend" id="global-legend">
+                                        <div class="custom-label">
+                                            <span class="dot free"></span> Free
+                                        </div>
+                                        <div class="custom-label">
+                                            <span class="dot used"></span>
+                                            Occupied
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Histogram Chart (New) -->
+                    <div class="chart-card full-width">
+                        <div class="histogram-header">
+                            <h4 id="histogram-chart-title">
+                                📊 Sensor Data Trends - Occupancy (Last 7 Days,
+                                Daily)
+                            </h4>
+                            <div
+                                class="histogram-summary"
+                                id="histogram-summary"
+                            >
+                                <span class="summary-item"
+                                    >Total Sensors:
+                                    <strong id="summary-total-sensors"
+                                        >--</strong
+                                    ></span
+                                >
+                                <span class="summary-item"
+                                    >Occupied:
+                                    <strong id="summary-active-sensors"
+                                        >--</strong
+                                    ></span
+                                >
+                                <span class="summary-item"
+                                    >Avg:
+                                    <strong id="summary-avg-value"
+                                        >--</strong
+                                    ></span
+                                >
+                                <span class="summary-item"
+                                    >Min:
+                                    <strong id="summary-min-value"
+                                        >--</strong
+                                    ></span
+                                >
+                                <span class="summary-item"
+                                    >Max:
+                                    <strong id="summary-max-value"
+                                        >--</strong
+                                    ></span
+                                >
+                            </div>
+                        </div>
+                        <div class="canvas-wrapper">
+                            <canvas
+                                id="chart-historical-bar"
+                                height="500"
+                            ></canvas>
+                        </div>
+                        <div
+                            class="histogram-loading"
+                            id="histogram-loading"
+                            style="display: none"
+                        >
+                            <span>🔄 Loading histogram data...</span>
+                        </div>
                     </div>
                 </div>
-                <div class="canvas-wrapper">
-                    <canvas id="chart-historical-bar" height="500"></canvas>
-                </div>
-                <div class="histogram-loading" id="histogram-loading" style="display: none;">
-                    <span>🔄 Loading histogram data...</span>
-                </div>
-            </div>
+            </section>
+        </main>
 
-        </div>
-    </section>
-</main>
+        <script src="/javascript/deskSensorConfig.js"></script>
+        <script src="/javascript/sensorOverlays.js"></script>
+        <script src="/javascript/architecturalFloorPlan.js"></script>
+        <script src="/javascript/building3D.js"></script>
+        <script src="/javascript/alerts.js"></script>
+        <script src="/javascript/dashboard.js"></script>
+        <script>
+            function toggleMenu() {
+                document
+                    .getElementById("dropdownMenu")
+                    .classList.toggle("show");
+            }
 
-
-<script src="/javascript/deskSensorConfig.js"></script>
-<script src="/javascript/sensorOverlays.js"></script>
-<script src="/javascript/architecturalFloorPlan.js"></script>
-<script src="/javascript/building3D.js"></script>
-<script src="/javascript/alerts.js"></script>
-<script src="/javascript/dashboard.js"></script>
-<script>
-    function toggleMenu() {
-        document.getElementById("dropdownMenu").classList.toggle("show");
-    }
-
-    window.onclick = function(event) {
-        if (!event.target.closest('.dropdown')) {
-            document.getElementById("dropdownMenu").classList.remove("show");
-        }
-    }
-</script>
-</body>
+            window.onclick = function (event) {
+                if (!event.target.closest(".dropdown")) {
+                    const menu = document.getElementById("dropdownMenu");
+                    if (menu) {
+                        menu.classList.remove("show");
+                    }
+                }
+            };
+        </script>
+    </body>
 </html>

@@ -9,6 +9,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 
 @Service
 public class PredictionClientService {
@@ -63,10 +66,21 @@ public class PredictionClientService {
      */
     public HistoricalResponse getHistoricalPrediction(String horizon, String t0Iso) {
         try {
+            // Нормализуем t0 в формат с Z (UTC)
+            String t0ForApi = t0Iso;
+            try {
+                OffsetDateTime odt = OffsetDateTime.parse(t0Iso);
+                Instant instant = odt.toInstant();      // переводим в UTC
+                t0ForApi = instant.toString();          // "2024-08-06T09:30:00Z"
+            } catch (DateTimeParseException e) {
+                // если вдруг формат неожиданный — шлём как есть, но логируем
+                System.out.println("WARN: could not parse t0Iso = " + t0Iso + " : " + e.getMessage());
+            }
+
             URI uri = UriComponentsBuilder
                     .fromUriString(pythonBaseUrl + "/predict/historical")
                     .queryParam("horizon", horizon)
-                    .queryParam("t0", t0Iso)
+                    .queryParam("t0", t0ForApi)
                     .build()
                     .toUri();
 
