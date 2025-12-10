@@ -29,11 +29,13 @@ public class DashboardServiceImpl implements DashboardService {
 
     private final SensorDao sensorDao;
     private final SensorDataDao sensorDataDao;
+    private final AlertService alertService;
 
     @Autowired
-    public DashboardServiceImpl(SensorDao sensorDao, SensorDataDao sensorDataDao) {
+    public DashboardServiceImpl(SensorDao sensorDao, SensorDataDao sensorDataDao, AlertService alertService) {
         this.sensorDao = sensorDao;
         this.sensorDataDao = sensorDataDao;
+        this.alertService = alertService;
     }
 
     /**
@@ -75,12 +77,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     private List<Alert> getAlerts() {
-        return List.of(
-            new Alert("critical", "⚠️", "Critical CO2 Level", "Sensor CO2-B2 detected 1200 ppm", "2 minutes ago"),
-            new Alert("warning", "🔔", "High Temperature", "Room A-103 temperature at 28°C", "15 minutes ago"),
-            new Alert("info", "ℹ️", "Sensor Offline", "DESK-F1-12 not responding", "1 hour ago"),
-            new Alert("success", "✅", "System Restored", "Gateway rpi-mantu back online", "2 hours ago")
-        );
+        return alertService.getCurrentAlerts();
     }
 
     private List<LiveSensorData> getLiveSensorData(String building, String floor, String sensorType) {

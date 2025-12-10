@@ -157,6 +157,29 @@ public class SensorDataDao {
         }
     }
 
+    public Optional<SensorData> findLatestBySensor(String idSensor) {
+        String query = "SELECT * FROM sensor_data WHERE id_sensor = ? ORDER BY received_at DESC LIMIT 1";
+
+        try {
+            List<SensorData> result = jdbcTemplate.query(query, (rs, rowNum) -> {
+                LocalDateTime receivedAt = rs.getTimestamp("received_at") != null ? rs.getTimestamp("received_at").toLocalDateTime() : null;
+                String stringValue = rs.getString("string_value");
+                String vt = rs.getString("value_type");
+
+                if (receivedAt == null || stringValue == null || vt == null) {
+                    return null; // Skip invalid records
+                }
+
+                return new SensorData(rs.getString("id_sensor"), receivedAt, stringValue, vt);
+            }, idSensor);
+
+            return result.stream().filter(java.util.Objects::nonNull).findFirst();
+        } catch (Exception e) {
+            // Log the exception if necessary
+            return Optional.empty();
+        }
+    }
+
     public Optional<SensorData> findLastValueBefore(String idSensor, PayloadValueType channel, Instant instant) {
         String query = "SELECT * FROM sensor_data WHERE id_sensor = ? AND value_type = ? AND received_at < ? ORDER BY received_at DESC LIMIT 1";
 

@@ -3,6 +3,7 @@ package com.amaris.sensorprocessor.controller;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.User;
 import com.amaris.sensorprocessor.model.dashboard.*;
+import com.amaris.sensorprocessor.service.AlertService;
 import com.amaris.sensorprocessor.service.DashboardService;
 import com.amaris.sensorprocessor.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -25,11 +26,13 @@ public class DashboardController {
 
     private final UserService userService;
     private final DashboardService dashboardService;
+    private final AlertService alertService;
 
     @Autowired
-    public DashboardController(UserService userService, DashboardService dashboardService) {
+    public DashboardController(UserService userService, DashboardService dashboardService, AlertService alertService) {
         this.userService = userService;
         this.dashboardService = dashboardService;
+        this.alertService = alertService;
     }
 
     @GetMapping("/dashboard")
@@ -50,6 +53,12 @@ public class DashboardController {
             @RequestParam(required = false) String sensorType,
             @RequestParam(required = false) String timeSlot) {
         return dashboardService.getDashboardData(year, month, building, floor, sensorType, timeSlot);
+    }
+
+    @GetMapping("/api/test-alerts")
+    @ResponseBody
+    public List<Alert> getTestAlerts() {
+        return alertService.getCurrentAlerts();
     }
 
     @GetMapping("/api/dashboard/occupancy")

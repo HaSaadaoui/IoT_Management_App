@@ -187,7 +187,6 @@ class DashboardManager {
 
             // Update all visualizations
             console.log('Updating dashboard visualizations...');
-            throw "TODO: updateDashboard(data)";
             this.updateDashboard(data);
 
             // Update last refresh time
@@ -300,8 +299,50 @@ class DashboardManager {
     }
 
     updateAlerts(alerts) {
-        // Alerts are static in HTML, could be made dynamic here
-        console.log('Alerts updated:', alerts?.length || 0);
+        console.log('=== Updating Alerts ===');
+        console.log('Alerts received:', alerts?.length || 0);
+        
+        const alertsGrid = document.querySelector('.alerts-grid');
+        if (!alertsGrid) {
+            console.warn('Alerts grid not found');
+            return;
+        }
+
+        if (!alerts || alerts.length === 0) {
+            // Show no alerts message
+            alertsGrid.innerHTML = `
+                <div class="alert-card info">
+                    <div class="alert-icon">ℹ️</div>
+                    <div class="alert-content">
+                        <h4>No Active Alerts</h4>
+                        <p>All systems are operating normally</p>
+                        <span class="alert-time">Just now</span>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        // Clear existing alerts
+        alertsGrid.innerHTML = '';
+
+        // Add new alerts
+        alerts.forEach((alert, index) => {
+            const alertCard = document.createElement('div');
+            alertCard.className = `alert-card ${alert.level}`;
+            alertCard.innerHTML = `
+                <div class="alert-icon">${alert.icon}</div>
+                <div class="alert-content">
+                    <h4>${alert.title}</h4>
+                    <p>${alert.message}</p>
+                    <span class="alert-time">${alert.time}</span>
+                </div>
+            `;
+            
+            alertsGrid.appendChild(alertCard);
+        });
+
+        console.log(`Rendered ${alerts.length} alerts`);
     }
 
     updateLiveData(liveData) {
