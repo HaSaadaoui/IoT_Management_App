@@ -90,7 +90,7 @@ class ArchitecturalFloorPlan {
             case "LEVALLOIS":
                     switch (this.floorData.floorNumber) {
                     case 0:
-                        this.drawGroundFloorLevallois(deskOccupancy);
+                        this.drawFloorLevallois(deskOccupancy);
                         break;
                     }
                 break;
@@ -158,8 +158,8 @@ class ArchitecturalFloorPlan {
         }
     }
 
-    drawGroundFloorLevallois(deskOccupancy = {}) {
-        const g = this.createGroup('ground-floor');
+    drawFloorLevallois(deskOccupancy = {}) {
+        const g = this.createGroup('floor-3');
         
         // Main building outline
         const outerWall = [
@@ -217,6 +217,11 @@ class ArchitecturalFloorPlan {
         this.drawLine(g, [{ x: 920, y: 320 }, { x: 920, y: 370 }], this.colors.wallStroke, 2);
         this.drawLine(g, [{ x: 500, y: 320 }, { x: 500, y: 370 }], this.colors.wallStroke, 2);
 
+        this.drawLine(g, [{ x: 265, y: 290 }, { x: 325, y: 290 }], this.colors.wallStroke, 2);
+        this.drawLine(g, [{ x: 265, y: 310 }, { x: 325, y: 310 }], this.colors.wallStroke, 2);
+        this.drawLine(g, [{ x: 265, y: 290 }, { x: 265, y: 310 }], this.colors.wallStroke, 2);
+        this.drawLine(g, [{ x: 325, y: 290 }, { x: 325, y: 310 }], this.colors.wallStroke, 2);
+
         // Windows 
         this.drawWindow(g, 1100, 500, 50, 'horizontal');
 
@@ -234,143 +239,173 @@ class ArchitecturalFloorPlan {
         this.drawDoor(g, 760, 300, 20, 4, 'horizontal');
         this.drawDoor(g, 655, 320, 20, 4, 'horizontal');
         this.drawDoor(g, 705, 370, 20, 4, 'horizontal');
+        this.drawDoor(g, 605, 320, 20, 4, 'horizontal');
+        this.drawDoor(g, 280, 290, 20, 4, 'horizontal');
+        this.drawDoor(g, 310, 290, 20, 4, 'horizontal');
         
         // ONLY DRAW DESKS IF IN DESK MODE
         if (this.sensorMode === 'DESK') {
             // Interview room 1
-            this.drawWorkstation(g, 1100, 425, 'invalid', 'D01', 30, 50, 'bottom');
+            this.drawWorkstation(g, 1110, 425, deskOccupancy["IR2"] || "invalid", 'IR2', 30, 50, 'bottom');
             // Interview room 2
-            this.drawWorkstation(g, 1070, 425, 'invalid', 'D02', 30, 50, 'bottom');
+            this.drawWorkstation(g, 1060, 425, deskOccupancy["IR1"] || "invalid", 'IR1', 30, 50, 'bottom');
+            // Director Office 1
+            this.drawWorkstation(g, 1010, 425, deskOccupancy["B4"] || "invalid", 'B4', 30, 50, 'bottom');
+            // Director Office 2
+            this.drawWorkstation(g, 960, 425, deskOccupancy["B3"] || "invalid", 'B3', 30, 50, 'bottom');
             // Meeting Room 6 seats 1
-            this.drawWorkstation(g, 885, 425, 'invalid', 'D03', 50, 30, 'bottom');
+            this.drawWorkstation(g, 885, 435, deskOccupancy["SR2"] || "invalid", 'SR2', 50, 30, 'none');
+            this.drawChair(g, 900, 420);
+            this.drawChair(g, 920, 420);
+            this.drawChair(g, 900, 480);
+            this.drawChair(g, 920, 480);
             // Meeting Room 6 seats 2
-            this.drawWorkstation(g, 810, 425, 'invalid', 'D04', 50, 30, 'bottom');
+            this.drawWorkstation(g, 810, 435, deskOccupancy["SR1"] || "invalid", 'SR1', 50, 30, 'none');
+            this.drawChair(g, 825, 420);
+            this.drawChair(g, 845, 420);
+            this.drawChair(g, 825, 480);
+            this.drawChair(g, 845, 480);
             // Valuement OS
             // Block 1
-            this.drawWorkstation(g, 735, 435, 'invalid', 'D05', 20, 30, 'left');
-            this.drawWorkstation(g, 735, 465, 'invalid', 'D06', 20, 30, 'left');
-            this.drawWorkstation(g, 755, 435, 'invalid', 'D07', 20, 30, 'right');
-            this.drawWorkstation(g, 755, 465, 'invalid', 'D08', 20, 30, 'right');
-            this.drawWorkstation(g, 740, 415, 'invalid', 'D09', 30, 20, 'top');
+            this.drawWorkstation(g, 735, 435, deskOccupancy["V07"] || "invalid", '07', 20, 30, 'left');
+            this.drawWorkstation(g, 735, 465, deskOccupancy["V06"] || "invalid", '06', 20, 30, 'left');
+            this.drawWorkstation(g, 755, 435, deskOccupancy["V09"] || "invalid", '09', 20, 30, 'right');
+            this.drawWorkstation(g, 755, 465, deskOccupancy["V10"] || "invalid", '10', 20, 30, 'right');
+            this.drawWorkstation(g, 740, 415, deskOccupancy["V08"] || "invalid", '08', 30, 20, 'top');
             // Block 2
-            this.drawWorkstation(g, 675, 435, 'invalid', 'D10', 20, 30, 'left');
-            this.drawWorkstation(g, 675, 465, 'invalid', 'D11', 20, 30, 'left');
-            this.drawWorkstation(g, 695, 435, 'invalid', 'D12', 20, 30, 'right');
-            this.drawWorkstation(g, 695, 465, 'invalid', 'D13', 20, 30, 'right');
-            this.drawWorkstation(g, 680, 415, 'invalid', 'D14', 30, 20, 'top');
+            this.drawWorkstation(g, 675, 435, deskOccupancy["V02"] || "invalid", '02', 20, 30, 'left');
+            this.drawWorkstation(g, 675, 465, deskOccupancy["V01"] || "invalid", '01', 20, 30, 'left');
+            this.drawWorkstation(g, 695, 435, deskOccupancy["V04"] || "invalid", '04', 20, 30, 'right');
+            this.drawWorkstation(g, 695, 465, deskOccupancy["V05"] || "invalid", '05', 20, 30, 'right');
+            this.drawWorkstation(g, 680, 415, deskOccupancy["V03"] || "invalid", '03', 30, 20, 'top');
             // Open Space 
             // Against the Valuement wall
-            this.drawWorkstation(g, 630, 425, 'invalid', 'D15', 20, 30, 'left');
-            this.drawWorkstation(g, 630, 455, 'invalid', 'D16', 20, 30, 'left');
+            this.drawWorkstation(g, 630, 425, deskOccupancy["D82"] || "invalid", 'D82', 20, 30, 'left');
+            this.drawWorkstation(g, 630, 455, deskOccupancy["D81"] || "invalid", 'D81', 20, 30, 'left');
             // Bottom Side
             // Block 1
-            this.drawWorkstation(g, 570, 405, 'invalid', 'D17', 20, 30, 'right');
-            this.drawWorkstation(g, 570, 435, 'invalid', 'D18', 20, 30, 'right');
-            this.drawWorkstation(g, 570, 465, 'invalid', 'D19', 20, 30, 'right');
-            this.drawWorkstation(g, 550, 405, 'invalid', 'D20', 20, 30, 'left');
-            this.drawWorkstation(g, 550, 435, 'invalid', 'D21', 20, 30, 'left');
-            this.drawWorkstation(g, 550, 465, 'invalid', 'D22', 20, 30, 'left');
+            this.drawWorkstation(g, 570, 405, deskOccupancy["D80"] || "invalid", 'D80', 20, 30, 'right');
+            this.drawWorkstation(g, 570, 435, deskOccupancy["D79"] || "invalid", 'D79', 20, 30, 'right');
+            this.drawWorkstation(g, 570, 465, deskOccupancy["D78"] || "invalid", 'D78', 20, 30, 'right');
+            this.drawWorkstation(g, 550, 405, deskOccupancy["D75"] || "invalid", 'D75', 20, 30, 'left');
+            this.drawWorkstation(g, 550, 435, deskOccupancy["D76"] || "invalid", 'D76', 20, 30, 'left');
+            this.drawWorkstation(g, 550, 465, deskOccupancy["D77"] || "invalid", 'D77', 20, 30, 'left');
             // Block 2
-            this.drawWorkstation(g, 490, 405, 'invalid', 'D23', 20, 30, 'right');
-            this.drawWorkstation(g, 490, 435, 'invalid', 'D24', 20, 30, 'right');
-            this.drawWorkstation(g, 490, 465, 'invalid', 'D25', 20, 30, 'right');
-            this.drawWorkstation(g, 470, 405, 'invalid', 'D26', 20, 30, 'left');
-            this.drawWorkstation(g, 470, 435, 'invalid', 'D27', 20, 30, 'left');
-            this.drawWorkstation(g, 470, 465, 'invalid', 'D28', 20, 30, 'left');
+            this.drawWorkstation(g, 490, 405, deskOccupancy["D74"] || "invalid", 'D74', 20, 30, 'right');
+            this.drawWorkstation(g, 490, 435, deskOccupancy["D73"] || "invalid", 'D73', 20, 30, 'right');
+            this.drawWorkstation(g, 490, 465, deskOccupancy["D72"] || "invalid", 'D72', 20, 30, 'right');
+            this.drawWorkstation(g, 470, 405, deskOccupancy["D69"] || "invalid", 'D69', 20, 30, 'left');
+            this.drawWorkstation(g, 470, 435, deskOccupancy["D70"] || "invalid", 'D70', 20, 30, 'left');
+            this.drawWorkstation(g, 470, 465, deskOccupancy["D71"] || "invalid", 'D71', 20, 30, 'left');
             // Block 3
-            this.drawWorkstation(g, 410, 405, 'invalid', 'D29', 20, 30, 'right');
-            this.drawWorkstation(g, 410, 435, 'invalid', 'D30', 20, 30, 'right');
-            this.drawWorkstation(g, 410, 465, 'invalid', 'D31', 20, 30, 'right');
-            this.drawWorkstation(g, 390, 405, 'invalid', 'D32', 20, 30, 'left');
-            this.drawWorkstation(g, 390, 435, 'invalid', 'D33', 20, 30, 'left');
-            this.drawWorkstation(g, 390, 465, 'invalid', 'D34', 20, 30, 'left');
+            this.drawWorkstation(g, 410, 405, deskOccupancy["D68"] || "invalid", 'D68', 20, 30, 'right');
+            this.drawWorkstation(g, 410, 435, deskOccupancy["D67"] || "invalid", 'D67', 20, 30, 'right');
+            this.drawWorkstation(g, 410, 465, deskOccupancy["D66"] || "invalid", 'D66', 20, 30, 'right');
+            this.drawWorkstation(g, 390, 405, deskOccupancy["D63"] || "invalid", 'D63', 20, 30, 'left');
+            this.drawWorkstation(g, 390, 435, deskOccupancy["D64"] || "invalid", 'D64', 20, 30, 'left');
+            this.drawWorkstation(g, 390, 465, deskOccupancy["D65"] || "invalid", 'D65', 20, 30, 'left');
             // Block 4
-            this.drawWorkstation(g, 330, 405, 'invalid', 'D35', 20, 30, 'right');
-            this.drawWorkstation(g, 330, 435, 'invalid', 'D36', 20, 30, 'right');
-            this.drawWorkstation(g, 330, 465, 'invalid', 'D37', 20, 30, 'right');
-            this.drawWorkstation(g, 310, 405, 'invalid', 'D38', 20, 30, 'left');
-            this.drawWorkstation(g, 310, 435, 'invalid', 'D39', 20, 30, 'left');
-            this.drawWorkstation(g, 310, 465, 'invalid', 'D40', 20, 30, 'left');
+            this.drawWorkstation(g, 330, 405, deskOccupancy["D62"] || "invalid", 'D62', 20, 30, 'right');
+            this.drawWorkstation(g, 330, 435, deskOccupancy["D61"] || "invalid", 'D61', 20, 30, 'right');
+            this.drawWorkstation(g, 330, 465, deskOccupancy["D60"] || "invalid", 'D60', 20, 30, 'right');
+            this.drawWorkstation(g, 310, 405, deskOccupancy["D57"] || "invalid", 'D57', 20, 30, 'left');
+            this.drawWorkstation(g, 310, 435, deskOccupancy["D58"] || "invalid", 'D58', 20, 30, 'left');
+            this.drawWorkstation(g, 310, 465, deskOccupancy["D59"] || "invalid", 'D59', 20, 30, 'left');
             // Block 5
-            this.drawWorkstation(g, 250, 405, 'invalid', 'D41', 20, 30, 'right');
-            this.drawWorkstation(g, 250, 435, 'invalid', 'D42', 20, 30, 'right');
-            this.drawWorkstation(g, 250, 465, 'invalid', 'D43', 20, 30, 'right');
-            this.drawWorkstation(g, 230, 405, 'invalid', 'D44', 20, 30, 'left');
-            this.drawWorkstation(g, 230, 435, 'invalid', 'D45', 20, 30, 'left');
-            this.drawWorkstation(g, 230, 465, 'invalid', 'D46', 20, 30, 'left');
+            this.drawWorkstation(g, 250, 405, deskOccupancy["D56"] || "invalid", 'D56', 20, 30, 'right');
+            this.drawWorkstation(g, 250, 435, deskOccupancy["D55"] || "invalid", 'D55', 20, 30, 'right');
+            this.drawWorkstation(g, 250, 465, deskOccupancy["D54"] || "invalid", 'D54', 20, 30, 'right');
+            this.drawWorkstation(g, 230, 405, deskOccupancy["D51"] || "invalid", 'D51', 20, 30, 'left');
+            this.drawWorkstation(g, 230, 435, deskOccupancy["D52"] || "invalid", 'D52', 20, 30, 'left');
+            this.drawWorkstation(g, 230, 465, deskOccupancy["D53"] || "invalid", 'D53', 20, 30, 'left');
             // Block 6 
-            this.drawWorkstation(g, 170, 400, 'invalid', 'D47', 20, 30, 'right','rotate(25 170 455)',215,435,195,420);
-            this.drawWorkstation(g, 170, 430, 'invalid', 'D48', 20, 30, 'right','rotate(25 170 455)',205,455,185,450);
-            this.drawWorkstation(g, 170, 460, 'invalid', 'D49', 20, 30, 'right','rotate(25 170 455)',195,480,172,480);
-            this.drawWorkstation(g, 150, 400, 'invalid', 'D50', 20, 30, 'left','rotate(25 170 455)',160,410,180,410);
-            this.drawWorkstation(g, 150, 430, 'invalid', 'D51', 20, 30, 'left','rotate(25 170 455)',150,435,165,440);
-            this.drawWorkstation(g, 150, 460, 'invalid', 'D52', 20, 30, 'left','rotate(25 170 455)',140,460,155,470);
+            this.drawWorkstation(g, 170, 400, deskOccupancy["D50"] || "invalid", 'D50', 20, 30, 'right','rotate(25 170 455)',215,435,195,420);
+            this.drawWorkstation(g, 170, 430, deskOccupancy["D49"] || "invalid", 'D49', 20, 30, 'right','rotate(25 170 455)',205,455,185,450);
+            this.drawWorkstation(g, 170, 460, deskOccupancy["D48"] || "invalid", 'D48', 20, 30, 'right','rotate(25 170 455)',195,480,172,480);
+            this.drawWorkstation(g, 150, 400, deskOccupancy["D45"] || "invalid", 'D45', 20, 30, 'left','rotate(25 170 455)',160,410,180,410);
+            this.drawWorkstation(g, 150, 430, deskOccupancy["D46"] || "invalid", 'D46', 20, 30, 'left','rotate(25 170 455)',150,435,165,440);
+            this.drawWorkstation(g, 150, 460, deskOccupancy["D47"] || "invalid", 'D47', 20, 30, 'left','rotate(25 170 455)',140,460,155,470);
             // Block 7 
-            this.drawWorkstation(g, 105, 350, 'invalid', 'D53', 20, 30, 'right','rotate(65 105 405)',155,415,145,400);
-            this.drawWorkstation(g, 105, 380, 'invalid', 'D54', 20, 30, 'right','rotate(65 105 405)',125,425,120,410);
-            this.drawWorkstation(g, 105, 410, 'invalid', 'D55', 20, 30, 'right','rotate(65 105 405)',100,440,95,420);
-            this.drawWorkstation(g, 85, 350, 'invalid', 'D56', 20, 30, 'left','rotate(65 105 405)',130,360,140,375);
-            this.drawWorkstation(g, 85, 380, 'invalid', 'D57', 20, 30, 'left','rotate(65 105 405)',95,375,110,390);
-            this.drawWorkstation(g, 85, 410, 'invalid', 'D58', 20, 30, 'left','rotate(65 105 405)',80,385,80,405);
+            this.drawWorkstation(g, 105, 350, deskOccupancy["D44"] || "invalid", 'D44', 20, 30, 'right','rotate(65 105 405)',155,415,145,400);
+            this.drawWorkstation(g, 105, 380, deskOccupancy["D43"] || "invalid", 'D43', 20, 30, 'right','rotate(65 105 405)',125,425,120,410);
+            this.drawWorkstation(g, 105, 410, deskOccupancy["D42"] || "invalid", 'D42', 20, 30, 'right','rotate(65 105 405)',100,440,95,420);
+            this.drawWorkstation(g, 85, 350, deskOccupancy["D39"] || "invalid", 'D39', 20, 30, 'left','rotate(65 105 405)',130,360,140,375);
+            this.drawWorkstation(g, 85, 380, deskOccupancy["D40"] || "invalid", 'D40', 20, 30, 'left','rotate(65 105 405)',95,375,110,390);
+            this.drawWorkstation(g, 85, 410, deskOccupancy["D41"] || "invalid", 'D41', 20, 30, 'left','rotate(65 105 405)',80,385,80,405);
             // Open Space left side
-            this.drawWorkstation(g, 60, 320, 'invalid', 'D59', 30, 20, 'top');
-            this.drawWorkstation(g, 90, 320, 'invalid', 'D60', 30, 20, 'top');
-            this.drawWorkstation(g, 60, 340, 'invalid', 'D61', 30, 20, 'bottom');
-            this.drawWorkstation(g, 90, 340, 'invalid', 'D62', 30, 20, 'bottom');
+            this.drawWorkstation(g, 60, 320, deskOccupancy["D36"] || "invalid", 'D36', 30, 20, 'top');
+            this.drawWorkstation(g, 90, 320, deskOccupancy["D35"] || "invalid", 'D35', 30, 20, 'top');
+            this.drawWorkstation(g, 60, 340, deskOccupancy["D37"] || "invalid", 'D37', 30, 20, 'bottom');
+            this.drawWorkstation(g, 90, 340, deskOccupancy["D38"] || "invalid", 'D38', 30, 20, 'bottom');
 
-            this.drawWorkstation(g, 115, 280, 'invalid', 'D63', 20, 30, 'right','rotate(135 115 275)',80,285,95,270);
-            this.drawWorkstation(g, 115, 250, 'invalid', 'D64', 20, 30, 'right','rotate(135 115 275)',100,300,115,290);
-            this.drawWorkstation(g, 95, 280, 'invalid', 'D65', 20, 30, 'left','rotate(135 115 275)',120,235,105,250);
-            this.drawWorkstation(g, 95, 250, 'invalid', 'D66', 20, 30, 'left','rotate(135 115 275)',135,255,130,270);
+            this.drawWorkstation(g, 115, 280, deskOccupancy["D33"] || "invalid", 'D33', 20, 30, 'right','rotate(135 115 275)',80,285,95,270);
+            this.drawWorkstation(g, 115, 250, deskOccupancy["D34"] || "invalid", 'D34', 20, 30, 'right','rotate(135 115 275)',100,300,115,290);
+            this.drawWorkstation(g, 95, 280, deskOccupancy["D32"] || "invalid", 'D32', 20, 30, 'left','rotate(135 115 275)',120,235,105,250);
+            this.drawWorkstation(g, 95, 250, deskOccupancy["D31"] || "invalid", 'D31', 20, 30, 'left','rotate(135 115 275)',135,255,130,270);
 
-            this.drawWorkstation(g, 180, 210, 'invalid', 'D67', 20, 30, 'right');
-            this.drawWorkstation(g, 180, 240, 'invalid', 'D68', 20, 30, 'right');
-            this.drawWorkstation(g, 160, 210, 'invalid', 'D69', 20, 30, 'left');
-            this.drawWorkstation(g, 160, 240, 'invalid', 'D70', 20, 30, 'left');
+            this.drawWorkstation(g, 180, 210, deskOccupancy["D28"] || "invalid", 'D28', 20, 30, 'right');
+            this.drawWorkstation(g, 180, 240, deskOccupancy["D27"] || "invalid", 'D27', 20, 30, 'right');
+            this.drawWorkstation(g, 160, 210, deskOccupancy["D29"] || "invalid", 'D29', 20, 30, 'left');
+            this.drawWorkstation(g, 160, 240, deskOccupancy["D30"] || "invalid", 'D30', 20, 30, 'left');
 
-            this.drawWorkstation(g, 260, 210, 'invalid', 'D71', 20, 30, 'right');
-            this.drawWorkstation(g, 260, 240, 'invalid', 'D72', 20, 30, 'right');
-            this.drawWorkstation(g, 240, 210, 'invalid', 'D73', 20, 30, 'left');
-            this.drawWorkstation(g, 240, 240, 'invalid', 'D74', 20, 30, 'left');
+            this.drawWorkstation(g, 260, 210, deskOccupancy["D24"] || "invalid", 'D24', 20, 30, 'right');
+            this.drawWorkstation(g, 260, 240, deskOccupancy["D23"] || "invalid", 'D23', 20, 30, 'right');
+            this.drawWorkstation(g, 240, 210, deskOccupancy["D25"] || "invalid", 'D25', 20, 30, 'left');
+            this.drawWorkstation(g, 240, 240, deskOccupancy["D26"] || "invalid", 'D26', 20, 30, 'left');
 
-            this.drawWorkstation(g, 340, 210, 'invalid', 'D75', 20, 30, 'right');
-            this.drawWorkstation(g, 340, 240, 'invalid', 'D76', 20, 30, 'right');
-            this.drawWorkstation(g, 320, 210, 'invalid', 'D77', 20, 30, 'left');
-            this.drawWorkstation(g, 320, 240, 'invalid', 'D78', 20, 30, 'left');
+            this.drawWorkstation(g, 340, 210, deskOccupancy["D20"] || "invalid", 'D20', 20, 30, 'right');
+            this.drawWorkstation(g, 340, 240, deskOccupancy["D19"] || "invalid", 'D19', 20, 30, 'right');
+            this.drawWorkstation(g, 320, 210, deskOccupancy["D21"] || "invalid", 'D21', 20, 30, 'left');
+            this.drawWorkstation(g, 320, 240, deskOccupancy["D22"] || "invalid", 'D22', 20, 30, 'left');
             // Open Space top side
-            this.drawWorkstation(g, 420, 210, 'invalid', 'D79', 20, 30, 'right');
-            this.drawWorkstation(g, 420, 240, 'invalid', 'D80', 20, 30, 'right');
-            this.drawWorkstation(g, 420, 270, 'invalid', 'D81', 20, 30, 'right');
-            this.drawWorkstation(g, 400, 210, 'invalid', 'D82', 20, 30, 'left');
-            this.drawWorkstation(g, 400, 240, 'invalid', 'D83', 20, 30, 'left');
-            this.drawWorkstation(g, 400, 270, 'invalid', 'D84', 20, 30, 'left');
+            this.drawWorkstation(g, 420, 210, deskOccupancy["D15"] || "invalid", 'D15', 20, 30, 'right');
+            this.drawWorkstation(g, 420, 240, deskOccupancy["D14"] || "invalid", 'D14', 20, 30, 'right');
+            this.drawWorkstation(g, 420, 270, deskOccupancy["D13"] || "invalid", 'D13', 20, 30, 'right');
+            this.drawWorkstation(g, 400, 210, deskOccupancy["D20"] || "invalid", 'D16', 20, 30, 'left');
+            this.drawWorkstation(g, 400, 240, deskOccupancy["D19"] || "invalid", 'D17', 20, 30, 'left');
+            this.drawWorkstation(g, 400, 270, deskOccupancy["D18"] || "invalid", 'D18', 20, 30, 'left');
 
-            this.drawWorkstation(g, 500, 210, 'invalid', 'D85', 20, 30, 'right');
-            this.drawWorkstation(g, 500, 240, 'invalid', 'D86', 20, 30, 'right');
-            this.drawWorkstation(g, 500, 270, 'invalid', 'D87', 20, 30, 'right');
-            this.drawWorkstation(g, 480, 210, 'invalid', 'D88', 20, 30, 'left');
-            this.drawWorkstation(g, 480, 240, 'invalid', 'D89', 20, 30, 'left');
-            this.drawWorkstation(g, 480, 270, 'invalid', 'D90', 20, 30, 'left');
+            this.drawWorkstation(g, 500, 210, deskOccupancy["D09"] || "invalid", 'D09', 20, 30, 'right');
+            this.drawWorkstation(g, 500, 240, deskOccupancy["D08"] || "invalid", 'D08', 20, 30, 'right');
+            this.drawWorkstation(g, 500, 270, deskOccupancy["D07"] || "invalid", 'D07', 20, 30, 'right');
+            this.drawWorkstation(g, 480, 210, deskOccupancy["D10"] || "invalid", 'D10', 20, 30, 'left');
+            this.drawWorkstation(g, 480, 240, deskOccupancy["D11"] || "invalid", 'D11', 20, 30, 'left');
+            this.drawWorkstation(g, 480, 270, deskOccupancy["D12"] || "invalid", 'D12', 20, 30, 'left');
 
-            this.drawWorkstation(g, 600, 210, 'invalid', 'D91', 20, 30, 'right');
-            this.drawWorkstation(g, 600, 240, 'invalid', 'D92', 20, 30, 'right');
-            this.drawWorkstation(g, 600, 270, 'invalid', 'D93', 20, 30, 'right');
-            this.drawWorkstation(g, 580, 210, 'invalid', 'D94', 20, 30, 'left');
-            this.drawWorkstation(g, 580, 240, 'invalid', 'D95', 20, 30, 'left');
-            this.drawWorkstation(g, 580, 270, 'invalid', 'D96', 20, 30, 'left');
+            this.drawWorkstation(g, 600, 210, deskOccupancy["D03"] || "invalid", 'D03', 20, 30, 'right');
+            this.drawWorkstation(g, 600, 240, deskOccupancy["D02"] || "invalid", 'D02', 20, 30, 'right');
+            this.drawWorkstation(g, 600, 270, deskOccupancy["D01"] || "invalid", 'D01', 20, 30, 'right');
+            this.drawWorkstation(g, 580, 210, deskOccupancy["D04"] || "invalid", 'D04', 20, 30, 'left');
+            this.drawWorkstation(g, 580, 240, deskOccupancy["D05"] || "invalid", 'D05', 20, 30, 'left');
+            this.drawWorkstation(g, 580, 270, deskOccupancy["D06"] || "invalid", 'D06', 20, 30, 'left');
             // Desks against the staircase
-            this.drawWorkstation(g, 270, 280, 'invalid', 'D97', 20, 30, 'none');
-            this.drawWorkstation(g, 290, 280, 'invalid', 'D98', 20, 30, 'none');
+            this.drawWorkstation(g, 265, 290, deskOccupancy["PB7"] || "invalid", 'PB7', 30, 20, 'none');
+            this.drawWorkstation(g, 295, 290, deskOccupancy["PB6"] || "invalid", 'PB6', 30, 20, 'none');
+            // Offices
+            this.drawWorkstation(g, 760, 230, deskOccupancy["B2"] || "invalid", 'B2', 30, 50, 'top');
+            this.drawWorkstation(g, 710, 230, deskOccupancy["B1"] || "invalid", 'B1', 30, 50, 'top');
             // Reception
-            this.drawWorkstation(g, 935, 160, 'invalid', 'D99', 30, 60, 'left');
+            this.drawWorkstation(g, 935, 160, deskOccupancy["OM"] || "invalid", 'OM', 30, 60, 'left');
             // Meeting Room 20 seats
-            this.drawWorkstation(g, 925, 75, 'invalid', 'D100', 50, 50, 'top');
+            this.drawWorkstation(g, 925, 75, deskOccupancy["SR3"] || "invalid", 'SR3', 50, 50, 'none');
+            this.drawChair(g, 930, 60);
+            this.drawChair(g, 950, 60);
+            this.drawChair(g, 970, 60);
+
+            this.drawChair(g, 910, 85);
+            this.drawChair(g, 910, 105);
+            this.drawChair(g, 990, 85);
+            this.drawChair(g, 990, 105);
+
+            this.drawChair(g, 930, 140);
+            this.drawChair(g, 950, 140);
+            this.drawChair(g, 970, 140);
             // Desks in the middle
-            this.drawWorkstation(g, 500, 320, 'invalid', 'D101', 25, 50, 'none');
-            this.drawWorkstation(g, 580, 320, 'invalid', 'D102', 50, 25, 'none');
-            this.drawWorkstation(g, 580, 345, 'invalid', 'D103', 50, 25, 'none');
-            this.drawWorkstation(g, 630, 320, 'invalid', 'D104', 50, 50, 'none');
-            this.drawWorkstation(g, 680, 320, 'invalid', 'D105', 50, 50, 'none');
+            this.drawWorkstation(g, 500, 320, deskOccupancy["PB5"] || "invalid", 'PB5', 25, 50, 'none');
+            this.drawWorkstation(g, 580, 320, deskOccupancy["PB4"] || "invalid", 'PB4', 50, 25, 'none');
+            this.drawWorkstation(g, 580, 345, deskOccupancy["PB3"] || "invalid", 'PB3', 50, 25, 'none');
+            this.drawWorkstation(g, 630, 320, deskOccupancy["PB2"] || "invalid", 'PB2', 50, 50, 'none');
+            this.drawWorkstation(g, 680, 320, deskOccupancy["PB1"] || "invalid", 'PB1', 50, 50, 'none');
 
         }
         
@@ -2810,26 +2845,30 @@ class ArchitecturalFloorPlan {
             }
         }
 
+        g.appendChild(desk);
+        const validPositions = ["bottom", "top", "left", "right"];
+        if (validPositions.includes(chairPosition)) {
+            this.drawChair(g, finalChairX, finalChairY);
+        }
+        g.appendChild(text);
+
+        parent.appendChild(g);
+    }
+
+    drawChair(parent, x, y) {
         // Chair indicator (small circle)
         const chair = document.createElementNS(
             "http://www.w3.org/2000/svg",
             "circle",
         );
-        chair.setAttribute("cx", finalChairX);
-        chair.setAttribute("cy", finalChairY);
+        chair.setAttribute("cx", x);
+        chair.setAttribute("cy", y);
         chair.setAttribute("r", 4);
         chair.setAttribute("fill", "#94a3b8");
         chair.setAttribute("stroke", this.colors.wallStroke);
         chair.setAttribute("stroke-width", 1);
 
-        g.appendChild(desk);
-        const validPositions = ["bottom", "top", "left", "right"];
-        if (validPositions.includes(chairPosition)) {
-            g.appendChild(chair);
-        }
-        g.appendChild(text);
-
-        parent.appendChild(g);
+        parent.appendChild(chair);
     }
 
     drawStaircase(parent, x, y, width, height) {

@@ -259,7 +259,7 @@ const BASE_FLOOR_DATA = {
 const CHATEAUDUN_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
 
 const LEVALLOIS_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
-LEVALLOIS_FLOOR_DATA[0].name = 'Levallois - Ground';
+LEVALLOIS_FLOOR_DATA[0].name = 'Levallois - Floor 3';
 
 const LILLE_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
 LILLE_FLOOR_DATA[0].name = 'Lille - Ground';
