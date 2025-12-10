@@ -1058,9 +1058,9 @@ class DashboardManager {
         } else {
             if (totalEl) totalEl.textContent   = '150';
             if (activeEl) activeEl.textContent = '142';
-            if (avgEl) avgEl.textContent       = '23.45';
-            if (minEl) minEl.textContent       = '18.90';
-            if (maxEl) maxEl.textContent       = '29.80';
+            if (avgEl) avgEl.textContent       = '23.45%';
+            if (minEl) minEl.textContent       = '18.90%';
+            if (maxEl) maxEl.textContent       = '29.80%';
         }
     }
 
