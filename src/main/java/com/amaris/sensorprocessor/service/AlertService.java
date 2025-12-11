@@ -21,6 +21,12 @@ import java.util.Optional;
 @Service
 public class AlertService {
 
+    // Device type constants
+    private static final String DEVICE_TYPE_CO2 = "CO2";
+    private static final String DEVICE_TYPE_TEMP = "TEMP";
+    private static final String DEVICE_TYPE_HUMIDITY = "HUMIDITY";
+    private static final String DEVICE_TYPE_NOISE = "NOISE";
+
     private final SensorDataDao sensorDataDao;
     private final SensorDao sensorDao;
     private final AlertThresholdConfig thresholdConfig;
@@ -34,6 +40,7 @@ public class AlertService {
 
     /**
      * Generate alerts based on current sensor data
+     * 
      * @return List of active alerts
      */
     public List<Alert> getCurrentAlerts() {
@@ -54,33 +61,6 @@ public class AlertService {
         // Check for noise alerts
         alerts.addAll(checkNoiseAlerts());
 
-        // If no real alerts, add test alerts for development/demo purposes
-        if (alerts.isEmpty()) {
-            alerts.add(new Alert(
-                "warning",
-                "⚠️",
-                "High CO2 Level Detected",
-                "Sensor CO2-B2 in Meeting Room A detected 850 ppm CO2 level",
-                "5 minutes ago"
-            ));
-
-            alerts.add(new Alert(
-                "critical",
-                "🌡️",
-                "Temperature Alert",
-                "Room F1-02 temperature reached 29°C - ventilation recommended",
-                "12 minutes ago"
-            ));
-
-            alerts.add(new Alert(
-                "info",
-                "ℹ️",
-                "Sensor Offline",
-                "Motion sensor MOTION-F1-05 has not reported data for 2 hours",
-                "2 hours ago"
-            ));
-        }
-
         return alerts;
     }
 
@@ -93,35 +73,37 @@ public class AlertService {
         List<Alert> alerts = new ArrayList<>();
 
         // Get all CO2 sensors from the database
-        List<Sensor> co2Sensors = sensorDao.findAllByDeviceType("CO2");
+        List<Sensor> co2Sensors = sensorDao.findAllByDeviceType(DEVICE_TYPE_CO2);
 
         for (Sensor sensor : co2Sensors) {
-            Optional<SensorData> latestCO2 = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(), PayloadValueType.CO2);
+            Optional<SensorData> latestCO2 = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(),
+                    PayloadValueType.CO2);
 
             if (latestCO2.isPresent()) {
                 SensorData data = latestCO2.get();
 
                 // Only consider recent readings (within configured time threshold)
-                if (data.getReceivedAt().isAfter(LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes()))) {
+                if (data.getReceivedAt()
+                        .isAfter(LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes()))) {
                     try {
                         double co2Value = Double.parseDouble(data.getValueAsString());
 
                         if (co2Value > thresholdConfig.getCo2().getCritical()) {
                             alerts.add(new Alert(
-                                "critical",
-                                "⚠️",
-                                "Critical CO2 Level",
-                                String.format("Sensor %s detected %.0f ppm (threshold: %.0f ppm)", sensor.getIdSensor(), co2Value, thresholdConfig.getCo2().getCritical()),
-                                formatTimeAgo(data.getReceivedAt())
-                            ));
+                                    "critical",
+                                    "⚠️",
+                                    "Critical CO2 Level",
+                                    String.format("Sensor %s detected %.0f ppm (threshold: %.0f ppm)",
+                                            sensor.getIdSensor(), co2Value, thresholdConfig.getCo2().getCritical()),
+                                    formatTimeAgo(data.getReceivedAt())));
                         } else if (co2Value > thresholdConfig.getCo2().getWarning()) {
                             alerts.add(new Alert(
-                                "warning",
-                                "🔔",
-                                "High CO2 Level",
-                                String.format("Sensor %s detected %.0f ppm (threshold: %.0f ppm)", sensor.getIdSensor(), co2Value, thresholdConfig.getCo2().getWarning()),
-                                formatTimeAgo(data.getReceivedAt())
-                            ));
+                                    "warning",
+                                    "🔔",
+                                    "High CO2 Level",
+                                    String.format("Sensor %s detected %.0f ppm (threshold: %.0f ppm)",
+                                            sensor.getIdSensor(), co2Value, thresholdConfig.getCo2().getWarning()),
+                                    formatTimeAgo(data.getReceivedAt())));
                         }
                     } catch (NumberFormatException e) {
                         log.warn("Invalid CO2 value for sensor {}: {}", sensor.getIdSensor(), data.getValueAsString());
@@ -142,37 +124,46 @@ public class AlertService {
         List<Alert> alerts = new ArrayList<>();
 
         // Get all temperature sensors from the database
-        List<Sensor> tempSensors = sensorDao.findAllByDeviceType("TEMP");
+        List<Sensor> tempSensors = sensorDao.findAllByDeviceType(DEVICE_TYPE_TEMP);
 
         for (Sensor sensor : tempSensors) {
-            Optional<SensorData> latestTemp = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(), PayloadValueType.TEMPERATURE);
+            Optional<SensorData> latestTemp = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(),
+                    PayloadValueType.TEMPERATURE);
 
             if (latestTemp.isPresent()) {
                 SensorData data = latestTemp.get();
 
-                if (data.getReceivedAt().isAfter(LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes()))) {
+                if (data.getReceivedAt()
+                        .isAfter(LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes()))) {
                     try {
                         double tempValue = Double.parseDouble(data.getValueAsString());
 
-                        if (tempValue > thresholdConfig.getTemperature().getCriticalHigh() || tempValue < thresholdConfig.getTemperature().getCriticalLow()) {
+                        if (tempValue > thresholdConfig.getTemperature().getCriticalHigh()
+                                || tempValue < thresholdConfig.getTemperature().getCriticalLow()) {
                             alerts.add(new Alert(
-                                "critical",
-                                "🌡️",
-                                "Critical Temperature",
-                                String.format("Room %s temperature at %.1f°C (critical range: %.1f-%.1f°C)", getRoomName(sensor.getIdSensor()), tempValue, thresholdConfig.getTemperature().getCriticalLow(), thresholdConfig.getTemperature().getCriticalHigh()),
-                                formatTimeAgo(data.getReceivedAt())
-                            ));
-                        } else if (tempValue > thresholdConfig.getTemperature().getWarningHigh() || tempValue < thresholdConfig.getTemperature().getWarningLow()) {
+                                    "critical",
+                                    "🌡️",
+                                    "Critical Temperature",
+                                    String.format("Room %s temperature at %.1f°C (critical range: %.1f-%.1f°C)",
+                                            getRoomName(sensor.getIdSensor()), tempValue,
+                                            thresholdConfig.getTemperature().getCriticalLow(),
+                                            thresholdConfig.getTemperature().getCriticalHigh()),
+                                    formatTimeAgo(data.getReceivedAt())));
+                        } else if (tempValue > thresholdConfig.getTemperature().getWarningHigh()
+                                || tempValue < thresholdConfig.getTemperature().getWarningLow()) {
                             alerts.add(new Alert(
-                                "warning",
-                                "🌡️",
-                                "Uncomfortable Temperature",
-                                String.format("Room %s temperature at %.1f°C (comfort range: %.1f-%.1f°C)", getRoomName(sensor.getIdSensor()), tempValue, thresholdConfig.getTemperature().getWarningLow(), thresholdConfig.getTemperature().getWarningHigh()),
-                                formatTimeAgo(data.getReceivedAt())
-                            ));
+                                    "warning",
+                                    "🌡️",
+                                    "Uncomfortable Temperature",
+                                    String.format("Room %s temperature at %.1f°C (comfort range: %.1f-%.1f°C)",
+                                            getRoomName(sensor.getIdSensor()), tempValue,
+                                            thresholdConfig.getTemperature().getWarningLow(),
+                                            thresholdConfig.getTemperature().getWarningHigh()),
+                                    formatTimeAgo(data.getReceivedAt())));
                         }
                     } catch (NumberFormatException e) {
-                        log.warn("Invalid temperature value for sensor {}: {}", sensor.getIdSensor(), data.getValueAsString());
+                        log.warn("Invalid temperature value for sensor {}: {}", sensor.getIdSensor(),
+                                data.getValueAsString());
                     }
                 }
             }
@@ -193,7 +184,7 @@ public class AlertService {
         LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes());
 
         log.debug("Checking sensor offline alerts with threshold: {} minutes (cutoff time: {})",
-                 thresholdConfig.getDataMaxAgeMinutes(), cutoffTime);
+                thresholdConfig.getDataMaxAgeMinutes(), cutoffTime);
 
         for (Sensor sensor : allSensors) {
             String sensorId = sensor.getIdSensor();
@@ -209,34 +200,33 @@ public class AlertService {
                 // Check if the most recent data is older than the threshold
                 if (data.getReceivedAt().isBefore(cutoffTime) || data.getReceivedAt().isEqual(cutoffTime)) {
                     log.debug("Sensor {} is offline: last data at {} ({} minutes ago, threshold: {} minutes)",
-                             sensorId, data.getReceivedAt(), minutesAgo, thresholdConfig.getDataMaxAgeMinutes());
+                            sensorId, data.getReceivedAt(), minutesAgo, thresholdConfig.getDataMaxAgeMinutes());
 
                     alerts.add(new Alert(
-                        "info",
-                        "ℹ️",
-                        "Sensor Offline",
-                        String.format("%s (%s) not responding", sensorId, deviceType),
-                        formatTimeAgo(data.getReceivedAt())
-                    ));
+                            "info",
+                            "ℹ️",
+                            "Sensor Offline",
+                            String.format("%s (%s) not responding", sensorId, deviceType),
+                            formatTimeAgo(data.getReceivedAt())));
                 } else {
                     log.trace("Sensor {} is online: last data at {} ({} minutes ago)",
-                             sensorId, data.getReceivedAt(), minutesAgo);
+                            sensorId, data.getReceivedAt(), minutesAgo);
                 }
             } else {
                 // No data found at all for this sensor
                 log.debug("Sensor {} has no data in database", sensorId);
 
                 alerts.add(new Alert(
-                    "info",
-                    "ℹ️",
-                    "Sensor Offline",
-                    String.format("%s (%s) not responding", sensorId, deviceType),
-                    "Never reported"
-                ));
+                        "info",
+                        "ℹ️",
+                        "Sensor Offline",
+                        String.format("%s (%s) not responding", sensorId, deviceType),
+                        "Never reported"));
             }
         }
 
-        log.info("Found {} offline sensors (threshold: {} minutes)", alerts.size(), thresholdConfig.getDataMaxAgeMinutes());
+        log.info("Found {} offline sensors (threshold: {} minutes)", alerts.size(),
+                thresholdConfig.getDataMaxAgeMinutes());
         return alerts;
     }
 
@@ -248,29 +238,35 @@ public class AlertService {
         List<Alert> alerts = new ArrayList<>();
 
         // Get all humidity sensors from the database
-        List<Sensor> humiditySensors = sensorDao.findAllByDeviceType("HUMIDITY");
+        List<Sensor> humiditySensors = sensorDao.findAllByDeviceType(DEVICE_TYPE_HUMIDITY);
 
         for (Sensor sensor : humiditySensors) {
-            Optional<SensorData> latestHumidity = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(), PayloadValueType.HUMIDITY);
+            Optional<SensorData> latestHumidity = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(),
+                    PayloadValueType.HUMIDITY);
 
             if (latestHumidity.isPresent()) {
                 SensorData data = latestHumidity.get();
 
-                if (data.getReceivedAt().isAfter(LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes()))) {
+                if (data.getReceivedAt()
+                        .isAfter(LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes()))) {
                     try {
                         double humidityValue = Double.parseDouble(data.getValueAsString());
 
-                        if (humidityValue > thresholdConfig.getHumidity().getWarningHigh() || humidityValue < thresholdConfig.getHumidity().getWarningLow()) {
+                        if (humidityValue > thresholdConfig.getHumidity().getWarningHigh()
+                                || humidityValue < thresholdConfig.getHumidity().getWarningLow()) {
                             alerts.add(new Alert(
-                                "warning",
-                                "💧",
-                                "Abnormal Humidity",
-                                String.format("Room %s humidity at %.0f%% (ideal range: %.0f-%.0f%%)", getRoomName(sensor.getIdSensor()), humidityValue, thresholdConfig.getHumidity().getWarningLow(), thresholdConfig.getHumidity().getWarningHigh()),
-                                formatTimeAgo(data.getReceivedAt())
-                            ));
+                                    "warning",
+                                    "💧",
+                                    "Abnormal Humidity",
+                                    String.format("Room %s humidity at %.0f%% (ideal range: %.0f-%.0f%%)",
+                                            getRoomName(sensor.getIdSensor()), humidityValue,
+                                            thresholdConfig.getHumidity().getWarningLow(),
+                                            thresholdConfig.getHumidity().getWarningHigh()),
+                                    formatTimeAgo(data.getReceivedAt())));
                         }
                     } catch (NumberFormatException e) {
-                        log.warn("Invalid humidity value for sensor {}: {}", sensor.getIdSensor(), data.getValueAsString());
+                        log.warn("Invalid humidity value for sensor {}: {}", sensor.getIdSensor(),
+                                data.getValueAsString());
                     }
                 }
             }
@@ -287,29 +283,33 @@ public class AlertService {
         List<Alert> alerts = new ArrayList<>();
 
         // Get all noise sensors from the database
-        List<Sensor> noiseSensors = sensorDao.findAllByDeviceType("NOISE");
+        List<Sensor> noiseSensors = sensorDao.findAllByDeviceType(DEVICE_TYPE_NOISE);
 
         for (Sensor sensor : noiseSensors) {
-            Optional<SensorData> latestNoise = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(), PayloadValueType.LAEQ);
+            Optional<SensorData> latestNoise = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(),
+                    PayloadValueType.LAEQ);
 
             if (latestNoise.isPresent()) {
                 SensorData data = latestNoise.get();
 
-                if (data.getReceivedAt().isAfter(LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes()))) {
+                if (data.getReceivedAt()
+                        .isAfter(LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes()))) {
                     try {
                         double noiseValue = Double.parseDouble(data.getValueAsString());
 
                         if (noiseValue > thresholdConfig.getNoise().getWarning()) {
                             alerts.add(new Alert(
-                                "warning",
-                                "🔉",
-                                "High Noise Level",
-                                String.format("Room %s noise level at %.0f dB (threshold: %.0f dB)", getRoomName(sensor.getIdSensor()), noiseValue, thresholdConfig.getNoise().getWarning()),
-                                formatTimeAgo(data.getReceivedAt())
-                            ));
+                                    "warning",
+                                    "🔉",
+                                    "High Noise Level",
+                                    String.format("Room %s noise level at %.0f dB (threshold: %.0f dB)",
+                                            getRoomName(sensor.getIdSensor()), noiseValue,
+                                            thresholdConfig.getNoise().getWarning()),
+                                    formatTimeAgo(data.getReceivedAt())));
                         }
                     } catch (NumberFormatException e) {
-                        log.warn("Invalid noise value for sensor {}: {}", sensor.getIdSensor(), data.getValueAsString());
+                        log.warn("Invalid noise value for sensor {}: {}", sensor.getIdSensor(),
+                                data.getValueAsString());
                     }
                 }
             }
@@ -347,10 +347,14 @@ public class AlertService {
      * Extract room name from sensor ID
      */
     private String getRoomName(String sensorId) {
-        if (sensorId.contains("F1")) return "Floor 1";
-        if (sensorId.contains("F2")) return "Floor 2";
-        if (sensorId.contains("B1")) return "Basement";
-        if (sensorId.contains("B2")) return "Floor 2";
+        if (sensorId.contains("F1"))
+            return "Floor 1";
+        if (sensorId.contains("F2"))
+            return "Floor 2";
+        if (sensorId.contains("B1"))
+            return "Basement";
+        if (sensorId.contains("B2"))
+            return "Floor 2";
         return sensorId;
     }
 
@@ -358,17 +362,29 @@ public class AlertService {
      * Determine the expected data type for a sensor based on its device type
      */
     private PayloadValueType getDataTypeForDeviceType(String deviceType) {
-        if (deviceType == null) return null;
+        if (deviceType == null)
+            return null;
 
         switch (deviceType.toUpperCase()) {
-            case "CO2": return PayloadValueType.CO2;
-            case "TEMP": case "TEMPERATURE": return PayloadValueType.TEMPERATURE;
-            case "HUMIDITY": return PayloadValueType.HUMIDITY;
-            case "NOISE": return PayloadValueType.LAEQ;
-            case "LIGHT": case "ILLUMINANCE": return PayloadValueType.ILLUMINANCE;
-            case "MOTION": return PayloadValueType.MOTION;
-            case "DESK": case "OCCUPANCY": return PayloadValueType.OCCUPANCY;
-            default: return null;
+            case "CO2":
+                return PayloadValueType.CO2;
+            case "TEMP":
+            case "TEMPERATURE":
+                return PayloadValueType.TEMPERATURE;
+            case "HUMIDITY":
+                return PayloadValueType.HUMIDITY;
+            case "NOISE":
+                return PayloadValueType.LAEQ;
+            case "LIGHT":
+            case "ILLUMINANCE":
+                return PayloadValueType.ILLUMINANCE;
+            case "MOTION":
+                return PayloadValueType.MOTION;
+            case "DESK":
+            case "OCCUPANCY":
+                return PayloadValueType.OCCUPANCY;
+            default:
+                return null;
         }
     }
 
@@ -376,12 +392,22 @@ public class AlertService {
      * Determine the expected data type for a sensor based on its ID (legacy method)
      */
     private PayloadValueType getSensorDataType(String sensorId) {
-        if (sensorId.startsWith("CO2")) return PayloadValueType.CO2;
-        if (sensorId.startsWith("TEMP")) return PayloadValueType.TEMPERATURE;
-        if (sensorId.startsWith("HUMID")) return PayloadValueType.HUMIDITY;
-        if (sensorId.startsWith("NOISE")) return PayloadValueType.LAEQ;
-        if (sensorId.startsWith("LIGHT")) return PayloadValueType.ILLUMINANCE;
-        if (sensorId.startsWith("MOTION")) return PayloadValueType.MOTION;
+        if (sensorId == null)
+            return null;
+
+        String upperSensorId = sensorId.toUpperCase();
+        if (upperSensorId.startsWith("CO2"))
+            return PayloadValueType.CO2;
+        if (upperSensorId.startsWith("TEMP"))
+            return PayloadValueType.TEMPERATURE;
+        if (upperSensorId.startsWith("HUMID"))
+            return PayloadValueType.HUMIDITY;
+        if (upperSensorId.startsWith("NOISE"))
+            return PayloadValueType.LAEQ;
+        if (upperSensorId.startsWith("LIGHT"))
+            return PayloadValueType.ILLUMINANCE;
+        if (upperSensorId.startsWith("MOTION"))
+            return PayloadValueType.MOTION;
         return null;
     }
 }
