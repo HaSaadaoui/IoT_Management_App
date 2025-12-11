@@ -1,5 +1,6 @@
 package com.amaris.sensorprocessor.service;
 
+import com.amaris.sensorprocessor.config.AlertThresholdConfig;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.Sensor;
 import com.amaris.sensorprocessor.entity.SensorData;
@@ -20,33 +21,15 @@ import java.util.Optional;
 @Service
 public class AlertService {
 
-    // ===== ALERT THRESHOLDS (EASY TO MODIFY FOR DEMO) =====
-    // To change thresholds for demo purposes, simply modify these constants:
-    //
-    // CO2 thresholds (ppm) - Lowered for easy triggering in demo
-    private static final double CO2_CRITICAL_THRESHOLD = 600.0;  // Originally 1200
-    private static final double CO2_WARNING_THRESHOLD = 400.0;   // Originally 800
-    //
-    // Temperature thresholds (°C) - Comfortable room temp ranges
-    private static final double TEMP_CRITICAL_HIGH = 25.0;       // Originally 30
-    private static final double TEMP_CRITICAL_LOW = 20.0;        // Originally 15
-    private static final double TEMP_WARNING_HIGH = 23.0;        // Originally 26
-    private static final double TEMP_WARNING_LOW = 18.0;         // Originally 18
-    //
-    // Humidity thresholds (%) - Typical indoor ranges
-    private static final double HUMIDITY_WARNING_HIGH = 60.0;    // Originally 70
-    private static final double HUMIDITY_WARNING_LOW = 40.0;     // Originally 30
-    //
-    // Noise threshold (dB) - Office noise levels
-    private static final double NOISE_WARNING_THRESHOLD = 50.0;  // Originally 70
-
     private final SensorDataDao sensorDataDao;
     private final SensorDao sensorDao;
+    private final AlertThresholdConfig thresholdConfig;
 
     @Autowired
-    public AlertService(SensorDataDao sensorDataDao, SensorDao sensorDao) {
+    public AlertService(SensorDataDao sensorDataDao, SensorDao sensorDao, AlertThresholdConfig thresholdConfig) {
         this.sensorDataDao = sensorDataDao;
         this.sensorDao = sensorDao;
+        this.thresholdConfig = thresholdConfig;
     }
 
     /**
@@ -103,8 +86,8 @@ public class AlertService {
 
     /**
      * Check for CO2 level alerts
-     * Critical: > CO2_CRITICAL_THRESHOLD ppm
-     * Warning: > CO2_WARNING_THRESHOLD ppm
+     * Critical: > configured critical threshold ppm
+     * Warning: > configured warning threshold ppm
      */
     private List<Alert> checkCO2Alerts() {
         List<Alert> alerts = new ArrayList<>();
@@ -118,25 +101,25 @@ public class AlertService {
             if (latestCO2.isPresent()) {
                 SensorData data = latestCO2.get();
 
-                // Only consider recent readings (within last 30 minutes)
-                if (data.getReceivedAt().isAfter(LocalDateTime.now().minusMinutes(30))) {
+                // Only consider recent readings (within configured time threshold)
+                if (data.getReceivedAt().isAfter(LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes()))) {
                     try {
                         double co2Value = Double.parseDouble(data.getValueAsString());
 
-                        if (co2Value > CO2_CRITICAL_THRESHOLD) {
+                        if (co2Value > thresholdConfig.getCo2().getCritical()) {
                             alerts.add(new Alert(
                                 "critical",
                                 "⚠️",
                                 "Critical CO2 Level",
-                                String.format("Sensor %s detected %.0f ppm (threshold: %.0f ppm)", sensor.getIdSensor(), co2Value, CO2_CRITICAL_THRESHOLD),
+                                String.format("Sensor %s detected %.0f ppm (threshold: %.0f ppm)", sensor.getIdSensor(), co2Value, thresholdConfig.getCo2().getCritical()),
                                 formatTimeAgo(data.getReceivedAt())
                             ));
-                        } else if (co2Value > CO2_WARNING_THRESHOLD) {
+                        } else if (co2Value > thresholdConfig.getCo2().getWarning()) {
                             alerts.add(new Alert(
                                 "warning",
                                 "🔔",
                                 "High CO2 Level",
-                                String.format("Sensor %s detected %.0f ppm (threshold: %.0f ppm)", sensor.getIdSensor(), co2Value, CO2_WARNING_THRESHOLD),
+                                String.format("Sensor %s detected %.0f ppm (threshold: %.0f ppm)", sensor.getIdSensor(), co2Value, thresholdConfig.getCo2().getWarning()),
                                 formatTimeAgo(data.getReceivedAt())
                             ));
                         }
@@ -152,8 +135,8 @@ public class AlertService {
 
     /**
      * Check for temperature alerts
-     * Critical: > TEMP_CRITICAL_HIGH°C or < TEMP_CRITICAL_LOW°C
-     * Warning: > TEMP_WARNING_HIGH°C or < TEMP_WARNING_LOW°C
+     * Critical: > configured critical high or < configured critical low
+     * Warning: > configured warning high or < configured warning low
      */
     private List<Alert> checkTemperatureAlerts() {
         List<Alert> alerts = new ArrayList<>();
@@ -167,24 +150,24 @@ public class AlertService {
             if (latestTemp.isPresent()) {
                 SensorData data = latestTemp.get();
 
-                if (data.getReceivedAt().isAfter(LocalDateTime.now().minusMinutes(30))) {
+                if (data.getReceivedAt().isAfter(LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes()))) {
                     try {
                         double tempValue = Double.parseDouble(data.getValueAsString());
 
-                        if (tempValue > TEMP_CRITICAL_HIGH || tempValue < TEMP_CRITICAL_LOW) {
+                        if (tempValue > thresholdConfig.getTemperature().getCriticalHigh() || tempValue < thresholdConfig.getTemperature().getCriticalLow()) {
                             alerts.add(new Alert(
                                 "critical",
                                 "🌡️",
                                 "Critical Temperature",
-                                String.format("Room %s temperature at %.1f°C (critical range: %.1f-%.1f°C)", getRoomName(sensor.getIdSensor()), tempValue, TEMP_CRITICAL_LOW, TEMP_CRITICAL_HIGH),
+                                String.format("Room %s temperature at %.1f°C (critical range: %.1f-%.1f°C)", getRoomName(sensor.getIdSensor()), tempValue, thresholdConfig.getTemperature().getCriticalLow(), thresholdConfig.getTemperature().getCriticalHigh()),
                                 formatTimeAgo(data.getReceivedAt())
                             ));
-                        } else if (tempValue > TEMP_WARNING_HIGH || tempValue < TEMP_WARNING_LOW) {
+                        } else if (tempValue > thresholdConfig.getTemperature().getWarningHigh() || tempValue < thresholdConfig.getTemperature().getWarningLow()) {
                             alerts.add(new Alert(
                                 "warning",
                                 "🌡️",
                                 "Uncomfortable Temperature",
-                                String.format("Room %s temperature at %.1f°C (comfort range: %.1f-%.1f°C)", getRoomName(sensor.getIdSensor()), tempValue, TEMP_WARNING_LOW, TEMP_WARNING_HIGH),
+                                String.format("Room %s temperature at %.1f°C (comfort range: %.1f-%.1f°C)", getRoomName(sensor.getIdSensor()), tempValue, thresholdConfig.getTemperature().getWarningLow(), thresholdConfig.getTemperature().getWarningHigh()),
                                 formatTimeAgo(data.getReceivedAt())
                             ));
                         }
@@ -200,66 +183,66 @@ public class AlertService {
 
     /**
      * Check for sensor offline alerts
-     * Alert if no data received in the last 30 minutes
+     * Alert if no data received within the configured time threshold
      */
     private List<Alert> checkSensorOfflineAlerts() {
         List<Alert> alerts = new ArrayList<>();
 
         // Get all sensors from the database
         List<Sensor> allSensors = sensorDao.findAllSensors();
+        LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes());
+
+        log.debug("Checking sensor offline alerts with threshold: {} minutes (cutoff time: {})",
+                 thresholdConfig.getDataMaxAgeMinutes(), cutoffTime);
 
         for (Sensor sensor : allSensors) {
             String sensorId = sensor.getIdSensor();
             String deviceType = sensor.getDeviceType();
 
-            // Check for any type of recent data from this sensor
-            boolean hasRecentData = false;
-            String lastSeenTime = "Never reported";
+            // Get the most recent data from this sensor (any type)
+            Optional<SensorData> latestData = sensorDataDao.findLatestBySensor(sensorId);
 
-            // First try the expected data type based on device type
-            PayloadValueType dataType = getDataTypeForDeviceType(deviceType);
-            if (dataType != null) {
-                Optional<SensorData> latestData = sensorDataDao.findLatestBySensorAndType(sensorId, dataType);
-                if (latestData.isPresent()) {
-                    SensorData data = latestData.get();
-                    lastSeenTime = formatTimeAgo(data.getReceivedAt());
+            if (latestData.isPresent()) {
+                SensorData data = latestData.get();
+                long minutesAgo = java.time.Duration.between(data.getReceivedAt(), LocalDateTime.now()).toMinutes();
 
-                    if (data.getReceivedAt().isAfter(LocalDateTime.now().minusMinutes(30))) {
-                        hasRecentData = true;
-                    }
+                // Check if the most recent data is older than the threshold
+                if (data.getReceivedAt().isBefore(cutoffTime) || data.getReceivedAt().isEqual(cutoffTime)) {
+                    log.debug("Sensor {} is offline: last data at {} ({} minutes ago, threshold: {} minutes)",
+                             sensorId, data.getReceivedAt(), minutesAgo, thresholdConfig.getDataMaxAgeMinutes());
+
+                    alerts.add(new Alert(
+                        "info",
+                        "ℹ️",
+                        "Sensor Offline",
+                        String.format("%s (%s) not responding", sensorId, deviceType),
+                        formatTimeAgo(data.getReceivedAt())
+                    ));
+                } else {
+                    log.trace("Sensor {} is online: last data at {} ({} minutes ago)",
+                             sensorId, data.getReceivedAt(), minutesAgo);
                 }
-            }
+            } else {
+                // No data found at all for this sensor
+                log.debug("Sensor {} has no data in database", sensorId);
 
-            // If no data found with expected type, try to find ANY data from this sensor
-            if (lastSeenTime.equals("Never reported")) {
-                Optional<SensorData> anyLatestData = sensorDataDao.findLatestBySensor(sensorId);
-                if (anyLatestData.isPresent()) {
-                    SensorData data = anyLatestData.get();
-                    lastSeenTime = formatTimeAgo(data.getReceivedAt());
-
-                    if (data.getReceivedAt().isAfter(LocalDateTime.now().minusMinutes(30))) {
-                        hasRecentData = true;
-                    }
-                }
-            }
-
-            if (!hasRecentData) {
                 alerts.add(new Alert(
                     "info",
                     "ℹ️",
                     "Sensor Offline",
                     String.format("%s (%s) not responding", sensorId, deviceType),
-                    lastSeenTime
+                    "Never reported"
                 ));
             }
         }
 
+        log.info("Found {} offline sensors (threshold: {} minutes)", alerts.size(), thresholdConfig.getDataMaxAgeMinutes());
         return alerts;
     }
 
     /**
      * Check for humidity alerts
-     * Warning: > HUMIDITY_WARNING_HIGH% or < HUMIDITY_WARNING_LOW%
+     * Warning: > configured warning high or < configured warning low
      */
     private List<Alert> checkHumidityAlerts() {
         List<Alert> alerts = new ArrayList<>();
@@ -273,16 +256,16 @@ public class AlertService {
             if (latestHumidity.isPresent()) {
                 SensorData data = latestHumidity.get();
 
-                if (data.getReceivedAt().isAfter(LocalDateTime.now().minusMinutes(30))) {
+                if (data.getReceivedAt().isAfter(LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes()))) {
                     try {
                         double humidityValue = Double.parseDouble(data.getValueAsString());
 
-                        if (humidityValue > HUMIDITY_WARNING_HIGH || humidityValue < HUMIDITY_WARNING_LOW) {
+                        if (humidityValue > thresholdConfig.getHumidity().getWarningHigh() || humidityValue < thresholdConfig.getHumidity().getWarningLow()) {
                             alerts.add(new Alert(
                                 "warning",
                                 "💧",
                                 "Abnormal Humidity",
-                                String.format("Room %s humidity at %.0f%% (ideal range: %.0f-%.0f%%)", getRoomName(sensor.getIdSensor()), humidityValue, HUMIDITY_WARNING_LOW, HUMIDITY_WARNING_HIGH),
+                                String.format("Room %s humidity at %.0f%% (ideal range: %.0f-%.0f%%)", getRoomName(sensor.getIdSensor()), humidityValue, thresholdConfig.getHumidity().getWarningLow(), thresholdConfig.getHumidity().getWarningHigh()),
                                 formatTimeAgo(data.getReceivedAt())
                             ));
                         }
@@ -298,7 +281,7 @@ public class AlertService {
 
     /**
      * Check for noise level alerts
-     * Warning: > NOISE_WARNING_THRESHOLD dB
+     * Warning: > configured warning threshold dB
      */
     private List<Alert> checkNoiseAlerts() {
         List<Alert> alerts = new ArrayList<>();
@@ -312,16 +295,16 @@ public class AlertService {
             if (latestNoise.isPresent()) {
                 SensorData data = latestNoise.get();
 
-                if (data.getReceivedAt().isAfter(LocalDateTime.now().minusMinutes(30))) {
+                if (data.getReceivedAt().isAfter(LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes()))) {
                     try {
                         double noiseValue = Double.parseDouble(data.getValueAsString());
 
-                        if (noiseValue > NOISE_WARNING_THRESHOLD) {
+                        if (noiseValue > thresholdConfig.getNoise().getWarning()) {
                             alerts.add(new Alert(
                                 "warning",
                                 "🔉",
                                 "High Noise Level",
-                                String.format("Room %s noise level at %.0f dB (threshold: %.0f dB)", getRoomName(sensor.getIdSensor()), noiseValue, NOISE_WARNING_THRESHOLD),
+                                String.format("Room %s noise level at %.0f dB (threshold: %.0f dB)", getRoomName(sensor.getIdSensor()), noiseValue, thresholdConfig.getNoise().getWarning()),
                                 formatTimeAgo(data.getReceivedAt())
                             ));
                         }
@@ -342,11 +325,19 @@ public class AlertService {
         LocalDateTime now = LocalDateTime.now();
         long minutes = java.time.Duration.between(timestamp, now).toMinutes();
 
-        if (minutes < 60) {
+        // Handle edge cases (future timestamps due to clock skew)
+        if (minutes < 0) {
+            log.warn("Timestamp is in the future: {} vs now: {}", timestamp, now);
+            return "just now";
+        }
+
+        if (minutes < 1) {
+            return "just now";
+        } else if (minutes < 60) {
             return minutes + " minutes ago";
         } else if (minutes < 1440) { // Less than 24 hours
             long hours = minutes / 60;
-            return hours + " hours ago";
+            return hours + (hours == 1 ? " hour ago" : " hours ago");
         } else {
             return timestamp.format(DateTimeFormatter.ofPattern("dd/MM HH:mm"));
         }

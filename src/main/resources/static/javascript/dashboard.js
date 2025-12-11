@@ -234,13 +234,14 @@ class DashboardManager {
         }
 
         return {
-            alerts: this.generateSampleAlerts(),
+            alerts: null,
+            // alerts: this.generateSampleAlerts(),
             liveSensorData: this.generateSampleLiveData(),
             historicalData: {
                 dataPoints: historicalData,
-                globalOccupancy: 32.93,
-                totalSensors: 150,
-                activeSensors: 142
+                globalOccupancy: 0,
+                totalSensors: 0,
+                activeSensors: 0,
             }
         };
     }
@@ -300,8 +301,17 @@ class DashboardManager {
 
     updateAlerts(alerts) {
         console.log('=== Updating Alerts ===');
+        if (!alerts) {
+            console.log('No alerts data provided');
+            return;
+        } else {
+            const loadingEl = document.getElementById('alerts-loading');
+            if (loadingEl) {
+                loadingEl.style.display = 'none';
+            }
+        }
         console.log('Alerts received:', alerts?.length || 0);
-        
+
         const alertsGrid = document.querySelector('.alerts-grid');
         if (!alertsGrid) {
             console.warn('Alerts grid not found');
@@ -338,7 +348,7 @@ class DashboardManager {
                     <span class="alert-time">${alert.time}</span>
                 </div>
             `;
-            
+
             alertsGrid.appendChild(alertCard);
         });
 
