@@ -49,10 +49,12 @@ function showBuildingView() {
 
 function loadFloorDesks(floorNumber) {
     const deskGrid = document.getElementById('desk-grid');
+    const buildingSelect = document.getElementById('filter-building');
+    const buildingId = buildingSelect ? buildingSelect.value : 'CHATEAUDUN';
 
     // Use shared configuration for desk-sensor mapping
     const desks = window.DeskSensorConfig
-        ? window.DeskSensorConfig.getFloorDesks(floorNumber, 'invalid')
+        ? window.DeskSensorConfig.getFloorDesks(floorNumber, 'invalid', buildingId)
         : [];
     
     // Clear and rebuild desk grid
