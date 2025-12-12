@@ -147,3 +147,18 @@ CREATE TABLE sensor_data (
 ); 
 
 CREATE INDEX idx_received_at ON sensor_data (received_at);
+
+-- Création de la table de configuration des alertes
+CREATE TABLE alert_configuration (
+    id INT PRIMARY KEY,
+    data_max_age_minutes INT,
+    co2_critical DOUBLE,
+    co2_warning DOUBLE,
+    temp_critical_high DOUBLE,
+    temp_critical_low DOUBLE,
+    temp_warning_high DOUBLE,
+    temp_warning_low DOUBLE,
+    humidity_warning_high DOUBLE,
+    humidity_warning_low DOUBLE,
+    noise_warning DOUBLE
+);

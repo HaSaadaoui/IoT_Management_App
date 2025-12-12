@@ -511,6 +511,80 @@ async function saveBuildingConfig() {
         alert("Erreur lors de l'enregistrement du building.");
     });
 }
+
+// ======================================================
+// ================== ALERT CONFIG SAVE ==================
+// ======================================================
+
+async function saveAlertConfig() {
+    // 1. Get CSRF Token
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    
+    if (!csrfMeta || !csrfHeaderMeta) {
+        alert("CSRF token not found. Please refresh the page.");
+        return;
+    }
+    
+    const csrfToken = csrfMeta.getAttribute("content");
+    const csrfHeader = csrfHeaderMeta.getAttribute("content");
+
+    // 2. Gather Data
+    const payload = {
+        dataMaxAgeMinutes: parseInt(document.getElementById("alert-data-age").value),
+        co2: {
+            critical: parseFloat(document.getElementById("alert-co2-critical").value),
+            warning: parseFloat(document.getElementById("alert-co2-warning").value)
+        },
+        temperature: {
+            criticalHigh: parseFloat(document.getElementById("alert-temp-crit-high").value),
+            criticalLow: parseFloat(document.getElementById("alert-temp-crit-low").value),
+            warningHigh: parseFloat(document.getElementById("alert-temp-warn-high").value),
+            warningLow: parseFloat(document.getElementById("alert-temp-warn-low").value)
+        },
+        humidity: {
+            warningHigh: parseFloat(document.getElementById("alert-hum-warn-high").value),
+            warningLow: parseFloat(document.getElementById("alert-hum-warn-low").value)
+        },
+        noise: {
+            warning: parseFloat(document.getElementById("alert-noise-warning").value)
+        }
+    };
+
+    // 3. Send Request
+    try {
+        const response = await fetch("/api/configuration/alerts", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                [csrfHeader]: csrfToken
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        alert("Configuration saved successfully!");
+        console.log("Alert config saved:", data);
+        
+    } catch (error) {
+        console.error("Error saving alert config:", error);
+        alert("Failed to save configuration: " + error.message);
+    }
+}
+
+// ======================================================
+// ================== SAVE CHANNELS ======================
+// ======================================================
+
+function saveChannels() {
+    // UI-only save for now
+    alert("Cette fonctionnalité est en cours d'implémentation.");
+}
+
 // ======================================================
 // ================== GLOBAL EXPORTS =====================
 // ======================================================
@@ -531,3 +605,5 @@ window.changeEditorLanguage = changeEditorLanguage;
 window.testDecoder = testDecoder;
 window.toggleChannelInput = toggleChannelInput;
 window.saveBuildingConfig = saveBuildingConfig;
+window.saveAlertConfig = saveAlertConfig;
+window.saveChannels = saveChannels;

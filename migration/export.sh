@@ -17,10 +17,11 @@ database="old.db"
 
 set -x
 
-sudo rm -rf output
+# sudo rm -rf output
+rm -rf output
 mkdir -p output || echo Directory already exists
-chown -R $USER:$GROUPS output
-chmod -R ug=rwx output
+# chown -R $USER:$GROUPS output
+# chmod -R ug=rwx output
 
 
 for table in "${tables[@]}"; do
@@ -29,4 +30,5 @@ done
 
 docker compose down --remove-orphans -t 3 -v
 docker compose up -d
-docker compose logs -f
+# docker compose logs -f
+docker compose ps

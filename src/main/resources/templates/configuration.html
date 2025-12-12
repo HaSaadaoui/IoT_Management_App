@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Configuration</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
 
     <!-- ================= STYLES GLOBAUX ================= -->
     <link rel="stylesheet" th:href="@{/css/styles.css}">
@@ -130,7 +132,79 @@
     <!-- ================= ALERTS ================= -->
     <div class="config-card">
         <h2>Alerts and Notifications</h2>
-        <form>
+        
+        <!-- Form 1: Thresholds -->
+        <form onsubmit="event.preventDefault(); saveAlertConfig();">
+            <h4 class="mb-3">Threshold Configuration</h4>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label>Data Max Age (minutes)</label>
+                    <input type="number" id="alert-data-age" class="form-control" th:value="${alertConfig.dataMaxAgeMinutes}" step="1">
+                </div>
+            </div>
+
+            <h5 class="mt-3">CO2 (ppm)</h5>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label>Critical Threshold</label>
+                    <input type="number" step="0.1" id="alert-co2-critical" class="form-control" th:value="${alertConfig.co2.critical}">
+                </div>
+                <div class="col-md-6">
+                    <label>Warning Threshold</label>
+                    <input type="number" step="0.1" id="alert-co2-warning" class="form-control" th:value="${alertConfig.co2.warning}">
+                </div>
+            </div>
+
+            <h5 class="mt-3">Temperature (°C)</h5>
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <label>Critical High</label>
+                    <input type="number" step="0.1" id="alert-temp-crit-high" class="form-control" th:value="${alertConfig.temperature.criticalHigh}">
+                </div>
+                <div class="col-md-3">
+                    <label>Warning High</label>
+                    <input type="number" step="0.1" id="alert-temp-warn-high" class="form-control" th:value="${alertConfig.temperature.warningHigh}">
+                </div>
+                <div class="col-md-3">
+                    <label>Warning Low</label>
+                    <input type="number" step="0.1" id="alert-temp-warn-low" class="form-control" th:value="${alertConfig.temperature.warningLow}">
+                </div>
+                <div class="col-md-3">
+                    <label>Critical Low</label>
+                    <input type="number" step="0.1" id="alert-temp-crit-low" class="form-control" th:value="${alertConfig.temperature.criticalLow}">
+                </div>
+            </div>
+
+            <h5 class="mt-3">Humidity (%)</h5>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label>Warning High</label>
+                    <input type="number" step="0.1" id="alert-hum-warn-high" class="form-control" th:value="${alertConfig.humidity.warningHigh}">
+                </div>
+                <div class="col-md-6">
+                    <label>Warning Low</label>
+                    <input type="number" step="0.1" id="alert-hum-warn-low" class="form-control" th:value="${alertConfig.humidity.warningLow}">
+                </div>
+            </div>
+
+            <h5 class="mt-3">Noise (dB)</h5>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label>Warning Threshold</label>
+                    <input type="number" step="0.1" id="alert-noise-warning" class="form-control" th:value="${alertConfig.noise.warning}">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-violet mt-3">Save Thresholds</button>
+        </form>
+
+        <hr class="my-4">
+
+        <!-- Form 2: Channels -->
+        <form onsubmit="event.preventDefault(); saveChannels();">
+            <h4 class="mb-3">Notification Channels</h4>
+            
             <div class="mb-3">
                 <label>Parameter to Monitor</label>
                 <select class="form-select">
@@ -140,6 +214,7 @@
                     <option>Noise Level</option>
                 </select>
             </div>
+
             <div class="mb-3">
                 <label>Channels</label><br>
                 <div class="form-check form-check-inline">
@@ -159,7 +234,8 @@
                 <label>Phone Number(s)</label>
                 <input type="text" class="form-control">
             </div>
-            <button type="submit" class="btn btn-violet">Save</button>
+
+            <button type="submit" class="btn btn-violet mt-3">Save Channels</button>
         </form>
     </div>
 

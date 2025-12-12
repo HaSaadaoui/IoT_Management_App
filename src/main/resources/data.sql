@@ -213,3 +213,18 @@ INSERT INTO "users" (username, firstname, lastname, password, role, email, icon)
 ('user8', 'Frank', 'Taylor', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'USER', 'frank.taylor@example.com', 'default-avatar.png'),
 ('user9', 'Grace', 'Anderson', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'SUPERUSER', 'grace.anderson@example.com', 'default-avatar.png'),
 ('user10', 'Hannah', 'Thomas', '$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG', 'ADMIN', 'hannah.thomas@example.com', 'default-avatar.png');
+
+-- Création de la table de configuration des alertes
+CREATE TABLE IF NOT EXISTS "alert_configuration" (
+    id INTEGER PRIMARY KEY,
+    data_max_age_minutes INTEGER,
+    co2_critical REAL,
+    co2_warning REAL,
+    temp_critical_high REAL,
+    temp_critical_low REAL,
+    temp_warning_high REAL,
+    temp_warning_low REAL,
+    humidity_warning_high REAL,
+    humidity_warning_low REAL,
+    noise_warning REAL
+);
