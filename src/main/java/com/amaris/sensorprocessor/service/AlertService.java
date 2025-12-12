@@ -354,7 +354,7 @@ public class AlertService {
         if (sensorId.contains("B1"))
             return "Basement";
         if (sensorId.contains("B2"))
-            return "Floor 2";
+            return "Basement 2";
         return sensorId;
     }
 

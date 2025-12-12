@@ -18,26 +18,26 @@ public class AlertThresholdConfig {
 
     @Data
     public static class Co2Thresholds {
-        private double critical = 600.0;  // ppm
-        private double warning = 400.0;   // ppm
+        private double critical = 1000.0;  // ppm
+        private double warning = 800.0;   // ppm
     }
 
     @Data
     public static class TemperatureThresholds {
-        private double criticalHigh = 25.0;  // °C
-        private double criticalLow = 20.0;   // °C
-        private double warningHigh = 23.0;   // °C
-        private double warningLow = 18.0;    // °C
+        private double criticalHigh = 30.0;  // °C
+        private double criticalLow = 16.0;   // °C
+        private double warningHigh = 26.0;   // °C
+        private double warningLow = 19.0;    // °C
     }
 
     @Data
     public static class HumidityThresholds {
-        private double warningHigh = 60.0;  // %
-        private double warningLow = 40.0;   // %
+        private double warningHigh = 70.0;  // %
+        private double warningLow = 30.0;   // %
     }
 
     @Data
     public static class NoiseThresholds {
-        private double warning = 50.0;  // dB
+        private double warning = 70.0;  // dB
     }
 }
