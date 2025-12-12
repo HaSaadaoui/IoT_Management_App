@@ -7,8 +7,11 @@
         <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
         <link rel="stylesheet" href="/css/alerts.css" />
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+        <!-- Three.js + OrbitControls + SVGLoader (r128 / r131 style UMD) -->
+        <script src="/javascript/lib/three.min.js"></script>
+        <script src="/javascript/lib/OrbitControls.js"></script>
+        <script src="/javascript/lib/SVGLoader.js"></script>
+
         <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
         <script src="/javascript/chartUtils.js"></script>
     </head>
@@ -231,13 +234,10 @@
                     </div>
                     <div class="filter-card">
                         <label>📍 Building</label>
-                        <select id="filter-building">
-                            <option value="all">All Buildings</option>
-                            <option value="chateaudun" selected>
-                                Châteaudun Office
-                            </option>
-                            <option value="levallois">Levallois Office</option>
-                            <option value="lille">Lille Office</option>
+                        <select id="filter-building" class="form-select">
+                            <option value="CHATEAUDUN" selected>Châteaudun</option>
+                            <option value="LEVALLOIS">Levallois</option>
+                            <option value="LILLE">Lille</option>
                         </select>
                     </div>
                     <div class="filter-card" style="display: none;">
