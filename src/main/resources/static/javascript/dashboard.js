@@ -991,11 +991,21 @@ class DashboardManager {
         const minEl = document.getElementById('summary-min-value');
         const maxEl = document.getElementById('summary-max-value');
 
-        if (totalEl) totalEl.textContent = summary.totalSensors ?? '--';
-        if (activeEl) activeEl.textContent = summary.activeSensors ?? '--';
-        if (avgEl) avgEl.textContent = summary.avgValue != null ? summary.avgValue.toFixed(2) : '--';
-        if (minEl) minEl.textContent = summary.minValue != null ? summary.minValue.toFixed(2) : '--';
-        if (maxEl) maxEl.textContent = summary.maxValue != null ? summary.maxValue.toFixed(2) : '--';
+        // Dummy test data here TODO: enable real data after demo
+        let useMockData = true;
+        if (!useMockData) {
+            if (totalEl) totalEl.textContent   = summary.totalSensors || '--';
+            if (activeEl) activeEl.textContent = summary.activeSensors || '--';
+            if (avgEl) avgEl.textContent       = summary.avgValue ? summary.avgValue.toFixed(2) : '--';
+            if (minEl) minEl.textContent       = summary.minValue ? summary.minValue.toFixed(2) : '--';
+            if (maxEl) maxEl.textContent       = summary.maxValue ? summary.maxValue.toFixed(2) : '--';
+        } else {
+            if (totalEl) totalEl.textContent   = '150';
+            if (activeEl) activeEl.textContent = '142';
+            if (avgEl) avgEl.textContent       = '23.45%';
+            if (minEl) minEl.textContent       = '18.90%';
+            if (maxEl) maxEl.textContent       = '29.80%';
+        }
     }
 
     updateHistogramTitle(data) {

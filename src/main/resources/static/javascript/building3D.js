@@ -303,7 +303,7 @@ const BASE_FLOOR_DATA = {
 const CHATEAUDUN_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
 
 const LEVALLOIS_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
-LEVALLOIS_FLOOR_DATA[0].name = 'Levallois - Ground';
+LEVALLOIS_FLOOR_DATA[0].name = 'Levallois - Floor 3';
 
 const LILLE_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
 LILLE_FLOOR_DATA[0].name = 'Lille - Ground';
@@ -418,12 +418,13 @@ class Building3D {
             : null;
     }
 
-    async loadRealOccupancyData() {
-        console.log('=== Loading Real Occupancy Data for', this.buildingKey, '===');
+    async loadOccupancyDataForFloor(floorNumber) {
+        const floorInfo = this.floorData[floorNumber];
 
-        for (const [floorKey, floorInfo] of Object.entries(this.floorData)) {
-            const floorIndex = parseInt(floorKey, 10);
-            const apiFloor = floorIndex + 1;
+        if (!floorInfo) {
+            console.warn(`No floor data found for floor index ${floorNumber}`);
+            return null;
+        }
 
             if (!this.isIn3DView && this.currentFloorNumber !== null) {
                 const floorNumber = this.currentFloorNumber;
@@ -462,6 +463,7 @@ class Building3D {
                     } else {
                         console.warn(`Failed to fetch occupancy data for floor ${floorNumber}: ${response.status}`);
                     }
+                });
 
                 } catch (err) {
                     console.error(`Error loading occupancy data for floor ${apiFloor}:`, err);

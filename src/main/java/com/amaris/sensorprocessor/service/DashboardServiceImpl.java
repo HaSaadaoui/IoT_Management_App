@@ -143,7 +143,7 @@ public class DashboardServiceImpl implements DashboardService {
 
         int daysToGenerate = 30;
         LocalDate endDate = LocalDate.now();
-        
+
         // Get all sensors matching the filters
         List<Sensor> filteredSensors = sensorDao.findAllByDeviceType(sensorType);
 
@@ -165,7 +165,7 @@ public class DashboardServiceImpl implements DashboardService {
             activeSensorCount,
             123 // TODO: calculate average occupancy rate
         ));
-        
+
         // Calculate global statistics
         double avgOccupancy = dataPoints.stream()
             .mapToDouble(DataPoint::getOccupancyRate)
@@ -187,11 +187,6 @@ public class DashboardServiceImpl implements DashboardService {
                 .map(sensor -> {
                     Optional<SensorData> latestOccupancyData = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(), PayloadValueType.OCCUPANCY);
                     String status = latestOccupancyData.map(data -> {
-                        // Check if data is stale (older than 1 hour)
-                        if (data.getReceivedAt().isBefore(LocalDateTime.now().minusHours(1))) {
-                            return "invalid";
-                        }
-
                         // Map the occupancy value to status
                         String valueStr = data.getValueAsString();
                         if (valueStr == null) {

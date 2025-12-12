@@ -2614,9 +2614,9 @@ class ArchitecturalFloorPlan {
         parent.appendChild(g);
     }
 
-    drawDoor(parent, x, y, orientation) {
-        const doorWidth = orientation === "horizontal" ? 40 : 4;
-        const doorHeight = orientation === "horizontal" ? 4 : 40;
+    drawDoor(parent, x, y, width, height, orientation, arc = false) {
+        const doorWidth = orientation === "horizontal" ? width : height;
+        const doorHeight = orientation === "horizontal" ? height : width;
 
         const door = document.createElementNS(
             "http://www.w3.org/2000/svg",
@@ -2630,29 +2630,31 @@ class ArchitecturalFloorPlan {
         door.setAttribute("stroke", this.colors.wallStroke);
         door.setAttribute("stroke-width", 2);
 
-        // Door arc
-        const arc = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "path",
-        );
-        if (orientation === "horizontal") {
-            arc.setAttribute(
-                "d",
-                `M ${x - 20} ${y} Q ${x} ${y - 20} ${x + 20} ${y}`,
-            );
-        } else {
-            arc.setAttribute(
-                "d",
-                `M ${x} ${y - 20} Q ${x + 20} ${y} ${x} ${y + 20}`,
-            );
-        }
-        arc.setAttribute("fill", "none");
-        arc.setAttribute("stroke", this.colors.interiorLine);
-        arc.setAttribute("stroke-width", 1);
-        arc.setAttribute("stroke-dasharray", "2,2");
-
         parent.appendChild(door);
-        parent.appendChild(arc);
+        // Door arc
+        if (arc) {
+            const arc = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "path",
+            );
+            if (orientation === "horizontal") {
+                arc.setAttribute(
+                    "d",
+                    `M ${x - 20} ${y} Q ${x} ${y - 20} ${x + 20} ${y}`,
+                );
+            } else {
+                arc.setAttribute(
+                    "d",
+                    `M ${x} ${y - 20} Q ${x + 20} ${y} ${x} ${y + 20}`,
+                );
+            }
+            arc.setAttribute("fill", "none");
+            arc.setAttribute("stroke", this.colors.interiorLine);
+            arc.setAttribute("stroke-width", 1);
+            arc.setAttribute("stroke-dasharray", "2,2");
+            parent.appendChild(arc);
+        }
+        
     }
 
     drawWindow(parent, x, y, length, orientation) {
@@ -2807,23 +2809,30 @@ class ArchitecturalFloorPlan {
             }
         }
 
+        g.appendChild(desk);
+        const validPositions = ["bottom", "top", "left", "right"];
+        if (validPositions.includes(chairPosition)) {
+            this.drawChair(g, finalChairX, finalChairY);
+        }
+        g.appendChild(text);
+
+        parent.appendChild(g);
+    }
+
+    drawChair(parent, x, y) {
         // Chair indicator (small circle)
         const chair = document.createElementNS(
             "http://www.w3.org/2000/svg",
             "circle",
         );
-        chair.setAttribute("cx", finalChairX);
-        chair.setAttribute("cy", finalChairY);
+        chair.setAttribute("cx", x);
+        chair.setAttribute("cy", y);
         chair.setAttribute("r", 4);
         chair.setAttribute("fill", "#94a3b8");
         chair.setAttribute("stroke", this.colors.wallStroke);
         chair.setAttribute("stroke-width", 1);
 
-        g.appendChild(desk);
-        g.appendChild(chair);
-        g.appendChild(text);
-
-        parent.appendChild(g);
+        parent.appendChild(chair);
     }
 
     drawStaircase(parent, x, y, width, height) {
