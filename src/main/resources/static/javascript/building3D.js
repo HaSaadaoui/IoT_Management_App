@@ -261,7 +261,7 @@ const BUILDINGS = {
     },
     LEVALLOIS: {
         id: 'LEVALLOIS',
-        floors: 4,              // un seul étage modélisé?
+        floors: 1,              // un seul étage modélisé?
         scale: 0.06,
         createShape: createLevalloisShape,
         floorData: LEVALLOIS_FLOOR_DATA
@@ -714,7 +714,8 @@ async createBuilding() {
         if (intersects.length > 0) {
             const floor = intersects[0].object;
             if (floor.userData.clickable) {
-                this.enterFloor(floor.userData.floorNumber);
+                const actualFloor = parseInt(Object.keys(window.DeskSensorConfig.mappings[this.buildingKey])[floor.userData.floorNumber], 10);
+                this.enterFloor(floor.userData.floorNumber, actualFloor);
             }
         }
     }
@@ -743,8 +744,8 @@ async createBuilding() {
         overlay.classList.remove('active');
     }
 
-    enterFloor(floorNumber) {
-        this.currentFloorNumber = floorNumber;
+    enterFloor(floorNumber, actualFLoor) {
+        this.currentFloorNumber = actualFLoor;
 
         const roof = this.roofs[floorNumber];
         const targetY = floorNumber * 3 + 1.5;

@@ -65,42 +65,6 @@ const DeskSensorConfig = {
         },
         LEVALLOIS: {
             // Add mappings for Levallois here
-            0: [
-                { id: '01', sensor: 'desk-03-01' },
-                { id: '02', sensor: 'desk-03-01' },
-                { id: '03', sensor: 'desk-03-01' },
-                { id: '04', sensor: 'desk-03-01' },
-                { id: '05', sensor: 'desk-03-01' },
-                { id: '06', sensor: 'desk-03-01' },
-                { id: '07', sensor: 'desk-03-01' },
-                { id: '08', sensor: 'desk-03-01' },
-                { id: '09', sensor: 'desk-03-01' },
-                { id: 'D82', sensor: 'desk-03-01' }
-            ],
-            1: [
-                { id: '01', sensor: 'desk-03-01' },
-                { id: '02', sensor: 'desk-03-01' },
-                { id: '03', sensor: 'desk-03-01' },
-                { id: '04', sensor: 'desk-03-01' },
-                { id: '05', sensor: 'desk-03-01' },
-                { id: '06', sensor: 'desk-03-01' },
-                { id: '07', sensor: 'desk-03-01' },
-                { id: '08', sensor: 'desk-03-01' },
-                { id: '09', sensor: 'desk-03-01' },
-                { id: 'D82', sensor: 'desk-03-01' }
-            ],
-            2: [
-                { id: '01', sensor: 'desk-03-01' },
-                { id: '02', sensor: 'desk-03-01' },
-                { id: '03', sensor: 'desk-03-01' },
-                { id: '04', sensor: 'desk-03-01' },
-                { id: '05', sensor: 'desk-03-01' },
-                { id: '06', sensor: 'desk-03-01' },
-                { id: '07', sensor: 'desk-03-01' },
-                { id: '08', sensor: 'desk-03-01' },
-                { id: '09', sensor: 'desk-03-01' },
-                { id: 'D82', sensor: 'desk-03-01' }
-            ],
             3: [
                 { id: '01', sensor: 'desk-03-01' }, // TODO: compléter l'association
                 { id: '02', sensor: 'desk-03-02' },
