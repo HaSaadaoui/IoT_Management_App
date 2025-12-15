@@ -1,6 +1,7 @@
 // ===== DESK-SENSOR MAPPING CONFIGURATION =====
 // Single source of truth for desk to sensor mapping across all floors and buildings
 
+// Ceci est la source de vérité en attendant la configuration dynamique
 const DeskSensorConfig = {
     // Desk-to-sensor mapping for each building and floor
     mappings: {
@@ -64,7 +65,62 @@ const DeskSensorConfig = {
         },
         LEVALLOIS: {
             // Add mappings for Levallois here
-            0: []
+            0: [
+                { id: '01', sensor: 'desk-03-01' },
+                { id: '02', sensor: 'desk-03-01' },
+                { id: '03', sensor: 'desk-03-01' },
+                { id: '04', sensor: 'desk-03-01' },
+                { id: '05', sensor: 'desk-03-01' },
+                { id: '06', sensor: 'desk-03-01' },
+                { id: '07', sensor: 'desk-03-01' },
+                { id: '08', sensor: 'desk-03-01' },
+                { id: '09', sensor: 'desk-03-01' },
+                { id: 'D82', sensor: 'desk-03-01' }
+            ],
+            1: [
+                { id: '01', sensor: 'desk-03-01' },
+                { id: '02', sensor: 'desk-03-01' },
+                { id: '03', sensor: 'desk-03-01' },
+                { id: '04', sensor: 'desk-03-01' },
+                { id: '05', sensor: 'desk-03-01' },
+                { id: '06', sensor: 'desk-03-01' },
+                { id: '07', sensor: 'desk-03-01' },
+                { id: '08', sensor: 'desk-03-01' },
+                { id: '09', sensor: 'desk-03-01' },
+                { id: 'D82', sensor: 'desk-03-01' }
+            ],
+            2: [
+                { id: '01', sensor: 'desk-03-01' },
+                { id: '02', sensor: 'desk-03-01' },
+                { id: '03', sensor: 'desk-03-01' },
+                { id: '04', sensor: 'desk-03-01' },
+                { id: '05', sensor: 'desk-03-01' },
+                { id: '06', sensor: 'desk-03-01' },
+                { id: '07', sensor: 'desk-03-01' },
+                { id: '08', sensor: 'desk-03-01' },
+                { id: '09', sensor: 'desk-03-01' },
+                { id: 'D82', sensor: 'desk-03-01' }
+            ],
+            3: [
+                { id: '01', sensor: 'desk-03-01' }, // TODO: compléter l'association
+                { id: '02', sensor: 'desk-03-02' },
+                { id: '03', sensor: 'desk-03-03' },
+                { id: '04', sensor: 'desk-03-04' },
+                { id: '05', sensor: 'desk-03-05' },
+                { id: '06', sensor: 'desk-03-06' },
+                { id: '07', sensor: 'desk-03-07' },
+                { id: '08', sensor: 'desk-03-08' },
+                { id: '09', sensor: 'desk-03-09' },
+                { id: 'D10', sensor: 'desk-03-10' },
+                { id: '05', sensor: 'desk-03-05' },
+                { id: '05', sensor: 'desk-03-05' },
+                { id: '05', sensor: 'desk-03-05' },
+                { id: 'D70', sensor: 'desk-03-01' },
+                { id: 'D07', sensor: 'desk-03-01' },
+                { id: 'D08', sensor: 'desk-03-01' },
+                { id: 'D81', sensor: 'desk-03-01' },
+                { id: 'D82', sensor: 'desk-03-01' }
+            ],
         },
         LILLE: {
             // Add mappings for Lille here

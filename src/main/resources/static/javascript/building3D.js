@@ -180,129 +180,70 @@ async function loadSVGShapeFromUrl(url, scale = 1) {
 const BASE_FLOOR_DATA = {
     0: {
         name: 'Ground Floor',
-        desks: [
-            { id: 'D01', status: 'invalid', x: -3, y: -2 },
-            { id: 'D02', status: 'invalid', x: -1, y: -2 },
-            { id: 'D03', status: 'invalid', x:  1, y: -2 },
-            { id: 'D04', status: 'invalid', x:  3, y: -2 },
-            { id: 'D05', status: 'invalid', x: -3, y:  2 },
-            { id: 'D06', status: 'invalid', x: -1, y:  2 },
-            { id: 'D07', status: 'invalid', x:  1, y:  2 },
-            { id: 'D08', status: 'invalid', x:  3, y:  2 }
-        ]
+        desks: window.DeskSensorConfig.getFloorDesks(0, 'invalid', 'CHATEAUDUN')
     },
     1: {
         name: 'Floor 1',
-        desks: [
-            { id: 'D01', status: 'invalid', x: -3, y: -2 },
-            { id: 'D02', status: 'invalid', x: -1, y: -2 },
-            { id: 'D03', status: 'invalid', x:  1, y: -2 },
-            { id: 'D04', status: 'invalid', x:  3, y: -2 },
-            { id: 'D05', status: 'invalid', x: -3, y:  0 },
-            { id: 'D06', status: 'invalid', x: -1, y:  0 },
-            { id: 'D07', status: 'invalid', x:  1, y:  0 },
-            { id: 'D08', status: 'invalid', x:  3, y:  0 },
-            { id: 'D09', status: 'invalid', x: -3, y:  2 },
-            { id: 'D10', status: 'invalid', x: -1, y:  2 },
-            { id: 'D11', status: 'invalid', x:  1, y:  2 },
-            { id: 'D12', status: 'invalid', x:  3, y:  2 }
-        ]
+        desks: window.DeskSensorConfig.getFloorDesks(1, 'invalid', 'CHATEAUDUN')
     },
     2: {
         name: 'Floor 2',
-        desks: [
-            { id: 'D01', status: 'invalid', x: -3, y: -2 },
-            { id: 'D02', status: 'invalid', x: -1, y: -2 },
-            { id: 'D03', status: 'invalid', x:  1, y: -2 },
-            { id: 'D04', status: 'invalid', x:  3, y: -2 },
-            { id: 'D05', status: 'invalid', x: -3, y: -0.5 },
-            { id: 'D06', status: 'invalid', x: -1, y: -0.5 },
-            { id: 'D07', status: 'invalid', x:  1, y: -0.5 },
-            { id: 'D08', status: 'invalid', x:  3, y: -0.5 },
-            { id: 'D09', status: 'invalid', x: -3, y:  1 },
-            { id: 'D10', status: 'invalid', x: -1, y:  1 },
-            { id: 'D11', status: 'invalid', x:  1, y:  1 },
-            { id: 'D12', status: 'invalid', x:  3, y:  1 },
-            { id: 'D13', status: 'invalid', x: -3, y:  2.5 },
-            { id: 'D14', status: 'invalid', x: -1, y:  2.5 },
-            { id: 'D15', status: 'invalid', x:  1, y:  2.5 },
-            { id: 'D16', status: 'invalid', x:  3, y:  2.5 }
-        ]
+        desks: window.DeskSensorConfig.getFloorDesks(2, 'invalid', 'CHATEAUDUN')
     },
     3: {
         name: 'Floor 3',
-        desks: [
-            { id: 'D01', status: 'invalid', x: -3, y: -2 },
-            { id: 'D02', status: 'invalid', x: -1, y: -2 },
-            { id: 'D03', status: 'invalid', x:  1, y: -2 },
-            { id: 'D04', status: 'invalid', x:  3, y: -2 },
-            { id: 'D05', status: 'invalid', x: -3, y:  0 },
-            { id: 'D06', status: 'invalid', x: -1, y:  0 },
-            { id: 'D07', status: 'invalid', x:  1, y:  0 },
-            { id: 'D08', status: 'invalid', x:  3, y:  0 },
-            { id: 'D09', status: 'invalid', x: -3, y:  2 },
-            { id: 'D10', status: 'invalid', x: -1, y:  2 },
-            { id: 'D11', status: 'invalid', x:  1, y:  2 },
-            { id: 'D12', status: 'invalid', x:  3, y:  2 }
-        ]
+        desks: window.DeskSensorConfig.getFloorDesks(3, 'invalid', 'CHATEAUDUN')
     },
     4: {
         name: 'Floor 4',
-        desks: [
-            { id: 'D01', status: 'invalid', x: -3, y: -2 },
-            { id: 'D02', status: 'invalid', x: -1, y: -2 },
-            { id: 'D03', status: 'invalid', x:  1, y: -2 },
-            { id: 'D04', status: 'invalid', x:  3, y: -2 },
-            { id: 'D05', status: 'invalid', x: -3, y: -0.5 },
-            { id: 'D06', status: 'invalid', x: -1, y: -0.5 },
-            { id: 'D07', status: 'invalid', x:  1, y: -0.5 },
-            { id: 'D08', status: 'invalid', x:  3, y: -0.5 },
-            { id: 'D09', status: 'invalid', x: -3, y:  1 },
-            { id: 'D10', status: 'invalid', x: -1, y:  1 },
-            { id: 'D11', status: 'invalid', x:  1, y:  1 },
-            { id: 'D12', status: 'invalid', x:  3, y:  1 }
-        ]
+        desks: window.DeskSensorConfig.getFloorDesks(4, 'invalid', 'CHATEAUDUN')
     },
     5: {
         name: 'Floor 5',
-        desks: [
-            { id: 'D01', status: 'invalid', x: -3, y: -2 },
-            { id: 'D02', status: 'invalid', x: -1, y: -2 },
-            { id: 'D03', status: 'invalid', x:  1, y: -2 },
-            { id: 'D04', status: 'invalid', x:  3, y: -2 },
-            { id: 'D05', status: 'invalid', x: -3, y:  0 },
-            { id: 'D06', status: 'invalid', x: -1, y:  0 },
-            { id: 'D07', status: 'invalid', x:  1, y:  0 },
-            { id: 'D08', status: 'invalid', x:  3, y:  0 },
-            { id: 'D09', status: 'invalid', x: -3, y:  2 },
-            { id: 'D10', status: 'invalid', x: -1, y:  2 },
-            { id: 'D11', status: 'invalid', x:  1, y:  2 },
-            { id: 'D12', status: 'invalid', x:  3, y:  2 }
-        ]
+        desks: window.DeskSensorConfig.getFloorDesks(5, 'invalid', 'CHATEAUDUN')
     },
     6: {
         name: 'Floor 6',
-        desks: [
-            { id: 'D01', status: 'invalid', x: -3, y: -2 },
-            { id: 'D02', status: 'invalid', x: -1, y: -2 },
-            { id: 'D03', status: 'invalid', x:  1, y: -2 },
-            { id: 'D04', status: 'invalid', x:  3, y: -2 },
-            { id: 'D05', status: 'invalid', x: -3, y:  0 },
-            { id: 'D06', status: 'invalid', x: -1, y:  0 },
-            { id: 'D07', status: 'invalid', x:  1, y:  0 },
-            { id: 'D08', status: 'invalid', x:  3, y:  0 },
-            { id: 'D09', status: 'invalid', x: -3, y:  2 },
-            { id: 'D10', status: 'invalid', x: -1, y:  2 },
-            { id: 'D11', status: 'invalid', x:  1, y:  2 },
-            { id: 'D12', status: 'invalid', x:  3, y:  2 }
-        ]
+        desks: window.DeskSensorConfig.getFloorDesks(6, 'invalid', 'CHATEAUDUN')
     }
 };
+
+
+const LEVALLOIS_BASE_FLOOR_DATA = {
+    0: {
+        name: 'Ground Floor',
+        desks: window.DeskSensorConfig.getFloorDesks(0, 'invalid', 'LEVALLOIS')
+    },
+    1: {
+        name: 'Floor 1',
+        desks: window.DeskSensorConfig.getFloorDesks(1, 'invalid', 'LEVALLOIS')
+    },
+    2: {
+        name: 'Floor 2',
+        desks: window.DeskSensorConfig.getFloorDesks(2, 'invalid', 'LEVALLOIS')
+    },
+    3: {
+        name: 'Floor 3',
+        desks: window.DeskSensorConfig.getFloorDesks(3, 'invalid', 'LEVALLOIS')
+    },
+    4: {
+        name: 'Floor 4',
+        desks: window.DeskSensorConfig.getFloorDesks(4, 'invalid', 'LEVALLOIS')
+    },
+    5: {
+        name: 'Floor 5',
+        desks: window.DeskSensorConfig.getFloorDesks(5, 'invalid', 'LEVALLOIS')
+    },
+    6: {
+        name: 'Floor 6',
+        desks: window.DeskSensorConfig.getFloorDesks(6, 'invalid', 'LEVALLOIS')
+    }
+}; // test!
 
 // FloorData par site
 const CHATEAUDUN_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
 
-const LEVALLOIS_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
+const LEVALLOIS_FLOOR_DATA = JSON.parse(JSON.stringify(LEVALLOIS_BASE_FLOOR_DATA));
 LEVALLOIS_FLOOR_DATA[0].name = 'Levallois - Floor 3';
 
 const LILLE_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
@@ -320,7 +261,7 @@ const BUILDINGS = {
     },
     LEVALLOIS: {
         id: 'LEVALLOIS',
-        floors: 1,              // un seul étage modélisé
+        floors: 4,              // un seul étage modélisé?
         scale: 0.06,
         createShape: createLevalloisShape,
         floorData: LEVALLOIS_FLOOR_DATA
@@ -874,14 +815,14 @@ async createBuilding() {
         deskGrid.style.border = '2px solid #e2e8f0';
         deskGrid.style.minHeight = '600px';
 
-        const floorData = {
+        const currentFloorData = {
             floorNumber: floorNumber,
             name: this.floorData[floorNumber].name,
             desks: this.floorData[floorNumber].desks
         };
 
         if (window.ArchitecturalFloorPlan) {
-            this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', floorData, this.currentSensorMode, this.config.id);
+            this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', currentFloorData, this.currentSensorMode, this.config.id);
             this.loadRealOccupancyData();
         } else {
             console.error('ArchitecturalFloorPlan not loaded');
@@ -1050,7 +991,7 @@ async createBuilding() {
                 };
                 this.dbShapeCache = null;
 
-                this.floorData = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
+                this.floorData = null; // TODO: check if it brashes
 
                 console.log("Loaded DB building config:", this.dbBuildingConfig);
 
