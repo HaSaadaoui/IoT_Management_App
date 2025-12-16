@@ -265,13 +265,6 @@ const BUILDINGS = {
         scale: 0.06,
         createShape: createLevalloisShape,
         floorData: LEVALLOIS_FLOOR_DATA
-    },
-    LILLE: {
-        id: 'LILLE',
-        floors: 1,
-        scale: 0.01,
-        createShape: createLilleShape,
-        floorData: LILLE_FLOOR_DATA
     }
 };
 
@@ -357,6 +350,18 @@ class Building3D {
         return window.DeskSensorConfig
             ? window.DeskSensorConfig.getSensor(floorNumber, deskId, this.buildingKey)
             : null;
+    }
+
+    getSvgPlanUrl() {
+        // Cas DB 
+        if (this.isDbBuilding && this.dbBuildingConfig?.svgUrl) {
+            return this.dbBuildingConfig.svgUrl;
+        }
+        // Cas catalogue
+        if (this.config?.svgPlanUrl) {
+            return this.config.svgPlanUrl;
+        }
+        return null;
     }
 
     async loadOccupancyDataForFloor(floorNumber) {
@@ -823,7 +828,8 @@ async createBuilding() {
         };
 
         if (window.ArchitecturalFloorPlan) {
-            this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', currentFloorData, this.currentSensorMode, this.config.id);
+           const svgPath = this.getSvgPlanUrl();
+            this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', floorData, this.currentSensorMode, this.config.id, svgPath);
             this.loadRealOccupancyData();
         } else {
             console.error('ArchitecturalFloorPlan not loaded');
@@ -990,6 +996,11 @@ async createBuilding() {
                     scale: b.scale || 0.01,
                     svgUrl: b.svgPlan
                 };
+                this.config = {
+                    id: b.id,
+                    floors: b.floorsCount || 1,
+                    scale: b.scale || 0.01
+                };
                 this.dbShapeCache = null;
 
                 this.floorData = null; // TODO: check if it brashes
@@ -999,40 +1010,39 @@ async createBuilding() {
                 await this.createBuilding();
                 this.resetCameraForBuilding();
                 this.loadRealOccupancyData();
-                return; // très important : on sort ici
             } catch (e) {
                 console.error("Erreur lors du chargement du bâtiment DB:", e);
                 // on laissera tomber plus bas sur les buildings statiques
             }
-        }
-
-        // ===== 2) CAS BUILDINGS STATIQUES =====
-        const key = upper; // "CHATEAUDUN", "LEVALLOIS", "LILLE"...
-
-        if (!BUILDINGS[key]) {
-            console.warn('Unknown building key, falling back to CHATEAUDUN:', key);
-            this.buildingKey = 'CHATEAUDUN';
         } else {
-            this.buildingKey = key;
-        }
+            // ===== 2) CAS BUILDINGS STATIQUES =====
+            const key = upper; // "CHATEAUDUN", "LEVALLOIS", "LILLE"...
 
-        this.isDbBuilding = false;
-        this.dbBuildingConfig = null;
-        this.dbShapeCache = null;
+            if (!BUILDINGS[key]) {
+                console.warn('Unknown building key, falling back to CHATEAUDUN:', key);
+                this.buildingKey = 'CHATEAUDUN';
+            } else {
+                this.buildingKey = key;
+            }
 
-        this.config = BUILDINGS[this.buildingKey];
-        this.floorData = JSON.parse(JSON.stringify(this.config.floorData));
+            this.isDbBuilding = false;
+            this.dbBuildingConfig = null;
+            this.dbShapeCache = null;
 
-        if (this.building) {
-            this.scene.remove(this.building);
-        }
-        this.building = null;
-        this.floors = [];
-        this.roofs  = [];
+            this.config = BUILDINGS[this.buildingKey];
+            this.floorData = JSON.parse(JSON.stringify(this.config.floorData));
 
-        await this.createBuilding();
-        this.resetCameraForBuilding();
-        this.loadRealOccupancyData();
+            if (this.building) {
+                this.scene.remove(this.building);
+            }
+            this.building = null;
+            this.floors = [];
+            this.roofs  = [];
+
+            await this.createBuilding();
+            this.resetCameraForBuilding();
+            this.loadRealOccupancyData();
+            }
     }
 
     onWindowResize() {

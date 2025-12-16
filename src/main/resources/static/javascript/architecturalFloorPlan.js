@@ -7,6 +7,7 @@ class ArchitecturalFloorPlan {
         floorData,
         sensorMode = "DESK",
         buildingKey = "CHATEAUDUN",
+        svgPath
     ) {
         this.container = document.getElementById(containerId);
         this.floorData = floorData;
@@ -17,6 +18,7 @@ class ArchitecturalFloorPlan {
         this.wallThickness = 0.2; // meters
         this.overlayManager = null;
         this.buildingKey = buildingKey;
+        this.svgPath = svgPath;
 
         // Colors matching screenshot
         this.colors = {
@@ -47,7 +49,7 @@ class ArchitecturalFloorPlan {
         this.svg = document.createElementNS(svgNS, "svg");
         this.svg.setAttribute("width", "100%");
         this.svg.setAttribute("height", "100%");
-        this.svg.setAttribute("viewBox", "0 0 1200 650");
+        this.svg.setAttribute("viewBox", "0 0 1200 1200");
         this.svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
         this.svg.style.background = this.colors.background;
 
@@ -88,11 +90,14 @@ class ArchitecturalFloorPlan {
                 }
                 break;
             case "LEVALLOIS":
-                    switch (this.floorData.floorNumber) {
+                switch (this.floorData.floorNumber) {
                     case 0:
                         this.drawFloorLevallois(deskOccupancy);
                         break;
-                    }
+                }
+                break;
+            default:
+                this.drawGroundFloorSVG(deskOccupancy);
                 break;
         }
 
@@ -156,6 +161,55 @@ class ArchitecturalFloorPlan {
             default:
                 return 0;
         }
+    }
+
+    async drawGroundFloorSVG(deskOccupancy = {}) {
+        
+        if (!this.svgPath) {
+            console.warn('Aucun svgPath fourni');
+            return;
+        }
+
+        // Charger le SVG externe
+        let raw;
+        try {
+            const resp = await fetch(this.svgPath);
+            raw = await resp.text();
+        } catch (e) {
+            console.error('Erreur de chargement du SVG', e);
+            return;
+        }
+
+        // Parser le contenu
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(raw, "image/svg+xml");
+
+        // Récupérer tous les <path>
+        const paths = Array.from(doc.querySelectorAll('path'));
+        if (!paths.length) {
+            console.warn('SVG sans <path>.');
+            return;
+        }
+
+        // Groupes imbriqués pour transform
+        const gRoot = this.createGroup('floor-outline');
+        const gTranslate = document.createElementNS("http://www.w3.org/2000/svg", 'g');
+        gTranslate.setAttribute('transform', `translate(20, 20)`);
+
+        paths.forEach(p => {
+            const el = document.importNode(p, true);
+            el.setAttribute('fill', 'none');
+            el.setAttribute('stroke', this.colors.wallStroke);
+            el.setAttribute('stroke-width', 4);
+            el.setAttribute('stroke-linecap', 'square');
+            el.setAttribute('stroke-linejoin', 'miter');
+            el.setAttribute('vector-effect', 'non-scaling-stroke');
+            gTranslate.appendChild(el);
+        });
+
+        gRoot.appendChild(gTranslate);
+
+        this.svg.appendChild(gRoot);
     }
 
     drawFloorLevallois(deskOccupancy = {}) {
@@ -492,17 +546,6 @@ class ArchitecturalFloorPlan {
         this.drawWindow(g, 650, 50, 80, "horizontal");
         this.drawWindow(g, 820, 50, 80, "horizontal");
         this.drawWindow(g, 980, 50, 80, "horizontal");
-
-        // ONLY DRAW DESKS IF IN DESK MODE
-        /* if (this.sensorMode === 'DESK') {
-            // Ground floor desks - similar layout to Floor 2
-            this.drawWorkstation(g, 120, 60, 'invalid', 'D01', 30, 50, 'left');
-            this.drawWorkstation(g, 90, 60, 'invalid', 'D02', 30, 50, 'right');
-            this.drawWorkstation(g, 260, 60, 'invalid', 'D03', 30, 50, 'left');
-            this.drawWorkstation(g, 290, 60, 'invalid', 'D04', 30, 50, 'right');
-            this.drawWorkstation(g, 790, 60, 'invalid', 'D05', 30, 50, 'left');
-            this.drawWorkstation(g, 820, 60, 'invalid', 'D06', 30, 50, 'right');
-        }*/
 
         this.svg.appendChild(g);
     }
