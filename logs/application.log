@@ -1641,3 +1641,52 @@
 2025-11-21 17:52:30 - Closing JPA EntityManagerFactory for persistence unit 'default'
 2025-11-21 17:52:30 - HikariPool-1 - Shutdown initiated...
 2025-11-21 17:52:30 - HikariPool-1 - Shutdown completed.
+2025-11-21 17:53:24 - Starting SensorprocessorApplication using Java 17.0.16 with PID 1368 (C:\Users\saifeddine.mosrati_m\Desktop\Projet_MantuV1\IoT_Management_App\target\classes started by saifeddine.mosrati_m in C:\Users\saifeddine.mosrati_m\Desktop\Projet_MantuV1\IoT_Management_App)
+2025-11-21 17:53:24 - No active profile set, falling back to 1 default profile: "default"
+2025-11-21 17:53:25 - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-11-21 17:53:25 - Finished Spring Data repository scanning in 18 ms. Found 0 JPA repository interfaces.
+2025-11-21 17:53:26 - Tomcat initialized with port 8080 (http)
+2025-11-21 17:53:26 - Starting service [Tomcat]
+2025-11-21 17:53:26 - Starting Servlet engine: [Apache Tomcat/10.1.44]
+2025-11-21 17:53:26 - Initializing Spring embedded WebApplicationContext
+2025-11-21 17:53:26 - Root WebApplicationContext: initialization completed in 1419 ms
+2025-11-21 17:53:26 - Filter 'webMvcObservationFilter' configured for use
+2025-11-21 17:53:26 - Filter 'hiddenHttpMethodFilter' configured for use
+2025-11-21 17:53:26 - HikariPool-1 - Starting...
+2025-11-21 17:53:26 - HikariPool-1 - Added connection org.sqlite.jdbc4.JDBC4Connection@7103745
+2025-11-21 17:53:26 - HikariPool-1 - Start completed.
+2025-11-21 17:53:26 - HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-11-21 17:53:26 - HHH000412: Hibernate ORM core version 6.6.26.Final
+2025-11-21 17:53:26 - HHH000026: Second-level cache disabled
+2025-11-21 17:53:27 - No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-11-21 17:53:27 - HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 3.49.1
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-11-21 17:53:27 - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-11-21 17:53:27 - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-11-21 17:53:27 - ?? ACS connection string not configured. Email service will not work.
+2025-11-21 17:53:27 - Please update application.properties with your Azure Communication Services Primary Key
+2025-11-21 17:53:27 - For production, set: app.mail.acs.connectionString=endpoint=...;accesskey=...
+2025-11-21 17:53:27 - ? SignupService initialized with Azure Communication Services (ACS)
+2025-11-21 17:53:27 - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-11-21 17:53:27 - Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2025-11-21 17:53:28 - 48 mappings in 'requestMappingHandlerMapping'
+2025-11-21 17:53:28 - Patterns [/webjars/**, /**, /uploads/**, /css/**, /js/**, /image/**] in 'resourceHandlerMapping'
+2025-11-21 17:53:28 - Exposing 1 endpoint beneath base path '/actuator'
+2025-11-21 17:53:28 - ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 1 RequestBodyAdvice, 1 ResponseBodyAdvice
+2025-11-21 17:53:28 - ControllerAdvice beans: 0 @ExceptionHandler, 1 ResponseBodyAdvice
+2025-11-21 17:53:28 - Tomcat started on port 8080 (http) with context path '/'
+2025-11-21 17:53:28 - Started SensorprocessorApplication in 4.008 seconds (process running for 4.305)
+2025-11-21 17:53:28 - Running database migration checks...
+2025-11-21 17:53:28 - ? Users table already has correct password field size (VARCHAR(100)). No migration needed.
+2025-11-21 17:53:28 - Database migration completed.
+2025-11-21 17:53:42 - Commencing graceful shutdown. Waiting for active requests to complete
+2025-11-21 17:53:42 - Graceful shutdown complete
+2025-11-21 17:53:44 - Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-11-21 17:53:44 - HikariPool-1 - Shutdown initiated...
+2025-11-21 17:53:44 - HikariPool-1 - Shutdown completed.
