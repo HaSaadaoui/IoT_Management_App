@@ -828,8 +828,8 @@ async createBuilding() {
         };
 
         if (window.ArchitecturalFloorPlan) {
-           const svgPath = this.getSvgPlanUrl();
-            this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', floorData, this.currentSensorMode, this.config.id, svgPath);
+            const svgPath = this.getSvgPlanUrl();
+            this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', currentFloorData, this.currentSensorMode, this.config.id, svgPath);
             this.loadRealOccupancyData();
         } else {
             console.error('ArchitecturalFloorPlan not loaded');
@@ -999,11 +999,12 @@ async createBuilding() {
                 this.config = {
                     id: b.id,
                     floors: b.floorsCount || 1,
-                    scale: b.scale || 0.01
+                    scale: b.scale || 0.01,
+                    floorData: BASE_FLOOR_DATA 
                 };
                 this.dbShapeCache = null;
 
-                this.floorData = null; // TODO: check if it brashes
+                this.floorData = JSON.parse(JSON.stringify(this.config.floorData)); // TODO: check if it brashes
 
                 console.log("Loaded DB building config:", this.dbBuildingConfig);
 
