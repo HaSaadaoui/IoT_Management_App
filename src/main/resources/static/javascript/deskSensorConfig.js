@@ -61,6 +61,48 @@ const DeskSensorConfig = {
                 { id: 'D10', sensor: null },
                 { id: 'D11', sensor: null },
                 { id: 'D12', sensor: null }
+            ],
+            4: [
+                { id: 'D01', sensor: null },
+                { id: 'D02', sensor: null },
+                { id: 'D03', sensor: null },
+                { id: 'D04', sensor: null },
+                { id: 'D05', sensor: null },
+                { id: 'D06', sensor: null },
+                { id: 'D07', sensor: null },
+                { id: 'D08', sensor: null },
+                { id: 'D09', sensor: null },
+                { id: 'D10', sensor: null },
+                { id: 'D11', sensor: null },
+                { id: 'D12', sensor: null }
+            ],
+            5: [
+                { id: 'D01', sensor: null },
+                { id: 'D02', sensor: null },
+                { id: 'D03', sensor: null },
+                { id: 'D04', sensor: null },
+                { id: 'D05', sensor: null },
+                { id: 'D06', sensor: null },
+                { id: 'D07', sensor: null },
+                { id: 'D08', sensor: null },
+                { id: 'D09', sensor: null },
+                { id: 'D10', sensor: null },
+                { id: 'D11', sensor: null },
+                { id: 'D12', sensor: null }
+            ],
+            6: [
+                { id: 'D01', sensor: null },
+                { id: 'D02', sensor: null },
+                { id: 'D03', sensor: null },
+                { id: 'D04', sensor: null },
+                { id: 'D05', sensor: null },
+                { id: 'D06', sensor: null },
+                { id: 'D07', sensor: null },
+                { id: 'D08', sensor: null },
+                { id: 'D09', sensor: null },
+                { id: 'D10', sensor: null },
+                { id: 'D11', sensor: null },
+                { id: 'D12', sensor: null }
             ]
         },
         LEVALLOIS: {

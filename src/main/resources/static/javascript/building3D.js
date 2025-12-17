@@ -83,55 +83,8 @@ function createLevalloisShape(scale = 1) {
     return { shape, centerX, centerZ };
 }
 
-// Shape Lille : basée sur le path du SVG, centrée et triangulaire à droite
-function createLilleShape(scale = 0.01) {
-    const shape = new THREE.Shape();
-
-    // Points bruts issus du SVG (layer2)
-    const p1 = { x: 253.32256,  y: 736.20180 }; // bas gauche
-    const p2 = { x: 934.43075,  y: 186.88615 }; // haut "gauche"
-    const p3 = { x: 1487.52730, y: 186.34602 }; // haut droite
-    const p4 = { x: 1486.98720, y: 736.20180 }; // bas droite
-
-    // On calcule le centre du trapèze pour le recentrer autour de (0,0)
-    const minX = Math.min(p1.x, p2.x, p3.x, p4.x);
-    const maxX = Math.max(p1.x, p2.x, p3.x, p4.x);
-    const minY = Math.min(p1.y, p2.y, p3.y, p4.y);
-    const maxY = Math.max(p1.y, p2.y, p3.y, p4.y);
-
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-
-    // Helper : recentrer + mettre à l'échelle + flip horizontal
-    function mapAndFlip(pt) {
-        const localX = (pt.x - cx) * scale;  // recentré
-        const localY = (pt.y - cy) * scale;  // recentré
-        const flippedX = -localX;            // flip horizontal → triangle passe à droite
-        return { x: flippedX, y: localY };
-    }
-
-    const q1 = mapAndFlip(p1);
-    const q2 = mapAndFlip(p2);
-    const q3 = mapAndFlip(p3);
-    const q4 = mapAndFlip(p4);
-
-    // Dessin dans l'ordre
-    shape.moveTo(q1.x, q1.y);
-    shape.lineTo(q2.x, q2.y);
-    shape.lineTo(q3.x, q3.y);
-    shape.lineTo(q4.x, q4.y);
-    shape.lineTo(q1.x, q1.y); // fermeture
-
-    // On est déjà centré autour de (0,0)
-    const centerX = 0;
-    const centerZ = 0;
-
-    return { shape, centerX, centerZ };
-}
-
 // ================== HELPER SVG (bâtiments DB) ==================
 
-// Charge un SVG via URL et renvoie { shape, centerX, centerZ }
 // Charge un SVG via URL et renvoie { shape, centerX, centerZ }
 async function loadSVGShapeFromUrl(url, scale = 1) {
     return new Promise((resolve, reject) => {
@@ -246,9 +199,6 @@ const CHATEAUDUN_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
 const LEVALLOIS_FLOOR_DATA = JSON.parse(JSON.stringify(LEVALLOIS_BASE_FLOOR_DATA));
 LEVALLOIS_FLOOR_DATA[0].name = 'Levallois - Floor 3';
 
-const LILLE_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
-LILLE_FLOOR_DATA[0].name = 'Lille - Ground';
-
 // ================== CONFIG BUILDINGS ==================
 
 const BUILDINGS = {
@@ -326,7 +276,6 @@ class Building3D {
         };
 
         this.init();
-        // this.loadRealOccupancyData();
     }
 
     init() {
@@ -343,7 +292,6 @@ class Building3D {
         this.setupEventListeners();
         this.animate();
     }
-
 
     getDeskSensor(floorNumber, deskId) {
         // Use shared configuration for desk-sensor mapping
@@ -362,6 +310,47 @@ class Building3D {
             return this.config.svgPlanUrl;
         }
         return null;
+    }
+
+    
+    computeDynamicViewForBuilding() {
+        if (!this.building || !this.camera || !this.controls || !THREE) {
+            return null;
+        }
+
+        // Assure que la géométrie est à jour
+        this.building.updateMatrixWorld(true);
+
+        // Bounding box / sphere
+        const bbox = new THREE.Box3().setFromObject(this.building);
+        const center = new THREE.Vector3();
+        const size = new THREE.Vector3();
+        bbox.getCenter(center);
+        bbox.getSize(size);
+
+        const sphere = new THREE.Sphere();
+        bbox.getBoundingSphere(sphere);
+
+        const radius = Math.max(sphere.radius, 0.001);
+
+        // Cible = centre avec un léger offset vertical
+        const verticalOffset = Math.min(Math.max(size.y * 0.1, 1), 5);
+        const target = center.clone();
+        target.y += verticalOffset;
+
+        // Distance caméra proportionnelle à la taille
+        const distance = THREE.MathUtils.clamp(radius * 2.2, 6, 60);
+
+        const currentDir =  new THREE.Vector3(1, 0.6, 1).normalize();
+
+        // Position finale de la caméra
+        const camPos = target.clone().add(currentDir.multiplyScalar(distance));
+
+        // Paramètres d’orbite (zoom)
+        const minD = THREE.MathUtils.clamp(radius * 0.8, 3, 25);
+        const maxD = THREE.MathUtils.clamp(radius * 5.0, 15, 120);
+
+        return { target, camPos, minD, maxD };
     }
 
     async loadOccupancyDataForFloor(floorNumber) {
@@ -442,7 +431,6 @@ class Building3D {
         }
     }
 
-
     setupScene() {
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x0f172a);
@@ -509,22 +497,15 @@ class Building3D {
     resetCameraForBuilding() {
         if (!this.camera || !this.controls) return;
 
-        if (this.buildingKey === 'LEVALLOIS') {
-            this.camera.position.set(8, 6, 8);
-            this.controls.target.set(0, 2, 0);
-            this.controls.minDistance = 3;
-            this.controls.maxDistance = 15;
-        } else if (this.buildingKey === 'LILLE') {
-            this.camera.position.set(14, 9, 14);
-            this.controls.target.set(0, 3, 0);
-            this.controls.minDistance = 6;
-            this.controls.maxDistance = 25;
-        } else {
-            this.camera.position.set(20, 18, 20);
-            this.controls.target.set(0, 5, 0);
-            this.controls.minDistance = 8;
-            this.controls.maxDistance = 40;
-        }
+        // Calcul dynamique des paramètres de vue
+        const computed = this.computeDynamicViewForBuilding();
+        const { target, camPos, minD, maxD } = computed;
+
+        // Applique les valeurs
+        this.controls.target.copy(target);
+        this.camera.position.copy(camPos);
+        this.controls.minDistance = minD;
+        this.controls.maxDistance = maxD;
 
         this.camera.updateProjectionMatrix();
         this.controls.update();
@@ -719,7 +700,17 @@ async createBuilding() {
         if (intersects.length > 0) {
             const floor = intersects[0].object;
             if (floor.userData.clickable) {
-                const actualFloor = parseInt(Object.keys(window.DeskSensorConfig.mappings[this.buildingKey])[floor.userData.floorNumber], 10);
+                
+                const mapping = window.DeskSensorConfig?.mappings?.[this.buildingKey] ?? {};
+                const keys = Object.keys(mapping);
+
+                // Récupère la valeur brute depuis le tableau des clés à l'index demandé
+                const raw = keys[floor?.userData?.floorNumber];
+
+                // Parse et fallback à 0 si undefined ou non numérique
+                const parsed = Number.parseInt(raw ?? '0', 10);
+                const actualFloor = Number.isNaN(parsed) ? 0 : parsed;
+
                 this.enterFloor(floor.userData.floorNumber, actualFloor);
             }
         }
@@ -749,8 +740,8 @@ async createBuilding() {
         overlay.classList.remove('active');
     }
 
-    enterFloor(floorNumber, actualFLoor) {
-        this.currentFloorNumber = actualFLoor;
+    enterFloor(floorNumber, actualFloor) {
+        this.currentFloorNumber = actualFloor;
 
         const roof = this.roofs[floorNumber];
         const targetY = floorNumber * 3 + 1.5;
@@ -899,6 +890,7 @@ async createBuilding() {
     }
 
     return3DView() {
+
         this.isIn3DView = true;
 
         const container3D   = document.getElementById('building-3d-container');
@@ -909,35 +901,9 @@ async createBuilding() {
         if (floorPlan2D) floorPlan2D.style.display = 'none';
         if (backBtn)     backBtn.style.display     = 'none';
 
-        if (this.currentFloorNumber !== null && this.roofs[this.currentFloorNumber]) {
-            const roof = this.roofs[this.currentFloorNumber];
-            const targetY = this.currentFloorNumber * 3 + 3;
-
-            gsap.to(roof.position, {
-                y: targetY,
-                duration: 1,
-                ease: 'power2.inOut'
-            });
-
-            gsap.to(roof.material, {
-                opacity: 1,
-                duration: 0.8,
-                ease: 'power2.inOut',
-                onStart: () => { roof.material.transparent = false; }
-            });
-        }
-
-        let camPos, target;
-        if (this.buildingKey === 'LEVALLOIS') {
-            camPos = { x: 8,  y: 6,  z: 8 };
-            target = { x: 0,  y: 2,  z: 0 };
-        } else if (this.buildingKey === 'LILLE') {
-            camPos = { x: 14, y: 9, z: 14 };
-            target = { x: 0,  y: 3, z: 0 };
-        } else {
-            camPos = { x: 20, y: 18, z: 20 };
-            target = { x: 0,  y: 5,  z: 0 };
-        }
+        // Calcul dynamique de la vue (target/camPos/min/max)
+        const computed = this.computeDynamicViewForBuilding();
+        const { target, camPos, minD, maxD } = computed;
 
         gsap.to(this.camera.position, {
             ...camPos,
@@ -999,7 +965,8 @@ async createBuilding() {
                 this.config = {
                     id: b.id,
                     floors: b.floorsCount || 1,
-                    scale: b.scale || 0.01
+                    scale: b.scale || 0.01,
+                    floorData: BASE_FLOOR_DATA 
                 };
                 this.dbShapeCache = null;
 
@@ -1012,7 +979,6 @@ async createBuilding() {
                 this.loadRealOccupancyData();
             } catch (e) {
                 console.error("Erreur lors du chargement du bâtiment DB:", e);
-                // on laissera tomber plus bas sur les buildings statiques
             }
         } else {
             // ===== 2) CAS BUILDINGS STATIQUES =====
@@ -1110,8 +1076,7 @@ const container = document.getElementById('building-3d-container');
 
             const labels = {
                 CHATEAUDUN: 'Châteaudun Office',
-                LEVALLOIS: 'Levallois Office',
-                LILLE: 'Lille Office'
+                LEVALLOIS: 'Levallois Office'
             };
             const upperVal = val.toUpperCase();
             const label = labels[upperVal] || 'Office';
