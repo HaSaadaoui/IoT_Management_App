@@ -176,7 +176,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public List<Desk> getDesksByFloor(String floor, Optional<String> deskId) {
-        List<Sensor> deskSensors = sensorDao.findAllByDeviceType("DESK");
+        List<Sensor> deskSensors = sensorDao.findAllByDeviceTypes(List.of("DESK", "OCCUP"));
 
         return deskSensors.stream()
                 .filter(sensor -> floor.equalsIgnoreCase(String.valueOf(sensor.getFloor())))
