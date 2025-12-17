@@ -704,7 +704,7 @@ async createBuilding() {
                 const mapping = window.DeskSensorConfig?.mappings?.[this.buildingKey] ?? {};
                 const keys = Object.keys(mapping);
 
-                // Récupère la valeur brute depuis le tableau des clés à l’index demandé
+                // Récupère la valeur brute depuis le tableau des clés à l'index demandé
                 const raw = keys[floor?.userData?.floorNumber];
 
                 // Parse et fallback à 0 si undefined ou non numérique
@@ -740,8 +740,8 @@ async createBuilding() {
         overlay.classList.remove('active');
     }
 
-    enterFloor(floorNumber, actualFLoor) {
-        this.currentFloorNumber = actualFLoor;
+    enterFloor(floorNumber, actualFloor) {
+        this.currentFloorNumber = actualFloor;
 
         const roof = this.roofs[floorNumber];
         const targetY = floorNumber * 3 + 1.5;
