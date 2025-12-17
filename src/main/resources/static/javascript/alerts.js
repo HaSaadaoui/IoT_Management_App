@@ -411,9 +411,9 @@ function initFilters() {
                 // Handle sensor type filter change
                 if (filterId === 'sensor-type') {
                     updatePageTitles(this.value);
-                    if (window.building3D) {
-                        window.building3D.setSensorMode(this.value);
-                    }
+                    // if (window.building3D) {
+                    //     window.building3D.setSensorMode(this.value);
+                    // }
                 }
                 
                 updateRefreshTime();
