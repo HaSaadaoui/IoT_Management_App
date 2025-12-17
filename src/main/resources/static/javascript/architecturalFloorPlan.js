@@ -37,7 +37,6 @@ class ArchitecturalFloorPlan {
 
     init() {
         this.createSVG();
-        //this.drawFloorPlan({});
     }
 
     createSVG() {
@@ -2979,9 +2978,7 @@ class ArchitecturalFloorPlan {
             desks.forEach((desk) => {
                 deskOccupancy[desk.id] = desk.status;
             });
-
-            // Redraw the floor plan with updated occupancy data
-            //this.drawFloorPlan(deskOccupancy);
+            
         } catch (error) {
             console.error("Error loading desk occupancy:", error);
         }
