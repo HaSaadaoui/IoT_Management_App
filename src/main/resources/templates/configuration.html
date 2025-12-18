@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>⚙️ Advanced Configuration - IoT Management</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
+    <!-- ================= STYLES GLOBAUX ================= -->
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <link rel="stylesheet" th:href="@{/css/header.css}">
+    <!-- Styles spécifiques à cette page -->
+    <link rel="stylesheet" th:href="@{/css/configuration.css}">
+</head>
+<body>
+
+<!-- ================= HEADER ================= -->
+<div th:replace="fragments/header :: appHeader(pageTitle='⚙️ Advanced Configuration', homeUrl=@{/})"></div>
+
+<!-- ================= CONFIGURATION PAGE ================= -->
+<main class="config-page">
+
+    <!-- ================= SENSOR MANAGEMENT ================= -->
+    <div class="config-card">
+        <h2>Sensor Management</h2>
+        <form>
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <label>Sensor Type</label>
+                    <select class="form-select" id="sensor-type">
+                        <option>Temperature</option>
+                        <option>CO2</option>
+                        <option>Presence</option>
+                        <option>Light</option>
+                        <option selected>Occupancy</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label>Brand</label>
+                    <input type="text" class="form-control" value="Elsys" style="margin-left:40px;">
+                </div>
+                <div class="col-md-3">
+                    <label>Decoder</label>
+                    <input type="text" class="form-control" value="Custom Elsys" style="margin-left: 20px;">
+                </div>
+                <div class="col-md-3">
+                    <label>Protocol</label>
+                    <input type="text" class="form-control" value="LoRaWAN" style="margin-left: 20px;">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label>Formatter Language</label>
+                <select class="form-select" id="formatter-lang" onchange="changeEditorLanguage(this)">
+                    <option selected>JavaScript</option>
+                    <option>Python</option>
+                    <option>Java</option>
+                    <option>C++</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label>Payload Formatter</label>
+                <div id="payload-editor"></div>
+            </div>
+            <div class="mb-3">
+                <label>Test Byte Payload</label>
+                <div class="input-group">
+                    <input type="text" id="test-byte-payload" class="form-control" value="0100ED022D070E4D1102">
+                    <button type="button" class="btn btn-violet" onclick="testDecoder()" style="margin: 20px 0;">Test Decoder</button>
+                </div>
+                <div id="test-decoded">Decoded result will appear here</div>
+            </div>
+            <button type="submit" class="btn btn-violet" style="margin: 20px 0;">Save</button>
+        </form>
+    </div>
+
+    <!-- ================= ENERGY MANAGEMENT ================= -->
+    <div class="config-card">
+        <h2>Energy Management</h2>
+        <form>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label>Management Mode</label>
+                    <select class="form-select" style="width: auto; max-width: 300px; height: 45px; margin-top: 10px; margin-left: 10px;">
+                        <option>Eco</option>
+                        <option>Normal</option>
+                        <option>Performance</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label>Consumption Alert Threshold</label>
+                    <input type="number" class="form-control" style="width: auto; max-width: 250px; margin-top: 10px; margin-left: 10px;">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label>Period</label>
+                <select class="form-select" style="width: auto; max-width: 200px; height: 45px; margin-top: 10px; margin-left: 10px;">
+                    <option>Daily</option>
+                    <option>Weekly</option>
+                    <option>Monthly</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-violet" style="margin: 20px 0;">Save</button>
+        </form>
+    </div>
+
+    <!-- ================= OCCUPANCY ================= -->
+    <div class="config-card">
+        <h2>Occupancy and Space Usage</h2>
+        <form>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label>Building Zone</label>
+                    <input type="text" class="form-control">
+                </div>
+                <div class="col-md-6">
+                    <label>Presence Alert Threshold</label>
+                    <input type="number" class="form-control">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label>Period</label>
+                <select class="form-select" style="width: 30%; max-width: none; height: 45px; margin-top: 10px; margin-left: 10px;">
+                    <option>Daily</option>
+                    <option>Weekly</option>
+                    <option>Monthly</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-violet" style="margin: 20px 0;">Save</button>
+        </form>
+    </div>
+
+    <!-- ================= ALERTS ================= -->
+    <div class="config-card">
+        <h2>🚨 Alerts and Notifications</h2>
+        <p class="section-description">Configure alert thresholds and notification preferences for sensor monitoring</p>
+        
+        <!-- Form 1: Global Thresholds -->
+        <form onsubmit="event.preventDefault(); saveAlertConfig();" class="threshold-form">
+            <h4 class="subsection-title">📊 Global Threshold Configuration</h4>
+            <p class="subsection-description">Default thresholds applied to all sensors of each type</p>
+
+            <div class="threshold-group mb-4">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Data Max Age (minutes)</label>
+                        <div class="input-with-unit">
+                            <input type="number" id="alert-data-age" class="form-control" th:value="${alertConfig.dataMaxAgeMinutes}" step="1" min="1">
+                            <span class="input-unit">min</span>
+                        </div>
+                        <small class="text-muted">Maximum age before sensor is considered offline</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="threshold-group mb-4">
+                <h5 class="parameter-title">CO2 (ppm)</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Critical Threshold</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="alert-co2-critical" class="form-control" th:value="${alertConfig.co2.critical}" placeholder="e.g., 1000.0">
+                            <span class="input-unit">ppm</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Warning Threshold</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="alert-co2-warning" class="form-control" th:value="${alertConfig.co2.warning}" placeholder="e.g., 800.0">
+                            <span class="input-unit">ppm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="threshold-group mb-4">
+                <h5 class="parameter-title">Temperature (°C)</h5>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Critical High</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="alert-temp-crit-high" class="form-control" th:value="${alertConfig.temperature.criticalHigh}" placeholder="e.g., 30.0">
+                            <span class="input-unit">°C</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Warning High</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="alert-temp-warn-high" class="form-control" th:value="${alertConfig.temperature.warningHigh}" placeholder="e.g., 26.0">
+                            <span class="input-unit">°C</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Warning Low</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="alert-temp-warn-low" class="form-control" th:value="${alertConfig.temperature.warningLow}" placeholder="e.g., 19.0">
+                            <span class="input-unit">°C</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Critical Low</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="alert-temp-crit-low" class="form-control" th:value="${alertConfig.temperature.criticalLow}" placeholder="e.g., 16.0">
+                            <span class="input-unit">°C</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="threshold-group mb-4">
+                <h5 class="parameter-title">Humidity (%)</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Warning High</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="alert-hum-warn-high" class="form-control" th:value="${alertConfig.humidity.warningHigh}" placeholder="e.g., 70.0">
+                            <span class="input-unit">%</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Warning Low</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="alert-hum-warn-low" class="form-control" th:value="${alertConfig.humidity.warningLow}" placeholder="e.g., 30.0">
+                            <span class="input-unit">%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="threshold-group mb-4">
+                <h5 class="parameter-title">Noise (dB)</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Warning Threshold</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="alert-noise-warning" class="form-control" th:value="${alertConfig.noise.warning}" placeholder="e.g., 70.0">
+                            <span class="input-unit">dB</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-violet btn-lg" style="margin: 20px 0;">💾 Save Global Thresholds</button>
+            </div>
+        </form>
+
+        <hr class="my-5">
+
+        <!-- Form 2: Per-Sensor Thresholds -->
+        <div class="sensor-threshold-section mt-5">
+            <h4 class="subsection-title">🎯 Per-Sensor Threshold Override</h4>
+            <p class="subsection-description">Set custom thresholds for specific sensors (overrides global defaults)</p>
+            
+            <div class="row g-3 mb-4">
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">Select Sensor</label>
+                    <select id="sensor-select" class="form-select" onchange="loadSensorThresholds()">
+                        <option value="">-- Select a sensor --</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Parameter Type</label>
+                    <select id="threshold-parameter" class="form-select">
+                        <option value="TEMPERATURE">Temperature</option>
+                        <option value="CO2">CO2</option>
+                        <option value="HUMIDITY">Humidity</option>
+                        <option value="NOISE">Noise Level</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="sensor-threshold-form" class="threshold-inputs" style="display: none;">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <label class="form-label">Critical High</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="sensor-critical-high" class="form-control" placeholder="e.g., 1000">
+                            <span class="input-unit" id="unit-1">unit</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Warning High</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="sensor-warning-high" class="form-control" placeholder="e.g., 800">
+                            <span class="input-unit" id="unit-2">unit</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Warning Low</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="sensor-warning-low" class="form-control" placeholder="e.g., 18">
+                            <span class="input-unit" id="unit-3">unit</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Critical Low</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="sensor-critical-low" class="form-control" placeholder="e.g., 16">
+                            <span class="input-unit" id="unit-4">unit</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end">
+                    <button type="button" class="btn btn-violet" onclick="saveSensorThreshold()" style="margin: 20px 0;">💾 Save Sensor Threshold</button>
+                </div>
+            </div>
+
+            <div class="mt-5">
+                <h5 class="mb-3">Active Sensor Overrides</h5>
+                <div id="sensor-thresholds-list" class="thresholds-list mt-3">
+                    <!-- Loaded dynamically -->
+                </div>
+                <style>
+                    .threshold-item {
+                        background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+                        border: 2px solid var(--border);
+                        border-radius: 12px;
+                        padding: 1rem;
+                        margin-bottom: 0.75rem;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+                        transition: all 0.3s ease;
+                    }
+                    
+                    .threshold-item:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+                    }
+                    
+                    .threshold-actions {
+                        display: flex;
+                        gap: 0.5rem;
+                        margin-top: 0.75rem;
+                    }
+                    
+                    .btn-edit, .btn-delete {
+                        padding: 0.4rem 0.8rem;
+                        border-radius: 6px;
+                        font-size: 0.85rem;
+                        font-weight: 600;
+                        border: none;
+                        cursor: pointer;
+                        transition: all 0.25s ease;
+                    }
+                    
+                    .btn-edit {
+                        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+                        color: white;
+                    }
+                    
+                    .btn-edit:hover {
+                        background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+                        transform: translateY(-1px);
+                    }
+                    
+                    .btn-delete {
+                        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                        color: white;
+                    }
+                    
+                    .btn-delete:hover {
+                        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+                        transform: translateY(-1px);
+                    }
+                </style>
+                <p class="text-muted">No custom sensor thresholds configured yet.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= NOTIFICATION CHANNELS ================= -->
+    <div class="config-card">
+        <h2>📧 Notification Channels</h2>
+        <p>Configure how you want to receive alerts for different sensor parameters</p>
+        
+        <form onsubmit="event.preventDefault(); saveNotificationChannels();">
+            <h4 class="subsection-title">Channel Configuration</h4>
+            <p class="subsection-description">Choose notification preferences for specific parameters</p>
+            
+            <div class="notification-config">
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Parameter to Monitor</label>
+                    <select id="notif-parameter" class="form-select" style="width: 100%; max-width: none; height: 45px; margin-top: 10px;">
+                        <option value="TEMPERATURE">Temperature</option>
+                        <option value="CO2">CO2</option>
+                        <option value="HUMIDITY">Humidity</option>
+                        <option value="NOISE">Noise Level</option>
+                    </select>
+                </div>
+
+                <div class="mb-3" style="margin-top: 10px;">
+                    <label class="form-label fw-bold" style="margin-top: 10px;">Notification Channels</label>
+                    <div class="channel-options">
+                        <div class="channel-option">
+                            <input class="form-check-input" type="checkbox" id="notif-email" onchange="toggleNotifChannelInput()">
+                            <label class="form-check-label" for="notif-email">
+                                <span class="channel-icon">📧</span>
+                                <span class="channel-name">Email Notifications</span>
+                            </label>
+                        </div>
+                        <div class="channel-option">
+                            <input class="form-check-input" type="checkbox" id="notif-sms" onchange="toggleNotifChannelInput()">
+                            <label class="form-check-label" for="notif-sms">
+                                <span class="channel-icon">📱</span>
+                                <span class="channel-name">SMS Notifications</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="notif-email-input" style="display:none; margin-top: 20px;" class="mb-3">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" id="notif-custom-email" class="form-control" placeholder="Leave empty to use account email">
+                    <small class="text-muted">Optional: Override your account email for this parameter</small>
+                </div>
+
+                <div id="notif-phone-input" style="display:none; margin-top: 20px;" class="mb-3">
+                    <label class="form-label">Phone Number</label>
+                    <input type="text" id="notif-custom-phone" class="form-control" placeholder="+33 6 12 34 56 78">
+                    <small class="text-muted">International format recommended (e.g., +33...)</small>
+                </div>
+
+                <div class="d-flex justify-content-end mt-4">
+                    <button type="submit" class="btn btn-violet btn-lg" style="margin: 20px 0;">💾 Save Notification Preferences</button>
+                </div>
+            </div>
+        </form>
+
+        <div class="mt-5">
+            <h5 class="mb-3">Your Notification Preferences</h5>
+            <div id="notification-prefs-list" class="notification-list">
+                <p class="text-muted">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= BUILDING MODELING ================= -->
+    <div class="config-card">
+        <h2>Building Modeling</h2>
+
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label>Building Name</label>
+                <input type="text" id="building-name" class="form-control">
+            </div>
+
+            <div class="col-md-4">
+                <label>Number of Floors</label>
+                <input type="number" id="building-floors" class="form-control" value="3" min="1">
+            </div>
+
+            <div class="col-md-4">
+                <label>Scale (optional)</label>
+                <input type="number" id="building-scale" class="form-control" value="0.01" step="0.001">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label>Building SVG Contour</label>
+            <input type="file" id="building-svg" class="form-control" accept=".svg">
+            <small class="text-muted">Upload the SVG outline of the building (1 path only).</small>
+        </div>
+
+        <div class="mt-2 mb-3">
+            <button class="btn btn-violet" type="button" onclick="generate3DFromForm()" style="margin: 20px 10px 20px 0;">Generate 3D</button>
+            <button class="btn btn-violet" type="button" onclick="show2D()" style="margin: 20px 10px 20px 0;">Generate 2D</button>
+            <button class="btn btn-violet" type="button" onclick="saveBuildingConfig()" style="margin: 20px 0;">Save Building</button>
+        </div>
+
+        <!-- Wrapper façon dashboard -->
+        <div id="three-wrapper" class="building-3d-container" style="display:none;">
+            <div id="three-container"></div>
+        </div>
+
+    <!-- Ace: seulement pour le payload decoder -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.1/ace.js"></script>
+
+    <!-- Three.js + OrbitControls + SVGLoader (r128 / r131 style UMD) -->
+    <script src="/javascript/lib/three.min.js"></script>
+    <script src="/javascript/lib/OrbitControls.js"></script>
+    <script src="/javascript/lib/SVGLoader.js"></script>
+
+    <!-- ================= SCRIPT SPECIFIQUE PAGE ================= -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        window.SENSORS = /*[[${sensors}]]*/ [];
+        /*]]>*/
+    </script>
+    <script src="/javascript/configuration.js"></script>
+
+</body>
+</html>

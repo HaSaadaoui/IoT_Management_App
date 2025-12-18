@@ -2,11 +2,11 @@
 
 body {
     background-image: url('/image/mantu-background.jpg');
-    background-size: cover;
+    background-size: 100% 120vh;
     min-height: 100vh;
     margin: 0;
     background-repeat: no-repeat;
-    background-position: center -50px;
+    background-position: center top;
 }
 
 .verification-container {

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#662179" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Écran/moniteur -->
+  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+  <!-- Barre de graphique 1 -->
+  <rect x="5" y="10" width="2" height="5" fill="#662179"/>
+  <!-- Barre de graphique 2 -->
+  <rect x="9" y="8" width="2" height="7" fill="#662179"/>
+  <!-- Barre de graphique 3 -->
+  <rect x="13" y="6" width="2" height="9" fill="#662179"/>
+  <!-- Courbe/ligne -->
+  <polyline points="16,12 18,9 20,11" fill="none"/>
+  <!-- Base du moniteur -->
+  <line x1="8" y1="21" x2="16" y2="21"/>
+  <line x1="12" y1="17" x2="12" y2="21"/>
+</svg>

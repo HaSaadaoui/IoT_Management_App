@@ -15,7 +15,7 @@ public class SensorLorawanDao {
     @Value("${lorawan.baseurl}")
     private String lorawanBaseUrl;
 
-    @Value("${lorawan.token}")
+    @Value("${lorawan.service.token}")
     private String lorawanToken;
 
     private final WebClient.Builder webClientBuilder;
@@ -55,6 +55,58 @@ public class SensorLorawanDao {
             .uri(uriBuilder -> uriBuilder.path("/{app}/devices/{dev}")
                 .build(applicationId, sensorId))
             .header(AUTHORIZATION, BEARER + " " + lorawanToken)
+            .retrieve()
+            .onStatus(
+                status -> status.isError(),
+                resp -> resp.bodyToMono(String.class).flatMap(msg ->
+                    Mono.error(new WebClientResponseException(
+                        "TTN error: " + msg,
+                        resp.statusCode().value(), resp.statusCode().toString(),
+                        null, null, null))
+                )
+            )
+            .toBodilessEntity()
+            .block();
+    }
+
+    /**
+     * Récupère tous les devices d'une application TTN
+     * @param applicationId ID de l'application (ex: rpi-mantu-appli, lorawan-network-mantu)
+     * @return JSON avec la liste des devices
+     */
+    public String fetchDevicesFromTTN(String applicationId) {
+        try {
+            WebClient client = webClientBuilder.baseUrl(lorawanBaseUrl).build();
+            String response = client.get()
+                .uri(uriBuilder -> uriBuilder
+                    .path("/applications/{app}/devices")
+                    .queryParam("limit", 200)
+                    .build(applicationId))
+                .header(AUTHORIZATION, BEARER + " " + lorawanToken)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+            
+            return response != null ? response : "{}";
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+
+    /**
+     * Met à jour un sensor dans TTN (PATCH)
+     * @param applicationId ID de l'application
+     * @param sensorId ID du sensor
+     * @param body Données à mettre à jour
+     */
+    public void updateSensorInLorawan(String applicationId, String sensorId, LorawanSensorData body) {
+        WebClient client = webClientBuilder.baseUrl(lorawanBaseUrl + "/applications").build();
+        client.patch()
+            .uri(uriBuilder -> uriBuilder.path("/{app}/devices/{dev}")
+                .build(applicationId, sensorId))
+            .header(AUTHORIZATION, BEARER + " " + lorawanToken)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(body)
             .retrieve()
             .onStatus(
                 status -> status.isError(),

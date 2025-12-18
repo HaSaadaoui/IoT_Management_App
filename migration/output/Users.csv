@@ -1,0 +1,17 @@
+username,firstname,lastname,password,role,email,icon
+user1,Johnn,Doess,$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG,ADMIN,john.doe@example.com,/uploads/20251027_144306_User_icon_2.svg.png
+user3,Alice,Johnson,$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG,SUPERUSER,alice.johnson@example.com,/image/default-avatar.png
+user4,Bob,Brown,$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG,USER,bob.brown@example.com,/image/default-avatar.png
+user5,Charlie,Davis56,$2a$10$pbiynIjfUXO5vo29yD1TWuG4EUVJ8gM9nb3RXgyxSemib5DScgoPm,ADMIN,charlie.davis@example.com,/uploads/20251013_110308_chevre.png
+user9,Grace,Anderson,$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG,SUPERUSER,grace.anderson@example.com,/image/default-avatar.png
+user65,sss,ssss,$2a$10$ugQL6Dyj6fqWj8OQs5JACuv9ILQJGquhqBMcd3tvmdaPr1V841QAG,USER,seraf01@live.fr,/image/default-avatar.png
+user555,222,222,$2a$10$hKmhyhNGfUPolXod.Yn8beKs8CJ0cTeW9UDJbZIdWV75NK3Z.BSV6,USER,hannah.thomas@example.com,/image/default-avatar.png
+seraph,"Séraphin",Verbeke,$2a$10$poFNSBmscjkNb6ZAFJdsUOwqvihupvx1HLIiq/O19NFoep77tBJSe,SUPERUSER,seraf01@live.fr,/uploads/20251010_103958_image.png
+testuser,Test,User,$2a$10$eYziMMeSRA2A091vuiTOq.s1NJHpwVtcLupeXoJU3E0Y52MzOcy5K,USER,test@example.com,/image/default-avatar.png
+veruser,us,er,$2a$10$XVpij7eGfIfkjbbUQ1d8JeMYkOsTAP19FnAKyQ2BNHZMa0fQJHfuu,USER,khnissi@futurnet.frss,/image/default-avatar.png
+hugo,hugo,hugo,$2a$10$t.6PxLp5X9B5JO5xw4rJ6eXpqwo1O8bUPPsTLab8ssR2sCDxGKOZW,USER,hugo10@exemple.com,/uploads/20251014_173442_62939_bleach_hollow_ichigo.jpg
+muser,marwan,m,$2a$10$9YxdjcTIeOrF/qHZZ3cdue9T7/TPUJkTWVXDwA1nSq3FJIEnvlbOe,USER,msr.bran20@gmail.com,/uploads/20251014_160459_batman-pfp-6.webp
+huser,h,f,$2a$10$zTfMlO.3dIpudY711pa5z.Ic4uevbh8AHtoOTsDbtm2fAG2IGJuHS,USER,mail@gmail.com,/image/default-avatar.png
+hugo7,youssef,khnissi,$2a$10$EbEIO1GhsmsxWIi.IGxzGOg7kI2O5K3LrFrYV9n.ImxjhX/MLqHcu,USER,khnissi@futurnet.fr,/image/default-avatar.png
+saif,saif,saif,$2a$10$EibBD6oeV8vFaiuk8gr21ucLCvbpFYnKcZpKDgAhnI8JxLC9/Bqzu,USER,mosratisayf20@gmail.com,/uploads/20251017_120144_Nightwing-Dc-Comics-PFP-20.webp
+youssef,f,f,$2a$10$e8032i42UPP5ElEJ/dVoheBPiLzfdObgyEr5rAsHMM5I7bCCQ3VRy,USER,mosratisayf20@gmail.com,/uploads/20251016_181426_batman-pfp-6.webp

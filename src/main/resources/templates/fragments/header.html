@@ -15,6 +15,9 @@
                 <line x1="11" y1="15" x2="22" y2="15" stroke="#662179" stroke-width="2" stroke-linecap="round"/>
             </svg>
         </a>
+        <div class="header-title-gateway" th:if="${pageTitle}">
+            <span th:text="${pageTitle}">Page Title</span>
+        </div>
         <div class="header-right">
             <div class="dropdown">
                 <!-- Bouton pour ouvrir le menu -->
@@ -62,7 +65,7 @@
                 </div>
             </div>
             <div class="header-user">
-                <a th:href="@{/users/{username}(username=${loggedUsername})}" class="header-link">
+                <a th:if="${user}" th:href="@{/users/{username}(username=${loggedUsername})}" class="header-link">
                     <img th:src="${user.icon}"
                          class="header-avatar"
                          alt="User Avatar"

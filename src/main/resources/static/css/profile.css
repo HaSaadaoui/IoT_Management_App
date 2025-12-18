@@ -1,9 +1,10 @@
 body, html {
     background-image: url('/image/mantu-background.jpg');
-    background-size: cover;
-    height: 100vh;
+    background-size: 100% 120vh;
+    min-height: 100vh;
     margin: 0;
     background-repeat: no-repeat;
+    background-position: center top;
 }
 
 .profile-container {
@@ -357,35 +358,102 @@ body, html {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* --- Responsive Design --- */
+/* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 768px) {
+    .profile-container {
+        margin-top: 20px;
+        padding: 0 15px;
+    }
+    
     .profile-box {
         flex-direction: column;
-        gap: 30px;
-        padding: 30px 20px;
+        gap: 20px;
+        padding: 20px;
+        max-width: 100%;
     }
-
+    
     .profile-left {
         flex: none;
-        width: 100%;
+        align-self: center;
     }
-
-    .avatar-wrapper {
-        width: 200px;
-        height: 200px;
+    
+    .user-avatar {
+        width: 150px;
+        min-width: 150px;
+        height: 150px;
+        min-height: 150px;
     }
-
-    .info-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
+    
+    .profile-right {
+        text-align: center;
     }
-
+    
     .profile-actions {
+        margin-top: 20px;
+        display: flex;
         flex-direction: column;
+        gap: 10px;
     }
-
-    .btn-action {
+    
+    .profile-actions button {
+        margin-right: 0;
         width: 100%;
-        justify-content: center;
     }
+}
+
+@media (max-width: 480px) {
+    .profile-container {
+        margin-top: 10px;
+        padding: 0 10px;
+    }
+    
+    .profile-box {
+        padding: 15px;
+    }
+    
+    .user-avatar {
+        width: 120px;
+        min-width: 120px;
+        height: 120px;
+        min-height: 120px;
+    }
+    
+    .modal-content {
+        width: 95%;
+        padding: 20px;
+    }
+}
+
+/* ===== ENHANCED INTERACTIVITY ===== */
+.profile-box {
+    transition: all 0.3s ease;
+}
+
+.profile-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+.btn-change-avatar,
+.btn-change-password,
+.btn-edit-user {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-change-avatar:hover {
+    background: #4b0c68;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 33, 121, 0.3);
+}
+
+.modal-content {
+    transition: all 0.3s ease;
+}
+
+.modal-content input {
+    transition: all 0.3s ease;
+}
+
+.modal-content input:hover {
+    border-color: #8b2fa3;
 }

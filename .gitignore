@@ -32,7 +32,6 @@ build/
 
 ### VS Code ###
 .vscode/
-mydatabase.db
 
 ### Documentation Files ###
 *README*.md
@@ -56,3 +55,41 @@ GIT-PUSH-*.txt
 ### Local Configuration with Secrets ###
 application-local.properties
 *-local.properties
+# Ces fichier pourraient contenir des information confidentielles
+application.yml
+*.db
+Userssaifeddine.mosrati_mDesktopmydatabase.db
+uploads/
+
+### Logs ###
+logs/*.gz
+logs/*.log
+
+### Documentation & Scripts (local only) ###
+docs/
+*.bat
+*.ps1
+*_IMPROVEMENTS.md
+*_GUIDE.md
+*_DOCUMENTATION.md
+*_QUICK_TEST.md
+*_NOW.md
+*_START.md
+*_APPLIED.md
+*_TESTS.md
+MIGRATION_GUIDE.md
+HISTORIQUE_IMPROVEMENTS.md
+TEST_NOW.md
+SENSOR_*.md
+QUICK_START_*.md
+POWERSHELL_*.md
+FIX_*.md
+migration_add_lorawan_fields.sql
+execute_migration.bat
+verify_migration.bat
+run_migration.ps1
+DEPLOYMENT.md
+
+json
+.env
+secret.config.yml
