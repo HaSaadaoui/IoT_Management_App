@@ -7,6 +7,7 @@ class ArchitecturalFloorPlan {
         floorData,
         sensorMode = "DESK",
         buildingKey = "CHATEAUDUN",
+        svgPath
     ) {
         this.container = document.getElementById(containerId);
         this.floorData = floorData;
@@ -17,6 +18,7 @@ class ArchitecturalFloorPlan {
         this.wallThickness = 0.2; // meters
         this.overlayManager = null;
         this.buildingKey = buildingKey;
+        this.svgPath = svgPath;
 
         // Colors matching screenshot
         this.colors = {
@@ -35,7 +37,6 @@ class ArchitecturalFloorPlan {
 
     init() {
         this.createSVG();
-        //this.drawFloorPlan({});
     }
 
     createSVG() {
@@ -47,18 +48,16 @@ class ArchitecturalFloorPlan {
         this.svg = document.createElementNS(svgNS, "svg");
         this.svg.setAttribute("width", "100%");
         this.svg.setAttribute("height", "100%");
-        this.svg.setAttribute("viewBox", "0 0 1200 650");
+        this.svg.setAttribute("viewBox", "0 0 1200 1200");
         this.svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
         this.svg.style.background = this.colors.background;
 
         this.container.appendChild(this.svg);
     }
 
-    drawFloorPlan(deskOccupancy = {}) {
+    async drawFloorPlan(deskOccupancy = {}) {
         // Clear any existing floor plan before drawing a new one
-        while (this.svg.firstChild) {
-            this.svg.removeChild(this.svg.firstChild);
-        }
+        this.init();
 
         // Draw based on floor number
         switch (this.buildingKey) {
@@ -88,11 +87,14 @@ class ArchitecturalFloorPlan {
                 }
                 break;
             case "LEVALLOIS":
-                    switch (this.floorData.floorNumber) {
+                switch (this.floorData.floorNumber) {
                     case 0:
                         this.drawFloorLevallois(deskOccupancy);
                         break;
-                    }
+                }
+                break;
+            default:
+                await this.drawGroundFloorSVG(deskOccupancy);
                 break;
         }
 
@@ -105,6 +107,10 @@ class ArchitecturalFloorPlan {
             );
             this.overlayManager.setSensorMode(this.sensorMode, sensors);
         }
+
+        // On modifie le SVG pour le centrer sur l'écran
+        this.centerSVGContent({ targetWidth: 1200, targetHeight: 1200, padding: 20, fit: true });
+
     }
 
     generateSensorData(mode, floor) {
@@ -158,8 +164,63 @@ class ArchitecturalFloorPlan {
         }
     }
 
+    async drawGroundFloorSVG(deskOccupancy = {}) {
+
+        const g = this.createGroup("content-root");
+        
+        if (!this.svgPath) {
+            console.warn('Aucun svgPath fourni');
+            return;
+        }
+
+        // Charger le SVG externe
+        let raw;
+        try {
+            const resp = await fetch(this.svgPath);
+            raw = await resp.text();
+        } catch (e) {
+            console.error('Erreur de chargement du SVG', e);
+            return;
+        }
+
+        // Parser le contenu
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(raw, "image/svg+xml");
+
+        const graphicSelector = [
+            'path',
+            'rect',
+            'circle',
+            'ellipse',
+            'line',
+            'polyline',
+            'polygon',
+            'text',
+            'use'
+        ].join(', ');
+
+        const elements = Array.from(doc.querySelectorAll(graphicSelector));
+        if (!elements.length) {
+            console.warn('SVG sans éléments graphiques');
+            return;
+        }
+
+        elements.forEach(el => {
+            const importedEl = document.importNode(el, true);
+            importedEl.setAttribute('fill', 'none');
+            importedEl.setAttribute('stroke', this.colors.wallStroke);
+            importedEl.setAttribute('stroke-width', 4);
+            importedEl.setAttribute('stroke-linecap', 'square');
+            importedEl.setAttribute('stroke-linejoin', 'miter');
+            importedEl.setAttribute('vector-effect', 'non-scaling-stroke');
+            g.appendChild(importedEl);
+        });
+
+        this.svg.appendChild(g);
+    }
+
     drawFloorLevallois(deskOccupancy = {}) {
-        const g = this.createGroup('floor-3');
+        const g = this.createGroup('content-root');
         
         // Main building outline
         const outerWall = [
@@ -413,9 +474,9 @@ class ArchitecturalFloorPlan {
     }
 
     drawGroundFloorChateaudun(deskOccupancy = {}) {
-        const g = this.createGroup("ground-floor");
+        const g = this.createGroup("content-root");
 
-        // Main building outline - Same as Floor 2
+        // Main building outline
         const outerWall = [
             { x: 50, y: 50 },
             { x: 950, y: 50 },
@@ -428,7 +489,7 @@ class ArchitecturalFloorPlan {
         ];
         this.drawWall(g, outerWall, true);
 
-        // Internal separator lines (same as Floor 2)
+        // Internal separator lines
         this.drawLine(
             g,
             [
@@ -493,24 +554,13 @@ class ArchitecturalFloorPlan {
         this.drawWindow(g, 820, 50, 80, "horizontal");
         this.drawWindow(g, 980, 50, 80, "horizontal");
 
-        // ONLY DRAW DESKS IF IN DESK MODE
-        /* if (this.sensorMode === 'DESK') {
-            // Ground floor desks - similar layout to Floor 2
-            this.drawWorkstation(g, 120, 60, 'invalid', 'D01', 30, 50, 'left');
-            this.drawWorkstation(g, 90, 60, 'invalid', 'D02', 30, 50, 'right');
-            this.drawWorkstation(g, 260, 60, 'invalid', 'D03', 30, 50, 'left');
-            this.drawWorkstation(g, 290, 60, 'invalid', 'D04', 30, 50, 'right');
-            this.drawWorkstation(g, 790, 60, 'invalid', 'D05', 30, 50, 'left');
-            this.drawWorkstation(g, 820, 60, 'invalid', 'D06', 30, 50, 'right');
-        }*/
-
         this.svg.appendChild(g);
     }
 
     drawFloor1(deskOccupancy = {}) {
         const g = this.createGroup("floor-1");
 
-        // Main building outline - Same as Floor 2
+        // Main building outline
         const outerWall = [
             { x: 50, y: 50 },
             { x: 950, y: 50 },
@@ -523,7 +573,7 @@ class ArchitecturalFloorPlan {
         ];
         this.drawWall(g, outerWall, true);
 
-        // Internal separator lines (same as Floor 2)
+        // Internal separator lines
         this.drawLine(
             g,
             [
@@ -814,7 +864,7 @@ class ArchitecturalFloorPlan {
             { x: 380, y: 50 },
             { x: 490, y: 50 },
             { x: 490, y: 220 },
-            { x: 380, y: 170 }, // ← this closes the shape (equivalent to "Z"
+            { x: 380, y: 170 }
         ];
         this.drawWall(g, atlanticRoom, false);
         this.drawLabel(g, 430, 140, "Atlantic", 16, "bold");
@@ -840,7 +890,7 @@ class ArchitecturalFloorPlan {
             { x: 710, y: 50 },
             { x: 490, y: 50 },
             { x: 490, y: 220 },
-            { x: 710, y: 220 }, // ← this closes the shape (equivalent to "Z")
+            { x: 710, y: 220 }
         ];
         this.drawWall(g, pacificRoom, false);
         this.drawLabel(g, 600, 140, "Pacific", 16, "bold");
@@ -1118,7 +1168,6 @@ class ArchitecturalFloorPlan {
     drawFloor3(deskOccupancy = {}) {
         const g = this.createGroup("floor-3");
 
-        // Same building outline as Floor 2
         const outerWall = [
             { x: 50, y: 50 },
             { x: 950, y: 50 },
@@ -1131,7 +1180,7 @@ class ArchitecturalFloorPlan {
         ];
         this.drawWall(g, outerWall, true);
 
-        // Internal separator lines (same as Floor 2)
+        // Internal separator lines
         this.drawLine(
             g,
             [
@@ -1523,7 +1572,6 @@ class ArchitecturalFloorPlan {
     drawFloor4(deskOccupancy = {}) {
         const g = this.createGroup("floor-4");
 
-        // Same building outline as Floor 2
         const outerWall = [
             { x: 50, y: 50 },
             { x: 950, y: 50 },
@@ -1536,7 +1584,7 @@ class ArchitecturalFloorPlan {
         ];
         this.drawWall(g, outerWall, true);
 
-        // Internal separator lines (same as Floor 2)
+        // Internal separator lines
         this.drawLine(
             g,
             [
@@ -1592,7 +1640,7 @@ class ArchitecturalFloorPlan {
             2,
         );
 
-        // Windows (same positions as Floor 2)
+        // Windows
         this.drawWindow(g, 120, 50, 80, "horizontal");
         this.drawWindow(g, 290, 50, 80, "horizontal");
         this.drawWindow(g, 430, 50, 80, "horizontal");
@@ -1832,7 +1880,6 @@ class ArchitecturalFloorPlan {
     drawFloor5(deskOccupancy = {}) {
         const g = this.createGroup("floor-5");
 
-        // Same building outline as Floor 2
         const outerWall = [
             { x: 50, y: 50 },
             { x: 950, y: 50 },
@@ -1845,7 +1892,7 @@ class ArchitecturalFloorPlan {
         ];
         this.drawWall(g, outerWall, true);
 
-        // Internal separator lines (same as Floor 2)
+        // Internal separator lines
         this.drawLine(
             g,
             [
@@ -1901,7 +1948,7 @@ class ArchitecturalFloorPlan {
             2,
         );
 
-        // Windows (same positions as Floor 2)
+        // Windows
         this.drawWindow(g, 120, 50, 80, "horizontal"); // rect x=80
         this.drawWindow(g, 290, 50, 80, "horizontal"); // rect x=250
         this.drawWindow(g, 430, 50, 80, "horizontal"); // rect x=390
@@ -2167,7 +2214,7 @@ class ArchitecturalFloorPlan {
     drawFloor6(deskOccupancy = {}) {
         const g = this.createGroup("floor-6");
 
-        // Main building outline - Same as Floor 2
+        // Main building outline
         const outerWall = [
             { x: 50, y: 50 },
             { x: 950, y: 50 },
@@ -2180,7 +2227,7 @@ class ArchitecturalFloorPlan {
         ];
         this.drawWall(g, outerWall, true);
 
-        // Internal separator lines (same as Floor 2)
+        // Internal separator lines
         this.drawLine(
             g,
             [
@@ -2236,7 +2283,7 @@ class ArchitecturalFloorPlan {
             2,
         );
 
-        // Windows (same positions as Floor 2)
+        // Windows
         this.drawWindow(g, 120, 50, 80, "horizontal");
         this.drawWindow(g, 290, 50, 80, "horizontal");
         this.drawWindow(g, 430, 50, 80, "horizontal");
@@ -2936,9 +2983,7 @@ class ArchitecturalFloorPlan {
             desks.forEach((desk) => {
                 deskOccupancy[desk.id] = desk.status;
             });
-
-            // Redraw the floor plan with updated occupancy data
-            //this.drawFloorPlan(deskOccupancy);
+            
         } catch (error) {
             console.error("Error loading desk occupancy:", error);
         }
@@ -2962,6 +3007,56 @@ class ArchitecturalFloorPlan {
         link.click();
         URL.revokeObjectURL(url);
     }
+
+    /**
+     * Centre et adapte le contenu courant dans une surface
+     * @param {Object} options
+     * @param {number} options.targetWidth - largeur cible
+     * @param {number} options.targetHeight - hauteur cible
+     * @param {number} options.padding - marge intérieure
+     * @param {boolean} options.fit - si true, scale pour faire rentrer le contenu,
+     *                                si false, ne fait que centrer sans changer l'échelle
+     */
+    centerSVGContent({targetWidth = 1200, targetHeight = 1200, padding = 20, fit = true} = {}) {
+        if (!this.svg) return;
+
+        let root = this.svg.querySelector("content-root");
+        if (!root) {
+            root = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            root.setAttribute("id", "content-root");
+            const children = Array.from(this.svg.childNodes);
+            children.forEach(n => { if (n.nodeType === 1 && n.tagName !== "defs") root.appendChild(n); });
+            this.svg.appendChild(root);
+        }
+        root.removeAttribute("transform");
+
+        // Bounding box du contenu
+        const bbox = root.getBBox(); // x, y, width, height
+
+        // Si bbox est vide, rien à centrer
+        if (bbox.width === 0 || bbox.height === 0) return;
+
+        // Calcul de l'échelle
+        const availW = Math.max(0, targetWidth - 2 * padding);
+        const availH = Math.max(0, targetHeight - 2 * padding);
+
+        let scale = 1;
+        if (fit) {
+            scale = Math.min(availW / bbox.width, availH / bbox.height);
+        }
+
+        // On veut que la bounding box (scalée) soit centrée dans la cible
+        const scaledW = bbox.width * scale;
+        const scaledH = bbox.height * scale;
+
+        // On ajoute le décalage pour que la bbox soit centrée avec padding
+        const tx = padding + (availW - scaledW) / 2 - bbox.x * scale;
+        const ty = padding + (availH - scaledH) / 2 - bbox.y * scale;
+
+        // Appliquer la transform
+        root.setAttribute("transform", `translate(${tx}, ${ty}) scale(${scale})`);
+    }
+
 }
 
 // Global reference

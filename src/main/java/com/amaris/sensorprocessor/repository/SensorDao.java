@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Repository
 public class SensorDao {
@@ -114,4 +115,24 @@ public class SensorDao {
                 sensor.getIdSensor()
         );
     }
+
+    /**
+     * Récupère la liste des sensors des type_device renseignés
+     * @param deviceTypes exemple: "DESK", "OCCUP"
+     * @return les of sensors
+     */
+    public List<Sensor> findAllByDeviceTypes(List<String> deviceTypes) {
+        String placeholders = deviceTypes.stream()
+                .map(t -> "?")
+                .collect(Collectors.joining(","));
+
+        String sql = "SELECT * FROM sensors WHERE DEVICE_TYPE IN (" + placeholders + ")";
+
+        return jdbcTemplate.query(
+                sql,
+                new BeanPropertyRowMapper<>(Sensor.class),
+                deviceTypes.toArray()
+        );
+    }
+
 }

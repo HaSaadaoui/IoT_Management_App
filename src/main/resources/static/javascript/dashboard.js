@@ -174,9 +174,9 @@ class DashboardManager {
 
         if (filterId === 'sensor-type') {
             this.updateSensorTypeUI(value);
-            if (window.building3D?.setSensorMode) {
-                window.building3D.setSensorMode(value);
-            }
+            // if (window.building3D?.setSensorMode) {
+            //     window.building3D.setSensorMode(value);
+            // }
         }
 
         this.loadDashboardData();
