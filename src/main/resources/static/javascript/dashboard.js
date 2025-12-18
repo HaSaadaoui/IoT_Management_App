@@ -41,6 +41,13 @@ class DashboardManager {
             metricType: 'OCCUPANCY'
         };
 
+        // Error handling and refresh management
+        this.errorCount = 0;
+        this.maxRetries = 3;
+        this.baseRefreshInterval = 60000; // 60 seconds
+        this.currentRefreshInterval = this.baseRefreshInterval;
+        this.refreshTimer = null;
+
         this.init();
     }
 
@@ -50,7 +57,8 @@ class DashboardManager {
         this.initializeHistogramControls();
         this.loadBuildings();
         this.loadDashboardData();
-        setInterval(() => this.refreshData(), 30000);
+        // Start adaptive refresh with error handling
+        this.scheduleNextRefresh();
     }
 
     // ===== FILTERS =====
@@ -289,9 +297,49 @@ class DashboardManager {
         }
     }
 
+    scheduleNextRefresh() {
+        if (this.refreshTimer) {
+            clearTimeout(this.refreshTimer);
+        }
+        
+        this.refreshTimer = setTimeout(() => {
+            this.refreshData();
+        }, this.currentRefreshInterval);
+        
+        console.log(`Next refresh scheduled in ${this.currentRefreshInterval / 1000} seconds`);
+    }
+
     async refreshData() {
         console.log('Auto-refreshing dashboard data...');
-        await this.loadDashboardData();
+        try {
+            await this.loadDashboardData();
+            // Reset error count and interval on success
+            this.errorCount = 0;
+            this.currentRefreshInterval = this.baseRefreshInterval;
+            this.scheduleNextRefresh();
+        } catch (error) {
+            this.handleRefreshError(error);
+        }
+    }
+
+    handleRefreshError(error) {
+        this.errorCount++;
+        console.warn(`Refresh error #${this.errorCount}:`, error.message);
+        
+        if (this.errorCount >= this.maxRetries) {
+            console.error('Max retries reached. Stopping auto-refresh to prevent server overload.');
+            this.showError('Server temporarily unavailable. Auto-refresh paused. Please refresh manually.');
+            return;
+        }
+        
+        // Exponential backoff: double the interval on each error
+        this.currentRefreshInterval = Math.min(
+            this.baseRefreshInterval * Math.pow(2, this.errorCount),
+            300000 // Max 5 minutes
+        );
+        
+        console.log(`Backing off. Next retry in ${this.currentRefreshInterval / 1000} seconds`);
+        this.scheduleNextRefresh();
     }
 
     loadSampleData() {
