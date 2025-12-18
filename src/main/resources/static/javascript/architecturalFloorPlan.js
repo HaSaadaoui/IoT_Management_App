@@ -88,7 +88,7 @@ class ArchitecturalFloorPlan {
                 break;
             case "LEVALLOIS":
                 switch (this.floorData.floorNumber) {
-                    case 0:
+                    case 3:
                         this.drawFloorLevallois(deskOccupancy);
                         break;
                 }

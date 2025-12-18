@@ -109,7 +109,6 @@ async function loadSVGShapeFromUrl(url, scale = 1) {
                 }
 
                 const baseShape = shapes[0].clone();
-                // ❌ baseShape.scale(scale, scale);   // --> à enlever
 
                 const geom = new THREE.ShapeGeometry(baseShape);
                 geom.computeBoundingBox();
@@ -711,6 +710,8 @@ async createBuilding() {
                 const parsed = Number.parseInt(raw ?? '0', 10);
                 const actualFloor = Number.isNaN(parsed) ? 0 : parsed;
 
+                // floor.userData.floorNumber est l'index dans le modèle 3D
+                // actualFloor est le numéro d'étage réel
                 this.enterFloor(floor.userData.floorNumber, actualFloor);
             }
         }
@@ -767,7 +768,7 @@ async createBuilding() {
             z: 0,
             duration: 1.5,
             ease: 'power2.inOut',
-            onComplete: () => this.switch2DFloorView(floorNumber)
+            onComplete: () => this.switch2DFloorView(actualFloor)
         });
 
         gsap.to(this.controls.target, {
