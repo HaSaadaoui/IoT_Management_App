@@ -187,22 +187,33 @@ class ArchitecturalFloorPlan {
         const parser = new DOMParser();
         const doc = parser.parseFromString(raw, "image/svg+xml");
 
-        // Récupérer tous les <path>
-        const paths = Array.from(doc.querySelectorAll('path'));
-        if (!paths.length) {
-            console.warn('SVG sans <path>');
+        const graphicSelector = [
+            'path',
+            'rect',
+            'circle',
+            'ellipse',
+            'line',
+            'polyline',
+            'polygon',
+            'text',
+            'use'
+        ].join(', ');
+
+        const elements = Array.from(doc.querySelectorAll(graphicSelector));
+        if (!elements.length) {
+            console.warn('SVG sans éléments graphiques');
             return;
         }
 
-        paths.forEach(p => {
-            const el = document.importNode(p, true);
-            el.setAttribute('fill', 'none');
-            el.setAttribute('stroke', this.colors.wallStroke);
-            el.setAttribute('stroke-width', 4);
-            el.setAttribute('stroke-linecap', 'square');
-            el.setAttribute('stroke-linejoin', 'miter');
-            el.setAttribute('vector-effect', 'non-scaling-stroke');
-            g.appendChild(el);
+        elements.forEach(el => {
+            const importedEl = document.importNode(el, true);
+            importedEl.setAttribute('fill', 'none');
+            importedEl.setAttribute('stroke', this.colors.wallStroke);
+            importedEl.setAttribute('stroke-width', 4);
+            importedEl.setAttribute('stroke-linecap', 'square');
+            importedEl.setAttribute('stroke-linejoin', 'miter');
+            importedEl.setAttribute('vector-effect', 'non-scaling-stroke');
+            g.appendChild(importedEl);
         });
 
         this.svg.appendChild(g);
