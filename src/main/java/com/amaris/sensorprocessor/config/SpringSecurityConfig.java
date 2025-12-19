@@ -38,7 +38,7 @@ public class SpringSecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/css/**", "/image/**", "/login", "/register").permitAll()
-                        // .requestMatchers("/api/auth/**", "/verify", "/resend-verification").permitAll() // TODO: vérifier
+                        .requestMatchers("/verify", "/resend-verification", "/verification-success", "/verification-pending").permitAll() // Email verification endpoints
                         .requestMatchers("/api/sensors/**").permitAll() // API REST publique
                         .requestMatchers("/api/test-alerts", "/api/dashboard/**").permitAll() // Allow alerts and dashboard APIs for development
                         .requestMatchers("/home").authenticated()
