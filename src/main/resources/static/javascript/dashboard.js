@@ -2,6 +2,7 @@ class DashboardManager {
     constructor() {
         this.buildings = [];
         this.currentBuilding = null;
+        this.useMockData = true;
 
         this.filters = {
             year: '2025',
@@ -55,6 +56,7 @@ class DashboardManager {
         console.log('=== Dashboard Manager Initialized ===');
         this.initializeFilters();
         this.initializeHistogramControls();
+        
         this.loadBuildings();
         this.loadDashboardData();
         // Start adaptive refresh with error handling
@@ -259,6 +261,10 @@ class DashboardManager {
 
     async loadDashboardData() {
         console.log('=== Loading Dashboard Data ===');
+        if (this.useMockData) {
+            console.log("Loading mock data")
+            this.loadSampleData();
+        }
         try {
             this.showLoading();
 
@@ -358,7 +364,8 @@ class DashboardManager {
             });
         }
 
-        return {
+        const data = {
+            ...this.currentData,
             alerts: this.generateSampleAlerts(),
             liveSensorData: this.generateSampleLiveData(),
             historicalData: {
@@ -369,7 +376,7 @@ class DashboardManager {
             }
         };
 
-        this.updateDashboard(this.currentData);
+        this.updateDashboard(data);
         this.updateRefreshTime();
     }
 
@@ -405,12 +412,12 @@ class DashboardManager {
     // ===== DASHBOARD UPDATE =====
 
     updateDashboard(data) {
-        this.updateAlerts(data.alerts);
-        this.updateLiveData(data.liveSensorData);
-        this.updateHistoricalData(data.historicalData);
-        this.updateOccupationHistory(data.historicalData);
-        this.updateCostAnalysis(data.historicalData);
-        this.updateGlobalStatistics(data.historicalData);
+        this.updateAlerts(data?.alerts);
+        this.updateLiveData(data?.liveSensorData);
+        this.updateHistoricalData(data?.historicalData);
+        this.updateOccupationHistory(data?.historicalData);
+        this.updateCostAnalysis(data?.historicalData);
+        this.updateGlobalStatistics(data?.historicalData);
         this.hideLoading();
     }
 
