@@ -144,9 +144,36 @@ CREATE TABLE sensor_data (
     ) NOT NULL,
     FOREIGN KEY (id_sensor) REFERENCES Sensors(id_sensor) ON DELETE CASCADE,
     CONSTRAINT unique_id_received_at UNIQUE (id_sensor, received_at, value_type)
-); 
+);
+
+ALTER TABLE sensor_data
+ADD COLUMN numeric_value DECIMAL(18,8)
+GENERATED ALWAYS AS (
+    CASE
+        -- 1. Handle "Positive" Status Strings (Map to 1.0)
+        WHEN string_value IN ('occupied', 'used', 'triggered', 'active', 'motion', 'detected', 'true', '1') THEN 1.0
+
+        -- 2. Handle "Negative" Status Strings (Map to 0.0)
+        WHEN string_value IN ('free', 'vacant', 'empty', 'none', 'inactive', 'false', '0') THEN 0.0
+
+        -- 3. Handle Numeric Types (Temperature, Battery, GPS, etc.)
+        -- The Regex ensures we don't crash on "Error" or "Null" strings
+        WHEN string_value REGEXP '^-?[0-9]+(\.[0-9]+)?$'
+            THEN CAST(string_value AS DECIMAL(18,8))
+
+        -- 4. Default (Invalid data becomes NULL)
+        ELSE NULL
+    END
+) VIRTUAL;
 
 CREATE INDEX idx_received_at ON sensor_data (received_at);
+
+-- This allows MySQL to fetch the answer without touching the heavy "TEXT" column.
+CREATE INDEX idx_sensor_readings_fast
+ON sensor_data(id_sensor, value_type, received_at, numeric_value);
+
+CREATE INDEX idx_value_readings_fast
+ON sensor_data(value_type, received_at, numeric_value);
 
 -- Création de la table de configuration des alertes
 CREATE TABLE alert_configuration (
