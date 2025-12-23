@@ -742,13 +742,15 @@ async createBuilding() {
         }
         const totalDesks = desks.length;
 
-        const freeDesks = data.desks.filter(d => d.status === 'free').length;
-        const usedDesks = data.desks.filter(d => d.status === 'used').length;
-        const invalidDesks = data.desks.filter(d => d.status === 'invalid').length;
+        const freeDesks = desks.filter(d => d.status === 'free').length;
+        const usedDesks = desks.filter(d => d.status === 'used').length;
+        const invalidDesks = desks.filter(d => d.status === 'invalid').length;
+        const floorTotalDesks = freeDesks + usedDesks + invalidDesks;
+
 
         overlay.innerHTML = `
             <h4 style="margin:0 0 0.5rem;color:#662179;font-size:1rem;">${data.name}</h4>
-            <p style="margin:0.25rem 0;font-size:0.9rem;">Total Desks: ${totalDesks}</p>
+            <p style="margin:0.25rem 0;font-size:0.9rem;">Total Desks: ${floorTotalDesks}</p>
             <p style="margin:0.25rem 0;font-size:0.9rem;color:#10b981;">🟢 Free: ${freeDesks}</p>
             <p style="margin:0.25rem 0;font-size:0.9rem;color:#ef4444;">🔴 Used: ${usedDesks}</p>
             <p style="margin:0.25rem 0;font-size:0.9rem;color:#94a3b8;">⚪ Invalid: ${invalidDesks}</p>
