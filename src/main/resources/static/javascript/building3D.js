@@ -719,6 +719,20 @@ async createBuilding() {
     }
 
    showFloorInfo(floorNumber) {
+        const desksToExclude = [
+                  { id: 'PB5', sensor: 'desk-vs40-03-01' },
+                  { id: 'IR1', sensor: 'desk-vs41-03-01' },
+                  { id: 'IR2', sensor: 'desk-vs41-03-02' },
+                  { id: 'PB1', sensor: 'desk-vs41-03-03' },
+                  { id: 'PB2', sensor: 'desk-vs41-03-04' },
+                  { id: 'PB3', sensor: 'occup-vs30-03-01' },
+                  { id: 'PB4', sensor: 'occup-vs30-03-02' },
+                  { id: 'SR1', sensor: 'occup-vs70-03-01' },
+                  { id: 'SR2', sensor: 'occup-vs70-03-02' },
+                  { id: 'PB6', sensor: 'occup-vs70-03-03' },
+                  { id: 'PB7', sensor: 'occup-vs70-03-04' }
+              ];
+
         const overlay = document.getElementById('floor-info-overlay');
         if (!overlay) return;
 
@@ -738,7 +752,8 @@ async createBuilding() {
         // Filtrage pour LEVALLOIS
         let desks = data.desks;
         if (this.buildingKey === 'LEVALLOIS') {
-            desks = desks.filter(desk => !desk.id.startsWith('V'));
+            const excludedIds = new Set(desksToExclude.map(d => d.id));
+            desks = desks.filter(desk => !excludedIds.has(desk.id));
         }
         const totalDesks = desks.length;
 
