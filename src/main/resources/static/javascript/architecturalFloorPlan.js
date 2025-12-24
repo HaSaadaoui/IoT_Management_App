@@ -1,36 +1,31 @@
 // ===== ARCHITECTURAL FLOOR PLAN - CEILING VIEW =====
 // Professional architectural drawing system matching "Occupation Live" style
-
-    async function fetchLiveSensorValues(buildingKey, floor, mode) {
+async function fetchLiveSensorValues(buildingKey, floor, mode) {
       const params = new URLSearchParams({
-        building: buildingKey,      // "LEVALLOIS"
-        floor: String(floor),       // "3"
-        sensorType: mode,           // "CO2", "TEMP", ...
-        metricType: mode === "CO2" ? "CO2" :
-                    mode === "TEMP" ? "TEMPEX" :
-                    mode === "NOISE" ? "SON" :
-                    mode === "LIGHT" ? "EYE" :
-                    mode === "HUMIDITY" ? "HUMIDITY" : "OCCUPANCY",
-        timeRange: "TODAY",
-        granularity: "HOURLY",
-        timeSlot: "ALL",
+        building: buildingKey,     // "LEVALLOIS"
+        floor: String(floor),      // "3"
+        sensorType: mode           // "CO2", "TEMP", "NOISE", ...
       });
 
-      const resp = await fetch(`/api/dashboard/histogram?${params.toString()}`);
-      if (!resp.ok) throw new Error("histogram error");
-      const data = await resp.json();   // HistogramResponse
-      // on prend le dernier point pour chaque capteur (moyenne horaire récente)
-      // HistogramDataPoint: { timestamp, value, sensorCount, dataPointCount }
-      const lastPoint = data.dataPoints?.[data.dataPoints.length - 1];
-      if (!lastPoint) return new Map();
+      const resp = await fetch(`/api/dashboard?${params.toString()}`);
+      if (!resp.ok) throw new Error("dashboard error");
 
-      // ici, tu n’as pas le détail par ID, donc solution simple :
-      // même valeur pour tous les capteurs de ce mode/étage.
+      const data = await resp.json(); // DashboardData
       const map = new Map();
-      // tu peupler as la map dans generateSensorData
-      map.set("*ALL*", lastPoint.value);
-      return map;
-    }
+
+      if (!data.liveSensorData || !Array.isArray(data.liveSensorData)) {
+        return map; // vide → fallback possible
+      }
+
+      data.liveSensorData.forEach(sensor => {
+        if (sensor.sensorId && sensor.value != null) {
+          map.set(sensor.sensorId, sensor.value);
+        }
+  });
+
+  return map;
+}
+
 
 class ArchitecturalFloorPlan {
     constructor(
