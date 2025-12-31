@@ -407,6 +407,7 @@ class DashboardManager {
     updateDashboard(data) {
         this.updateAlerts(data.alerts);
         this.updateLiveData(data.liveSensorData);
+        this.updateLiveBuildingMetrics(); // Add real-time building metrics
         this.updateHistoricalData(data.historicalData);
         this.updateOccupationHistory(data.historicalData);
         this.updateCostAnalysis(data.historicalData);
@@ -482,6 +483,165 @@ class DashboardManager {
         });
 
         this.updateTotalChart(liveData);
+    }
+
+    async updateLiveBuildingMetrics() {
+        console.log('Updating Live Building Metrics');
+        try {
+            const building = this.filters.building;
+            const floor = this.filters.floor;
+
+            // Fetch data for multiple sensor types
+            const sensorTypes = ['TEMP', 'HUMIDITY', 'NOISE', 'CO2', 'ENERGY', 'DESK', 'LIGHT'];
+            const metricsData = {};
+
+            for (const sensorType of sensorTypes) {
+                const params = new URLSearchParams({
+                    building: building,
+                    floor: floor,
+                    sensorType: sensorType
+                });
+
+                try {
+                    const response = await fetch(`/api/dashboard/sensors?${params}`);
+                    if (response.ok) {
+                        const sensors = await response.json();
+                        metricsData[sensorType] = sensors;
+                    }
+                } catch (error) {
+                    console.warn(`Failed to fetch ${sensorType} sensors:`, error);
+                }
+            }
+
+            // Calculate and update metrics
+            this.calculateAndUpdateMetrics(metricsData);
+        } catch (error) {
+            console.error('Error updating live building metrics:', error);
+        }
+    }
+
+    calculateAndUpdateMetrics(metricsData) {
+        // Temperature
+        if (metricsData.TEMP && metricsData.TEMP.length > 0) {
+            const temps = metricsData.TEMP
+                .map(s => s.lastValue)
+                .filter(v => v !== null && v !== undefined);
+            if (temps.length > 0) {
+                const avgTemp = temps.reduce((sum, val) => sum + val, 0) / temps.length;
+                this.updateMetricValue('live-avg-temperature', avgTemp.toFixed(1));
+            }
+        }
+
+        // Humidity
+        if (metricsData.HUMIDITY && metricsData.HUMIDITY.length > 0) {
+            const humidity = metricsData.HUMIDITY
+                .map(s => s.lastValue)
+                .filter(v => v !== null && v !== undefined);
+            if (humidity.length > 0) {
+                const avgHumidity = humidity.reduce((sum, val) => sum + val, 0) / humidity.length;
+                this.updateMetricValue('live-avg-humidity', avgHumidity.toFixed(1));
+            }
+        }
+
+        // Sound/Noise Level
+        if (metricsData.NOISE && metricsData.NOISE.length > 0) {
+            const noise = metricsData.NOISE
+                .map(s => s.lastValue)
+                .filter(v => v !== null && v !== undefined);
+            if (noise.length > 0) {
+                const avgNoise = noise.reduce((sum, val) => sum + val, 0) / noise.length;
+                this.updateMetricValue('live-avg-sound', avgNoise.toFixed(1));
+            }
+        }
+
+        // CO2 Level
+        if (metricsData.CO2 && metricsData.CO2.length > 0) {
+            const co2 = metricsData.CO2
+                .map(s => s.lastValue)
+                .filter(v => v !== null && v !== undefined);
+            if (co2.length > 0) {
+                const avgCO2 = co2.reduce((sum, val) => sum + val, 0) / co2.length;
+                this.updateMetricValue('live-avg-co2', Math.round(avgCO2));
+            }
+        }
+
+        // Energy metrics
+        if (metricsData.ENERGY && metricsData.ENERGY.length > 0) {
+            const energySensors = metricsData.ENERGY;
+            
+            // Current Power (latest instant power value in W)
+            const currentPowers = energySensors
+                .map(s => s.lastValue)
+                .filter(v => v !== null && v !== undefined);
+            if (currentPowers.length > 0) {
+                const totalPower = currentPowers.reduce((sum, val) => sum + val, 0);
+                this.updateMetricValue('live-current-power', Math.round(totalPower));
+            }
+
+            // Today's Energy - calculate from sensor data timestamps for today
+            this.calculateTodaysEnergy(energySensors);
+        }
+
+        // Desk Usage Percentage
+        if (metricsData.DESK && metricsData.DESK.length > 0) {
+            const desks = metricsData.DESK;
+            const totalDesks = desks.length;
+            const occupiedDesks = desks.filter(s => s.lastValue === 1 || s.lastValue === true).length;
+            const usagePercentage = totalDesks > 0 ? (occupiedDesks / totalDesks) * 100 : 0;
+            this.updateMetricValue('live-desk-usage', usagePercentage.toFixed(1));
+        }
+
+        // Light Level Average
+        if (metricsData.LIGHT && metricsData.LIGHT.length > 0) {
+            const lightLevels = metricsData.LIGHT
+                .map(s => s.lastValue)
+                .filter(v => v !== null && v !== undefined);
+            if (lightLevels.length > 0) {
+                const avgLight = lightLevels.reduce((sum, val) => sum + val, 0) / lightLevels.length;
+                this.updateMetricValue('live-avg-light', Math.round(avgLight));
+            }
+        }
+    }
+
+    async calculateTodaysEnergy(energySensors) {
+        // Fetch today's energy consumption data
+        try {
+            const today = new Date();
+            const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            
+            const params = new URLSearchParams({
+                building: this.filters.building,
+                floor: this.filters.floor,
+                sensorType: 'ENERGY',
+                metricType: 'ENERGY',
+                granularity: 'HOURLY'
+            });
+
+            const response = await fetch(`/api/dashboard/histogram?${params}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.data && Array.isArray(data.data)) {
+                    // Filter for today's data and sum up
+                    const todayData = data.data.filter(entry => {
+                        const entryDate = new Date(entry.timestamp);
+                        return entryDate >= startOfDay;
+                    });
+
+                    const totalWh = todayData.reduce((sum, entry) => sum + (entry.value || 0), 0);
+                    const totalKWh = totalWh / 1000; // Convert Wh to kWh
+                    this.updateMetricValue('live-daily-energy', totalKWh.toFixed(2));
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to calculate today\'s energy:', error);
+        }
+    }
+
+    updateMetricValue(elementId, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = value;
+        }
     }
 
     updateLocationChart(location, index) {
@@ -665,6 +825,8 @@ class DashboardManager {
         if (costValues[1]) costValues[1].textContent = `€${averageDailyCost.toFixed(2)}`;
 
         this.updateCostChart(historicalData.dataPoints, costData);
+        this.updateCostAreaChart(historicalData.dataPoints, costData);
+        this.updateCostScatterChart(historicalData.dataPoints, costData);
     }
 
     updateCostChart(dataPoints, costData) {
@@ -770,6 +932,197 @@ class DashboardManager {
                         callbacks: {
                             title: context => 'Date: ' + context[0].label,
                             label: context => 'Cost: €' + context.parsed.y.toFixed(2)
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    updateCostAreaChart(dataPoints, costData) {
+        const chartElement = document.getElementById('chart-cost-area');
+        if (!chartElement) {
+            console.warn('Chart element not found: chart-cost-area');
+            return;
+        }
+
+        const dates = dataPoints.map(d => {
+            const date = new Date(d.date);
+            return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+        });
+
+        if (this.charts.costArea) {
+            this.charts.costArea.destroy();
+            this.charts.costArea = null;
+        }
+
+        const existingChart = Chart.getChart(chartElement);
+        if (existingChart) existingChart.destroy();
+
+        this.charts.costArea = new Chart(chartElement, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [{
+                    label: 'Energy Cost Trend',
+                    data: costData,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#10b981',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Date',
+                            color: '#64748b',
+                            font: { size: 14, weight: '600' }
+                        },
+                        grid: { display: false },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            font: { size: 11 }
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Cost (€)',
+                            color: '#64748b',
+                            font: { size: 14, weight: '600' }
+                        },
+                        beginAtZero: true,
+                        ticks: {
+                            font: { size: 11 },
+                            callback: value => '€' + value.toFixed(2)
+                        },
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 },
+                            color: '#64748b'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        borderColor: '#10b981',
+                        borderWidth: 2,
+                        callbacks: {
+                            label: context => 'Cost: €' + context.parsed.y.toFixed(2)
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    updateCostScatterChart(dataPoints, costData) {
+        const chartElement = document.getElementById('chart-cost-scatter');
+        if (!chartElement) {
+            console.warn('Chart element not found: chart-cost-scatter');
+            return;
+        }
+
+        // Create scatter data: x = energy consumption (occupancy rate as proxy), y = cost
+        const scatterData = dataPoints.map((d, index) => ({
+            x: d.occupancyRate, // Using occupancy rate as proxy for energy consumption
+            y: costData[index]
+        }));
+
+        if (this.charts.costScatter) {
+            this.charts.costScatter.destroy();
+            this.charts.costScatter = null;
+        }
+
+        const existingChart = Chart.getChart(chartElement);
+        if (existingChart) existingChart.destroy();
+
+        this.charts.costScatter = new Chart(chartElement, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Cost vs Consumption',
+                    data: scatterData,
+                    backgroundColor: 'rgba(139, 92, 246, 0.6)',
+                    borderColor: '#8b5cf6',
+                    borderWidth: 1,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        title: {
+                            display: true,
+                            text: 'Energy Consumption / Occupancy (%)',
+                            color: '#64748b',
+                            font: { size: 14, weight: '600' }
+                        },
+                        ticks: {
+                            font: { size: 11 },
+                            callback: value => value.toFixed(0) + '%'
+                        },
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Cost (€)',
+                            color: '#64748b',
+                            font: { size: 14, weight: '600' }
+                        },
+                        beginAtZero: true,
+                        ticks: {
+                            font: { size: 11 },
+                            callback: value => '€' + value.toFixed(2)
+                        },
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: { size: 12 },
+                            color: '#64748b'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        borderColor: '#8b5cf6',
+                        borderWidth: 2,
+                        callbacks: {
+                            label: context => `Consumption: ${context.parsed.x.toFixed(1)}% | Cost: €${context.parsed.y.toFixed(2)}`
                         }
                     }
                 }
@@ -956,9 +1309,14 @@ class DashboardManager {
     renderHistogramChart(data) {
         console.log('Rendering Histogram Chart');
 
-        const chartElement = document.getElementById('chart-historical-bar');
+        // Render individual desk occupancy bars
+        this.renderDeskOccupancyBars(data);
+    }
+
+    renderDeskOccupancyBars(data) {
+        const chartElement = document.getElementById('chart-desk-occupancy-bar');
         if (!chartElement) {
-            console.warn('Histogram chart element not found');
+            console.warn('Desk occupancy bar chart element not found');
             return;
         }
 
@@ -970,56 +1328,30 @@ class DashboardManager {
         const existingChart = Chart.getChart(chartElement);
         if (existingChart) existingChart.destroy();
 
-        const labels = data.dataPoints.map(dp => {
-            const date = new Date(dp.timestamp);
-            if (data.granularity === 'HOURLY') {
-                return date.toLocaleString('fr-FR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            }
-            return date.toLocaleDateString('fr-FR', {
-                day: '2-digit',
-                month: '2-digit'
-            });
+        // Create individual desk bars showing occupancy status
+        const deskLabels = data.dataPoints.map((dp, index) => `Desk ${index + 1}`);
+        const deskValues = data.dataPoints.map(dp => dp.value);
+        
+        // Color code based on occupancy: green for free, red for occupied
+        const backgroundColors = deskValues.map(value => {
+            if (value === 0 || value < 0.5) return '#10b981'; // Free - green
+            if (value === 1 || value >= 0.5) return '#ef4444'; // Occupied - red
+            return '#94a3b8'; // Unknown - gray
         });
-
-        const values = data.dataPoints.map(dp => dp.value);
-
-        let barColor = '#662179';
-        let borderColor = '#8e44ad';
-
-        if (data.metricType === 'TEMPERATURE') {
-            barColor = '#ff6b6b';
-            borderColor = '#ff5252';
-        } else if (data.metricType === 'CO2') {
-            barColor = '#4ecdc4';
-            borderColor = '#45b7d1';
-        } else if (data.metricType === 'HUMIDITY') {
-            barColor = '#95e1d3';
-            borderColor = '#7ec4b8';
-        } else if (data.metricType === 'ILLUMINANCE') {
-            barColor = '#f9ca24';
-            borderColor = '#f0b90b';
-        } else if (data.metricType === 'LAEQ') {
-            barColor = '#ff9ff3';
-            borderColor = '#ff79e1';
-        }
 
         this.charts.histogram = new Chart(chartElement, {
             type: 'bar',
             data: {
-                labels,
+                labels: deskLabels,
                 datasets: [{
-                    label: this.getMetricLabel(data.metricType),
-                    data: values,
-                    backgroundColor: barColor,
-                    borderColor,
-                    borderWidth: 2,
-                    borderRadius: 6,
-                    barPercentage: 0.8
+                    label: 'Occupancy Status',
+                    data: deskValues,
+                    backgroundColor: backgroundColors,
+                    borderColor: backgroundColors.map(color => color),
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    barPercentage: 0.9,
+                    categoryPercentage: 0.95
                 }]
             },
             options: {
@@ -1029,22 +1361,22 @@ class DashboardManager {
                     x: {
                         title: {
                             display: true,
-                            text: data.granularity === 'HOURLY' ? 'Date & Time' : 'Date',
+                            text: 'Individual Desks',
                             color: '#64748b',
                             font: { size: 14, weight: '600' }
                         },
                         ticks: {
-                            maxRotation: 45,
+                            maxRotation: 90,
                             minRotation: 45,
-                            font: { size: 11 }
+                            font: { size: 9 },
+                            autoSkip: false
                         },
-                        grid: { display: false },
-                        stacked: true
+                        grid: { display: false }
                     },
                     y: {
                         title: {
                             display: true,
-                            text: this.getMetricUnit(data.metricType, data.aggregationType),
+                            text: 'Status (0=Free, 1=Occupied)',
                             color: '#64748b',
                             font: { size: 14, weight: '600' }
                         },

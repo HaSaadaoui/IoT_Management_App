@@ -332,6 +332,9 @@
             }
         }
 
+        // Process real-time alerts
+        processGatewayAlerts(data);
+        
         console.log("Data reçue :", data);
     };
 
@@ -339,6 +342,203 @@
         console.error("Erreur SSE :", error);
         eventSource.close();
     };
+
+    // Gateway Real-time Alerting System
+    function processGatewayAlerts(data) {
+        if (!data.system) return;
+        
+        const alerts = [];
+        const systemData = data.system;
+        const gatewayName = systemData.hostname || 'Gateway';
+        
+        // Check Status Alert
+        if (systemData.gateway_status && systemData.gateway_status !== 'active') {
+            alerts.push({
+                type: 'STATUS',
+                severity: 'CRITICAL',
+                icon: '🔌',
+                message: `Gateway ${gatewayName} is ${systemData.gateway_status}`,
+                value: systemData.gateway_status
+            });
+        }
+        
+        // Check CPU Alert
+        const cpuUsage = systemData['cpu_percent (%)'];
+        if (cpuUsage !== undefined) {
+            if (cpuUsage >= 90) {
+                alerts.push({
+                    type: 'CPU',
+                    severity: 'CRITICAL',
+                    icon: '⚡',
+                    message: `Critical CPU usage: ${cpuUsage.toFixed(1)}%`,
+                    value: cpuUsage,
+                    threshold: 90,
+                    unit: '%'
+                });
+            } else if (cpuUsage >= 75) {
+                alerts.push({
+                    type: 'CPU',
+                    severity: 'WARNING',
+                    icon: '⚡',
+                    message: `High CPU usage: ${cpuUsage.toFixed(1)}%`,
+                    value: cpuUsage,
+                    threshold: 75,
+                    unit: '%'
+                });
+            }
+        }
+        
+        // Check RAM Alert
+        const ramTotal = systemData['ram_total_gb (GB)'];
+        const ramUsed = systemData['ram_used_gb (GB)'];
+        if (ramTotal && ramUsed) {
+            const ramUsagePercent = (ramUsed / ramTotal) * 100;
+            if (ramUsagePercent >= 95) {
+                alerts.push({
+                    type: 'RAM',
+                    severity: 'CRITICAL',
+                    icon: '💾',
+                    message: `Critical RAM usage: ${ramUsagePercent.toFixed(1)}% (${ramUsed.toFixed(2)}/${ramTotal.toFixed(2)} GB)`,
+                    value: ramUsagePercent,
+                    threshold: 95,
+                    unit: '%'
+                });
+            } else if (ramUsagePercent >= 80) {
+                alerts.push({
+                    type: 'RAM',
+                    severity: 'WARNING',
+                    icon: '💾',
+                    message: `High RAM usage: ${ramUsagePercent.toFixed(1)}% (${ramUsed.toFixed(2)}/${ramTotal.toFixed(2)} GB)`,
+                    value: ramUsagePercent,
+                    threshold: 80,
+                    unit: '%'
+                });
+            }
+        }
+        
+        // Check Disk Alert
+        const diskUsageStr = systemData.disk_usage_percent;
+        if (diskUsageStr) {
+            const diskUsage = parseFloat(diskUsageStr.replace('%', ''));
+            if (diskUsage >= 95) {
+                alerts.push({
+                    type: 'DISK',
+                    severity: 'CRITICAL',
+                    icon: '💿',
+                    message: `Critical disk usage: ${diskUsage.toFixed(1)}%`,
+                    value: diskUsage,
+                    threshold: 95,
+                    unit: '%'
+                });
+            } else if (diskUsage >= 85) {
+                alerts.push({
+                    type: 'DISK',
+                    severity: 'WARNING',
+                    icon: '💿',
+                    message: `High disk usage: ${diskUsage.toFixed(1)}%`,
+                    value: diskUsage,
+                    threshold: 85,
+                    unit: '%'
+                });
+            }
+        }
+        
+        // Check Temperature Alert
+        const cpuTemp = systemData['cpu_temp (C)'];
+        if (cpuTemp !== undefined) {
+            if (cpuTemp >= 80) {
+                alerts.push({
+                    type: 'TEMPERATURE',
+                    severity: 'CRITICAL',
+                    icon: '🌡️',
+                    message: `Critical temperature: ${cpuTemp.toFixed(1)}°C`,
+                    value: cpuTemp,
+                    threshold: 80,
+                    unit: '°C'
+                });
+            } else if (cpuTemp >= 70) {
+                alerts.push({
+                    type: 'TEMPERATURE',
+                    severity: 'WARNING',
+                    icon: '🌡️',
+                    message: `High temperature: ${cpuTemp.toFixed(1)}°C`,
+                    value: cpuTemp,
+                    threshold: 70,
+                    unit: '°C'
+                });
+            }
+        }
+        
+        // Update alerts display
+        updateAlertsDisplay(alerts);
+    }
+    
+    function updateAlertsDisplay(alerts) {
+        const alertsContainer = document.getElementById('gateway-alerts-container');
+        const noAlertsMessage = document.getElementById('no-alerts-message');
+        
+        if (!alertsContainer) return;
+        
+        // Clear existing alerts (except no-alerts message)
+        const existingAlerts = alertsContainer.querySelectorAll('.gateway-alert');
+        existingAlerts.forEach(alert => alert.remove());
+        
+        if (alerts.length === 0) {
+            // Show no alerts message
+            if (noAlertsMessage) {
+                noAlertsMessage.style.display = 'block';
+            }
+        } else {
+            // Hide no alerts message
+            if (noAlertsMessage) {
+                noAlertsMessage.style.display = 'none';
+            }
+            
+            // Add alert statistics
+            const criticalCount = alerts.filter(a => a.severity === 'CRITICAL').length;
+            const warningCount = alerts.filter(a => a.severity === 'WARNING').length;
+            
+            // Create stats badges
+            const statsDiv = document.createElement('div');
+            statsDiv.className = 'alert-stats';
+            statsDiv.innerHTML = `
+                <div class="alert-stat-badge total">
+                    <span>📊 Total: ${alerts.length}</span>
+                </div>
+                ${criticalCount > 0 ? `<div class="alert-stat-badge critical">
+                    <span>🚨 Critical: ${criticalCount}</span>
+                </div>` : ''}
+                ${warningCount > 0 ? `<div class="alert-stat-badge warning">
+                    <span>⚠️ Warning: ${warningCount}</span>
+                </div>` : ''}
+            `;
+            alertsContainer.insertBefore(statsDiv, noAlertsMessage);
+            
+            // Add individual alerts
+            alerts.forEach(alert => {
+                const alertElement = createAlertElement(alert);
+                alertsContainer.insertBefore(alertElement, noAlertsMessage);
+            });
+        }
+    }
+    
+    function createAlertElement(alert) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `gateway-alert ${alert.severity.toLowerCase()}`;
+        
+        const currentTime = new Date().toLocaleTimeString();
+        
+        alertDiv.innerHTML = `
+            <div class="alert-icon">${alert.icon}</div>
+            <div class="alert-content">
+                <div class="alert-title">${alert.type} Alert</div>
+                <div class="alert-message">${alert.message}</div>
+                <div class="alert-time">Now (${currentTime})</div>
+            </div>
+        `;
+        
+        return alertDiv;
+    }
 </script>
 
 </body>

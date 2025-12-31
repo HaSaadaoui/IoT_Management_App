@@ -1,0 +1,76 @@
+feat(dashboard): Enhance dashboard with new metrics, layouts, and cost analysis charts
+
+## 📊 New Features
+
+### Live Building Data
+- Added "Avg Light Level" metric card with real-time light sensor data (lux)
+- Integrated LIGHT sensor type into data fetching and aggregation logic
+
+### Historical Data Analysis
+- Redesigned layout from 3-column to 2-column grid for better readability
+- Charts now display 2 per row:
+  * Row 1: Temperature History + Humidity History
+  * Row 2: CO₂ History + Sound Level History
+
+### Occupation Rate Analytics (New Section)
+- Moved "Global Occupation Statistics" doughnut chart to dedicated section
+- Redesigned "Individual Desk Occupancy Status" with side-by-side bar chart
+- Color-coded bars: Green (free desks) vs Red (occupied desks)
+- Enhanced visual representation for desk usage monitoring
+
+### Cost Analysis Enhancements
+- Added "Energy Cost Trend Over Time" area chart
+- Added "Cost vs Energy Consumption Analysis" scatter plot
+- Improved cost visualization with multiple chart types
+- Better insights into energy consumption patterns and costs
+
+## 🔧 Technical Changes
+
+### Frontend (dashboard.html)
+- Added light level metric card to Live Building Data section
+- Changed `.charts-grid--3col` to `.charts-grid--2col` for Historical Data
+- Created new "Occupation Rate Analytics" section
+- Added canvas elements for new cost analysis charts
+- Reorganized chart layout for better UX
+
+### JavaScript (dashboard.js)
+- Added LIGHT to sensor types array for data fetching
+- Implemented light level average calculation and display
+- Created `renderDeskOccupancyBars()` for individual desk visualization
+- Added `updateCostAreaChart()` for energy cost trend (area chart)
+- Added `updateCostScatterChart()` for cost vs consumption analysis
+- Enhanced chart rendering with proper color schemes and tooltips
+
+## 📋 Files Modified
+
+- src/main/resources/templates/dashboard.html
+  * Lines 223-235: Added Avg Light Level metric card
+  * Lines 339-357: Changed grid layout to 2-column
+  * Lines 668-826: Moved occupation stats and added new charts
+
+- src/main/resources/static/javascript/dashboard.js
+  * Line 495: Added LIGHT sensor type
+  * Lines 586-603: Added light level calculation
+  * Lines 1136-1196: Redesigned desk occupancy visualization
+  * Lines 941-1131: Added area and scatter chart implementations
+
+## 🎯 User Impact
+
+✅ Better visualization of light levels across the building
+✅ Improved readability with 2-column chart layout
+✅ Enhanced desk occupancy monitoring with color-coded bars
+✅ Richer cost analysis with multiple chart types
+✅ More intuitive section organization
+
+## ⚠️ Notes
+
+- Charts will display data once sensor_data table is populated
+- Light sensor data requires LIGHT device type sensors in database
+- Cost calculations based on energy consumption with configurable rate
+- All new charts support real-time refresh with existing auto-refresh mechanism
+
+## 🔄 Future Enhancements
+
+- Data seeding mechanism for testing and demo purposes
+- Advanced filtering for cost analysis charts
+- Export functionality for cost reports

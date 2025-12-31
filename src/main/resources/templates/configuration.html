@@ -239,8 +239,87 @@
                 </div>
             </div>
 
+            <!-- Gateway Alert Thresholds Section -->
+            <div class="threshold-group mb-4">
+                <h5 class="parameter-title">🖥️ Gateway System Monitoring</h5>
+                <p class="text-muted mb-3">Configure alert thresholds for gateway system resources</p>
+                
+                <!-- CPU Thresholds -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">CPU Critical Threshold</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="gateway-cpu-critical" class="form-control" th:value="${gatewayConfig != null ? gatewayConfig.cpu.critical : 85.0}" placeholder="e.g., 85.0">
+                            <span class="input-unit">%</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">CPU Warning Threshold</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="gateway-cpu-warning" class="form-control" th:value="${gatewayConfig != null ? gatewayConfig.cpu.warning : 70.0}" placeholder="e.g., 70.0">
+                            <span class="input-unit">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RAM Thresholds -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">RAM Critical Threshold</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="gateway-ram-critical" class="form-control" th:value="${gatewayConfig != null ? gatewayConfig.ram.critical : 85.0}" placeholder="e.g., 85.0">
+                            <span class="input-unit">%</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">RAM Warning Threshold</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="gateway-ram-warning" class="form-control" th:value="${gatewayConfig != null ? gatewayConfig.ram.warning : 70.0}" placeholder="e.g., 70.0">
+                            <span class="input-unit">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Disk Thresholds -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Disk Critical Threshold</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="gateway-disk-critical" class="form-control" th:value="${gatewayConfig != null ? gatewayConfig.disk.critical : 90.0}" placeholder="e.g., 90.0">
+                            <span class="input-unit">%</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Disk Warning Threshold</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="gateway-disk-warning" class="form-control" th:value="${gatewayConfig != null ? gatewayConfig.disk.warning : 80.0}" placeholder="e.g., 80.0">
+                            <span class="input-unit">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Temperature Thresholds -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Temperature Critical Threshold</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="gateway-temp-critical" class="form-control" th:value="${gatewayConfig != null ? gatewayConfig.temperature.critical : 80.0}" placeholder="e.g., 80.0">
+                            <span class="input-unit">°C</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Temperature Warning Threshold</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="0.1" id="gateway-temp-warning" class="form-control" th:value="${gatewayConfig != null ? gatewayConfig.temperature.warning : 70.0}" placeholder="e.g., 70.0">
+                            <span class="input-unit">°C</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="d-flex justify-content-end">
                 <button type="submit" class="btn btn-violet btn-lg" style="margin: 20px 0;">💾 Save Global Thresholds</button>
+                <button type="button" class="btn btn-success btn-lg ms-3" onclick="saveGatewayThresholds()" style="margin: 20px 0;">🖥️ Save Gateway Thresholds</button>
             </div>
         </form>
 

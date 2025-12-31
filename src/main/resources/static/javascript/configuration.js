@@ -2,6 +2,14 @@
 // ===============  GLOBAL VARIABLES  ===================
 // ======================================================
 
+// Gateway Configuration Management
+let gatewayThresholds = {
+    cpu: { warning: 70.0, critical: 85.0 },
+    ram: { warning: 70.0, critical: 85.0 },
+    disk: { warning: 80.0, critical: 90.0 },
+    temperature: { warning: 70.0, critical: 80.0 }
+};
+
 // --- 3D / SVG ---
 let scene, camera, renderer, controls;
 let svgShape = null;
@@ -212,6 +220,176 @@ function initScene() {
     grid.position.y = -0.4;
     scene.add(grid);
 
+// ======================================================
+// ===============  GATEWAY CONFIGURATION  =============
+// ======================================================
+
+/**
+ * Load current gateway thresholds from server
+ */
+async function loadGatewayThresholds() {
+    try {
+        const response = await fetch('/api/gateway-config/thresholds');
+        if (response.ok) {
+            gatewayThresholds = await response.json();
+            updateGatewayThresholdInputs();
+        } else {
+            console.error('Failed to load gateway thresholds');
+        }
+    } catch (error) {
+        console.error('Error loading gateway thresholds:', error);
+    }
+}
+
+/**
+ * Update gateway threshold input fields with current values
+ */
+function updateGatewayThresholdInputs() {
+    // CPU thresholds
+    const cpuCritical = document.getElementById('gateway-cpu-critical');
+    const cpuWarning = document.getElementById('gateway-cpu-warning');
+    if (cpuCritical) cpuCritical.value = gatewayThresholds.cpu.critical;
+    if (cpuWarning) cpuWarning.value = gatewayThresholds.cpu.warning;
+    
+    // RAM thresholds
+    const ramCritical = document.getElementById('gateway-ram-critical');
+    const ramWarning = document.getElementById('gateway-ram-warning');
+    if (ramCritical) ramCritical.value = gatewayThresholds.ram.critical;
+    if (ramWarning) ramWarning.value = gatewayThresholds.ram.warning;
+    
+    // Disk thresholds
+    const diskCritical = document.getElementById('gateway-disk-critical');
+    const diskWarning = document.getElementById('gateway-disk-warning');
+    if (diskCritical) diskCritical.value = gatewayThresholds.disk.critical;
+    if (diskWarning) diskWarning.value = gatewayThresholds.disk.warning;
+    
+    // Temperature thresholds
+    const tempCritical = document.getElementById('gateway-temp-critical');
+    const tempWarning = document.getElementById('gateway-temp-warning');
+    if (tempCritical) tempCritical.value = gatewayThresholds.temperature.critical;
+    if (tempWarning) tempWarning.value = gatewayThresholds.temperature.warning;
+}
+
+/**
+ * Save gateway thresholds to server
+ */
+async function saveGatewayThresholds() {
+    try {
+        // Collect values from form inputs
+        const newThresholds = {
+            cpu: {
+                warning: parseFloat(document.getElementById('gateway-cpu-warning').value),
+                critical: parseFloat(document.getElementById('gateway-cpu-critical').value)
+            },
+            ram: {
+                warning: parseFloat(document.getElementById('gateway-ram-warning').value),
+                critical: parseFloat(document.getElementById('gateway-ram-critical').value)
+            },
+            disk: {
+                warning: parseFloat(document.getElementById('gateway-disk-warning').value),
+                critical: parseFloat(document.getElementById('gateway-disk-critical').value)
+            },
+            temperature: {
+                warning: parseFloat(document.getElementById('gateway-temp-warning').value),
+                critical: parseFloat(document.getElementById('gateway-temp-critical').value)
+            }
+        };
+        
+        // Validate thresholds
+        if (!validateGatewayThresholds(newThresholds)) {
+            return;
+        }
+        
+        // Send to server
+        const response = await fetch('/api/gateway-config/thresholds', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(newThresholds)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            gatewayThresholds = newThresholds;
+            showNotification('✅ Gateway thresholds saved successfully!', 'success');
+        } else {
+            showNotification('❌ Failed to save gateway thresholds: ' + result.message, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error saving gateway thresholds:', error);
+        showNotification('❌ Error saving gateway thresholds: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Validate gateway threshold values
+ */
+function validateGatewayThresholds(thresholds) {
+    // Check CPU thresholds
+    if (thresholds.cpu.warning >= thresholds.cpu.critical) {
+        showNotification('❌ CPU Warning threshold must be less than Critical threshold', 'error');
+        return false;
+    }
+    
+    // Check RAM thresholds
+    if (thresholds.ram.warning >= thresholds.ram.critical) {
+        showNotification('❌ RAM Warning threshold must be less than Critical threshold', 'error');
+        return false;
+    }
+    
+    // Check Disk thresholds
+    if (thresholds.disk.warning >= thresholds.disk.critical) {
+        showNotification('❌ Disk Warning threshold must be less than Critical threshold', 'error');
+        return false;
+    }
+    
+    // Check Temperature thresholds
+    if (thresholds.temperature.warning >= thresholds.temperature.critical) {
+        showNotification('❌ Temperature Warning threshold must be less than Critical threshold', 'error');
+        return false;
+    }
+    
+    // Check reasonable ranges
+    if (thresholds.cpu.critical > 100 || thresholds.ram.critical > 100 || thresholds.disk.critical > 100) {
+        showNotification('❌ CPU, RAM, and Disk thresholds cannot exceed 100%', 'error');
+        return false;
+    }
+    
+    if (thresholds.temperature.critical > 120) {
+        showNotification('❌ Temperature threshold seems too high (>120°C)', 'error');
+        return false;
+    }
+    
+    return true;
+}
+
+/**
+ * Show notification message
+ */
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 5000);
+}
+
     // Contrôles
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 5, 0);
@@ -393,24 +571,6 @@ function generate3DFromForm() {
         extrudeBuilding(shape, floors, scale);
     });
 }
-
-// ======================================================
-// =================  PAYLOAD EDITOR  ====================
-// ======================================================
-
-document.addEventListener("DOMContentLoaded", function () {
-    const payloadEl = document.getElementById("payload-editor");
-    if (payloadEl && window.ace) {
-        editor = ace.edit("payload-editor");
-        editor.setTheme("ace/theme/monokai");
-        editor.session.setMode("ace/mode/javascript");
-        editor.setValue(defaultPayloadCode, -1);   // <-- payload Elsys par défaut
-    }
-});
-
-// changement de langage (juste le mode Ace)
-function changeEditorLanguage(selectEl) {
-    if (!editor) return;
     const value = (selectEl.value || "").toLowerCase();
     let mode = "ace/mode/javascript";
 
