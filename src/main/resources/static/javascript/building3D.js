@@ -425,6 +425,7 @@ class Building3D {
 
             // Refresh the floor info overlay if currently hovering over a floor
             if (this.hoveredFloor && this.isIn3DView) {
+                console.log('hoveredFloor data is: ' + this.hoveredFloor);
                 this.showFloorInfo(this.hoveredFloor.userData.floorNumber);
             }
         }
@@ -717,23 +718,61 @@ async createBuilding() {
         }
     }
 
-    showFloorInfo(floorNumber) {
+   showFloorInfo(floorNumber) {
+        const desksToExclude = [
+                  { id: 'PB5', sensor: 'desk-vs40-03-01' },
+                  { id: 'IR1', sensor: 'desk-vs41-03-01' },
+                  { id: 'IR2', sensor: 'desk-vs41-03-02' },
+                  { id: 'PB1', sensor: 'desk-vs41-03-03' },
+                  { id: 'PB2', sensor: 'desk-vs41-03-04' },
+                  { id: 'PB3', sensor: 'occup-vs30-03-01' },
+                  { id: 'PB4', sensor: 'occup-vs30-03-02' },
+                  { id: 'SR1', sensor: 'occup-vs70-03-01' },
+                  { id: 'SR2', sensor: 'occup-vs70-03-02' },
+                  { id: 'PB6', sensor: 'occup-vs70-03-03' },
+                  { id: 'PB7', sensor: 'occup-vs70-03-04' }
+              ];
+
         const overlay = document.getElementById('floor-info-overlay');
         if (!overlay) return;
 
-        const data = this.floorData[floorNumber];
-        const freeDesks = data.desks.filter(d => d.status === 'free').length;
-        const usedDesks = data.desks.filter(d => d.status === 'used').length;
+        const mapping = window.DeskSensorConfig?.mappings?.[this.buildingKey] ?? {};
+        const keys = Object.keys(mapping);
+
+        // Récupère la valeur brute depuis le tableau des clés à l'index demandé
+        const raw = keys[floorNumber];
+
+        // Parse et fallback à 0 si undefined ou non numérique
+        const parsed = Number.parseInt(raw ?? '0', 10);
+        const actualFloor = Number.isNaN(parsed) ? 0 : parsed;
+
+        const data = this.floorData[actualFloor];
+
+
+        // Filtrage pour LEVALLOIS
+        let desks = data.desks;
+        if (this.buildingKey === 'LEVALLOIS') {
+            const excludedIds = new Set(desksToExclude.map(d => d.id));
+            desks = desks.filter(desk => !excludedIds.has(desk.id));
+        }
+        const totalDesks = desks.length;
+
+        const freeDesks = desks.filter(d => d.status === 'free').length;
+        const usedDesks = desks.filter(d => d.status === 'used').length;
+        const invalidDesks = desks.filter(d => d.status === 'invalid').length;
+        const floorTotalDesks = freeDesks + usedDesks + invalidDesks;
+
 
         overlay.innerHTML = `
             <h4 style="margin:0 0 0.5rem;color:#662179;font-size:1rem;">${data.name}</h4>
-            <p style="margin:0.25rem 0;font-size:0.9rem;">Total Desks: ${data.desks.length}</p>
+            <p style="margin:0.25rem 0;font-size:0.9rem;">Total Desks: ${floorTotalDesks}</p>
             <p style="margin:0.25rem 0;font-size:0.9rem;color:#10b981;">🟢 Free: ${freeDesks}</p>
             <p style="margin:0.25rem 0;font-size:0.9rem;color:#ef4444;">🔴 Used: ${usedDesks}</p>
+            <p style="margin:0.25rem 0;font-size:0.9rem;color:#94a3b8;">⚪ Invalid: ${invalidDesks}</p>
             <p style="margin-top:0.75rem;font-size:0.85rem;color:#9ca3af;font-style:italic;">Click to enter</p>
         `;
         overlay.classList.add('active');
-    }
+   }
 
     hideFloorInfo() {
         const overlay = document.getElementById('floor-info-overlay');

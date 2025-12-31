@@ -1,5 +1,31 @@
 // ===== ARCHITECTURAL FLOOR PLAN - CEILING VIEW =====
 // Professional architectural drawing system matching "Occupation Live" style
+async function fetchLiveSensorValues(buildingKey, floor, mode) {
+      const params = new URLSearchParams({
+        building: buildingKey,     // "LEVALLOIS"
+        floor: String(floor),      // "3"
+        sensorType: mode           // "CO2", "TEMP", "NOISE", ...
+      });
+
+      const resp = await fetch(`/api/dashboard?${params.toString()}`);
+      if (!resp.ok) throw new Error("dashboard error");
+
+      const data = await resp.json(); // DashboardData
+      const map = new Map();
+
+      if (!data.liveSensorData || !Array.isArray(data.liveSensorData)) {
+        return map; // vide → fallback possible
+      }
+
+      data.liveSensorData.forEach(sensor => {
+        if (sensor.sensorId && sensor.value != null) {
+          map.set(sensor.sensorId, sensor.value);
+        }
+  });
+
+  return map;
+}
+
 
 class ArchitecturalFloorPlan {
     constructor(
@@ -99,6 +125,7 @@ class ArchitecturalFloorPlan {
         }
 
         // Add sensor overlay if not DESK mode
+        /*
         if (this.sensorMode !== "DESK" && window.SensorOverlayManager) {
             this.overlayManager = new SensorOverlayManager(this.svg);
             const sensors = this.generateSensorData(
@@ -106,14 +133,93 @@ class ArchitecturalFloorPlan {
                 this.floorData.floorNumber,
             );
             this.overlayManager.setSensorMode(this.sensorMode, sensors);
+        }*/
+
+        if (this.sensorMode !== "DESK" && window.SensorOverlayManager) {
+          let valueMap = null;
+          try {
+            valueMap = await fetchLiveSensorValues(
+              this.buildingKey,
+              this.floorData.floorNumber,
+              this.sensorMode
+            );
+          } catch (e) {
+            console.warn("Live values error, fallback random", e);
+          }
+
+          const sensors = this.generateSensorData(
+            this.sensorMode,
+            this.floorData.floorNumber,
+            valueMap
+          );
+
+          this.overlayManager = new SensorOverlayManager(this.svg);
+          this.overlayManager.setSensorMode(this.sensorMode, sensors);
         }
+
 
         // On modifie le SVG pour le centrer sur l'écran
         this.centerSVGContent({ targetWidth: 1200, targetHeight: 1200, padding: 20, fit: true });
 
     }
 
-    generateSensorData(mode, floor) {
+    generateSensorData(mode, floor, valueMap = null) {
+        const LEVALLOIS_F3_SENSOR_POSITIONS = {
+          CO2: [
+                { id: "co2-03-01", x: 690, y: 290 }, // au-dessus de D01–D06
+                { id: "co2-03-02",   x: 190, y: 350 }, // proche du bloc suivant
+                { id: "co2-03-03",  x: 630, y: 425 }, // bloc encore à gauche
+          ],
+          TEMP: [
+                 { id: "tempex-03-01", x: 320, y: 180 },
+          ],
+          LIGHT: [
+                  { id: "eye-03-01", x: 500, y: 210 }, // au-dessus de D07–D09
+                  { id: "eye-03-03", x: 90, y: 420 }, // au-dessus de D41
+                  { id: "eye-03-03", x: 490, y: 465 }, // au-dessus de D72
+          ],
+          NOISE: [
+                  { id: "son-03-01", x: 70, y: 315 }, // au-dessus de D36
+                  { id: "son-03-02", x: 700, y: 250 }, // bloc milieu
+                  { id: "son-03-03", x: 630, y: 440 }, // au-dessus de D81–D82
+                  { id: "son-03-04", x: 920, y: 205 }, // côté OM
+          ]
+          // TODO add other sensors
+        };
+
+          // Positions spécifiques Levallois, étage 3
+
+
+
+          if (this.buildingKey === "LEVALLOIS" && floor === 3) {
+            const floorConfig = LEVALLOIS_F3_SENSOR_POSITIONS[mode];
+
+            if (floorConfig && floorConfig.length) {
+              return floorConfig.map((pos) => {
+                const live =
+                  valueMap?.get(pos.id) ??
+                  valueMap?.get("*ALL*") ??
+                  this.getRandomSensorValue(mode);
+
+                return {
+                  id: pos.id,
+                  type: mode,
+                  floor,
+                  x: pos.x,
+                  y: pos.y,
+                  value: live,
+                  status: "normal",
+                  presence: false,
+                  alert: false,
+                  direction: 0,
+                  intensity: 1,
+                  message: "OK",
+                  timestamp: new Date().toISOString(),
+                };
+              });
+            }
+          }
+
         // Updated positions to match new building schema
         // Building spans: x: 50-1050, y: 50-450 (with angular shape)
         const positions = [
@@ -123,7 +229,7 @@ class ArchitecturalFloorPlan {
             { x: 150, y: 130 },
             { x: 400, y: 130 },
             { x: 600, y: 130 },
-            { x: 900, y: 130 },
+           // { x: 900, y: 130 },
             // Bottom row (adjusted for angular shape)
             //{x: 350, y: 300}, {x: 550, y: 300},
         ];
@@ -163,6 +269,10 @@ class ArchitecturalFloorPlan {
                 return 0;
         }
     }
+
+
+
+
 
     async drawGroundFloorSVG(deskOccupancy = {}) {
 

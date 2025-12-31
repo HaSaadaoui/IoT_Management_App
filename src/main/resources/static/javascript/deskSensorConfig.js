@@ -7,28 +7,9 @@ const DeskSensorConfig = {
     mappings: {
         CHATEAUDUN: {
             0: [
-                { id: 'D01', sensor: null },
-                { id: 'D02', sensor: null },
-                { id: 'D03', sensor: null },
-                { id: 'D04', sensor: null },
-                { id: 'D05', sensor: null },
-                { id: 'D06', sensor: null },
-                { id: 'D07', sensor: null },
-                { id: 'D08', sensor: null }
             ],
             1: [
-                { id: 'D01', sensor: null },
-                { id: 'D02', sensor: null },
-                { id: 'D03', sensor: null },
-                { id: 'D04', sensor: null },
-                { id: 'D05', sensor: null },
-                { id: 'D06', sensor: null },
-                { id: 'D07', sensor: null },
-                { id: 'D08', sensor: null },
-                { id: 'D09', sensor: null },
-                { id: 'D10', sensor: null },
-                { id: 'D11', sensor: null },
-                { id: 'D12', sensor: null }
+                { id: 'D01', sensor: null }
             ],
             2: [
                 { id: 'D01', sensor: null },
@@ -45,8 +26,7 @@ const DeskSensorConfig = {
                 { id: 'D12', sensor: null },
                 { id: 'D13', sensor: null },
                 { id: 'D14', sensor: null },
-                { id: 'D15', sensor: null },
-                { id: 'D16', sensor: null }
+                { id: 'D15', sensor: null }
             ],
             3: [
                 { id: 'D01', sensor: null },
@@ -60,7 +40,10 @@ const DeskSensorConfig = {
                 { id: 'D09', sensor: null },
                 { id: 'D10', sensor: null },
                 { id: 'D11', sensor: null },
-                { id: 'D12', sensor: null }
+                { id: 'D12', sensor: null },
+                { id: 'D13', sensor: null },
+                { id: 'D14', sensor: null },
+                { id: 'D15', sensor: null }
             ],
             4: [
                 { id: 'D01', sensor: null },
@@ -70,11 +53,7 @@ const DeskSensorConfig = {
                 { id: 'D05', sensor: null },
                 { id: 'D06', sensor: null },
                 { id: 'D07', sensor: null },
-                { id: 'D08', sensor: null },
-                { id: 'D09', sensor: null },
-                { id: 'D10', sensor: null },
-                { id: 'D11', sensor: null },
-                { id: 'D12', sensor: null }
+                { id: 'D08', sensor: null }
             ],
             5: [
                 { id: 'D01', sensor: null },
@@ -88,7 +67,19 @@ const DeskSensorConfig = {
                 { id: 'D09', sensor: null },
                 { id: 'D10', sensor: null },
                 { id: 'D11', sensor: null },
-                { id: 'D12', sensor: null }
+                { id: 'D12', sensor: null },
+                { id: 'D13', sensor: null },
+                { id: 'D14', sensor: null },
+                { id: 'D15', sensor: null },
+                { id: 'D16', sensor: null },
+                { id: 'D17', sensor: null },
+                { id: 'D18', sensor: null },
+                { id: 'D19', sensor: null },
+                { id: 'D20', sensor: null },
+                { id: 'D21', sensor: null },
+                { id: 'D22', sensor: null },
+                { id: 'D23', sensor: null },
+                { id: 'D24', sensor: null },
             ],
             6: [
                 { id: 'D01', sensor: null },
@@ -102,7 +93,11 @@ const DeskSensorConfig = {
                 { id: 'D09', sensor: null },
                 { id: 'D10', sensor: null },
                 { id: 'D11', sensor: null },
-                { id: 'D12', sensor: null }
+                { id: 'D12', sensor: null },
+                { id: 'D13', sensor: null },
+                { id: 'D14', sensor: null },
+                { id: 'D15', sensor: null },
+                { id: 'D16', sensor: null }
             ]
         },
         LEVALLOIS: {
@@ -199,9 +194,8 @@ const DeskSensorConfig = {
                 { id: 'V06', sensor: 'desk-03-88' },
                 { id: 'V07', sensor: 'desk-03-89' },
                 { id: 'V08', sensor: 'desk-03-90' },
-                //{ id: '09', sensor: 'desk-03-91' },
-                //{ id: '10', sensor: 'desk-03-92' },
-
+                { id: 'V09', sensor: 'desk-03-91' },
+                { id: 'V10', sensor: 'desk-03-92' },
                 { id: 'PB5', sensor: 'desk-vs40-03-01' },
                 { id: 'IR1', sensor: 'desk-vs41-03-01' },
                 { id: 'IR2', sensor: 'desk-vs41-03-02' },
