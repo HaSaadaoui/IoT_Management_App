@@ -19,19 +19,16 @@ function createChateaudunShape(scale = 0.01) {
     return { shape, centerX, centerZ };
 }
 
-// Shape Levallois (arrondi à gauche + bloc rectangulaire en haut à droite)
 function createLevalloisShape(scale = 1) {
     const shape = new THREE.Shape();
 
     // Dimensions de base
-    const bodyLength    = 55 * scale;   // longueur open space
-    const rectRightLen  = 20 * scale;   // profondeur bloc droit
-    const halfDepth     = 10 * scale;   // demi-hauteur corps central
-    const extraTop      = 10 * scale;   // dépassement du bloc droit vers le haut
+    const bodyLength    = 55 * scale;
+    const rectRightLen  = 20 * scale;
+    const halfDepth     = 10 * scale;
+    const extraTop      = 10 * scale;
 
     const radiusLeft = halfDepth;
-
-    // Coordonnées clés
     const xBodyLeft   = -bodyLength / 2;
     const xBodyRight  =  bodyLength / 2;
     const xHeadRight  =  xBodyRight + rectRightLen;
@@ -39,17 +36,12 @@ function createLevalloisShape(scale = 1) {
     const yBottom     = -halfDepth;
     const yTop        =  halfDepth;
     const yHeadTop    =  yTop + extraTop;
-
-    // 1) Coin bas droit bloc
     shape.moveTo(xHeadRight, yBottom);
 
     // 2) Bas bloc → bas corps
     shape.lineTo(xBodyRight, yBottom);
 
-    // 3) Bas corps → bas arrondi gauche
     shape.lineTo(xBodyLeft, yBottom);
-
-    // 4) Arrondi à gauche (demi-disque)
     shape.absarc(
         xBodyLeft,      // centre X
         0,              // centre Y
@@ -58,20 +50,10 @@ function createLevalloisShape(scale = 1) {
         Math.PI / 2,    // fin en haut
         true            // sens horaire
     );
-
-    // 5) Haut corps → haut droit corps
     shape.lineTo(xBodyRight, yTop);
-
-    // 6) On monte pour former le bloc rectangulaire en haut
     shape.lineTo(xBodyRight, yHeadTop);
-
-    // 7) Top du bloc droit
     shape.lineTo(xHeadRight, yHeadTop);
-
-    // 8) Fermeture (retour au bas droit bloc)
     shape.lineTo(xHeadRight, yBottom);
-
-    // Centre approximatif pour positionner le mesh
     const minX = xBodyLeft;
     const maxX = xHeadRight;
     const minY = yBottom;
@@ -210,7 +192,7 @@ const BUILDINGS = {
     },
     LEVALLOIS: {
         id: 'LEVALLOIS',
-        floors: 1,              // un seul étage modélisé?
+        floors: 1,
         scale: 0.06,
         createShape: createLevalloisShape,
         floorData: LEVALLOIS_FLOOR_DATA
@@ -223,16 +205,11 @@ class Building3D {
     constructor(containerId, buildingKey = 'CHATEAUDUN') {
         this.container = document.getElementById(containerId);
         this.canvas = document.getElementById('building-canvas');
-
-        // On garde la valeur telle quelle (peut être "CHATEAUDUN", "LILLE", "DB:4", etc.)
         this.buildingKey = (buildingKey || 'CHATEAUDUN');
-
-        // Flag DB / statique
         this.isDbBuilding = false;
-        this.dbBuildingConfig = null;   // { id, name, floors, scale, svgUrl }
-        this.dbShapeCache = null;       // { shape, centerX, centerZ }
+        this.dbBuildingConfig = null;
+        this.dbShapeCache = null;
 
-        // Config par défaut (sera écrasée dans setBuilding)
         this.config = BUILDINGS.CHATEAUDUN;
         this.floorData = JSON.parse(JSON.stringify(this.config.floorData));
 
@@ -283,9 +260,6 @@ class Building3D {
         this.setupRenderer();
         this.setupLights();
         this.setupControls();
-
-        // ❗️IMPORTANT : ne plus appeler createBuilding() en direct
-        // Toujours passer par setBuilding pour gérer les DB:ID
         this.setBuilding(this.buildingKey);
 
         this.setupEventListeners();
@@ -300,7 +274,7 @@ class Building3D {
     }
 
     getSvgPlanUrl() {
-        // Cas DB 
+        // Cas DB
         if (this.isDbBuilding && this.dbBuildingConfig?.svgUrl) {
             return this.dbBuildingConfig.svgUrl;
         }
@@ -311,13 +285,12 @@ class Building3D {
         return null;
     }
 
-    
+
     computeDynamicViewForBuilding() {
         if (!this.building || !this.camera || !this.controls || !THREE) {
             return null;
         }
 
-        // Assure que la géométrie est à jour
         this.building.updateMatrixWorld(true);
 
         // Bounding box / sphere
@@ -332,20 +305,15 @@ class Building3D {
 
         const radius = Math.max(sphere.radius, 0.001);
 
-        // Cible = centre avec un léger offset vertical
         const verticalOffset = Math.min(Math.max(size.y * 0.1, 1), 5);
         const target = center.clone();
         target.y += verticalOffset;
 
-        // Distance caméra proportionnelle à la taille
         const distance = THREE.MathUtils.clamp(radius * 2.2, 6, 60);
 
         const currentDir =  new THREE.Vector3(1, 0.6, 1).normalize();
 
-        // Position finale de la caméra
         const camPos = target.clone().add(currentDir.multiplyScalar(distance));
-
-        // Paramètres d’orbite (zoom)
         const minD = THREE.MathUtils.clamp(radius * 0.8, 3, 25);
         const maxD = THREE.MathUtils.clamp(radius * 5.0, 15, 120);
 
@@ -496,12 +464,8 @@ class Building3D {
 
     resetCameraForBuilding() {
         if (!this.camera || !this.controls) return;
-
-        // Calcul dynamique des paramètres de vue
         const computed = this.computeDynamicViewForBuilding();
         const { target, camPos, minD, maxD } = computed;
-
-        // Applique les valeurs
         this.controls.target.copy(target);
         this.camera.position.copy(camPos);
         this.controls.minDistance = minD;
@@ -536,7 +500,6 @@ async createBuilding() {
 
         dbScale       = this.dbBuildingConfig.scale || 1;
         buildingShape = this.dbShapeCache.shape;
-        // on applique le scale aussi au centre
         centerX       = this.dbShapeCache.centerX * dbScale;
         centerZ       = this.dbShapeCache.centerZ * dbScale;
     } else {
@@ -700,19 +663,11 @@ async createBuilding() {
         if (intersects.length > 0) {
             const floor = intersects[0].object;
             if (floor.userData.clickable) {
-                
                 const mapping = window.DeskSensorConfig?.mappings?.[this.buildingKey] ?? {};
                 const keys = Object.keys(mapping);
-
-                // Récupère la valeur brute depuis le tableau des clés à l'index demandé
                 const raw = keys[floor?.userData?.floorNumber];
-
-                // Parse et fallback à 0 si undefined ou non numérique
                 const parsed = Number.parseInt(raw ?? '0', 10);
                 const actualFloor = Number.isNaN(parsed) ? 0 : parsed;
-
-                // floor.userData.floorNumber est l'index dans le modèle 3D
-                // actualFloor est le numéro d'étage réel
                 this.enterFloor(floor.userData.floorNumber, actualFloor);
             }
         }
@@ -738,18 +693,12 @@ async createBuilding() {
 
         const mapping = window.DeskSensorConfig?.mappings?.[this.buildingKey] ?? {};
         const keys = Object.keys(mapping);
-
-        // Récupère la valeur brute depuis le tableau des clés à l'index demandé
         const raw = keys[floorNumber];
 
-        // Parse et fallback à 0 si undefined ou non numérique
         const parsed = Number.parseInt(raw ?? '0', 10);
         const actualFloor = Number.isNaN(parsed) ? 0 : parsed;
-
         const data = this.floorData[actualFloor];
 
-
-        // Filtrage pour LEVALLOIS
         let desks = data.desks;
         if (this.buildingKey === 'LEVALLOIS') {
             const excludedIds = new Set(desksToExclude.map(d => d.id));
@@ -941,7 +890,6 @@ async createBuilding() {
         if (floorPlan2D) floorPlan2D.style.display = 'none';
         if (backBtn)     backBtn.style.display     = 'none';
 
-        // Calcul dynamique de la vue (target/camPos/min/max)
         const computed = this.computeDynamicViewForBuilding();
         const { target, camPos, minD, maxD } = computed;
 
@@ -976,12 +924,11 @@ async createBuilding() {
         if (floorPlan2D) floorPlan2D.style.display = 'none';
         if (backBtn)     backBtn.style.display     = 'none';
 
-        // ===== 1) CAS BUILDING EN BASE : "DB:4" OU "4" =====
         let dbId = null;
 
         if (upper.startsWith('DB:')) {
             dbId = parseInt(raw.split(':')[1], 10);
-        } else if (/^\d+$/.test(raw)) {   // valeur entièrement numérique → id de la base
+        } else if (/^\d+$/.test(raw)) {
             dbId = parseInt(raw, 10);
         }
 
@@ -1006,7 +953,7 @@ async createBuilding() {
                     id: b.id,
                     floors: b.floorsCount || 1,
                     scale: b.scale || 0.01,
-                    floorData: BASE_FLOOR_DATA 
+                    floorData: BASE_FLOOR_DATA
                 };
                 this.dbShapeCache = null;
 
@@ -1021,8 +968,7 @@ async createBuilding() {
                 console.error("Erreur lors du chargement du bâtiment DB:", e);
             }
         } else {
-            // ===== 2) CAS BUILDINGS STATIQUES =====
-            const key = upper; // "CHATEAUDUN", "LEVALLOIS", "LILLE"...
+            const key = upper;
 
             if (!BUILDINGS[key]) {
                 console.warn('Unknown building key, falling back to CHATEAUDUN:', key);
