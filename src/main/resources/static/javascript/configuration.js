@@ -219,7 +219,19 @@ function initScene() {
     const grid = new THREE.GridHelper(50, 50, COLORS.primary, 0x334155);
     grid.position.y = -0.4;
     scene.add(grid);
+        // Contrôles
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 5, 0);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 8;
+        controls.maxDistance = 40;
+        controls.maxPolarAngle = Math.PI / 2.1;
+        controls.update();
 
+        window.addEventListener("resize", onWindowResize);
+        animate();
+}
 // ======================================================
 // ===============  GATEWAY CONFIGURATION  =============
 // ======================================================
@@ -390,21 +402,6 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
-    // Contrôles
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 5, 0);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.minDistance = 8;
-    controls.maxDistance = 40;
-    controls.maxPolarAngle = Math.PI / 2.1;
-    controls.update();
-
-    window.addEventListener("resize", onWindowResize);
-
-    animate();
-}
-
 function onWindowResize() {
     const wrapper = document.getElementById("three-wrapper");
     if (!wrapper || !renderer || !camera) return;
@@ -570,16 +567,7 @@ function generate3DFromForm() {
         initScene();
         extrudeBuilding(shape, floors, scale);
     });
-}
-    const value = (selectEl.value || "").toLowerCase();
-    let mode = "ace/mode/javascript";
-
-    if (value.includes("python")) mode = "ace/mode/python";
-    else if (value.includes("java")) mode = "ace/mode/java";
-    else if (value.includes("c++")) mode = "ace/mode/c_cpp";
-
-    editor.session.setMode(mode);
-}
+    }
 
 // Utilitaire hex → bytes
 function hexToBytes(hex) {
@@ -1175,6 +1163,20 @@ async function deleteSensorThreshold(thresholdId) {
         alert("Failed to delete sensor threshold: " + error.message);
     }
 }
+
+function changeEditorLanguage(selectEl) {
+    if (!editor || !selectEl) return;
+
+    const value = (selectEl.value || "").toLowerCase();
+    let mode = "ace/mode/javascript";
+
+    if (value.includes("python")) mode = "ace/mode/python";
+    else if (value.includes("java")) mode = "ace/mode/java";
+    else if (value.includes("c++")) mode = "ace/mode/c_cpp";
+
+    editor.session.setMode(mode);
+}
+
 
 // ======================================================
 // ================== GLOBAL EXPORTS =====================
