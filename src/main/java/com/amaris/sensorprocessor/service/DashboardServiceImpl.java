@@ -175,39 +175,53 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    public List<Desk> getDesksByFloor(String floor, Optional<String> deskId) {
+    public List<Desk> getDesks(String building, String floor, Optional<String> deskId) {
+
         List<Sensor> deskSensors = sensorDao.findAllByDeviceTypes(List.of("DESK", "OCCUP"));
 
+        // building filter (si fourni)
+        if (building != null && !"all".equalsIgnoreCase(building) && !building.isBlank()) {
+            String mappedBuilding = mapBuildingName(building);
+            deskSensors = deskSensors.stream()
+                    .filter(s -> mappedBuilding.equalsIgnoreCase(s.getBuildingName()))
+                    .collect(Collectors.toList());
+        }
+
+        // floor filter (si fourni)
+        if (floor != null && !"all".equalsIgnoreCase(floor) && !floor.isBlank()) {
+            deskSensors = deskSensors.stream()
+                    .filter(s -> floor.equalsIgnoreCase(String.valueOf(s.getFloor())))
+                    .collect(Collectors.toList());
+        }
+
+        // deskId filter (si fourni)
+        if (deskId != null && deskId.isPresent() && !deskId.get().isBlank()) {
+            String target = deskId.get();
+            deskSensors = deskSensors.stream()
+                    .filter(s -> target.equalsIgnoreCase(s.getIdSensor()))
+                    .collect(Collectors.toList());
+        }
+
+        // mapping -> Desk status
         return deskSensors.stream()
-                .filter(sensor -> floor.equalsIgnoreCase(String.valueOf(sensor.getFloor())))
-                .filter(sensor -> deskId.map(id -> id.equalsIgnoreCase(sensor.getIdSensor())).orElse(true))
                 .map(sensor -> {
-                    Optional<SensorData> latestOccupancyData = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(), PayloadValueType.OCCUPANCY);
-                    String status = latestOccupancyData.map(data -> {
-                        // Map the occupancy value to status
+                    Optional<SensorData> latest = sensorDataDao.findLatestBySensorAndType(
+                            sensor.getIdSensor(), PayloadValueType.OCCUPANCY);
+
+                    String status = latest.map(data -> {
                         String valueStr = data.getValueAsString();
-                        if (valueStr == null) {
-                            return "free";
-                        }
+                        if (valueStr == null) return "free";
 
-                        // If string is "occupied" or "used", consider it as 1 (used)
-                        if ("occupied".equalsIgnoreCase(valueStr) || "used".equalsIgnoreCase(valueStr)) {
-                            return "used";
-                        }
+                        if ("occupied".equalsIgnoreCase(valueStr) || "used".equalsIgnoreCase(valueStr)) return "used";
 
-                        // Try to parse as number
                         try {
-                            double numValue = Double.parseDouble(valueStr);
-                            if (numValue > 0) {
-                                return "used";
-                            } else {
-                                return "free";
-                            }
+                            double num = Double.parseDouble(valueStr);
+                            return num > 0 ? "used" : "free";
                         } catch (NumberFormatException e) {
-                            // Any other value is considered free
                             return "free";
                         }
                     }).orElse("invalid");
+
                     return new Desk(sensor.getIdSensor(), status);
                 })
                 .collect(Collectors.toList());
@@ -216,15 +230,31 @@ public class DashboardServiceImpl implements DashboardService {
     private Map<String, Long> calculateOccupancyStats(List<Sensor> sensors) {
         return sensors.stream()
                 .map(sensor -> {
-                    Optional<SensorData> latestOccupancyData = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(), PayloadValueType.OCCUPANCY);
-                    return latestOccupancyData.map(data -> {
-                        if (data.getReceivedAt().isBefore(LocalDateTime.now().minusHours(1))) {
+                    Optional<SensorData> latest = sensorDataDao.findLatestBySensorAndType(
+                            sensor.getIdSensor(),
+                            PayloadValueType.OCCUPANCY
+                    );
+
+                    return latest.map(data -> {
+                        if (data.getReceivedAt() == null ||
+                                data.getReceivedAt().isBefore(LocalDateTime.now().minusHours(1))) {
                             return "invalid";
                         }
-                        return "used";
+
+                        String valueStr = data.getValueAsString();
+                        if (valueStr == null) return "free";
+
+                        if ("occupied".equalsIgnoreCase(valueStr) || "used".equalsIgnoreCase(valueStr)) return "used";
+                        if ("free".equalsIgnoreCase(valueStr)) return "free";
+
+                        try {
+                            return Double.parseDouble(valueStr) > 0 ? "used" : "free";
+                        } catch (NumberFormatException e) {
+                            return "free";
+                        }
                     }).orElse("invalid");
                 })
-                .collect(Collectors.groupingBy(status -> status, Collectors.counting()));
+                .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
     }
 
     @Override

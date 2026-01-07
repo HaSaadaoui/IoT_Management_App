@@ -329,7 +329,11 @@ class Building3D {
         }
 
         try {
-            const response = await fetch(`/api/dashboard/occupancy?floor=${floorNumber}`);
+const b = this.buildingKey; // CHATEAUDUN / LEVALLOIS / DB:4 ...
+
+const response = await fetch(
+  `/api/dashboard/occupancy?building=${encodeURIComponent(b)}&floor=${floorNumber}`
+);
 
             if (response.ok) {
                 const occupancyData = await response.json();

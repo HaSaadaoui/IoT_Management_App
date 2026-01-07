@@ -65,10 +65,15 @@ public class DashboardController {
 
     @GetMapping("/api/dashboard/occupancy")
     @ResponseBody
-    public List<Desk> getOccupancy(@RequestParam String floor, @RequestParam(required = false) String deskId) {
-        var desks = dashboardService.getDesksByFloor(floor, Optional.ofNullable(deskId));
-        return desks;
+    public List<Desk> getOccupancy(
+            @RequestParam(required = false) String building,
+            @RequestParam(required = false) String floor,
+            @RequestParam(required = false) String deskId
+    ) {
+        return dashboardService.getDesks(building, floor, Optional.ofNullable(deskId));
     }
+
+
 
     @GetMapping("/api/dashboard/sensors")
     @ResponseBody
