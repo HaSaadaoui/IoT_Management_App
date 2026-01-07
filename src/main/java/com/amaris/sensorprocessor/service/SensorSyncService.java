@@ -165,7 +165,9 @@ public class SensorSyncService {
                 newSensor.setFrequencyPlan(frequencyPlan);
 
                 // Utiliser DEV_EUI comme deviceType pour l'affichage seulement si l'on a pas pu détecter le deviceType
-                newSensor.setDeviceType(devEui == null ? devEui : detectDeviceType(deviceId));
+                String detected = detectDeviceType(deviceId);              // ex: TEMPEX / CO2 / ...
+                String type = ("GENERIC".equals(detected) && devEui != null) ? devEui : detected;
+                newSensor.setDeviceType(type);
                 
                 // Définir building_name et floor selon la gateway
                 if ("leva-rpi-mantu".equals(gatewayId)) {
@@ -219,11 +221,11 @@ public class SensorSyncService {
         try {
             // Fetch latest data from monitoring API
             final String appId;
-            if (gatewayId.toLowerCase().contains("leva-rpi")) {
+            if (gatewayId.toLowerCase().equals("leva-rpi-mantu")) {
                 appId = "lorawan-network-mantu";
-            } else if (gatewayId.contains("lil")) {
+            } else if (gatewayId.equals("lil-rip-mantu")) {
                 appId = "lil-rpi-mantu-appli";
-            } else if (gatewayId.contains("rpi")) {
+            } else if (gatewayId.equals("rpi-mantu")) {
                 appId = "rpi-mantu-appli";
             } else {
                 appId = gatewayId + "-mantu-appli";
@@ -408,62 +410,53 @@ public class SensorSyncService {
         private List<String> missingInTtn;
     }
 
-    // TODO: refactor in its own class file with normalizeToMonitoringSensorDataJson
     public void storeDataFromPayload(String json, String appId) {
-       
 
         Configuration conf = Configuration
-            .defaultConfiguration()
-            .addOptions(Option.DEFAULT_PATH_LEAF_TO_NULL)
-            .addOptions(Option.SUPPRESS_EXCEPTIONS);
+                .defaultConfiguration()
+                .addOptions(Option.DEFAULT_PATH_LEAF_TO_NULL)
+                .addOptions(Option.SUPPRESS_EXCEPTIONS);
 
         var reader = JsonPath.using(conf);
-
         DocumentContext context = reader.parse(json);
+
         String receivedAtString = context.read("$.result.received_at");
         LocalDateTime receivedAt = convertTimestampToLocalDateTime(receivedAtString);
         String deviceId = context.read("$.result.end_device_ids.device_id");
-        
+
+        int inserted = 0;
 
         try {
+            for (var entry : JSON_PATH_MAP.entrySet()) {
+                PayloadValueType key = entry.getKey();
+                String jsonPath = entry.getValue();
 
-            JSON_PATH_MAP.forEach((PayloadValueType key, String jsonPath) -> {
-                // The enum itself holds the path
-                
-                if (json.contains("hardwareData") && key.equals(PayloadValueType.CONSUMPTION_CHANNEL_11)) {
-                    log.debug(appId);
-                }
-
-                // The root can either be "data" or "result"
                 Object value;
-
                 if (context.read("$.result") != null) {
-                    // replace $. by $.result. in the path
-                    String resultJsonPath = jsonPath.replace("$.", "$.result.");
-                    value = context.read(resultJsonPath);
-                    
-                } else if (context.read("$.data") != null) { // For conso sensors
-                    // replace $. by $.data. in the path
-                    String dataJsonPath = jsonPath.replace("$.", "$.data.");
-                    value = context.read(dataJsonPath);
+                    value = context.read(jsonPath.replace("$.", "$.result."));
+                } else if (context.read("$.data") != null) {
+                    value = context.read(jsonPath.replace("$.", "$.data."));
                 } else {
                     value = null;
                 }
 
-
                 if (value != null) {
                     SensorData sd = new SensorData(deviceId, receivedAt, value.toString(), key.toString());
                     sensorDataDao.insertSensorData(sd);
+                    inserted++;
                 } else {
                     log.debug("[SensorSync] Skipping null value for key {} for device {}", key, deviceId);
                 }
-            });
+            }
+
+            // IMPORTANT : diagnostic ciblé TempEx
+            if (inserted == 0 && deviceId != null && deviceId.toLowerCase().startsWith("tempex")) {
+                log.warn("[SensorSync] TEMPEX payload produced 0 extracted values. appId={}, deviceId={}, receivedAt={}, raw={}",
+                        appId, deviceId, receivedAtString, json);
+            }
 
         } catch (Exception e) {
-            if (e instanceof DuplicateKeyException) {
-                // We can skip and ignore already existing items
-                // log.warn("[SensorSync] Duplicate key exception, likely a retry or already processed data for device {}", deviceId);
-            } else {
+            if (!(e instanceof DuplicateKeyException)) {
                 log.error("[SensorSync] Error decoding payload: {}", e.getMessage(), e);
             }
         }

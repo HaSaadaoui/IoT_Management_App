@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8"/>
     <title>Dashboard - IoT Monitoring</title>
-    <link rel="stylesheet" href="/css/styles.css" />
-    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
-    <link rel="stylesheet" href="/css/alerts.css" />
-    <link rel="stylesheet" href="/css/monitoringSensor.css" />
-    <link rel="stylesheet" href="/css/dashboard-live.css" />
+    <link rel="stylesheet" href="/css/styles.css"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}"/>
+    <link rel="stylesheet" href="/css/alerts.css"/>
+    <link rel="stylesheet" href="/css/monitoringSensor.css"/>
+    <link rel="stylesheet" href="/css/dashboard-live.css"/>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -272,91 +272,94 @@
         </section>
 
         <!-- Live Data Section - Building Averages -->
-        <section class="live-data-section">
-            <h3 class="section-title">📊 Live Building Data</h3>
-            <div class="live-metrics-grid">
-                <!-- Temperature Average -->
-                <div class="metric-card">
-                    <div class="metric-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🌡️</div>
-                    <div class="metric-content">
-                        <div class="metric-label">Avg Temperature</div>
-                        <div class="metric-value" id="live-avg-temperature">--</div>
-                        <div class="metric-unit">°C</div>
-                    </div>
-                </div>
+        <div id="desk-state-averages-section" style="display:none;">
+            <div class="analytics-grid" id="desk-avg-cards"></div>
+        </div>
 
-                <!-- Humidity Average -->
-                <div class="metric-card">
-                    <div class="metric-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">💧</div>
-                    <div class="metric-content">
-                        <div class="metric-label">Avg Humidity</div>
-                        <div class="metric-value" id="live-avg-humidity">--</div>
-                        <div class="metric-unit">%</div>
+            <div class="live-data-section">
+                <h3 class="section-title">📊 Live Building Data</h3>
+                <div class="live-metrics-grid">
+                    <!-- Temperature Average -->
+                    <div class="metric-card">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🌡️</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Avg Temperature</div>
+                            <div class="metric-value" id="live-avg-temperature">--</div>
+                            <div class="metric-unit">°C</div>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Sound Average -->
-                <div class="metric-card">
-                    <div class="metric-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</div>
-                    <div class="metric-content">
-                        <div class="metric-label">Avg Sound Level</div>
-                        <div class="metric-value" id="live-avg-sound">--</div>
-                        <div class="metric-unit">dB</div>
+                    <!-- Humidity Average -->
+                    <div class="metric-card">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">💧</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Avg Humidity</div>
+                            <div class="metric-value" id="live-avg-humidity">--</div>
+                            <div class="metric-unit">%</div>
+                        </div>
                     </div>
-                </div>
 
-                <!-- CO2 Average -->
-                <div class="metric-card">
-                    <div class="metric-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💨</div>
-                    <div class="metric-content">
-                        <div class="metric-label">Avg CO₂ Level</div>
-                        <div class="metric-value" id="live-avg-co2">--</div>
-                        <div class="metric-unit">ppm</div>
+                    <!-- Sound Average -->
+                    <div class="metric-card">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Avg Sound Level</div>
+                            <div class="metric-value" id="live-avg-sound">--</div>
+                            <div class="metric-unit">dB</div>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Real-time Energy -->
-                <div class="metric-card">
-                    <div class="metric-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">⚡</div>
-                    <div class="metric-content">
-                        <div class="metric-label">Current Power</div>
-                        <div class="metric-value" id="live-current-power">--</div>
-                        <div class="metric-unit">W</div>
+                    <!-- CO2 Average -->
+                    <div class="metric-card">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💨</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Avg CO₂ Level</div>
+                            <div class="metric-value" id="live-avg-co2">--</div>
+                            <div class="metric-unit">ppm</div>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Daily Energy Accumulation -->
-                <div class="metric-card metric-card--highlight">
-                    <div class="metric-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">⚡</div>
-                    <div class="metric-content">
-                        <div class="metric-label">Today's Energy</div>
-                        <div class="metric-value" id="live-daily-energy">--</div>
-                        <div class="metric-unit">kWh</div>
+                    <!-- Real-time Energy -->
+                    <div class="metric-card">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">⚡</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Current Power</div>
+                            <div class="metric-value" id="live-current-power">--</div>
+                            <div class="metric-unit">W</div>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Desk Usage Percentage -->
-                <div class="metric-card">
-                    <div class="metric-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">💡</div>
-                    <div class="metric-content">
-                        <div class="metric-label">Desk Usage</div>
-                        <div class="metric-value" id="live-desk-usage">--</div>
-                        <div class="metric-unit">%</div>
+                    <!-- Daily Energy Accumulation -->
+                    <div class="metric-card metric-card--highlight">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">⚡</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Today's Energy</div>
+                            <div class="metric-value" id="live-daily-energy">--</div>
+                            <div class="metric-unit">kWh</div>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Light Level Average -->
-                <div class="metric-card">
-                    <div class="metric-icon" style="background: linear-gradient(135deg, #fbbf24, #f59e0b);">🔆</div>
-                    <div class="metric-content">
-                        <div class="metric-label">Avg Light Level</div>
-                        <div class="metric-value" id="live-avg-light">--</div>
-                        <div class="metric-unit">lux</div>
+                    <!-- Desk Usage Percentage -->
+                    <div class="metric-card">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">💡</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Desk Usage</div>
+                            <div class="metric-value" id="live-desk-usage">--</div>
+                            <div class="metric-unit">%</div>
+                        </div>
+                    </div>
+
+                    <!-- Light Level Average -->
+                    <div class="metric-card">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, #fbbf24, #f59e0b);">🔆</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Avg Light Level</div>
+                            <div class="metric-value" id="live-avg-light">--</div>
+                            <div class="metric-unit">lux</div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </section>
-
         <!-- Sensor List Container -->
         <div
                 class="sensor-list-container"
@@ -513,7 +516,8 @@
                 </div>
                 <div class="filter-item" style="align-self:end;">
                     <button id="hist-load" class="btn btn-primary">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 0.5rem;">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"
+                             style="margin-right: 0.5rem;">
                             <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5z"/>
                         </svg>
                         Load Data
@@ -715,7 +719,8 @@
                 <div class="chart-card">
                     <div class="chart-header">
                         <div class="chart-title">
-                            <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🌡️</span>
+                            <span class="chart-icon"
+                                  style="background: linear-gradient(135deg, #ef4444, #dc2626);">🌡️</span>
                             <span>Temperature History</span>
                         </div>
                     </div>
@@ -728,7 +733,8 @@
                 <div class="chart-card">
                     <div class="chart-header">
                         <div class="chart-title">
-                            <span class="chart-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">💧</span>
+                            <span class="chart-icon"
+                                  style="background: linear-gradient(135deg, #3b82f6, #2563eb);">💧</span>
                             <span>Humidity History</span>
                         </div>
                     </div>
@@ -741,7 +747,8 @@
                 <div class="chart-card">
                     <div class="chart-header">
                         <div class="chart-title">
-                            <span class="chart-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💨</span>
+                            <span class="chart-icon"
+                                  style="background: linear-gradient(135deg, #10b981, #059669);">💨</span>
                             <span>CO₂ History</span>
                         </div>
                     </div>
@@ -754,7 +761,8 @@
                 <div class="chart-card">
                     <div class="chart-header">
                         <div class="chart-title">
-                            <span class="chart-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</span>
+                            <span class="chart-icon"
+                                  style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</span>
                             <span>Sound Level History</span>
                         </div>
                     </div>
