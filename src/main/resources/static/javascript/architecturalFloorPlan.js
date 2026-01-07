@@ -7,21 +7,24 @@ async function fetchLiveSensorValues(buildingKey, floor, mode) {
         sensorType: mode           // "CO2", "TEMP", "NOISE", ...
       });
 
-      const resp = await fetch(`/api/dashboard?${params.toString()}`);
+      const resp = await fetch(`/api/sensors/live?${params.toString()}`);
       if (!resp.ok) throw new Error("dashboard error");
 
       const data = await resp.json(); // DashboardData
       const map = new Map();
 
-      if (!data.liveSensorData || !Array.isArray(data.liveSensorData)) {
-        return map; // vide → fallback possible
+
+
+      if (!Array.isArray(data)) {
+        console.warn("Unexpected live sensors payload", data);
+        return map;
       }
 
-      data.liveSensorData.forEach(sensor => {
+      data.forEach(sensor => {
         if (sensor.sensorId && sensor.value != null) {
-          map.set(sensor.sensorId, sensor.value);
+          map.set(sensor.sensorId, Number(sensor.value)); // conversion string → number
         }
-  });
+      });
 
   return map;
 }
@@ -58,12 +61,131 @@ class ArchitecturalFloorPlan {
             text: "#374151",
         };
 
+        // Dans constructor(...)
+        this.es = null;
+        this.liveValueMap = new Map();
+        this.isLive = false;
+
+        this.floorEs = null;
+        this.liveValueMap = new Map();
+
+
+
         this.init();
     }
 
     init() {
         this.createSVG();
     }
+
+
+
+
+
+
+
+
+
+
+
+
+    stopFloorSSE() {
+      if (this.floorEs) {
+        this.floorEs.close();
+        this.floorEs = null;
+      }
+    }
+
+    /*
+    startFloorSSE() {
+      this.stopFloorSSE();
+
+      const params = new URLSearchParams({
+        building: this.buildingKey,
+        floor: String(this.floorData.floorNumber),
+        sensorType: this.sensorMode
+      });
+
+      this.floorEs = new EventSource(`/api/sensors/live/stream?${params.toString()}`);
+
+      this.floorEs.onmessage = (evt) => {
+        try {
+          console.log("onmessage evt data: " + evt.data);
+          const msg = JSON.parse(evt.data);
+          console.log("msg JSON: " + msg);
+          if (!msg.sensorId) return;
+
+          const v = (typeof msg.value === "number") ? msg.value : Number(msg.value);
+          if (Number.isNaN(v)) return;
+
+          this.liveValueMap.set(msg.sensorId, v);
+          console.log("liveValueMap: " + this.liveValueMap);
+
+          const sensors = this.generateSensorData(this.sensorMode, this.floorData.floorNumber, this.liveValueMap);
+          this.overlayManager?.setSensorMode(this.sensorMode, sensors);
+        } catch (e) {
+          console.warn("Floor SSE parse error", e);
+        }
+      };
+
+      this.floorEs.onerror = (e) => {
+        console.warn("Floor SSE error", e);
+        // EventSource va auto-retry
+      };
+    }*/
+
+    startFloorSSE() {
+      this.stopFloorSSE();
+
+      const params = new URLSearchParams({
+        building: this.buildingKey,
+        floor: String(this.floorData.floorNumber),
+        sensorType: this.sensorMode
+      });
+
+      this.floorEs = new EventSource(`/api/sensors/live/stream?${params}`);
+
+      this.floorEs.onmessage = (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          console.log("onmessage: " + msg);
+
+
+          if (!msg.sensorId) return;
+
+          const value = Number(msg.value);
+          console.log("value: " + value);
+          if (Number.isNaN(value)) return;
+
+          // 1️⃣ Mise à jour Map
+          this.liveValueMap.set(msg.sensorId, value);
+          console.log("liveValueMap: " +this.liveValueMap);
+
+          // 2️⃣ Regénérer les capteurs à partir de la Map
+          const sensors = this.generateSensorData(
+            this.sensorMode,
+            this.floorData.floorNumber,
+            this.liveValueMap
+          );
+
+          // 3️⃣ Rafraîchir l’overlay
+          this.overlayManager?.setSensorMode(this.sensorMode, sensors);
+
+        } catch (e) {
+          console.warn("Floor SSE parse error", e);
+        }
+      };
+
+      this.floorEs.onerror = (e) => {
+        console.warn("Floor SSE error", e);
+      };
+    }
+
+
+
+
+
+
 
     createSVG() {
         // Clear container
@@ -136,7 +258,7 @@ class ArchitecturalFloorPlan {
         }*/
 
         if (this.sensorMode !== "DESK" && window.SensorOverlayManager) {
-          let valueMap = null;
+          /*let valueMap = null;
           try {
             valueMap = await fetchLiveSensorValues(
               this.buildingKey,
@@ -154,10 +276,23 @@ class ArchitecturalFloorPlan {
           );
 
           this.overlayManager = new SensorOverlayManager(this.svg);
+          this.overlayManager.setSensorMode(this.sensorMode, sensors);*/
+
+
+          // 1️⃣ Créer l’overlay UNE FOIS
+          this.overlayManager = new SensorOverlayManager(this.svg);
+
+          // 2️⃣ Dessin initial (valeurs fallback)
+          const sensors = this.generateSensorData(
+            this.sensorMode,
+            this.floorData.floorNumber,
+            this.liveValueMap
+          );
           this.overlayManager.setSensorMode(this.sensorMode, sensors);
+
+          // 3️⃣ Démarrer le SSE
+          this.startFloorSSE();
         }
-
-
         // On modifie le SVG pour le centrer sur l'écran
         this.centerSVGContent({ targetWidth: 1200, targetHeight: 1200, padding: 20, fit: true });
 
@@ -190,12 +325,15 @@ class ArchitecturalFloorPlan {
           // Positions spécifiques Levallois, étage 3
 
 
+          console.log("LIVE MAP:", Array.from(valueMap?.entries() ?? []));
 
           if (this.buildingKey === "LEVALLOIS" && floor === 3) {
             const floorConfig = LEVALLOIS_F3_SENSOR_POSITIONS[mode];
 
             if (floorConfig && floorConfig.length) {
               return floorConfig.map((pos) => {
+                console.log("Pos: " + pos);
+                console.log("valueMap: " + valueMap);
                 const live =
                   valueMap?.get(pos.id) ??
                   valueMap?.get("*ALL*") ??

@@ -8,6 +8,7 @@ import com.amaris.sensorprocessor.entity.User;
 import com.amaris.sensorprocessor.service.GatewayService;
 import com.amaris.sensorprocessor.service.SensorService;
 import com.amaris.sensorprocessor.service.UserService;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -675,4 +676,169 @@ public class SensorController {
             return null;
         }
     }
+
+
+
+
+    @GetMapping(value = "/api/sensors/live/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @ResponseBody
+    public SseEmitter streamFloorLive(
+            @RequestParam("building") String building,
+            @RequestParam("floor") Integer floor,
+            @RequestParam("sensorType") String sensorType,
+            HttpSession session
+    ) {
+        // 1h comme ton stream par capteur
+        SseEmitter emitter = new SseEmitter(3600000L); // [file:4]
+
+        // ThreadId unique pour ce stream (sert à stopMonitoring)
+        String streamId = "floor-" + building + "-" + floor + "-" + sensorType + "-" + session.getId() + "-" + System.currentTimeMillis(); // [file:4]
+
+        var normalizer = new SensorEventNormalizer(); // [file:4]
+        var om = new com.fasterxml.jackson.databind.ObjectMapper(); // [file:4]
+
+        // Récupération capteurs : même source que prepareModel() (sensorService.findAll)
+//        List<Sensor> sensors = sensorService.findAll().stream()
+//                .filter(s -> normBuilding(s.getBuildingName()).startsWith(normBuilding(building)))
+//                .filter(s -> s.getFloor() != null && s.getFloor().equals(floor))
+//                .collect(java.util.stream.Collectors.toList());
+
+        List<Sensor> sensors = sensorService.findAll().stream()
+                .filter(s -> normBuilding(s.getBuildingName()).startsWith(normBuilding(building)))
+                .filter(s ->
+                        s.getFloor() == null       // bâtiments mono-étage
+                                || floor == null
+                                || s.getFloor().equals(floor)
+                )
+                .collect(Collectors.toList());
+
+
+        // Optionnel : filtrer par deviceType si tu veux éviter des streams inutiles
+        // (sinon on ignore juste les messages qui n'ont pas la métrique demandée)
+        // sensors = sensors.stream().filter(...).toList();
+
+        // On garde toutes les subscriptions pour les couper à la fin
+        java.util.List<reactor.core.Disposable> disposables = new java.util.ArrayList<>();
+
+        Runnable cleanup = () -> {
+            disposables.forEach(d -> { try { d.dispose(); } catch (Exception ignored) {} });
+            // stopMonitoring pour chaque capteur (comme dans streamSensor)
+            for (Sensor s : sensors) { // [file:4]
+                try { sensorService.stopMonitoring(s.getIdSensor(), streamId); } catch (Exception ignored) {} // [file:4]
+            }
+        };
+
+        emitter.onCompletion(cleanup); // [file:4]
+        emitter.onTimeout(() -> { cleanup.run(); emitter.complete(); }); // [file:4]
+
+        for (Sensor s : sensors) {
+            String idSensor = s.getIdSensor(); // [file:4]
+
+            String appId = gatewayService.findById(s.getIdGateway()) // [file:4]
+                    .map(Gateway::getGatewayId) // [file:4]
+                    .map(gid -> "leva-rpi-mantu".equalsIgnoreCase(gid) ? "lorawan-network-mantu" : gid + "-appli") // [file:4]
+                    .orElse(null);
+
+            if (appId == null) continue;
+
+            reactor.core.Disposable sub = sensorService.getMonitoringData(appId, idSensor, streamId) // [file:4]
+                    .map(json -> normalizer.normalizeToMonitoringSensorDataJson(json, appId, s)) // [file:4]
+                    .subscribe(normalizedJson -> {
+                        try {
+                            var root = om.readTree(normalizedJson);
+                            var idsNode = root.path("ids");
+                            var payload = root.path("payload");
+
+                            String sensorIdOut = idsNode.path("deviceId").asText(idSensor);
+
+                            Double value = extractValueForMode(sensorType, payload);
+                            if (value == null) return;
+
+                            var evt = new java.util.LinkedHashMap<String, Object>();
+                            evt.put("sensorId", sensorIdOut);
+                            evt.put("value", value);
+                            evt.put("ts", root.path("timestamp").asText(null));
+
+                            emitter.send(com.fasterxml.jackson.databind.json.JsonMapper.builder().build().writeValueAsString(evt));
+                        } catch (Exception e) {
+                            try { emitter.send("{\"type\":\"error\",\"message\":\"parse\"}"); } catch (Exception ignored) {}
+                        }
+                    }, err -> {
+                        try { emitter.completeWithError(err); } catch (Exception ignored) {}
+                    });
+
+            disposables.add(sub);
+        }
+
+        return emitter;
+    }
+
+    // Helper: mappe ton mode front (CO2, TEMP, NOISE, LIGHT, HUMIDITY, TEMPEX...) vers un champ payload
+    /*private static Double extractValueForMode(String sensorType, com.fasterxml.jackson.databind.JsonNode payload) {
+        if (payload == null || payload.isMissingNode()) return null;
+
+        String mode = sensorType == null ? "" : sensorType.trim().toUpperCase();
+
+        switch (mode) {
+            case "CO2":
+                return payload.path("co2Ppm").isNumber() ? payload.path("co2Ppm").asDouble() : null;
+            case "TEMP":
+            case "TEMPEX":
+                return payload.path("temperature").isNumber() ? payload.path("temperature").asDouble() : null;
+            case "HUMIDITY":
+                return payload.path("humidity").isNumber() ? payload.path("humidity").asDouble() : null;
+            case "LIGHT":
+                // selon ton normalizer: CO2 payload.light, EYE payload.light
+                return payload.path("light").isNumber() ? payload.path("light").asDouble() : null;
+            case "NOISE":
+                // SON: normalizer remplit LAeq/Lai/LaiMax => à toi de choisir
+                return payload.path("laeqDb").isNumber() ? payload.path("laeqDb").asDouble() : null;
+            default:
+                return null;
+        }
+    }*/
+
+
+
+    private static Double extractValueForMode(String sensorType, JsonNode payload) {
+        if (payload == null || payload.isMissingNode()) return null;
+
+        String mode = sensorType == null ? "" : sensorType.trim().toUpperCase();
+
+        switch (mode) {
+            case "CO2":
+                return payload.path("co2 (ppm)").isNumber()
+                        ? payload.path("co2 (ppm)").asDouble()
+                        : null;
+
+            case "TEMP":
+            case "TEMPEX":
+                return payload.path("temperature (°C)").isNumber()
+                        ? payload.path("temperature (°C)").asDouble()
+                        : null;
+
+            case "HUMIDITY":
+                return payload.path("humidity (%)").isNumber()
+                        ? payload.path("humidity (%)").asDouble()
+                        : null;
+
+            case "NOISE":
+                return payload.path("LAeq (dB)").isNumber()
+                        ? payload.path("LAeq (dB)").asDouble()
+                        : null;
+
+            default:
+                return null;
+        }
+    }
+
+
+
+    private static String normBuilding(String s) {
+        if (s == null) return "";
+        return s.trim().toLowerCase().replaceAll("[^a-z0-9]", "");
+    }
+
+
+
 }
