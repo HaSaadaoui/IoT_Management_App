@@ -24,7 +24,7 @@ public class SensorDataDao {
 
     public int insertSensorData(SensorData sensorData) {
         return jdbcTemplate.update(
-            "INSERT INTO sensor_data (id_sensor, received_at, string_value, value_type) VALUES (?, ?, ?, ?)",
+            "INSERT INTO sensor_data (id_sensor, received_at, value, value_type) VALUES (?, ?, ?, ?)",
             sensorData.getIdSensor(),
             sensorData.getReceivedAt(),
             sensorData.getAsString(),
@@ -41,7 +41,7 @@ public class SensorDataDao {
             SensorData sensorData = new SensorData(
                 rs.getString("id_sensor"),
                 rs.getTimestamp("received_at").toLocalDateTime(),
-                rs.getString("string_value"),
+                rs.getString("value"),
                 rs.getString("value_type")
             );
             return sensorData;
@@ -76,7 +76,7 @@ public class SensorDataDao {
                 SensorData sensorData = new SensorData(
                     rs.getString("id_sensor"),
                     rs.getTimestamp("received_at").toLocalDateTime(),
-                    rs.getString("string_value"),
+                    rs.getString("value"),
                     rs.getString("value_type")
                 );
                 return sensorData;
@@ -101,7 +101,7 @@ public class SensorDataDao {
                 SensorData sensorData = new SensorData(
                     rs.getString("id_sensor"),
                     rs.getTimestamp("received_at").toLocalDateTime(),
-                    rs.getString("string_value"),
+                    rs.getString("value"),
                     rs.getString("value_type")
                 );
                 return sensorData;
@@ -123,7 +123,7 @@ public class SensorDataDao {
                 SensorData sensorData = new SensorData(
                     rs.getString("id_sensor"),
                     rs.getTimestamp("received_at").toLocalDateTime(),
-                    rs.getString("string_value"),
+                    rs.getString("value"),
                     rs.getString("value_type")
                 );
                 return sensorData;
@@ -141,7 +141,7 @@ public class SensorDataDao {
         try {
             List<SensorData> result = jdbcTemplate.query(query, (rs, rowNum) -> {
                 LocalDateTime receivedAt = rs.getTimestamp("received_at") != null ? rs.getTimestamp("received_at").toLocalDateTime() : null;
-                String stringValue = rs.getString("string_value");
+                String stringValue = rs.getString("value");
                 String vt = rs.getString("value_type");
 
                 if (receivedAt == null || stringValue == null || vt == null) {
@@ -163,7 +163,7 @@ public class SensorDataDao {
         try {
             List<SensorData> result = jdbcTemplate.query(query, (rs, rowNum) -> {
                 LocalDateTime receivedAt = rs.getTimestamp("received_at") != null ? rs.getTimestamp("received_at").toLocalDateTime() : null;
-                String stringValue = rs.getString("string_value");
+                String stringValue = rs.getString("value");
                 String vt = rs.getString("value_type");
 
                 if (receivedAt == null || stringValue == null || vt == null) {
@@ -192,7 +192,7 @@ public class SensorDataDao {
         try {
             List<SensorData> result = jdbcTemplate.query(query, (rs, rowNum) -> {
                 LocalDateTime receivedAt = rs.getTimestamp("received_at") != null ? rs.getTimestamp("received_at").toLocalDateTime() : null;
-                String stringValue = rs.getString("string_value");
+                String stringValue = rs.getString("value");
                 String vt = rs.getString("value_type");
 
                 if (receivedAt == null || stringValue == null || vt == null) {
@@ -214,7 +214,7 @@ public class SensorDataDao {
         try {
             List<SensorData> result = jdbcTemplate.query(query, (rs, rowNum) -> {
                 LocalDateTime receivedAt = rs.getTimestamp("received_at") != null ? rs.getTimestamp("received_at").toLocalDateTime() : null;
-                String stringValue = rs.getString("string_value");
+                String stringValue = rs.getString("value");
                 String valueType = rs.getString("value_type");
 
                 if (receivedAt == null || stringValue == null || valueType == null) {
@@ -246,13 +246,13 @@ public class SensorDataDao {
             LocalDateTime hourStart,
             LocalDateTime hourEnd) {
 
-        String query = "SELECT AVG(CAST(string_value AS REAL)) as avg_value " +
+        String query = "SELECT AVG(CAST(value AS REAL)) as avg_value " +
                       "FROM sensor_data " +
                       "WHERE id_sensor = ? " +
                       "  AND value_type = ? " +
                       "  AND received_at >= ? " +
                       "  AND received_at < ? " +
-                      "  AND string_value IS NOT NULL";
+                      "  AND value IS NOT NULL";
 
         try {
             Double avgValue = jdbcTemplate.queryForObject(
@@ -287,13 +287,13 @@ public class SensorDataDao {
             Date hourStart,
             Date hourEnd) {
 
-        String query = "SELECT AVG(CAST(string_value AS REAL)) as avg_value " +
+        String query = "SELECT AVG(CAST(value AS REAL)) as avg_value " +
                       "FROM sensor_data " +
                       "WHERE id_sensor = ? " +
                       "  AND value_type = ? " +
                       "  AND received_at >= ? " +
                       "  AND received_at < ? " +
-                      "  AND string_value IS NOT NULL";
+                      "  AND value IS NOT NULL";
 
         try {
             Double avgValue = jdbcTemplate.queryForObject(
@@ -329,16 +329,16 @@ public class SensorDataDao {
             LocalDateTime hourEnd) {
 
         String query = "SELECT " +
-                      "  AVG(CAST(string_value AS REAL)) as avg_value, " +
-                      "  MIN(CAST(string_value AS REAL)) as min_value, " +
-                      "  MAX(CAST(string_value AS REAL)) as max_value, " +
+                      "  AVG(CAST(value AS REAL)) as avg_value, " +
+                      "  MIN(CAST(value AS REAL)) as min_value, " +
+                      "  MAX(CAST(value AS REAL)) as max_value, " +
                       "  COUNT(*) as data_count " +
                       "FROM sensor_data " +
                       "WHERE id_sensor = ? " +
                       "  AND value_type = ? " +
                       "  AND received_at >= ? " +
                       "  AND received_at < ? " +
-                      "  AND string_value IS NOT NULL";
+                      "  AND value IS NOT NULL";
 
         try {
             HourlyStatistics result = jdbcTemplate.queryForObject(query, (rs, rowNum) -> {
@@ -385,16 +385,16 @@ public class SensorDataDao {
         // Query all sensors at once, grouped by sensor
         String query = "SELECT " +
                       "  id_sensor, " +
-                      "  AVG(CAST(string_value AS REAL)) as avg_value, " +
-                      "  MIN(CAST(string_value AS REAL)) as min_value, " +
-                      "  MAX(CAST(string_value AS REAL)) as max_value, " +
+                      "  AVG(CAST(value AS REAL)) as avg_value, " +
+                      "  MIN(CAST(value AS REAL)) as min_value, " +
+                      "  MAX(CAST(value AS REAL)) as max_value, " +
                       "  COUNT(*) as data_count " +
                       "FROM sensor_data " +
                       "WHERE id_sensor IN (" + placeholders + ") " +
                       "  AND value_type = ? " +
                       "  AND received_at >= ? " +
                       "  AND received_at < ? " +
-                      "  AND string_value IS NOT NULL " +
+                      "  AND value IS NOT NULL " +
                       "GROUP BY id_sensor";
 
         List<Object> params = new ArrayList<>(sensorIds.size() + 3);
@@ -461,16 +461,16 @@ public class SensorDataDao {
         // Query all sensors at once for the entire day, grouped by sensor
         String query = "SELECT " +
                       "  id_sensor, " +
-                      "  AVG(CAST(string_value AS REAL)) as avg_value, " +
-                      "  MIN(CAST(string_value AS REAL)) as min_value, " +
-                      "  MAX(CAST(string_value AS REAL)) as max_value, " +
+                      "  AVG(CAST(value AS REAL)) as avg_value, " +
+                      "  MIN(CAST(value AS REAL)) as min_value, " +
+                      "  MAX(CAST(value AS REAL)) as max_value, " +
                       "  COUNT(*) as data_count " +
                       "FROM sensor_data " +
                       "WHERE id_sensor IN (" + placeholders + ") " +
                       "  AND value_type = ? " +
                       "  AND received_at >= ? " +
                       "  AND received_at < ? " +
-                      "  AND string_value IS NOT NULL " +
+                      "  AND value IS NOT NULL " +
                       "GROUP BY id_sensor";
 
         List<Object> params = new ArrayList<>(sensorIds.size() + 3);
@@ -573,14 +573,14 @@ public class SensorDataDao {
 
         String query = "SELECT " +
                       hourBucket + " as time_bucket, " +
-                      aggFunc + "(CAST(string_value AS REAL)) as agg_value, " +
+                      aggFunc + "(CAST(value AS REAL)) as agg_value, " +
                       "COUNT(*) as data_point_count, " +
                       "COUNT(DISTINCT id_sensor) as sensor_count " +
                       "FROM sensor_data " +
                       "WHERE id_sensor IN (" + placeholders + ") " +
                       "  AND received_at BETWEEN ? AND ? " +
                       "  AND value_type = ? " +
-                      "  AND string_value IS NOT NULL " +
+                      "  AND value IS NOT NULL " +
                       "GROUP BY time_bucket " +
                       "ORDER BY time_bucket ASC";
 

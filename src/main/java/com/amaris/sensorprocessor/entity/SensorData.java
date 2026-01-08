@@ -43,7 +43,7 @@ public class SensorData {
     @Column("received_at")
     private LocalDateTime receivedAt;
 
-    @Column("string_value")
+    @Column("value")
     private String asString;
 
     @Column("value_type")
