@@ -103,10 +103,10 @@ public class DashboardController {
             @RequestParam(required = false) String timeRange,
             @RequestParam(required = false) String granularity,
             @RequestParam(required = false) String timeSlot,
+            @RequestParam(required = false) String excludeSensorType,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date customStartDate,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date customEndDate) {
 
-        // Build histogram request
         HistogramRequest request = HistogramRequest.builder()
                 .building(building)
                 .floor(floor)
@@ -116,6 +116,7 @@ public class DashboardController {
                 .timeRange(timeRange != null ? HistogramRequest.TimeRangePreset.valueOf(timeRange) : null)
                 .granularity(granularity != null ? HistogramRequest.Granularity.valueOf(granularity) : null)
                 .timeSlot(timeSlot != null ? HistogramRequest.TimeSlot.valueOf(timeSlot) : null)
+                .excludeSensorType(excludeSensorType)
                 .customStartDate(customStartDate)
                 .customEndDate(customEndDate)
                 .build();

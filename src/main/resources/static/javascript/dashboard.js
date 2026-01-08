@@ -30,35 +30,18 @@ class DashboardManager {
 		};
 
 		this.metricSources = {
-			TEMPERATURE: {
-				sensorType: 'TEMPEX',
-				unit: '°C'
-			},
-			HUMIDITY: {
-				sensorType: 'TEMPEX',
-				unit: '%'
-			},
-			CO2: {
-				sensorType: 'CO2',
-				unit: 'ppm'
-			},
-			OCCUPANCY: {
-				sensorType: 'DESK',
-				unit: '%'
-			},
-			LIGHT: {
-				sensorType: 'EYE',
-				unit: 'lux'
-			},
-			LAEQ: {
-				sensorType: ['SON', 'NOISE'],
-				unit: 'dB'
-			},
-			ENERGY: {
-				sensorType: 'ENERGY',
-				unit: 'Wh'
-			}
-		};
+          TEMPERATURE_INT: { sensorType: 'ALL', excludeSensorType: 'TEMPEX', unit: '°C' },
+          TEMPERATURE_EXT: { sensorType: 'TEMPEX', unit: '°C' },
+
+          HUMIDITY_INT:    { sensorType: 'ALL', excludeSensorType: 'TEMPEX', unit: '%' },
+          HUMIDITY_EXT:    { sensorType: 'TEMPEX', unit: '%' },
+
+          CO2:       { sensorType: 'CO2', unit: 'ppm' },
+          OCCUPANCY: { sensorType: 'DESK', unit: '%' },
+          LIGHT:     { sensorType: 'EYE', unit: 'lux' },
+          LAEQ:      { sensorType: ['SON', 'NOISE'], unit: 'dB' },
+        };
+
 
 		this.currentData = null;
 		this.selectedSensor = null;
@@ -743,65 +726,117 @@ class DashboardManager {
 	}
 
 
-	async updateLiveBuildingMetrics() {
-		try {
-			// --- Desk usage ratio ---
-			try {
-				const floor = this.getEffectiveFloorParam();
-				const occItems = await this.fetchOccupancy(floor);
+async updateLiveBuildingMetrics() {
+  try {
+    // --- Desk usage ratio ---
+    try {
+      const floor = this.getEffectiveFloorParam();
+      const occItems = await this.fetchOccupancy(floor);
 
-				const filtered = (occItems || []).filter(x => {
-					const id = String(x?.id || '').toLowerCase();
-					return /^desk-\d{2}-\d{2}$/.test(id);
-				});
+      const filtered = (occItems || []).filter(x => {
+        const id = String(x?.id || '').toLowerCase();
+        return /^desk-\d{2}-\d{2}$/.test(id);
+      });
 
-				const occ = this.computeOccupancyFromStatuses(filtered);
-				this.updateMetricValue('live-desk-usage', occ.label);
-			} catch (e) {
-				console.warn('Desk occupancy ratio failed', e);
-			}
+      const occ = this.computeOccupancyFromStatuses(filtered);
+      this.updateMetricValue('live-desk-usage', occ.label);
+    } catch (e) {
+      console.warn('Desk occupancy ratio failed', e);
+    }
 
-			// --- Other live metrics ---
-			const mappings = [{
-					metric: 'TEMPERATURE',
-					el: 'live-avg-temperature',
-					format: v => v.toFixed(1)
-				},
-				{
-					metric: 'HUMIDITY',
-					el: 'live-avg-humidity',
-					format: v => v.toFixed(1)
-				},
-				{
-					metric: 'CO2',
-					el: 'live-avg-co2',
-					format: v => Math.round(v)
-				},
-				{
-					metric: 'LAEQ',
-					el: 'live-avg-sound',
-					format: v => v.toFixed(1)
-				},
-				{
-					metric: 'LIGHT',
-					el: 'live-avg-light',
-					format: v => Math.round(v)
-				}
-			];
+    const building = this.filters.building;
+    const floor = this.getEffectiveFloorParam();
+    const timeSlot = this.filters.timeSlot;
 
-			for (const {
-					metric,
-					el,
-					format
-				}
-				of mappings) {
-				const avg = await this.fetchLiveMetric(metric);
-				if (avg != null) this.updateMetricValue(el, format(Number(avg)));
-			}
-		} catch (e) {
-			console.error('Error updating live building metrics:', e);
-		}
-	}
+    const safeSet = (elId, val, fmt) => {
+      if (val == null || Number.isNaN(Number(val))) return;
+      this.updateMetricValue(elId, fmt(Number(val)));
+    };
+
+    const getAvg = async ({
+      sensorType,
+      metricType,
+      excludeSensorType
+    }) => {
+      const { avg } = await this.fetchHistogramAvg({
+        building,
+        floor,
+        sensorType,
+        metricType,
+        timeRange: 'LAST_7_DAYS',
+        granularity: 'DAILY',
+        timeSlot,
+        excludeSensorType
+      });
+      return avg;
+    };
+
+    // =========================================================
+    // TEMP / HUM : EXT = TEMPEX ; INT = ALL (sauf TEMPEX)
+    // =========================================================
+
+    // EXT (TEMPEX)
+    try {
+      const tempExt = await getAvg({ sensorType: 'TEMPEX', metricType: 'TEMPERATURE' });
+      safeSet('live-avg-temperature-ext', tempExt, v => v.toFixed(1));
+    } catch (e) {
+      console.warn('Temperature EXT (TEMPEX) failed', e?.message || e);
+    }
+
+    try {
+      const humExt = await getAvg({ sensorType: 'TEMPEX', metricType: 'HUMIDITY' });
+      safeSet('live-avg-humidity-ext', humExt, v => v.toFixed(1));
+    } catch (e) {
+      console.warn('Humidity EXT (TEMPEX) failed', e?.message || e);
+    }
+
+    // INT (tous capteurs sauf TEMPEX)
+    // IMPORTANT: ton backend doit accepter sensorType=ALL (ou l’absence de sensorType).
+    // Ici je garde ALL car tu l’utilises déjà.
+    try {
+      const tempInt = await getAvg({
+        sensorType: 'ALL',
+        metricType: 'TEMPERATURE',
+        excludeSensorType: 'TEMPEX'
+      });
+      safeSet('live-avg-temperature-int', tempInt, v => v.toFixed(1));
+    } catch (e) {
+      console.warn('Temperature INT (ALL - TEMPEX) failed', e?.message || e);
+    }
+
+    try {
+      const humInt = await getAvg({
+        sensorType: 'ALL',
+        metricType: 'HUMIDITY',
+        excludeSensorType: 'TEMPEX'
+      });
+      safeSet('live-avg-humidity-int', humInt, v => v.toFixed(1));
+    } catch (e) {
+      console.warn('Humidity INT (ALL - TEMPEX) failed', e?.message || e);
+    }
+
+    // =========================================================
+    // AUTRES METRICS (moyenne bâtiment "normale")
+    // =========================================================
+
+    const mappings = [
+      { metric: 'CO2', el: 'live-avg-co2', format: v => Math.round(v) },
+      { metric: 'LAEQ', el: 'live-avg-sound', format: v => v.toFixed(1) },
+      { metric: 'LIGHT', el: 'live-avg-light', format: v => Math.round(v) }
+    ];
+
+    for (const { metric, el, format } of mappings) {
+      try {
+        const avg = await this.fetchLiveMetric(metric); // utilise metricSources
+        safeSet(el, avg, format);
+      } catch (e) {
+        console.warn(`Live metric ${metric} failed`, e?.message || e);
+      }
+    }
+  } catch (e) {
+    console.error('Error updating live building metrics:', e);
+  }
+}
 
 
 	async calculateTodaysEnergy() {
@@ -1572,53 +1607,45 @@ class DashboardManager {
 	}
 
 	async fetchHistogramAvg({
-		building,
-		floor,
-		sensorType,
-		metricType,
-		timeRange,
-		granularity,
-		timeSlot
-	}) {
-		// Sécurité : on ne déduit plus metricType depuis sensorType
-		if (!building) throw new Error('fetchHistogramAvg: "building" is required');
-		if (!sensorType) throw new Error('fetchHistogramAvg: "sensorType" is required');
-		if (!metricType) throw new Error('fetchHistogramAvg: "metricType" is required');
+      building,
+      floor,
+      sensorType,
+      metricType,
+      timeRange,
+      granularity,
+      timeSlot,
+      excludeSensorType // <= AJOUT
+    }) {
+      if (!building) throw new Error('fetchHistogramAvg: "building" is required');
+      if (!sensorType) throw new Error('fetchHistogramAvg: "sensorType" is required');
+      if (!metricType) throw new Error('fetchHistogramAvg: "metricType" is required');
 
-		const params = new URLSearchParams({
-			building,
-			sensorType: String(sensorType).toUpperCase(),
-			metricType: String(metricType).toUpperCase(),
-			timeRange: String(timeRange).toUpperCase(),
-			granularity: String(granularity).toUpperCase(),
-			timeSlot: String(timeSlot || this.filters.timeSlot || '').toUpperCase()
-		});
+      const params = new URLSearchParams({
+        building,
+        sensorType: String(sensorType).toUpperCase(),
+        metricType: String(metricType).toUpperCase(),
+        timeRange: String(timeRange).toUpperCase(),
+        granularity: String(granularity).toUpperCase(),
+        timeSlot: String(timeSlot || this.filters.timeSlot || '').toUpperCase()
+      });
 
-		if (floor) params.set('floor', String(floor));
+      if (floor) params.set('floor', String(floor));
+      if (excludeSensorType) params.set('excludeSensorType', String(excludeSensorType).toUpperCase()); // <= AJOUT
 
-		const r = await fetch(`/api/dashboard/histogram?${params.toString()}`);
-		if (!r.ok) throw new Error(`Histogram fetch failed (${r.status})`);
+      const r = await fetch(`/api/dashboard/histogram?${params.toString()}`);
+      if (!r.ok) throw new Error(`Histogram fetch failed (${r.status})`);
 
-		const data = await r.json();
+      const data = await r.json();
 
-		// Priorité: summary.avgValue
-		const avgFromSummary = data?.summary?.avgValue;
-		if (avgFromSummary !== null && avgFromSummary !== undefined) {
-			return {
-				avg: avgFromSummary,
-				data
-			};
-		}
+      const avgFromSummary = data?.summary?.avgValue;
+      if (avgFromSummary !== null && avgFromSummary !== undefined) {
+        return { avg: avgFromSummary, data };
+      }
 
-		// Fallback: dernier point (selon tes formats)
-		const pts = data?.dataPoints || data?.data || [];
-		const last = Array.isArray(pts) && pts.length ? (pts[pts.length - 1]?.value ?? null) : null;
-
-		return {
-			avg: last,
-			data
-		};
-	}
+      const pts = data?.dataPoints || data?.data || [];
+      const last = Array.isArray(pts) && pts.length ? (pts[pts.length - 1]?.value ?? null) : null;
+      return { avg: last, data };
+    }
 
 
 	renderHistogramChart(data) {

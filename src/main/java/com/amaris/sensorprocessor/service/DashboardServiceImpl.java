@@ -40,6 +40,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     /**
      * Map user-friendly building names to internal database building names.
+     *
      * @param building The user-friendly building name (e.g., "levallois", "chateaudun", "lille")
      * @return The internal database building name (e.g., "Levallois-Building")
      */
@@ -90,22 +91,22 @@ public class DashboardServiceImpl implements DashboardService {
         if (building != null && !building.equals("all")) {
             String mappedBuilding = mapBuildingName(building);
             filteredSensors = filteredSensors.stream()
-                .filter(sensor -> mappedBuilding.equalsIgnoreCase(sensor.getBuildingName()))
-                .collect(Collectors.toList());
+                    .filter(sensor -> mappedBuilding.equalsIgnoreCase(sensor.getBuildingName()))
+                    .collect(Collectors.toList());
         }
 
         // Apply floor filter if provided
         if (floor != null && !floor.equals("all")) {
             filteredSensors = filteredSensors.stream()
-                .filter(sensor -> floor.equals(String.valueOf(sensor.getFloor())))
-                .collect(Collectors.toList());
+                    .filter(sensor -> floor.equals(String.valueOf(sensor.getFloor())))
+                    .collect(Collectors.toList());
         }
 
         // Group sensors by location
         Map<String, List<Sensor>> sensorsByLocation = filteredSensors.stream()
-            .collect(Collectors.groupingBy(sensor ->
-                sensor.getLocation() != null ? sensor.getLocation() : "Unknown Location"
-            ));
+                .collect(Collectors.groupingBy(sensor ->
+                        sensor.getLocation() != null ? sensor.getLocation() : "Unknown Location"
+                ));
 
         // Calculate stats for each location
         for (Map.Entry<String, List<Sensor>> entry : sensorsByLocation.entrySet()) {
@@ -114,20 +115,20 @@ public class DashboardServiceImpl implements DashboardService {
             Map<String, Long> stats = calculateOccupancyStats(sensorsInLocation);
 
             liveSensorData.add(new LiveSensorData(
-                location,
-                stats.getOrDefault("free", 0L).intValue(),
-                stats.getOrDefault("used", 0L).intValue(),
-                stats.getOrDefault("invalid", 0L).intValue()
+                    location,
+                    stats.getOrDefault("free", 0L).intValue(),
+                    stats.getOrDefault("used", 0L).intValue(),
+                    stats.getOrDefault("invalid", 0L).intValue()
             ));
         }
 
         // Add total statistics
         Map<String, Long> totalStats = calculateOccupancyStats(filteredSensors);
         liveSensorData.add(new LiveSensorData(
-            "Total Live Data",
-            totalStats.getOrDefault("free", 0L).intValue(),
-            totalStats.getOrDefault("used", 0L).intValue(),
-            totalStats.getOrDefault("invalid", 0L).intValue()
+                "Total Live Data",
+                totalStats.getOrDefault("free", 0L).intValue(),
+                totalStats.getOrDefault("used", 0L).intValue(),
+                totalStats.getOrDefault("invalid", 0L).intValue()
         ));
 
         return liveSensorData;
@@ -157,17 +158,17 @@ public class DashboardServiceImpl implements DashboardService {
         int activeSensorCount = (int) (totalSensors * (0.9 + Math.random() * 0.1)); // 90-100% active
 
         dataPoints.add(new DataPoint(
-            endDate.format(formatter),
-            occupancyRate,
-            activeSensorCount,
-            123 // TODO: calculate average occupancy rate
+                endDate.format(formatter),
+                occupancyRate,
+                activeSensorCount,
+                123 // TODO: calculate average occupancy rate
         ));
 
         // Calculate global statistics
         double avgOccupancy = dataPoints.stream()
-            .mapToDouble(DataPoint::getOccupancyRate)
-            .average()
-            .orElse(0.0);
+                .mapToDouble(DataPoint::getOccupancyRate)
+                .average()
+                .orElse(0.0);
 
         int activeSensors = (int) (totalSensors * 0.95); // Assume 95% sensors are active
 
@@ -298,7 +299,7 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public List<OccupationHistoryEntry> getOccupationHistory(List<String> sensorIds, int days) {
         log.info("Fetching occupation history for {} sensors, last {} days",
-                 sensorIds != null ? sensorIds.size() : 0, days);
+                sensorIds != null ? sensorIds.size() : 0, days);
 
         // If no sensors specified, return empty list
         if (sensorIds == null || sensorIds.isEmpty()) {
@@ -362,7 +363,8 @@ public class DashboardServiceImpl implements DashboardService {
 
         // Set defaults
         if (request.getSensorType() == null) request.setSensorType("DESK");
-        if (request.getMetricType() == null) request.setMetricType(com.amaris.sensorprocessor.entity.PayloadValueType.OCCUPANCY);
+        if (request.getMetricType() == null)
+            request.setMetricType(com.amaris.sensorprocessor.entity.PayloadValueType.OCCUPANCY);
         if (request.getTimeRange() == null) request.setTimeRange(HistogramRequest.TimeRangePreset.LAST_7_DAYS);
         if (request.getGranularity() == null) request.setGranularity(HistogramRequest.Granularity.DAILY);
         if (request.getTimeSlot() == null) request.setTimeSlot(HistogramRequest.TimeSlot.ALL);
@@ -382,7 +384,13 @@ public class DashboardServiceImpl implements DashboardService {
             log.info("Single sensor query for: {}", request.getSensorId());
         } else {
             // Multiple sensors query
-            sensors = sensorDao.findAllByDeviceType(request.getSensorType());
+            if (isAllSensorType(request.getSensorType())) {
+                sensors = sensorDao.findAllSensors();
+                log.info("Multi sensor query: ALL sensor types ({} sensors)", sensors.size());
+            } else {
+                sensors = sensorDao.findAllByDeviceType(request.getSensorType());
+                log.info("Multi sensor query: sensorType={} ({} sensors)", request.getSensorType(), sensors.size());
+            }
         }
 
         // Apply building filter
@@ -399,6 +407,15 @@ public class DashboardServiceImpl implements DashboardService {
                     .filter(s -> request.getFloor().equals(String.valueOf(s.getFloor())))
                     .collect(Collectors.toList());
         }
+
+        // Apply exclude sensorType (INT use-case: exclude TEMPEX)
+        if (hasText(request.getExcludeSensorType())) {
+            String ex = request.getExcludeSensorType().trim().toUpperCase();
+            sensors = sensors.stream()
+                    .filter(s -> s.getDeviceType() == null || !ex.equalsIgnoreCase(s.getDeviceType()))
+                    .collect(Collectors.toList());
+        }
+
 
         if (sensors.isEmpty()) {
             return HistogramResponse.builder()
@@ -451,6 +468,44 @@ public class DashboardServiceImpl implements DashboardService {
             default:
                 start = end.minusDays(6).truncatedTo(ChronoUnit.DAYS);
         }
+
+        // --- Keep only sensors that actually have data for this metric in [start, end)
+        List<String> candidateIds = sensors.stream()
+                .map(Sensor::getIdSensor)
+                .collect(Collectors.toList());
+
+        Map<String, SensorDataDao.HourlyStatistics> existing;
+        if (request.getGranularity() == HistogramRequest.Granularity.HOURLY) {
+            existing = sensorDataDao.getHourlyStatisticsBatch(candidateIds, request.getMetricType(), start, end);
+        } else {
+            existing = sensorDataDao.getDailyStatisticsBatch(candidateIds, request.getMetricType(), start, end);
+        }
+
+        if (existing != null && !existing.isEmpty()) {
+            sensors = sensors.stream()
+                    .filter(s -> existing.containsKey(s.getIdSensor()))
+                    .collect(Collectors.toList());
+        } else {
+            sensors = new ArrayList<>();
+        }
+
+        if (sensors.isEmpty()) {
+            return HistogramResponse.builder()
+                    .metricType(request.getMetricType())
+                    .granularity(request.getGranularity().name())
+                    .timeRange(request.getTimeRange().name())
+                    .aggregationType(HistogramResponse.AggregationType.AVERAGE)
+                    .dataPoints(new ArrayList<>())
+                    .summary(HistogramSummary.builder()
+                            .totalSensors(0)
+                            .activeSensors(0)
+                            .minValue(0.0)
+                            .maxValue(0.0)
+                            .avgValue(0.0)
+                            .build())
+                    .build();
+        }
+
 
         log.info("Date range: {} to {} (expecting {} days)", start, end,
                 ChronoUnit.DAYS.between(start.truncatedTo(ChronoUnit.DAYS), end.truncatedTo(ChronoUnit.DAYS)));
@@ -619,4 +674,13 @@ public class DashboardServiceImpl implements DashboardService {
                 .summary(summary)
                 .build();
     }
+
+    private boolean hasText(String s) {
+        return s != null && !s.trim().isEmpty();
+    }
+
+    private boolean isAllSensorType(String s) {
+        return !hasText(s) || "ALL".equalsIgnoreCase(s) || "all".equalsIgnoreCase(s);
+    }
+
 }
