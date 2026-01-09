@@ -42,6 +42,13 @@ public enum PayloadValueType {
     CONSUMPTION_CHANNEL_14(Category.BUSINESS, "$.uplink_message.decoded_payload[\"14\"].value"),
     CONSUMPTION_CHANNEL_15(Category.BUSINESS, "$.uplink_message.decoded_payload[\"15\"].value"),
     CONSUMPTION_CHANNEL_16(Category.BUSINESS, "$.uplink_message.decoded_payload[\"16\"].value"),
+    CONSUMPTION_CHANNEL_17(Category.BUSINESS, "$.uplink_message.decoded_payload[\"17\"].value"),
+    CONSUMPTION_CHANNEL_18(Category.BUSINESS, "$.uplink_message.decoded_payload[\"18\"].value"),
+    CONSUMPTION_CHANNEL_19(Category.BUSINESS, "$.uplink_message.decoded_payload[\"19\"].value"),
+    CONSUMPTION_CHANNEL_20(Category.BUSINESS, "$.uplink_message.decoded_payload[\"20\"].value"),
+    CONSUMPTION_CHANNEL_21(Category.BUSINESS, "$.uplink_message.decoded_payload[\"21\"].value"),
+    CONSUMPTION_CHANNEL_22(Category.BUSINESS, "$.uplink_message.decoded_payload[\"22\"].value"),
+    CONSUMPTION_CHANNEL_23(Category.BUSINESS, "$.uplink_message.decoded_payload[\"23\"].value"),
 
     /* =====================================================
      * ⚙️ TECHNIQUE — DEBUG / RÉSEAU / TTN
