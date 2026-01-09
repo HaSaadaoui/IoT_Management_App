@@ -164,6 +164,12 @@ class ArchitecturalFloorPlan {
     }
 
     generateSensorData(mode, floor, valueMap = null) {
+        const CHATEAUDUN_F2_SENSOR_POSITIONS = {
+            MOTION: [
+                    { id: "pir-light-01-01", x: 210, y: 95 }
+            ],
+        };
+
         const LEVALLOIS_F3_SENSOR_POSITIONS = {
           CO2: [
                 { id: "co2-03-01", x: 690, y: 290 }, // au-dessus de D01–D06
@@ -172,6 +178,10 @@ class ArchitecturalFloorPlan {
           ],
           TEMP: [
                  { id: "tempex-03-01", x: 320, y: 180 },
+                 //Relever la temperature des capteurs co2 pour la temperature intérieure
+                 { id: "co2-03-01", x: 645, y: 255 },
+                 { id: "co2-03-02",   x: 150, y: 350 },
+                 { id: "co2-03-03",  x: 605, y: 445 },
           ],
           LIGHT: [
                   { id: "eye-03-01", x: 500, y: 210 }, // au-dessus de D07–D09
@@ -183,72 +193,81 @@ class ArchitecturalFloorPlan {
                   { id: "son-03-02", x: 700, y: 250 }, // bloc milieu
                   { id: "son-03-03", x: 630, y: 440 }, // au-dessus de D81–D82
                   { id: "son-03-04", x: 920, y: 205 }, // côté OM
+          ],
+          HUMIDITY: [
+                     //Même position que le capteur de la température
+                     { id: "tempex-03-01", x: 320, y: 180 },
+                     { id: "co2-03-01", x: 645, y: 255 },
+                     { id: "co2-03-02",   x: 150, y: 350 },
+                     { id: "co2-03-03",  x: 605, y: 445 },
+
+          ],
+          COUNT: [
+                  { id: "count-03-01", x: 950, y: 105 } //925 75
+          ],
+          ENERGY:[
+                  { id: "conso-squid-03-01", x: 1070, y: 100 } //925 75
           ]
           // TODO add other sensors
         };
 
-          // Positions spécifiques Levallois, étage 3
+      // Positions spécifiques Levallois, étage 3
+      if (this.buildingKey === "LEVALLOIS" && floor === 3) {
+        const floorConfig = LEVALLOIS_F3_SENSOR_POSITIONS[mode];
 
+        if (floorConfig && floorConfig.length) {
+          return floorConfig.map((pos) => {
+            const live =
+              valueMap?.get(pos.id) ??
+              valueMap?.get("*ALL*") ??
+              this.getRandomSensorValue(mode);
 
+            return {
+              id: pos.id,
+              type: mode,
+              floor,
+              x: pos.x,
+              y: pos.y,
+              value: live,
+              status: "normal",
+              presence: false,
+              alert: false,
+              direction: 0,
+              intensity: 1,
+              message: "OK",
+              timestamp: new Date().toISOString(),
+            };
+          });
+        }
+      }
 
-          if (this.buildingKey === "LEVALLOIS" && floor === 3) {
-            const floorConfig = LEVALLOIS_F3_SENSOR_POSITIONS[mode];
+      // Positions spécifiques CHATEAUDUN, étage 2
+      if (this.buildingKey === "CHATEAUDUN" && floor === 2) {
+        const floorConfig = CHATEAUDUN_F2_SENSOR_POSITIONS[mode];
+        if (floorConfig && floorConfig.length) {
+          return floorConfig.map((pos) => {
+            const live =
+            valueMap?.get(pos.id) ?? this.getRandomSensorValue(mode);
+            return {
+              id: pos.id,
+              type: mode,
+              floor,
+              x: pos.x,
+              y: pos.y,
+              value: live,
+              status: "normal",
+              presence: false,
+              alert: false,
+              direction: 0,
+              intensity: 1,
+              message: "OK",
+              timestamp: new Date().toISOString(),
+            };
+          });
+        }
+      }
 
-            if (floorConfig && floorConfig.length) {
-              return floorConfig.map((pos) => {
-                const live =
-                  valueMap?.get(pos.id) ??
-                  valueMap?.get("*ALL*") ??
-                  this.getRandomSensorValue(mode);
-
-                return {
-                  id: pos.id,
-                  type: mode,
-                  floor,
-                  x: pos.x,
-                  y: pos.y,
-                  value: live,
-                  status: "normal",
-                  presence: false,
-                  alert: false,
-                  direction: 0,
-                  intensity: 1,
-                  message: "OK",
-                  timestamp: new Date().toISOString(),
-                };
-              });
-            }
-          }
-
-        // Updated positions to match new building schema
-        // Building spans: x: 50-1050, y: 50-450 (with angular shape)
-        const positions = [
-            // Top row
-            //{x: 150, y: 100}, {x: 350, y: 100}, {x: 550, y: 100}, {x: 950, y: 100},
-            // Middle row
-            { x: 150, y: 130 },
-            { x: 400, y: 130 },
-            { x: 600, y: 130 },
-           // { x: 900, y: 130 },
-            // Bottom row (adjusted for angular shape)
-            //{x: 350, y: 300}, {x: 550, y: 300},
-        ];
-
-        return positions.map((pos, i) => ({
-            id: `${mode}-${floor}-${i}`,
-            type: mode,
-            floor: floor,
-            x: pos.x,
-            y: pos.y,
-            value: this.getRandomSensorValue(mode),
-            status: Math.random() > 0.7 ? "active" : "normal",
-            presence: Math.random() > 0.5,
-            alert: Math.random() > 0.8,
-            direction: Math.floor(Math.random() * 360),
-            intensity: Math.random() * 2 + 0.5,
-            message: "OK",
-            timestamp: new Date().toISOString(),
-        }));
+      return [];
     }
 
     getRandomSensorValue(mode) {
@@ -265,6 +284,12 @@ class ArchitecturalFloorPlan {
                 return Math.floor(Math.random() * 40) + 30;
             case "TEMPEX":
                 return Math.floor(Math.random() * 8) + 19;
+            case "COUNT":
+                return Math.floor(Math.random() * 8) + 19;
+            case "ENERGY":
+                return Math.floor(Math.random() * 8) + 19;
+            case "MOTION":
+                return Math.floor(Math.random() * 10) + 19;
             default:
                 return 0;
         }
