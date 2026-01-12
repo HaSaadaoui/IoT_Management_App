@@ -196,35 +196,6 @@ const DEVICE_TYPE_METRICS = {
     "HUMIDITY",
     // "VDD",
   ],
-  // "CONSO": [
-  //   "CONSUMPTION_CHANNEL_0",
-  //   "CONSUMPTION_CHANNEL_1",
-  //   "CONSUMPTION_CHANNEL_2",
-  //   "CONSUMPTION_CHANNEL_3",
-  //   "CONSUMPTION_CHANNEL_4",
-  //   "CONSUMPTION_CHANNEL_5",
-  //   "CONSUMPTION_CHANNEL_6",
-  //   "CONSUMPTION_CHANNEL_7",
-  //   "CONSUMPTION_CHANNEL_8",
-  //   "CONSUMPTION_CHANNEL_9",
-  //   "CONSUMPTION_CHANNEL_10",
-  //   "CONSUMPTION_CHANNEL_11",
-  // ],
-  // "ENERGY": [
-  //   "LAST_BATTERY_PERCENTAGE",
-  //   "CONSUMPTION_CHANNEL_0",
-  //   "CONSUMPTION_CHANNEL_1",
-  //   "CONSUMPTION_CHANNEL_2",
-  //   "CONSUMPTION_CHANNEL_3",
-  //   "CONSUMPTION_CHANNEL_4",
-  //   "CONSUMPTION_CHANNEL_5",
-  //   "CONSUMPTION_CHANNEL_6",
-  //   "CONSUMPTION_CHANNEL_7",
-  //   "CONSUMPTION_CHANNEL_8",
-  //   "CONSUMPTION_CHANNEL_9",
-  //   "CONSUMPTION_CHANNEL_10",
-  //   "CONSUMPTION_CHANNEL_11",
-  // ]
 };
 
 // =================================================
@@ -1107,6 +1078,133 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 function updateEnergyConsumption(data) {
   console.log('Energy data received:', data);
+
+  // Normalisation: abs(power) uniquement
+  const normalized = {};
+  Object.keys(data || {}).forEach(k => {
+    normalized[k] = absIfPower(data[k]);
+  });
+
+  // 1) regrouper par channel (robuste)
+  const byChannel = {}; // channel -> { channel, uuid, energyWh, powerW }
+
+  const getChannel = (entry, key) => {
+    // 1) champs possibles
+    const candidates = [
+      entry?.hardwareData?.channel,
+      entry?.hardware_data?.channel,
+      entry?.hardware?.channel,
+      entry?.hw?.channel,
+      entry?.channel
+    ];
+
+    for (const c of candidates) {
+      const n = Number(c);
+      if (Number.isFinite(n)) return n;
+    }
+
+    // 2) fallback: inférer depuis la clé
+    const s = String(key ?? '');
+    const m = s.match(/(?:CHANNEL[_\s-]?)(\d{1,2})/i) || s.match(/\b(\d{1,2})\b/);
+    if (m) {
+      const n = Number(m[1]);
+      if (Number.isFinite(n)) return n;
+    }
+
+    return null;
+  };
+
+  Object.entries(normalized).forEach(([key, entry]) => {
+    if (!entry || typeof entry !== 'object') return;
+
+    const ch = getChannel(entry, key);
+    if (ch == null) return;
+
+    byChannel[ch] ??= { channel: ch, uuid: '', energyWh: null, powerW: null };
+
+    // uuid
+    if (!byChannel[ch].uuid) byChannel[ch].uuid = entry.uuid || '';
+
+    // type/value
+    const type = String(entry.type || '').toLowerCase();
+    const v = numOrNull(entry.value);
+
+    // power
+    if (type.includes('power')) {
+      if (v != null) byChannel[ch].powerW = Math.abs(v);
+      return;
+    }
+
+    // energy / index Wh (si jamais tu reçois ce type)
+    if (type.includes('energy') || type.includes('wh') || type.includes('index')) {
+      if (v != null) byChannel[ch].energyWh = v;
+      return;
+    }
+  });
+
+// 2) rendre l’UI channel par channel (même style que groupes, sans uuid)
+Object.keys(byChannel).forEach(chKey => {
+  const ch = Number(chKey);
+  const info = byChannel[ch];
+
+  const channelEl = el(`#energy-channel-${ch}`);
+  if (!channelEl) return;
+
+  renderChannelCard(channelEl, ch, info.powerW);
+});
+
+
+  // 3) Sync store global power par channel (sert aux charts et aux groupes)
+  Object.values(byChannel).forEach(info => {
+    if (info?.channel != null && typeof info.powerW === 'number') {
+      channelPowerData[info.channel] = info.powerW; // W
+    }
+  });
+
+  // 4) Calcul groupes en POWER selon ta formule (affichage en kW)
+  const sumW = (chs) => chs.reduce((s, ch) => s + (Number(channelPowerData[ch]) || 0), 0);
+
+  const redW   = sumW([0, 1, 2]);
+  const ventW  = sumW([6, 7, 8]);
+  const whiteW = ventW - sumW([3, 4, 5]);     // EXACTEMENT ta formule
+  const otherW = sumW([9, 10, 11]);
+
+  // 4) Calcul groupes en PUISSANCE (kW)
+  const groupsKW = {
+    'red-outlets': redW / 1000,
+    'white-outlets': whiteW / 1000,
+    'ventilation': ventW / 1000,
+    'other': otherW / 1000
+  };
+
+  // 5) UI groupes — PUISSANCE kW (⚠️ PAS kWh)
+  function setGroupKW(groupId, valueKW) {
+    const groupEl = el(`#energy-group-${groupId}`);
+    if (!groupEl) return;
+
+    const kwEl = groupEl.querySelector('.kw-value');
+    if (kwEl) kwEl.textContent = `${valueKW.toFixed(3)} kW`;
+  }
+
+  setGroupKW('red-outlets', groupsKW['red-outlets']);
+  setGroupKW('white-outlets', groupsKW['white-outlets']);
+  setGroupKW('ventilation', groupsKW['ventilation']);
+  setGroupKW('other', groupsKW['other']);
+
+
+  // Total kW
+  const totalKw = Object.values(groupsKw).reduce((a, b) => a + b, 0);
+  const totalEl = el('#energy-total');
+  if (totalEl) {
+    totalEl.innerHTML = `
+      <div class="total-consumption">
+        <div class="total-label">Total Power</div>
+        <div class="total-kwh">${totalKw.toFixed(3)} kW</div>
+      </div>
+    `;
+  }
+
+  // 6) Doughnut: agrège en kW à partir des channels (W -> kW)
   const channelGroups = {
     'red-outlets': { channels: [0, 1, 2], name: 'Red Outlets', emoji: '🔴', color: '#ef4444' },
     'white-outlets': { channels: [3, 4, 5], name: 'White Outlets & Lighting', emoji: '⚪', color: '#64748b' },
@@ -1114,74 +1212,36 @@ function updateEnergyConsumption(data) {
     'other': { channels: [9, 10, 11], name: 'Other Circuits', emoji: '🔧', color: '#f59e0b' }
   };
 
-  let totalConsumption = 0;
-  
-  Object.keys(data).forEach(key => {
-    const channelData = data[key];
-    if (channelData && typeof channelData === 'object') {
-      const channel = channelData.hardwareData?.channel;
-      const value = channelData.value || 0;
-      const unit = channelData.unit || 'Wh';
-      
-      if (typeof value === 'number' && value > 0) totalConsumption += value;
-      
-      const channelEl = el(`#energy-channel-${channel}`);
-      if (channelEl) {
-        channelEl.innerHTML = `
-          <div class="energy-channel-header">
-            <span class="channel-number">Channel ${channel}</span>
-            <span class="channel-uuid">${channelData.uuid || ''}</span>
-          </div>
-          <div class="energy-value">
-            <span class="value">${formatEnergyValue(value)}</span>
-            <span class="unit">${unit}</span>
-          </div>
-        `;
-      }
-    }
-  });
+  const chartDataPower = {};
+  // on force 0..11 pour éviter trous
+  for (let ch = 0; ch <= 11; ch++) {
+    chartDataPower[ch] = { value: Number(channelPowerData[ch]) || 0 }; // W
+  }
 
-  // Object.entries(channelGroups).forEach(([groupId, group]) => {
-  //   let groupTotal = 0;
-  //   group.channels.forEach(channel => {
-  //     const channelData = data[channel.toString()];
-  //     if (channelData && typeof channelData.value === 'number') {
-  //       groupTotal += channelData.value;
-  //     }
-  //   });
+  updateEnergyChart(channelGroups, chartDataPower, { mode: 'power' });
 
-  //   const groupEl = el(`#energy-group-${groupId}`);
-  //   if (groupEl) {
-  //     const kWh = (groupTotal / 1000).toFixed(2);
-  //     groupEl.innerHTML = `
-  //       <div class="energy-group-header">
-  //         <span class="group-name">${group.emoji} ${group.name}</span>
-  //         <span class="group-channels">Channels ${group.channels.join(', ')}</span>
-  //       </div>
-  //       <div class="energy-group-values">
-  //         <div class="wh-value">${formatEnergyValue(groupTotal)} Wh</div>
-  //         <div class="kwh-value">${kWh} kWh</div>
-  //       </div>
-  //     `;
-  //     groupEl.style.borderLeftColor = group.color;
-  //   }
-  // });
-
-  // const totalEl = el('#energy-total');
-  // if (totalEl) {
-  //   const totalKWh = (totalConsumption / 1000).toFixed(2);
-  //   totalEl.innerHTML = `
-  //     <div class="total-consumption">
-  //       <div class="total-label">Total Consumption</div>
-  //       <div class="total-values">
-  //         <div class="total-kwh">${totalKWh} kWh</div>
-  //       </div>
-  //     </div>
-  //   `;
-  // }
-
-  updateEnergyChart(channelGroups, data);
+  // Tu peux garder ça si tu veux toujours ton "kWh sur période"
   fetchAndUpdateCurrentConsumption();
+}
+
+function renderChannelCard(channelEl, ch, powerW) {
+  if (!channelEl) return;
+
+  const wTxt =
+    (typeof powerW === 'number' && Number.isFinite(powerW))
+      ? `${Math.round(powerW)} W`
+      : `-- W`;
+
+  channelEl.innerHTML = `
+    <div class="channel-card">
+      <div class="channel-left">
+        Channel ${ch}
+      </div>
+      <div class="channel-right">
+        ${wTxt}
+      </div>
+    </div>
+  `;
 }
 
 function formatEnergyValue(value) {
@@ -1196,20 +1256,25 @@ function formatEnergyValue(value) {
 // Doughnut chart instance for energy distribution
 let energyDoughnutChart = null;
 
-function updateEnergyChart(groups, data) {
+function updateEnergyChart(groups, data, opts = {}) {
   const chartEl = el('#energy-chart');
   if (!chartEl) return;
+
+  const mode = opts.mode || 'energy'; // 'energy' ou 'power'
+  const unit = (mode === 'power') ? 'kW' : 'kWh';
+
   const groupData = Object.entries(groups).map(([groupId, group]) => {
     let total = 0;
     group.channels.forEach(channel => {
       const channelData = data[channel];
-      if (channelData && channelData.value) {
-        total += channelData.value;
+      if (channelData && typeof channelData.value === 'number') {
+        total += channelData.value; // W si mode=power, Wh si mode=energy
       }
     });
+
     return {
       name: group.name,
-      value: total / 1000, // Convertir en kWh
+      value: total / 1000, // W->kW ou Wh->kWh
       color: group.color
     };
   });
@@ -1218,7 +1283,9 @@ function updateEnergyChart(groups, data) {
     chartEl.innerHTML = `
       <div class="doughnut-container">
         <div class="doughnut-labels">
-          <h4 style="margin: 0 0 1rem 0; font-size: 0.9rem; color: var(--text-secondary);">Consumption by Group</h4>
+          <h4 style="margin: 0 0 1rem 0; font-size: 0.9rem; color: var(--text-secondary);">
+            ${mode === 'power' ? 'Power by Group' : 'Consumption by Group'}
+          </h4>
           <div class="labels-list"></div>
         </div>
         <div class="doughnut-chart">
@@ -1226,8 +1293,12 @@ function updateEnergyChart(groups, data) {
         </div>
       </div>
     `;
+  } else {
+    // update du titre si le conteneur existe déjà
+    const h4 = chartEl.querySelector('.doughnut-labels h4');
+    if (h4) h4.textContent = (mode === 'power') ? 'Power by Group' : 'Consumption by Group';
   }
-  
+
   const canvas = chartEl.querySelector('canvas');
   const labelsList = chartEl.querySelector('.labels-list');
 
@@ -1247,16 +1318,14 @@ function updateEnergyChart(groups, data) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { 
-          legend: {
-            display: false // Désactiver la légende par défaut
-          },
+        plugins: {
+          legend: { display: false },
           tooltip: {
             callbacks: {
               label: function(context) {
                 const label = context.label || '';
                 const value = context.parsed || 0;
-                return `${label}: ${value.toFixed(2)} kWh`;
+                return `${label}: ${value.toFixed(2)} ${unit}`;
               }
             }
           }
@@ -1267,9 +1336,17 @@ function updateEnergyChart(groups, data) {
     energyDoughnutChart.data.labels = groupData.map(g => g.name);
     energyDoughnutChart.data.datasets[0].data = groupData.map(g => g.value);
     energyDoughnutChart.data.datasets[0].backgroundColor = groupData.map(g => g.color);
+
+    // MAJ tooltip unit
+    energyDoughnutChart.options.plugins.tooltip.callbacks.label = function(context) {
+      const label = context.label || '';
+      const value = context.parsed || 0;
+      return `${label}: ${value.toFixed(2)} ${unit}`;
+    };
+
     energyDoughnutChart.update('none');
   }
-  
+
   if (labelsList) {
     labelsList.innerHTML = groupData.map((group) => {
       return `
@@ -1277,7 +1354,7 @@ function updateEnergyChart(groups, data) {
           <div class="label-color" style="width: 12px; height: 12px; background-color: ${group.color}; border-radius: 50%; margin-right: 0.5rem;"></div>
           <div class="label-text" style="flex: 1; font-size: 0.8rem;">
             <div style="font-weight: 600; color: var(--text-primary);">${group.name}</div>
-            <div style="color: var(--text-secondary); font-size: 0.75rem;">${group.value.toFixed(1)} kWh</div>
+            <div style="color: var(--text-secondary); font-size: 0.75rem;">${group.value.toFixed(3)} ${unit}</div>
           </div>
         </div>
       `;
@@ -1293,6 +1370,8 @@ let currentConsumptionInterval = null;
 
 const groupConsumptionData = {};
 const channelConsumptionData = {}; // To store consumption per channel
+const channelPowerData = {}; // {0: W, 1: W, ...}
+
 
 /**
  * Fetches and updates the consumption for the user-defined period for all channel groups.
@@ -1359,8 +1438,8 @@ function fetchAndUpdateCurrentConsumption() {
     if (groupEl) {
       const kwhEl = groupEl.querySelector('.kwh-value');
       const whEl = groupEl.querySelector('.wh-value');
-      if (kwhEl) kwhEl.textContent = `${(groupTotalConsumption / 1000).toFixed(3)} kWh`;
-      if (whEl) whEl.textContent = `${groupTotalConsumption} Wh`;
+      if (kwhEl) kwhEl.textContent = `${(groupTotalConsumption / 1000).toFixed(3)} kW`;
+      if (whEl) whEl.textContent = `${groupTotalConsumption} W`;
     }
   };
 
@@ -1410,7 +1489,7 @@ function fetchAndUpdateCurrentConsumption() {
       totalEl.innerHTML = `
         <div class="total-consumption">
           <div class="total-label">Total Consumption</div>
-          <div class="total-kwh">${totalKWh} kWh</div>
+          <div class="total-kwh">${totalKWh} kW</div>
         </div>
       `;
     }
@@ -1688,14 +1767,14 @@ function initRealtimeCharts() {
 // Creates a configuration for the multi-dataset energy power usage chart
 function createEnergyPowerUsageChartConfig() {
   const currentDate = new Date().toLocaleDateString('en-CA');
-  
+
   return {
     type: 'line',
     data: {
       labels: [],
       datasets: [
         {
-          label: 'Red Outlets',
+          label: 'Red (kW)',
           data: [],
           borderColor: '#ef4444',
           backgroundColor: 'transparent',
@@ -1706,7 +1785,7 @@ function createEnergyPowerUsageChartConfig() {
           borderWidth: 2
         },
         {
-          label: 'White Outlets & Lighting',
+          label: 'White (kW)',
           data: [],
           borderColor: '#64748b',
           backgroundColor: 'transparent',
@@ -1717,7 +1796,7 @@ function createEnergyPowerUsageChartConfig() {
           borderWidth: 2
         },
         {
-          label: 'Ventilation & Heaters',
+          label: 'Ventilation (kW)',
           data: [],
           borderColor: '#3b82f6',
           backgroundColor: 'transparent',
@@ -1729,8 +1808,28 @@ function createEnergyPowerUsageChartConfig() {
         }
       ]
     },
-    options: getChartOptionsWithUnits('Consumption by Group (kWh)', 'kWh', currentDate)
+    options: getChartOptionsWithUnits('Power by Group (kW)', 'kW', currentDate)
   };
+}
+
+function numOrNull(x) {
+  const n = Number(x);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Valeur absolue UNIQUEMENT si type == "power"
+ * (on ne touche pas aux index Wh)
+ */
+function absIfPower(entry) {
+  if (!entry || typeof entry !== 'object') return entry;
+  if (String(entry.type).toLowerCase() !== 'power') return entry;
+
+  const v = numOrNull(entry.value);
+  if (v == null) return entry;
+
+  // clone léger pour éviter des effets de bord
+  return { ...entry, value: Math.abs(v) };
 }
 
 // Generic factory function for creating a line chart configuration
@@ -1802,6 +1901,12 @@ function getChartOptionsWithUnits(yAxisLabel = '', yAxisUnit = '', currentDate =
       yAxisConfig.suggestedMin = 0;
       yAxisConfig.suggestedMax = 2000;
       break;
+
+    case 'kW':
+      yAxisConfig.beginAtZero = true;
+      yAxisConfig.grace = '10%';
+      break;
+
     case '°C': // Température
       yAxisConfig.suggestedMin = 15;
       yAxisConfig.suggestedMax = 30;
@@ -1984,10 +2089,10 @@ function getChartOptions() {
 // Main dispatcher for updating real-time charts with new data from SSE
 function updateRealtimeCharts(data) {
   if (chartsPaused) return;
-  
+
   const timestamp = new Date().toLocaleTimeString();
   const devType = (document.documentElement.dataset.devType || '').toUpperCase();
-  
+
   function getBatteryLevel(data) {
     // Priorité 1: battery (%) direct
     if (typeof data['battery (%)'] === 'number') {
@@ -2038,7 +2143,7 @@ function updateRealtimeCharts(data) {
       updateChart(realtimeCharts.motion, chartData.motion, timestamp, data.motion);
       updateChart(realtimeCharts.occupancy, chartData.occupancy, timestamp, data.occupancy ? 1 : 0);
       break;
-    case 'OCCUP': 
+    case 'OCCUP':
       updateChart(realtimeCharts.main, chartData.main, timestamp, data.presence ? 1 : 0);
       // VS30 (distance) vs VS70 (illuminance)
       if (data.distance != null && typeof data.distance === 'number') {
@@ -2072,42 +2177,29 @@ function updateRealtimeCharts(data) {
       updateChart(realtimeCharts.secondary, chartData.secondary, timestamp, data['period_out']);
       break;
     case 'ENERGY':
-    case 'CONSO':
-      if (data.energy_data && typeof data.energy_data === 'object') {
-        const redOutlets = [0, 1, 2].reduce((sum, ch) => {
-          const channelData = channelConsumptionData[ch];
-          return sum + channelData;
-        }, 0);
-        
-        const whiteOutlets = Math.abs([3, 4, 5].reduce((sum, ch) => {
-          const channelData = channelConsumptionData[ch];
-          return sum + channelData;
-        }, 0) - [6, 7, 8].reduce((sum, ch) => {
-          const channelData = channelConsumptionData[ch];
-          return sum + channelData;
-        }, 0));
-        
-        const ventilation = [6, 7, 8].reduce((sum, ch) => {
-          const channelData = channelConsumptionData[ch];
-          return sum + channelData;
-        }, 0);
-        
-        const totalWh = redOutlets + whiteOutlets + ventilation + 
-          [9, 10, 11].reduce((sum, ch) => {
-            const channelData = channelConsumptionData[ch];
-            return sum + channelData;
-          }, 0);
-        
-        updateChart(realtimeCharts.main, chartData.main, timestamp, totalWh / 1000);
-        updatePowerUsageChart(timestamp, {
-          red: redOutlets / 1000,
-          white: whiteOutlets / 1000,
-          ventilation: ventilation / 1000
-        });
-      }
-      break;
+    case 'CONSO': {
+           // Live POWER en kW, basé sur channelPowerData alimenté par updateEnergyConsumption()
+           const sumW = (chs) => chs.reduce((s, ch) => s + (Number(channelPowerData[ch]) || 0), 0);
+
+           const redW   = sumW([0, 1, 2]);
+           const ventW  = sumW([6, 7, 8]);
+           const whiteW = ventW - sumW([3, 4, 5]);   // EXACTEMENT ta formule
+           const otherW = sumW([9, 10, 11]);
+
+           const totalKw = (redW + whiteW + ventW + otherW) / 1000;
+
+           updateChart(realtimeCharts.main, chartData.main, timestamp, totalKw);
+
+           updatePowerUsageChart(timestamp, {
+             red: redW / 1000,
+             white: whiteW / 1000,
+             ventilation: ventW / 1000
+           });
+
+           break;
+         }
   }
-  
+
 }
 
 // Generic function to update a single chart instance
