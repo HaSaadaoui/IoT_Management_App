@@ -34,6 +34,9 @@ public class HistogramRequest {
     private Date customStartDate;
     private Date customEndDate;
 
+    private String excludeSensorType;
+
+
     /**
      * Time range presets for histogram.
      */

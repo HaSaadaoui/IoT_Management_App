@@ -38,6 +38,8 @@ class SensorOverlayManager {
             case 'TEMPEX': this.createTempexFlow(); break;
             case 'PR': this.createPresenceLight(); break;
             case 'SECURITY': this.createSecurityOverlay(); break;
+            case 'COUNT': this.createCounterMap(); break;
+            case 'ENERGY': this.createEnergyMap(); break;
         }
         
         this.svg.appendChild(this.overlayGroup);
@@ -139,22 +141,6 @@ class SensorOverlayManager {
         if (lux < 500) return '#10b981';
         if (lux < 1000) return '#fbbf24';
         return '#ef4444';
-    }
-
-    createMotionRadar() {
-        this.sensors.forEach(sensor => {
-            if (sensor.status === 'active') {
-                this.createRipple(sensor.x, sensor.y);
-            }
-            const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            dot.setAttribute("cx", sensor.x);
-            dot.setAttribute("cy", sensor.y);
-            dot.setAttribute("r", "8");
-            dot.setAttribute("fill", sensor.status === 'active' ? '#8b5cf6' : '#94a3b8');
-            this.overlayGroup.appendChild(dot);
-            
-            this.addSensorIcon(sensor.x, sensor.y - 20, "👁️", "Motion");
-        });
     }
 
     createRipple(x, y) {
@@ -337,6 +323,148 @@ class SensorOverlayManager {
             this.animationFrames.push(requestAnimationFrame(pulse));
         };
         pulse();
+    }
+
+    createCounterMap() {
+        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+        const COLOR = "#6366f1"; // indigo stable
+
+        this.sensors.forEach((sensor, i) => {
+            const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
+            gradient.setAttribute("id", `counter-grad-${i}`);
+
+            gradient.innerHTML = `
+                <stop offset="0%" style="stop-color:${COLOR};stop-opacity:0.45"/>
+                <stop offset="100%" style="stop-color:${COLOR};stop-opacity:0"/>
+            `;
+            defs.appendChild(gradient);
+
+            // Halo
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", sensor.x);
+            circle.setAttribute("cy", sensor.y);
+            circle.setAttribute("r", "65");
+            circle.setAttribute("fill", `url(#counter-grad-${i})`);
+            this.overlayGroup.appendChild(circle);
+
+            // Icône compteur
+            const icon = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            icon.setAttribute("x", sensor.x);
+            icon.setAttribute("y", sensor.y - 6);
+            icon.setAttribute("text-anchor", "middle");
+            icon.setAttribute("font-size", "20");
+            icon.textContent = "🧑‍🤝‍🧑";
+            this.overlayGroup.appendChild(icon);
+
+            // Valeurs IN | OUT
+            const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            label.setAttribute("x", sensor.x);
+            label.setAttribute("y", sensor.y + 16);
+            label.setAttribute("text-anchor", "middle");
+            label.setAttribute("font-size", "12");
+            label.setAttribute("font-weight", "bold");
+            label.setAttribute("fill", "#1f2937");
+            //Todo: à revoir après la récupération des valeurs réelles
+            const inVal = sensor.value?.in ?? "—";
+            //const outVal = sensor.value?.out ?? "—";
+            const outVal = sensor.value - 1;
+
+            label.textContent = `${sensor.value} | ${outVal}`;
+            this.overlayGroup.appendChild(label);
+        });
+
+        this.svg.insertBefore(defs, this.svg.firstChild);
+    }
+
+    createEnergyMap() {
+        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+
+        this.sensors.forEach((sensor, i) => {
+            const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
+            gradient.setAttribute("id", `energy-grad-${i}`);
+
+            const color = this.getEnergyColor(sensor.value);
+
+            gradient.innerHTML = `
+                <stop offset="0%" style="stop-color:${color};stop-opacity:0.55"/>
+                <stop offset="100%" style="stop-color:${color};stop-opacity:0"/>
+            `;
+
+            defs.appendChild(gradient);
+
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", sensor.x);
+            circle.setAttribute("cy", sensor.y);
+            circle.setAttribute("r", "75");
+            circle.setAttribute("fill", `url(#energy-grad-${i})`);
+
+            this.overlayGroup.appendChild(circle);
+
+            // ⚡ Icône + valeur
+            this.addSensorIcon(
+                sensor.x,
+                sensor.y,
+                "⚡",
+                sensor.value != null ? `${sensor.value} kWh` : "—"
+            );
+        });
+
+        this.svg.insertBefore(defs, this.svg.firstChild);
+    }
+
+    getEnergyColor(kwh) {
+        if (kwh == null) return '#9ca3af'; // gris
+        if (kwh < 50)   return '#10b981'; // vert
+        if (kwh < 100)   return '#facc15'; // jaune
+        if (kwh < 200)  return '#f97316'; // orange
+        return '#ef4444';               // rouge
+    }
+
+    createMotionRadar() {
+        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+        const COLOR = "#7c3aed"; // violet motion
+
+        this.sensors.forEach((sensor, i) => {
+            const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
+            gradient.setAttribute("id", `motion-grad-${i}`);
+
+            gradient.innerHTML = `
+                <stop offset="0%" style="stop-color:${COLOR};stop-opacity:${sensor.status === 'active' ? 0.4 : 0.25}"/>
+                <stop offset="100%" style="stop-color:${COLOR};stop-opacity:0"/>
+            `;
+            defs.appendChild(gradient);
+
+            // 🟣 Halo
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", sensor.x);
+            circle.setAttribute("cy", sensor.y);
+            circle.setAttribute("r", "60");
+            circle.setAttribute("fill", `url(#motion-grad-${i})`);
+            this.overlayGroup.appendChild(circle);
+
+            //Icône
+            const icon = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            icon.setAttribute("x", sensor.x);
+            icon.setAttribute("y", sensor.y - 14);
+            icon.setAttribute("text-anchor", "middle");
+            icon.setAttribute("dominant-baseline", "middle");
+            icon.setAttribute("font-size", "20");
+            icon.textContent = "👁️";
+            this.overlayGroup.appendChild(icon);
+
+            // Texte "Motion"
+            const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            label.setAttribute("x", sensor.x);
+            label.setAttribute("y", sensor.y + 8);
+            label.setAttribute("text-anchor", "middle");
+            label.setAttribute("dominant-baseline", "middle");
+            label.setAttribute("font-size", "12");
+            label.setAttribute("fill", "#1f2937");
+            label.textContent = "Motion";
+            this.overlayGroup.appendChild(label);
+        });
+
+        this.svg.insertBefore(defs, this.svg.firstChild);
     }
 }
 
