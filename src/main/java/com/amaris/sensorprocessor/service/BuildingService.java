@@ -72,10 +72,31 @@ public class BuildingService {
 
     public void deleteBuildingInDatabase(Integer id, BindingResult bindingResult) {
         try {
-            int rows = buildingDao.deleteBuildingById(id);
-            if (rows == 0) {
-                // TODO: bindingResult.reject("building.notFound", "Building introuvable");
+            // On récupère le building pour obtenir le chemin du SVG
+            Optional<Building> buildingOpt = buildingDao.findBuildingById(id);
+            if (buildingOpt.isPresent()) {
+                Building building = buildingOpt.get();
+                String svgPath = building.getSvgPlan();
+                if (svgPath != null && !svgPath.isBlank()) {
+                    // Le chemin public est de la forme /uploads/buildings/xxx.svg
+                    // On doit le convertir en chemin physique
+                    String filename = Paths.get(svgPath).getFileName().toString();
+                    Path fileOnDisk = uploadRoot.resolve(filename);
+                    try {
+                        Files.deleteIfExists(fileOnDisk);
+                    } catch (IOException ioEx) {
+                        if (bindingResult != null) {
+                            bindingResult.reject("svg.empty", "Impossible de supprimer le fichier SVG");
+                        }
+                    }
+                }
+                buildingDao.deleteBuildingById(id);
+            } else {
+                if (bindingResult != null) {
+                    bindingResult.reject("building.notFound", "Building introuvable");
+                }
             }
+
         } catch (Exception e) {
             // TODO: logger + bindingResult.reject(...)
         }
@@ -135,6 +156,94 @@ public class BuildingService {
             } catch (IOException ioEx) {
                 // TODO: logger mais ne pas écraser l'exception principale
             }
+            throw e;
+        }
+
+        return building;
+    }
+    
+    /**
+     * Met à jour un Building + sauvegarde le SVG dans :
+     *   uploads/buildings
+     */
+    public Building updateBuildingWithSvg(Integer id,
+                                          String name,
+                                          int floors,
+                                          double scale,
+                                          MultipartFile svgFile,
+                                          BindingResult bindingResult) throws IOException {
+
+        // 1) Sécuriser le nom de fichier
+        String originalFilename = svgFile.getOriginalFilename();
+        String cleanFilename = (originalFilename == null || originalFilename.isBlank())
+                ? "building.svg"
+                : originalFilename.replaceAll("[^a-zA-Z0-9._-]", "_");
+
+        // 2) Créer le dossier uploads/buildings si besoin
+        Files.createDirectories(uploadRoot);
+
+        Path target = uploadRoot.resolve(cleanFilename);
+
+        // 3) Copier le fichier sur disque
+        try (InputStream in = svgFile.getInputStream()) {
+            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+
+        // 4) Chemin "public" (URL) stocké en base
+        // /uploads/** -> file:uploads/ (déjà défini dans WebConfig)
+        String publicSvgPath = "/uploads/buildings/" + cleanFilename;
+
+        // 5) Récupérer l'ancien Building pour connaître l'ancien fichier
+        Building oldBuilding = buildingDao.findBuildingById(id).orElse(null);
+        String oldSvgPath = oldBuilding != null ? oldBuilding.getSvgPlan() : null;
+
+        // 6) Construire l'entité Building
+        Building building = new Building();
+        building.setId(id);
+        building.setName(name);
+        building.setFloorsCount(floors);
+        building.setScale(scale);
+        building.setSvgPlan(publicSvgPath);
+
+        // 7) Persister en base
+        try {
+            buildingDao.updateBuilding(building);
+            // ✅ Si mise à jour OK, supprimer l'ancien fichier SVG
+            if (oldSvgPath != null && !oldSvgPath.isBlank() && !oldSvgPath.equals(publicSvgPath)) {
+                Path oldFile = uploadRoot.resolve(Paths.get(oldSvgPath).getFileName());
+                try {
+                    Files.deleteIfExists(oldFile);
+                } catch (IOException e) {
+                    // TODO: logger mais ne pas écraser l'exception principale
+                }
+            }
+        } catch (Exception e) {
+            throw e;
+        }
+
+        return building;
+    }
+
+    /**
+     * Met à jour un Building sans modifier le SVG
+     */
+    public Building updateBuildingWithoutSvg(Integer id,
+                                          String name,
+                                          int floors,
+                                          double scale,
+                                          BindingResult bindingResult) throws IOException {
+
+        // Construire l'entité Building
+        Building building = new Building();
+        building.setId(id);
+        building.setName(name);
+        building.setFloorsCount(floors);
+        building.setScale(scale);
+
+        // Persister en base
+        try {
+            buildingDao.updateBuildingWithoutSVG(building);
+        } catch (Exception e) {
             throw e;
         }
 

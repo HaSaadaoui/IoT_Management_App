@@ -69,6 +69,19 @@ public class BuildingDao {
     }
 
     /**
+     * Met à jour un building existant (via son id) sauf svg_plan.
+     */
+    public int updateBuildingWithoutSVG(Building building) {
+        return jdbcTemplate.update(
+                "UPDATE building SET name = ?, floors_count = ?, scale = ? WHERE id = ?",
+                building.getName(),
+                building.getFloorsCount(),
+                building.getScale(),
+                building.getId()
+        );
+    }
+
+    /**
      * Supprime un building par son ID.
      */
     public int deleteBuildingById(Integer id) {
