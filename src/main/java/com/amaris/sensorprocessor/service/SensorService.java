@@ -57,13 +57,17 @@ public class SensorService {
      * GET /api/monitoring/sensor/{appId}/{deviceId}?threadId=...
      * Retourne un Flux<String> (JSON brut) pour le pousser tel quel au navigateur via SseEmitter.
      */
-    public Flux<String> getMonitoringData(String appId, String deviceId, String threadId) {
-        return webClient.get()
+    public Flux<String> getMonitoringData(String appId, String deviceId, String clientId) {
+        List<String> deviceIds = List.of(deviceId);
+
+        return webClientSse.post()
                 .uri(uriBuilder -> uriBuilder
-                        .path("/api/monitoring/sensor/{appId}/{deviceId}")
-                        .queryParam("threadId", threadId)
-                        .build(appId, deviceId))
+                        .path("/api/monitoring/app/{appId}/stream")
+                        .queryParam("clientId", clientId)
+                        .build(appId))
+                .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.TEXT_EVENT_STREAM)
+                .bodyValue(deviceIds)
                 .retrieve()
                 .bodyToFlux(String.class)
                 .doOnError(err -> log.error(
@@ -72,49 +76,36 @@ public class SensorService {
     }
 
     public Flux<String> getGatewayDevices(String appId, Instant after) {
-        // Use the pre-configured SSE WebClient bean
         return webClientSse.get()
                 .uri(uriBuilder -> {
-                    uriBuilder.path("/api/monitoring/sensor/{appId}");
-                    if (after != null) {
-                        uriBuilder.queryParam("after", after.toString());
-                    }
+                    uriBuilder.path("/api/monitoring/app/{appId}/uplinks");
+                    if (after != null) uriBuilder.queryParam("after", after.toString());
+                    uriBuilder.queryParam("limit", 200);
                     return uriBuilder.build(appId);
                 })
-                .accept(MediaType.TEXT_EVENT_STREAM)
+                .accept(MediaType.valueOf("application/x-ndjson"))
                 .retrieve()
                 .bodyToFlux(String.class)
                 .timeout(java.time.Duration.ofSeconds(120))
                 .onErrorResume(java.util.concurrent.TimeoutException.class, e -> {
-                    log.warn("[Sensor] SSE timeout for appId={}: {}", appId, e.getMessage());
-                    return Flux.empty(); // Return an empty Flux to quietly ignore the timeout
+                    log.warn("[Sensor] NDJSON timeout for appId={}: {}", appId, e.getMessage());
+                    return Flux.empty();
                 })
-                .doOnError(err -> {
-                    log.error("[Sensor] SSE error appId={}: {}", appId, err.getMessage(), err);
-                });
+                .doOnError(err -> log.error("[Sensor] NDJSON error appId={}: {}", appId, err.getMessage(), err));
     }
 
-    /**
-     * Demande l'arrêt du monitoring côté microservice 8081.
-     * GET /api/monitoring/sensor/stop/{deviceId}?threadId=...
-     */
-    public void stopMonitoring(String deviceId, String threadId) {
-        webClient.get()
+    public Flux<String> getMonitoringMany(String appId, List<String> deviceIds, String clientId) {
+        return webClientSse.post()
                 .uri(uriBuilder -> uriBuilder
-                        .path("/api/monitoring/sensor/stop/{deviceId}")
-                        .queryParam("threadId", threadId)
-                        .build(deviceId))
+                        .path("/api/monitoring/app/{appId}/stream")
+                        .queryParam("clientId", clientId)
+                        .build(appId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .bodyValue(deviceIds == null ? List.of() : deviceIds)
                 .retrieve()
-                .toBodilessEntity()
-                .doOnSuccess(ok -> log.info(
-                        "[Sensor] Monitoring stopped for deviceId={}, threadId={}",
-                        deviceId, threadId
-                ))
-                .doOnError(err -> log.error(
-                        "[Sensor] Stop monitoring error for deviceId={}, threadId={}: {}",
-                        deviceId, threadId, err.getMessage(), err
-                ))
-                .subscribe();
+                .bodyToFlux(String.class)
+                .doOnError(err -> log.error("[Sensor] SSE multi error appId={}: {}", appId, err.getMessage(), err));
     }
 
     /* ===================== READ ===================== */
