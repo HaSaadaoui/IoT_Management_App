@@ -37,6 +37,9 @@ public enum PayloadValueType {
     ENERGY_CHANNEL_10(Category.BUSINESS, "$.uplink_message.decoded_payload[\"10\"].value"),
     ENERGY_CHANNEL_11(Category.BUSINESS, "$.uplink_message.decoded_payload[\"11\"].value"),
 
+    POWER_TOTAL(Category.BUSINESS, null),
+    ENERGY_TOTAL(Category.BUSINESS, null),
+
     POWER_CHANNEL_0 (Category.BUSINESS, "$.uplink_message.decoded_payload[\"12\"].value"),
     POWER_CHANNEL_1 (Category.BUSINESS, "$.uplink_message.decoded_payload[\"13\"].value"),
     POWER_CHANNEL_2 (Category.BUSINESS, "$.uplink_message.decoded_payload[\"14\"].value"),

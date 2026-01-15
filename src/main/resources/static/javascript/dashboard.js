@@ -40,6 +40,8 @@ class DashboardManager {
           OCCUPANCY: { sensorType: 'DESK', unit: '%' },
           LIGHT:     { sensorType: 'EYE', unit: 'lux' },
           LAEQ:      { sensorType: ['SON', 'NOISE'], unit: 'dB' },
+CURRENT_POWER: { sensorType: 'CONSO', metricType: 'POWER_TOTAL', unit: 'kW' },
+DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' },
         };
 
 
@@ -784,6 +786,18 @@ async updateLiveBuildingMetrics() {
     }
 
     try {
+const powerW = await this.fetchLiveMetric('CURRENT_POWER');
+
+if (powerW != null && !Number.isNaN(Number(powerW))) {
+  const totalKw = Math.abs(Number(powerW)) / 1000;
+  this.updateMetricValue('live-current-power', totalKw.toFixed(3));
+}
+
+    } catch (e) {
+      console.warn('Current power (kW) failed', e?.message || e);
+    }
+
+    try {
       const humExt = await getAvg({ sensorType: 'TEMPEX', metricType: 'HUMIDITY' });
       safeSet('live-avg-humidity-ext', humExt, v => v.toFixed(1));
     } catch (e) {
@@ -839,34 +853,40 @@ async updateLiveBuildingMetrics() {
 }
 
 
-	async calculateTodaysEnergy() {
-		try {
-			const today = new Date();
-			const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+async calculateTodaysEnergy() {
+  try {
+    const params = new URLSearchParams({
+      building: this.filters.building,
+      floor: this.getEffectiveFloorParam(),
+      sensorType: 'CONSO',
+      metricType: 'ENERGY_TOTAL',
+      timeRange: 'TODAY',
+      granularity: 'HOURLY', // optionnel (le backend le forcera)
+      timeSlot: String(this.filters.timeSlot || '').toUpperCase()
+    });
 
-			const params = new URLSearchParams({
-				building: this.filters.building,
-				floor: this.filters.floor,
-				sensorType: 'ENERGY',
-				metricType: 'ENERGY',
-				granularity: 'HOURLY'
-			});
+    // nettoie les params vides
+    for (const [k, v] of [...params]) if (!v) params.delete(k);
 
-			const response = await fetch(`/api/dashboard/histogram?${params}`);
-			if (response.ok) {
-				const data = await response.json();
-				const points = data.dataPoints || data.data || [];
-				if (Array.isArray(points)) {
-					const todayData = points.filter(entry => new Date(entry.timestamp) >= startOfDay);
-					const totalWh = todayData.reduce((sum, entry) => sum + (entry.value || 0), 0);
-					const totalKWh = totalWh / 1000;
-					this.updateMetricValue('live-daily-energy', totalKWh.toFixed(2));
-				}
-			}
-		} catch (error) {
-			console.warn("Failed to calculate today's energy:", error);
-		}
-	}
+    const response = await fetch(`/api/dashboard/histogram?${params.toString()}`);
+    if (!response.ok) return;
+
+    const data = await response.json();
+    const points = data?.dataPoints || data?.data || [];
+
+    // Ici "value" dépend de ce que tu stockes :
+    // - si tes ENERGY_CHANNEL_X sont en Wh => ENERGY_TOTAL sera en Wh sur le bucket (selon ton backend)
+    // - si c’est déjà en kWh => ne divise pas.
+    const totalWh = Array.isArray(points)
+      ? points.reduce((sum, p) => sum + (Number(p?.value) || 0), 0)
+      : 0;
+
+    const totalKWh = totalWh / 1000; // si valeur en Wh
+    this.updateMetricValue('live-daily-energy', totalKWh.toFixed(2));
+  } catch (error) {
+    console.warn("Failed to calculate today's energy:", error);
+  }
+}
 
 	updateMetricValue(elementId, value) {
 		const element = document.getElementById(elementId);
@@ -1876,37 +1896,37 @@ async updateLiveBuildingMetrics() {
 		return arr.reduce((a, b) => a + b, 0) / arr.length;
 	}
 
-	async fetchLiveMetric(metricType) {
-		const src = this.metricSources[metricType];
-		if (!src) return null;
+    async fetchLiveMetric(metricKey) {
+      const src = this.metricSources[metricKey];
+      if (!src) return null;
 
-		const building = this.filters.building;
-		const floor = this.getEffectiveFloorParam();
+      const building = this.filters.building;
+      const floor = this.getEffectiveFloorParam();
 
-		const sensorTypes = Array.isArray(src.sensorType) ? src.sensorType : [src.sensorType];
+      const sensorTypes = Array.isArray(src.sensorType) ? src.sensorType : [src.sensorType];
+      const effectiveMetricType = (src.metricType || metricKey); // ✅
 
-		for (const sensorType of sensorTypes) {
-			try {
-				const {
-					avg
-				} = await this.fetchHistogramAvg({
-					building,
-					floor,
-					sensorType,
-					metricType,
-					timeRange: 'LAST_7_DAYS',
-					granularity: 'DAILY'
-				});
+      for (const sensorType of sensorTypes) {
+        try {
+          const { avg, data } = await this.fetchHistogramAvg({
+            building,
+            floor,
+            sensorType,
+            metricType: effectiveMetricType,          // ✅
+            timeRange: 'LAST_7_DAYS',
+            granularity: 'DAILY',
+            timeSlot: this.filters.timeSlot,
+            excludeSensorType: src.excludeSensorType  // ✅ si tu veux supporter ça partout
+          });
 
-				if (avg !== null && avg !== undefined) return avg;
-			} catch (e) {
-				// on tente le suivant
-				console.warn(`fetchLiveMetric(${metricType}) failed for sensorType=${sensorType}`, e?.message || e);
-			}
-		}
+          if (avg !== null && avg !== undefined) return avg;
+        } catch (e) {
+          console.warn(`fetchLiveMetric(${metricKey}) failed for sensorType=${sensorType}`, e?.message || e);
+        }
+      }
 
-		return null;
-	}
+      return null;
+    }
 
 
 	computeState(sensorInfo, staleMinutes = 60) {
@@ -1929,33 +1949,36 @@ async updateLiveBuildingMetrics() {
 	// ===== LABELS / UNITS =====
 	// =========================
 
-	getMetricLabel(metricType) {
-		const labels = {
-			OCCUPANCY: 'Occupancy',
-			TEMPERATURE: 'Temperature',
-			CO2: 'CO₂ Level',
-			HUMIDITY: 'Humidity',
-			LIGHT: 'Light Level',
-			LAEQ: 'Noise Level',
-			MOTION: 'Motion Events'
-		};
-		return labels[metricType] || metricType;
-	}
+getMetricLabel(metricType) {
+  const labels = {
+    OCCUPANCY: 'Occupancy',
+    TEMPERATURE: 'Temperature',
+    CO2: 'CO₂ Level',
+    HUMIDITY: 'Humidity',
+    LIGHT: 'Light Level',
+    LAEQ: 'Noise Level',
+    MOTION: 'Motion Events',
+    POWER_TOTAL: 'Current Power',
+    ENERGY_TOTAL: 'Energy'
+  };
+  return labels[metricType] || metricType;
+}
 
-	getMetricUnit(metricType, aggregationType) {
-		const units = {
-			OCCUPANCY: 'count',
-			TEMPERATURE: '°C',
-			CO2: 'ppm',
-			HUMIDITY: '%',
-			LIGHT: 'lux',
-			LAEQ: 'dB',
-			MOTION: 'events'
-		};
-
-		if (aggregationType === 'COUNT') return 'count';
-		return units[metricType] || '';
-	}
+getMetricUnit(metricType, aggregationType) {
+  const units = {
+    OCCUPANCY: 'count',
+    TEMPERATURE: '°C',
+    CO2: 'ppm',
+    HUMIDITY: '%',
+    LIGHT: 'lux',
+    LAEQ: 'dB',
+    MOTION: 'events',
+    POWER_TOTAL: 'kW',
+    ENERGY_TOTAL: 'Wh'
+  };
+  if (aggregationType === 'COUNT') return 'count';
+  return units[metricType] || '';
+}
 
 	getTimeRangeLabel(timeRange) {
 		const labels = {

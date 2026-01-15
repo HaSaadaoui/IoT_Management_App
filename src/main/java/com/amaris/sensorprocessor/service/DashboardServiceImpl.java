@@ -357,14 +357,56 @@ public class DashboardServiceImpl implements DashboardService {
         return history;
     }
 
+    private boolean isTotalMetric(PayloadValueType t) {
+        return t == PayloadValueType.POWER_TOTAL || t == PayloadValueType.ENERGY_TOTAL;
+    }
+
+    private List<PayloadValueType> totalComponents(PayloadValueType t) {
+        if (t == PayloadValueType.POWER_TOTAL) {
+            return List.of(
+                    PayloadValueType.POWER_CHANNEL_0,
+                    PayloadValueType.POWER_CHANNEL_1,
+                    PayloadValueType.POWER_CHANNEL_2,
+                    PayloadValueType.POWER_CHANNEL_3,
+                    PayloadValueType.POWER_CHANNEL_4,
+                    PayloadValueType.POWER_CHANNEL_5,
+                    PayloadValueType.POWER_CHANNEL_6,
+                    PayloadValueType.POWER_CHANNEL_7,
+                    PayloadValueType.POWER_CHANNEL_8,
+                    PayloadValueType.POWER_CHANNEL_9,
+                    PayloadValueType.POWER_CHANNEL_10,
+                    PayloadValueType.POWER_CHANNEL_11
+            );
+        }
+        if (t == PayloadValueType.ENERGY_TOTAL) {
+            return List.of(
+                    PayloadValueType.ENERGY_CHANNEL_0,
+                    PayloadValueType.ENERGY_CHANNEL_1,
+                    PayloadValueType.ENERGY_CHANNEL_2,
+                    PayloadValueType.ENERGY_CHANNEL_3,
+                    PayloadValueType.ENERGY_CHANNEL_4,
+                    PayloadValueType.ENERGY_CHANNEL_5,
+                    PayloadValueType.ENERGY_CHANNEL_6,
+                    PayloadValueType.ENERGY_CHANNEL_7,
+                    PayloadValueType.ENERGY_CHANNEL_8,
+                    PayloadValueType.ENERGY_CHANNEL_9,
+                    PayloadValueType.ENERGY_CHANNEL_10,
+                    PayloadValueType.ENERGY_CHANNEL_11
+            );
+        }
+        return List.of(t);
+    }
+
+
     @Override
     public HistogramResponse getHistogramData(HistogramRequest request) {
         log.info("Generating histogram data: {}", request);
 
-        // Set defaults
+        // -------------------------
+        // 1) Defaults
+        // -------------------------
         if (request.getSensorType() == null) request.setSensorType("DESK");
-        if (request.getMetricType() == null)
-            request.setMetricType(com.amaris.sensorprocessor.entity.PayloadValueType.OCCUPANCY);
+        if (request.getMetricType() == null) request.setMetricType(PayloadValueType.OCCUPANCY);
         if (request.getTimeRange() == null) request.setTimeRange(HistogramRequest.TimeRangePreset.LAST_7_DAYS);
         if (request.getGranularity() == null) request.setGranularity(HistogramRequest.Granularity.DAILY);
         if (request.getTimeSlot() == null) request.setTimeSlot(HistogramRequest.TimeSlot.ALL);
@@ -375,15 +417,19 @@ public class DashboardServiceImpl implements DashboardService {
             log.info("Auto-switched to HOURLY granularity for TODAY time range");
         }
 
-        // Get filtered sensors - if sensorId is specified, use only that sensor
-        List<com.amaris.sensorprocessor.entity.Sensor> sensors;
-        if (request.getSensorId() != null && !request.getSensorId().isEmpty()) {
-            // Single sensor query
+        final boolean totalMode = isTotalMetric(request.getMetricType());
+        final List<PayloadValueType> metricParts = totalMode ? totalComponents(request.getMetricType())
+                : List.of(request.getMetricType());
+
+        // -------------------------
+        // 2) Fetch sensors
+        // -------------------------
+        List<Sensor> sensors;
+        if (hasText(request.getSensorId())) {
             Optional<Sensor> sensorOpt = sensorDao.findByIdOfSensor(request.getSensorId());
-            sensors = sensorOpt.map(List::of).orElse(new ArrayList<>());
+            sensors = sensorOpt.map(List::of).orElseGet(ArrayList::new);
             log.info("Single sensor query for: {}", request.getSensorId());
         } else {
-            // Multiple sensors query
             if (isAllSensorType(request.getSensorType())) {
                 sensors = sensorDao.findAllSensors();
                 log.info("Multi sensor query: ALL sensor types ({} sensors)", sensors.size());
@@ -393,29 +439,28 @@ public class DashboardServiceImpl implements DashboardService {
             }
         }
 
-        // Apply building filter
-        if (request.getBuilding() != null && !"all".equalsIgnoreCase(request.getBuilding())) {
+        // building filter
+        if (hasText(request.getBuilding()) && !"all".equalsIgnoreCase(request.getBuilding())) {
             String mappedBuilding = mapBuildingName(request.getBuilding());
             sensors = sensors.stream()
                     .filter(s -> mappedBuilding.equalsIgnoreCase(s.getBuildingName()))
                     .collect(Collectors.toList());
         }
 
-        // Apply floor filter
-        if (request.getFloor() != null && !"all".equalsIgnoreCase(request.getFloor())) {
+        // floor filter
+        if (hasText(request.getFloor()) && !"all".equalsIgnoreCase(request.getFloor())) {
             sensors = sensors.stream()
                     .filter(s -> request.getFloor().equals(String.valueOf(s.getFloor())))
                     .collect(Collectors.toList());
         }
 
-        // Apply exclude sensorType (INT use-case: exclude TEMPEX)
+        // exclude sensorType (INT use-case: exclude TEMPEX)
         if (hasText(request.getExcludeSensorType())) {
-            String ex = request.getExcludeSensorType().trim().toUpperCase();
+            String ex = request.getExcludeSensorType().trim();
             sensors = sensors.stream()
                     .filter(s -> s.getDeviceType() == null || !ex.equalsIgnoreCase(s.getDeviceType()))
                     .collect(Collectors.toList());
         }
-
 
         if (sensors.isEmpty()) {
             return HistogramResponse.builder()
@@ -434,19 +479,21 @@ public class DashboardServiceImpl implements DashboardService {
                     .build();
         }
 
-        // Calculate date range
-        // For daily granularity, we want to include complete days, so end at the end of today
+        // -------------------------
+        // 3) Date range
+        // -------------------------
         LocalDateTime end = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS).plusDays(1).minusSeconds(1);
         LocalDateTime start;
+
         switch (request.getTimeRange()) {
             case TODAY:
-                start = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS); // Start of today
+                start = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS);
                 break;
             case LAST_7_DAYS:
-                start = end.minusDays(6).truncatedTo(ChronoUnit.DAYS); // 7 days including today
+                start = end.minusDays(6).truncatedTo(ChronoUnit.DAYS);
                 break;
             case LAST_30_DAYS:
-                start = end.minusDays(29).truncatedTo(ChronoUnit.DAYS); // 30 days including today
+                start = end.minusDays(29).truncatedTo(ChronoUnit.DAYS);
                 break;
             case THIS_MONTH:
                 start = end.withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
@@ -469,25 +516,27 @@ public class DashboardServiceImpl implements DashboardService {
                 start = end.minusDays(6).truncatedTo(ChronoUnit.DAYS);
         }
 
-        // --- Keep only sensors that actually have data for this metric in [start, end)
-        List<String> candidateIds = sensors.stream()
-                .map(Sensor::getIdSensor)
+        log.info("Date range: {} to {}", start, end);
+
+        // -------------------------
+        // 4) Keep only sensors that actually have data in range
+        //    - NORMAL: metricType itself
+        //    - TOTAL: at least one channel exists
+        // -------------------------
+        List<String> candidateIds = sensors.stream().map(Sensor::getIdSensor).collect(Collectors.toList());
+
+        java.util.Set<String> sensorsWithData = new java.util.HashSet<>();
+        for (PayloadValueType part : metricParts) {
+            Map<String, SensorDataDao.HourlyStatistics> m = (request.getGranularity() == HistogramRequest.Granularity.HOURLY)
+                    ? sensorDataDao.getHourlyStatisticsBatch(candidateIds, part, start, end)
+                    : sensorDataDao.getDailyStatisticsBatch(candidateIds, part, start, end);
+
+            if (m != null && !m.isEmpty()) sensorsWithData.addAll(m.keySet());
+        }
+
+        sensors = sensors.stream()
+                .filter(s -> sensorsWithData.contains(s.getIdSensor()))
                 .collect(Collectors.toList());
-
-        Map<String, SensorDataDao.HourlyStatistics> existing;
-        if (request.getGranularity() == HistogramRequest.Granularity.HOURLY) {
-            existing = sensorDataDao.getHourlyStatisticsBatch(candidateIds, request.getMetricType(), start, end);
-        } else {
-            existing = sensorDataDao.getDailyStatisticsBatch(candidateIds, request.getMetricType(), start, end);
-        }
-
-        if (existing != null && !existing.isEmpty()) {
-            sensors = sensors.stream()
-                    .filter(s -> existing.containsKey(s.getIdSensor()))
-                    .collect(Collectors.toList());
-        } else {
-            sensors = new ArrayList<>();
-        }
 
         if (sensors.isEmpty()) {
             return HistogramResponse.builder()
@@ -502,167 +551,206 @@ public class DashboardServiceImpl implements DashboardService {
                             .minValue(0.0)
                             .maxValue(0.0)
                             .avgValue(0.0)
+                            .period(HistogramSummary.TimePeriod.builder().start(start).end(end).build())
                             .build())
                     .build();
         }
 
+        List<String> sensorIds = sensors.stream().map(Sensor::getIdSensor).collect(Collectors.toList());
 
-        log.info("Date range: {} to {} (expecting {} days)", start, end,
-                ChronoUnit.DAYS.between(start.truncatedTo(ChronoUnit.DAYS), end.truncatedTo(ChronoUnit.DAYS)));
-
-        // Get sensor IDs
-        List<String> sensorIds = sensors.stream()
-                .map(com.amaris.sensorprocessor.entity.Sensor::getIdSensor)
-                .collect(Collectors.toList());
-
-        // Choose between hourly and daily granularity
-        Map<String, List<com.amaris.sensorprocessor.repository.SensorDataDao.HourlyStatistics>> dataMap = new HashMap<>();
+        // -------------------------
+        // 5) Build buckets and query stats
+        //    IMPORTANT:
+        //      - NORMAL: one batch query per bucket
+        //      - TOTAL:  one batch query per channel per bucket, then SUM(|avg|) by sensor
+        // -------------------------
+        Map<String, List<SensorDataDao.HourlyStatistics>> dataMap = new HashMap<>();
 
         if (request.getGranularity() == HistogramRequest.Granularity.HOURLY) {
-            // Hourly granularity - generate hour buckets
-            log.info("Computing histogram using HOURLY granularity for {} sensors", sensors.size());
+            LocalDateTime current = start.truncatedTo(ChronoUnit.HOURS);
+            LocalDateTime last = end.truncatedTo(ChronoUnit.HOURS);
 
-            List<LocalDateTime> hourBuckets = new ArrayList<>();
-            LocalDateTime currentHour = start.truncatedTo(ChronoUnit.HOURS);
-            LocalDateTime endHour = end.truncatedTo(ChronoUnit.HOURS);
+            while (!current.isAfter(last)) {
+                LocalDateTime bucketStart = current;
+                LocalDateTime bucketEnd = current.plusHours(1);
+                String key = bucketStart.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:00"));
 
-            log.info("Generating hour buckets from {} to {}", currentHour, endHour);
+                if (!totalMode) {
+                    Map<String, SensorDataDao.HourlyStatistics> statsMap =
+                            sensorDataDao.getHourlyStatisticsBatch(sensorIds, request.getMetricType(), bucketStart, bucketEnd);
+                    if (statsMap != null && !statsMap.isEmpty()) {
+                        dataMap.put(key, new ArrayList<>(statsMap.values()));
+                    }
+                } else {
+                    // TOTAL: SUM of ABS(channel avg) per sensor in this bucket
+                    Map<String, Double> sumAbsBySensor = new HashMap<>();
+                    Map<String, Integer> maxCountBySensor = new HashMap<>();
 
-            while (!currentHour.isAfter(endHour)) {
-                hourBuckets.add(currentHour);
-                currentHour = currentHour.plusHours(1);
-            }
+                    for (PayloadValueType part : metricParts) {
+                        Map<String, SensorDataDao.HourlyStatistics> m =
+                                sensorDataDao.getHourlyStatisticsBatch(sensorIds, part, bucketStart, bucketEnd);
 
-            log.info("Generated {} hour buckets. Querying with batch queries (1 query per hour for all {} sensors)",
-                    hourBuckets.size(), sensors.size());
+                        if (m == null || m.isEmpty()) continue;
 
-            // For each hour bucket, query all sensors at once
-            for (LocalDateTime hourStart : hourBuckets) {
-                LocalDateTime hourEnd = hourStart.plusHours(1);
-                String hourKey = hourStart.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:00"));
+                        for (Map.Entry<String, SensorDataDao.HourlyStatistics> e : m.entrySet()) {
+                            String sid = e.getKey();
+                            SensorDataDao.HourlyStatistics st = e.getValue();
 
-                log.debug("Querying hour: {} (from {} to {})", hourKey, hourStart, hourEnd);
+                            sumAbsBySensor.merge(sid, Math.abs(st.getAverage()), Double::sum);
+                            maxCountBySensor.merge(sid, st.getDataPointCount(), Math::max);
+                        }
+                    }
 
-                // Batch query for all sensors in this hour
-                Map<String, com.amaris.sensorprocessor.repository.SensorDataDao.HourlyStatistics> statsMap =
-                        sensorDataDao.getHourlyStatisticsBatch(
-                                sensorIds,
-                                request.getMetricType(),
-                                hourStart,
-                                hourEnd);
-
-                log.debug("Hour {} returned {} sensors with data", hourKey, statsMap.size());
-
-                if (!statsMap.isEmpty()) {
-                    dataMap.put(hourKey, new ArrayList<>(statsMap.values()));
+                    if (!sumAbsBySensor.isEmpty()) {
+                        List<SensorDataDao.HourlyStatistics> merged = new ArrayList<>();
+                        for (Map.Entry<String, Double> e : sumAbsBySensor.entrySet()) {
+                            int cnt = maxCountBySensor.getOrDefault(e.getKey(), 0);
+                            double v = e.getValue();
+                            merged.add(new SensorDataDao.HourlyStatistics(v, v, v, cnt));
+                        }
+                        dataMap.put(key, merged);
+                    }
                 }
-            }
 
-            log.info("Found data for {} hours out of {} total hours",
-                    dataMap.size(), hourBuckets.size());
+                current = current.plusHours(1);
+            }
 
         } else {
-            // Daily granularity - generate day buckets
-            log.info("Computing histogram using DAILY granularity for {} sensors", sensors.size());
+            LocalDateTime current = start.truncatedTo(ChronoUnit.DAYS);
+            LocalDateTime last = end.truncatedTo(ChronoUnit.DAYS);
 
-            List<LocalDateTime> dayBuckets = new ArrayList<>();
-            LocalDateTime currentDay = start.truncatedTo(ChronoUnit.DAYS);
-            LocalDateTime endDay = end.truncatedTo(ChronoUnit.DAYS);
+            while (!current.isAfter(last)) {
+                LocalDateTime bucketStart = current;
+                LocalDateTime bucketEnd = current.plusDays(1);
+                String key = bucketStart.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
-            log.info("Generating day buckets from {} to {}", currentDay, endDay);
+                if (!totalMode) {
+                    Map<String, SensorDataDao.HourlyStatistics> statsMap =
+                            sensorDataDao.getDailyStatisticsBatch(sensorIds, request.getMetricType(), bucketStart, bucketEnd);
+                    if (statsMap != null && !statsMap.isEmpty()) {
+                        dataMap.put(key, new ArrayList<>(statsMap.values()));
+                    }
+                } else {
+                    // TOTAL: SUM of ABS(channel avg) per sensor in this bucket
+                    Map<String, Double> sumAbsBySensor = new HashMap<>();
+                    Map<String, Integer> maxCountBySensor = new HashMap<>();
 
-            while (!currentDay.isAfter(endDay)) {
-                dayBuckets.add(currentDay);
-                log.debug("Added day bucket: {}", currentDay);
-                currentDay = currentDay.plusDays(1);
-            }
+                    for (PayloadValueType part : metricParts) {
+                        Map<String, SensorDataDao.HourlyStatistics> m =
+                                sensorDataDao.getDailyStatisticsBatch(sensorIds, part, bucketStart, bucketEnd);
 
-            log.info("Generated {} day buckets. Querying with batch queries (1 query per day for all {} sensors)",
-                    dayBuckets.size(), sensors.size());
+                        if (m == null || m.isEmpty()) continue;
 
-            // For each day bucket, query all sensors at once using batch method
-            for (LocalDateTime dayStart : dayBuckets) {
-                LocalDateTime dayEnd = dayStart.plusDays(1);
-                String dayKey = dayStart.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                        for (Map.Entry<String, SensorDataDao.HourlyStatistics> e : m.entrySet()) {
+                            String sid = e.getKey();
+                            SensorDataDao.HourlyStatistics st = e.getValue();
 
-                log.debug("Querying day: {} (from {} to {})", dayKey, dayStart, dayEnd);
+                            sumAbsBySensor.merge(sid, Math.abs(st.getAverage()), Double::sum);
+                            maxCountBySensor.merge(sid, st.getDataPointCount(), Math::max);
+                        }
+                    }
 
-                // Batch query for all sensors in this day
-                Map<String, com.amaris.sensorprocessor.repository.SensorDataDao.HourlyStatistics> statsMap =
-                        sensorDataDao.getDailyStatisticsBatch(
-                                sensorIds,
-                                request.getMetricType(),
-                                dayStart,
-                                dayEnd);
-
-                log.debug("Day {} returned {} sensors with data", dayKey, statsMap.size());
-
-                if (!statsMap.isEmpty()) {
-                    dataMap.put(dayKey, new ArrayList<>(statsMap.values()));
+                    if (!sumAbsBySensor.isEmpty()) {
+                        List<SensorDataDao.HourlyStatistics> merged = new ArrayList<>();
+                        for (Map.Entry<String, Double> e : sumAbsBySensor.entrySet()) {
+                            int cnt = maxCountBySensor.getOrDefault(e.getKey(), 0);
+                            double v = e.getValue();
+                            merged.add(new SensorDataDao.HourlyStatistics(v, v, v, cnt));
+                        }
+                        dataMap.put(key, merged);
+                    }
                 }
+
+                current = current.plusDays(1);
             }
-
-            log.info("Found data for {} days out of {} total days",
-                    dataMap.size(), dayBuckets.size());
         }
 
-        if (dataMap.isEmpty()) {
-            log.warn("No data found! Checking: sensors={}, metricType={}, dateRange=[{} to {}]",
-                    sensors.size(), request.getMetricType(), start, end);
-        }
-
-        // Convert data to histogram data points
+        // -------------------------
+        // 6) Convert to data points
+        //    - NORMAL: average across sensors
+        //    - TOTAL:  average across sensors of their TOTAL (already summed per sensor)
+        // -------------------------
         List<HistogramDataPoint> dataPoints = new ArrayList<>();
 
-        for (Map.Entry<String, List<com.amaris.sensorprocessor.repository.SensorDataDao.HourlyStatistics>> entry : dataMap.entrySet()) {
+        for (Map.Entry<String, List<SensorDataDao.HourlyStatistics>> entry : dataMap.entrySet()) {
             String timeKey = entry.getKey();
-            List<com.amaris.sensorprocessor.repository.SensorDataDao.HourlyStatistics> stats = entry.getValue();
+            List<SensorDataDao.HourlyStatistics> stats = entry.getValue();
 
-            // Aggregate across all sensors for this time period
-            double avgValue = stats.stream()
-                    .mapToDouble(com.amaris.sensorprocessor.repository.SensorDataDao.HourlyStatistics::getAverage)
-                    .average()
-                    .orElse(0.0);
+            if (stats == null || stats.isEmpty()) continue;
+
+            double value;
+            if (!totalMode) {
+                value = stats.stream()
+                        .mapToDouble(SensorDataDao.HourlyStatistics::getAverage)
+                        .average()
+                        .orElse(0.0);
+            } else {
+                // TOTAL per sensor was built as SUM(abs(channel avg)) already.
+                // Here we return the building average across sensors (usually 1 sensor in your case).
+                value = stats.stream()
+                        .mapToDouble(SensorDataDao.HourlyStatistics::getAverage)
+                        .average()
+                        .orElse(0.0);
+            }
 
             int sensorCount = stats.size();
-            int totalDataPoints = stats.stream()
-                    .mapToInt(com.amaris.sensorprocessor.repository.SensorDataDao.HourlyStatistics::getDataPointCount)
-                    .sum();
+
+            // dataPointCount:
+            // - NORMAL: sum counts across sensors
+            // - TOTAL:  take max (because channels multiply counts; you want temporal density, not channel density)
+            int totalDataPoints = !totalMode
+                    ? stats.stream().mapToInt(SensorDataDao.HourlyStatistics::getDataPointCount).sum()
+                    : stats.stream().mapToInt(SensorDataDao.HourlyStatistics::getDataPointCount).max().orElse(0);
 
             dataPoints.add(HistogramDataPoint.builder()
                     .timestamp(timeKey)
-                    .value(avgValue)
+                    .value(value)
                     .sensorCount(sensorCount)
                     .dataPointCount(totalDataPoints)
                     .build());
         }
 
-        // Sort by timestamp
         dataPoints.sort(Comparator.comparing(HistogramDataPoint::getTimestamp));
 
-        // Calculate summary
+        // -------------------------
+        // 7) Summary (ABS for TOTAL)
+        // -------------------------
+        double minValue = dataPoints.stream()
+                .mapToDouble(dp -> {
+                    double v = dp.getValue() != null ? dp.getValue() : 0.0;
+                    return totalMode ? Math.abs(v) : v;
+                })
+                .min()
+                .orElse(0.0);
+
+        double maxValue = dataPoints.stream()
+                .mapToDouble(dp -> {
+                    double v = dp.getValue() != null ? dp.getValue() : 0.0;
+                    return totalMode ? Math.abs(v) : v;
+                })
+                .max()
+                .orElse(0.0);
+
+        double avgValue = dataPoints.stream()
+                .mapToDouble(dp -> {
+                    double v = dp.getValue() != null ? dp.getValue() : 0.0;
+                    return totalMode ? Math.abs(v) : v;
+                })
+                .average()
+                .orElse(0.0);
+
+        int activeSensors = (int) dataPoints.stream()
+                .mapToInt(dp -> dp.getSensorCount() != null ? dp.getSensorCount() : 0)
+                .max()
+                .orElse(0);
+
         HistogramSummary summary = HistogramSummary.builder()
                 .totalSensors(sensors.size())
-                .activeSensors((int) dataPoints.stream()
-                        .mapToInt(dp -> dp.getSensorCount() != null ? dp.getSensorCount() : 0)
-                        .max()
-                        .orElse(0))
-                .minValue(dataPoints.stream()
-                        .mapToDouble(dp -> dp.getValue() != null ? dp.getValue() : 0.0)
-                        .min()
-                        .orElse(0.0))
-                .maxValue(dataPoints.stream()
-                        .mapToDouble(dp -> dp.getValue() != null ? dp.getValue() : 0.0)
-                        .max()
-                        .orElse(0.0))
-                .avgValue(dataPoints.stream()
-                        .mapToDouble(dp -> dp.getValue() != null ? dp.getValue() : 0.0)
-                        .average()
-                        .orElse(0.0))
-                .period(HistogramSummary.TimePeriod.builder()
-                        .start(start)
-                        .end(end)
-                        .build())
+                .activeSensors(activeSensors)
+                .minValue(minValue)
+                .maxValue(maxValue)
+                .avgValue(avgValue)
+                .period(HistogramSummary.TimePeriod.builder().start(start).end(end).build())
                 .build();
 
         return HistogramResponse.builder()

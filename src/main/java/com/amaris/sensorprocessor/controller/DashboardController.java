@@ -112,7 +112,7 @@ public class DashboardController {
                 .floor(floor)
                 .sensorType(sensorType)
                 .sensorId(sensorId)
-                .metricType(metricType != null ? PayloadValueType.valueOf(metricType) : null)
+                .metricType(parseMetricType(metricType)) // ✅ ici
                 .timeRange(timeRange != null ? HistogramRequest.TimeRangePreset.valueOf(timeRange) : null)
                 .granularity(granularity != null ? HistogramRequest.Granularity.valueOf(granularity) : null)
                 .timeSlot(timeSlot != null ? HistogramRequest.TimeSlot.valueOf(timeSlot) : null)
@@ -123,5 +123,27 @@ public class DashboardController {
 
         return dashboardService.getHistogramData(request);
     }
+
+    /**
+     * Parse robuste de metricType + alias éventuels.
+     * - évite les 500 (No enum constant)
+     * - permet d'introduire POWER_TOTAL / ENERGY_TOTAL proprement
+     */
+    private PayloadValueType parseMetricType(String metricType) {
+        if (metricType == null || metricType.isBlank()) return null;
+
+        final String mt = metricType.trim().toUpperCase();
+
+        try {
+            return PayloadValueType.valueOf(mt);
+        } catch (IllegalArgumentException e) {
+            // IMPORTANT: renvoyer 400 au lieu de 500
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Unknown metricType: " + metricType
+            );
+        }
+    }
+
 
 }
