@@ -10,6 +10,7 @@ import com.amaris.sensorprocessor.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,20 +21,31 @@ import java.security.Principal;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import com.amaris.sensorprocessor.service.SensorService;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.web.server.ResponseStatusException;
+import reactor.core.publisher.Flux;
+
+import java.time.Duration;
+
+
 
 @Slf4j
 @Controller
 public class DashboardController {
 
+    private final SensorService sensorService;
     private final UserService userService;
     private final DashboardService dashboardService;
     private final AlertService alertService;
 
     @Autowired
-    public DashboardController(UserService userService, DashboardService dashboardService, AlertService alertService) {
+    public DashboardController(UserService userService, DashboardService dashboardService, AlertService alertService, SensorService sensorService) {
         this.userService = userService;
         this.dashboardService = dashboardService;
         this.alertService = alertService;
+        this.sensorService = sensorService;
     }
 
     @GetMapping("/dashboard")
@@ -73,6 +85,37 @@ public class DashboardController {
         return dashboardService.getDesks(building, floor, Optional.ofNullable(deskId));
     }
 
+    @GetMapping(value = "/api/dashboard/occupancy/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @ResponseBody
+    public Flux<ServerSentEvent<String>> streamOccupancy(
+            @RequestParam(required = false) String building,
+            @RequestParam(required = false) String floor,
+            @RequestParam(required = false, defaultValue = "ui") String clientId
+    ) {
+        final String appId = mapBuildingToAppId(building);
+
+        Flux<String> upstream = sensorService.getMonitoringMany(appId, List.of(), clientId);
+        Flux<ServerSentEvent<String>> keepAlive =
+                Flux.interval(Duration.ofSeconds(15))
+                        .map(t -> ServerSentEvent.builder("ping").event("keepalive").build());
+
+        return upstream
+                .filter(s -> s != null && !s.isBlank())
+                .map(payload -> ServerSentEvent.builder(payload).event("uplink").build())
+                .mergeWith(keepAlive);
+    }
+
+    private String mapBuildingToAppId(String building) {
+        if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
+            return "rpi-mantu-appli"; // default
+        }
+        return switch (building.trim().toUpperCase()) {
+            case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
+            case "LEVALLOIS" -> "lorawan-network-mantu";
+            case "LILLE" -> "lil-rpi-mantu-appli";
+            default -> building;
+        };
+    }
 
 
     @GetMapping("/api/dashboard/sensors")
@@ -138,8 +181,8 @@ public class DashboardController {
             return PayloadValueType.valueOf(mt);
         } catch (IllegalArgumentException e) {
             // IMPORTANT: renvoyer 400 au lieu de 500
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.BAD_REQUEST,
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Unknown metricType: " + metricType
             );
         }
