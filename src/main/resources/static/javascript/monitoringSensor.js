@@ -290,8 +290,8 @@ function startSSE() {
                 snr = null;
             if (isNormalized) {
                 const link = data.link || {};
-                rssi = (typeof link["rssi (dBm)"] === "number") ? link["rssi (dBm)"] : null;
-                snr = (typeof link["snr (dB)"] === "number") ? link["snr (dB)"] : null;
+                rssi = (typeof link["rssi"] === "number") ? link["rssi"] : null;
+                snr = (typeof link["snr"] === "number") ? link["snr"] : null;
             } else if (data.radio) {
                 rssi = Number(data.radio.rssi);
                 snr = Number(data.radio.snr);
@@ -660,18 +660,18 @@ const METRIC_TITLES = {
     'SNR': 'Signal/Noise (SNR)',
     'DISTANCE': 'Distance (mm)',
     'ILLUMINANCE': 'Illuminance',
-    'CONSUMPTION_CHANNEL_0': 'Consumption Channel 0',
-    'CONSUMPTION_CHANNEL_1': 'Consumption Channel 1',
-    'CONSUMPTION_CHANNEL_2': 'Consumption Channel 2',
-    'CONSUMPTION_CHANNEL_3': 'Consumption Channel 3',
-    'CONSUMPTION_CHANNEL_4': 'Consumption Channel 4',
-    'CONSUMPTION_CHANNEL_5': 'Consumption Channel 5',
-    'CONSUMPTION_CHANNEL_6': 'Consumption Channel 6',
-    'CONSUMPTION_CHANNEL_7': 'Consumption Channel 7',
-    'CONSUMPTION_CHANNEL_8': 'Consumption Channel 8',
-    'CONSUMPTION_CHANNEL_9': 'Consumption Channel 9',
-    'CONSUMPTION_CHANNEL_10': 'Consumption Channel 10',
-    'CONSUMPTION_CHANNEL_11': 'Consumption Channel 11',
+    'ENERGY_CHANNEL_0': 'Energy Channel 0',
+    'ENERGY_CHANNEL_1': 'Energy Channel 1',
+    'ENERGY_CHANNEL_2': 'Energy Channel 2',
+    'ENERGY_CHANNEL_3': 'Energy Channel 3',
+    'ENERGY_CHANNEL_4': 'Energy Channel 4',
+    'ENERGY_CHANNEL_5': 'Energy Channel 5',
+    'ENERGY_CHANNEL_6': 'Energy Channel 6',
+    'ENERGY_CHANNEL_7': 'Energy Channel 7',
+    'ENERGY_CHANNEL_8': 'Energy Channel 8',
+    'ENERGY_CHANNEL_9': 'Energy Channel 9',
+    'ENERGY_CHANNEL_10': 'Energy Channel 10',
+    'ENERGY_CHANNEL_11': 'Energy Channel 11',
 };
 
 // Helper function to get a consistent color for metrics
@@ -884,6 +884,7 @@ async function loadHistory(fromISO, toISO) {
 
         // Create the HTML structure for the chart card
         const inputData = j.data[metricName] || {};
+
         if (Object.keys(inputData).length === 0) {
             return; // Do not create a chart if there is no data
         }
@@ -1004,6 +1005,9 @@ async function loadHistory(fromISO, toISO) {
         }
     };
 
+console.log("keys j.data:", Object.keys(j.data || {}));
+console.log("RSSI size:", Object.keys(j.data?.RSSI || {}).length);
+console.log("SNR size:", Object.keys(j.data?.SNR || {}).length);
     networkMetrics.forEach(metricName => processMetric(metricName, networkMetricsContainer));
     sensorMetrics.forEach(metricName => processMetric(metricName, sensorMetricsContainer));
 

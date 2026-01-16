@@ -59,8 +59,8 @@ public class SensorDataDao {
         List<Object> params = new ArrayList<>();
         params.add(idSensor);
         params.add(valueType.toString());
-        params.add(startDate);
-        params.add(endDate);
+        params.add(ts(startDate));
+        params.add(ts(endDate));
 
         if (limit.isPresent() && limit.get() > 0) {
             // To get the N most recent records in ascending time order,
@@ -88,31 +88,30 @@ public class SensorDataDao {
             }
             return result;
         } catch (Exception e) {
-            // Log the exception if necessary
+            e.printStackTrace();
             return new ArrayList<>();
         }
+    }
+
+    private static java.sql.Timestamp ts(Date d) {
+        return d == null ? null : new java.sql.Timestamp(d.getTime());
     }
 
     public List<SensorData> findSensorDataByPeriod(String idSensor, Date startDate, Date endDate) {
         String query = "SELECT * FROM sensor_data WHERE id_sensor = ? AND received_at BETWEEN ? AND ? ORDER BY received_at ASC";
-
         try {
-            return jdbcTemplate.query(query, (rs, rowNum) -> {
-                SensorData sensorData = new SensorData(
+            return jdbcTemplate.query(query, (rs, rowNum) -> new SensorData(
                     rs.getString("id_sensor"),
                     rs.getTimestamp("received_at").toLocalDateTime(),
                     rs.getString("value"),
                     rs.getString("value_type")
-                );
-                return sensorData;
-            }, idSensor, startDate, endDate);
+            ), idSensor, ts(startDate), ts(endDate));
         } catch (Exception e) {
-            // Log the exception if necessary
+            e.printStackTrace();
             return new ArrayList<>();
         }
     }
 
-    // TODO: refactor and rename
     public List<SensorData> findSensorDataByPeriodAndTypes2(String idSensor, Date startDate, Date endDate, Set<PayloadValueType> valueType) {
         String query = "SELECT * FROM sensor_data WHERE id_sensor = ? AND value_type IN (" +
             String.join(",", valueType.stream().map(type -> "'" + type.toString() + "'").toList()) +
@@ -127,7 +126,7 @@ public class SensorDataDao {
                     rs.getString("value_type")
                 );
                 return sensorData;
-            }, idSensor, startDate, endDate);
+            }, idSensor, ts(startDate), ts(endDate));
         } catch (Exception e) {
             // Log the exception if necessary
             return new ArrayList<>();
@@ -586,8 +585,8 @@ public class SensorDataDao {
 
         List<Object> params = new ArrayList<>(sensorIds.size() + 3);
         params.addAll(sensorIds);
-        params.add(startDate);
-        params.add(endDate);
+        params.add(ts(startDate));
+        params.add(ts(endDate));
         params.add(valueType.toString());
 
         try {

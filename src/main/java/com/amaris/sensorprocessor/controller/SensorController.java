@@ -354,6 +354,7 @@
                             normalizedJson -> {
                                 try {
                                     emitter.send(normalizedJson);
+                                    sensorService.persistNetworkMetricsFromNormalizedJson(normalizedJson);
                                 } catch (IOException e) {
                                     emitter.completeWithError(e);
                                 }

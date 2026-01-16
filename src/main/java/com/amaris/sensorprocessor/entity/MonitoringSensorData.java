@@ -54,9 +54,9 @@ public class MonitoringSensorData {
         private Integer fCnt;
         @JsonProperty("gateway_id")
         private String gatewayId;
-        @JsonProperty("rssi (dBm)")
+        @JsonProperty("rssi")
         private Double rssi;
-        @JsonProperty("snr (dB)")
+        @JsonProperty("snr")
         private Double snr;
         @JsonProperty("sf")
         private String spreadingFactor;
