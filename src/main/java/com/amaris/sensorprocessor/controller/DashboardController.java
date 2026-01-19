@@ -13,11 +13,10 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -188,5 +187,38 @@ public class DashboardController {
         }
     }
 
+
+    @GetMapping(
+            value = "/api/dashboard/live/stream",
+            produces = MediaType.TEXT_EVENT_STREAM_VALUE
+    )
+    @ResponseBody
+    public Flux<ServerSentEvent<String>> streamLiveData(
+            @RequestParam String building,
+            @RequestParam(defaultValue = "ui") String clientId,
+            @RequestParam(required = false) String deviceIds
+    ) {
+        final String appId = mapBuildingToAppId(building);
+
+        List<String> ids =
+                deviceIds == null || deviceIds.isBlank()
+                        ? List.of()
+                        : Arrays.asList(deviceIds.split(","));
+
+        return sensorService
+                .getMonitoringMany(appId, ids, clientId)
+                .filter(s -> s != null && !s.isBlank())
+                .map(payload ->
+                        ServerSentEvent.builder(payload)
+                                .event("uplink")
+                                .build()
+                )
+                .mergeWith(
+                        Flux.interval(Duration.ofSeconds(15))
+                                .map(t -> ServerSentEvent.builder("ping")
+                                        .event("keepalive")
+                                        .build())
+                );
+    }
 
 }
