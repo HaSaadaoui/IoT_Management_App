@@ -590,7 +590,8 @@ class SensorOverlayManager {
           }
           break;
         case "ENERGY":
-          el.textContent = `${sensor.value} kWh`;
+          //el.textContent = `${sensor.value} kWh`;
+          el.textContent = `${(sensor.value / 1000).toFixed(2)} kW`;
           break;
         default:
           el.textContent = sensor.value;

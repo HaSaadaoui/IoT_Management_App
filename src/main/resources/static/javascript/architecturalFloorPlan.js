@@ -346,11 +346,33 @@ class ArchitecturalFloorPlan {
             in: payload.period_in ?? 0,
             out: payload.period_out ?? 0,
           };
-        case "ENERGY":
-            return Object.values(payload)
-                .filter(p => p.type === "consumedActiveEnergyIndex")
-                //.reduce((sum, p) => sum + (p.value ?? 0), 0); // en Wh
-                .reduce((sum, p) => sum + (p.value ?? 0), 0) / 1000; // en kWh
+        case "ENERGY":{
+           const powerMap = {};
+           Object.values(payload)
+                .filter(p => p.type === "power")
+                .forEach(p => {
+                    powerMap[p.uuid] = p.value ?? 0;
+                    //powerMap[p.uuid] = Math.abs(p.value ?? 0);
+                });
+
+           const c = (i) => powerMap[`clamp_s0_c${i}`] ?? 0;
+          // 2. Appliquer la formule métier EXACTE
+          const totalW =
+              c(0) + c(1) + c(2)
+              + (c(6) + c(7) + c(8) - (c(3) + c(4) + c(5)))
+              + c(6) + c(7) + c(8)
+              + c(9) + c(10) + c(11);
+
+          console.table({
+              c0: c(0), c1: c(1), c2: c(2),
+              c3: c(3), c4: c(4), c5: c(5),
+              c6: c(6), c7: c(7), c8: c(8),
+              c9: c(9), c10: c(10), c11: c(11),
+              total: totalW
+          });
+
+          return totalW; // en W
+      }
         case "MOTION":
             return payload["pir"] ?? "Motion";
         default:
