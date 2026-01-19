@@ -471,7 +471,8 @@ function startSSE() {
                     if (presence != null && el('#s-desk-occupancy')) {
                         const occNode = el('#s-desk-occupancy');
                         occNode.classList.remove('badge--ok', 'badge--occupied');
-                        if (presence === 1 || presence === true || String(presence).toLowerCase() === 'occupied') {
+                        // Check for occupied: 1, 2, true, or "occupied" string
+                        if (presence === 1 || presence === 2 || presence === true || String(presence).toLowerCase() === 'occupied') {
                             occNode.classList.add('badge--occupied'); // Rouge pour occupied
                             setText('#s-desk-occupancy', 'Occupied');
                         } else {
