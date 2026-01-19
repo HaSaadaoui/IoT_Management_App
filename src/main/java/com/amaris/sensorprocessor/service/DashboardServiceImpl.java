@@ -221,7 +221,31 @@ public class DashboardServiceImpl implements DashboardService {
                         if (data.getReceivedAt().isBefore(LocalDateTime.now().minusHours(1))) {
                             return "invalid";
                         }
-                        return "used";
+                        
+                        // Map the occupancy value to status (same logic as getDesksByFloor)
+                        String valueStr = data.getValueAsString();
+                        if (valueStr == null) {
+                            return "free";
+                        }
+
+                        // If string is "occupied" or "used", consider it as occupied
+                        if ("occupied".equalsIgnoreCase(valueStr) || "used".equalsIgnoreCase(valueStr)) {
+                            return "used";
+                        }
+
+                        // Try to parse as number
+                        try {
+                            double numValue = Double.parseDouble(valueStr);
+                            // For desk sensors: 0 = free, any value > 0 (1 or 2) = used
+                            if (numValue > 0) {
+                                return "used";
+                            } else {
+                                return "free";
+                            }
+                        } catch (NumberFormatException e) {
+                            // Any other value is considered free (e.g., "vacant", "free")
+                            return "free";
+                        }
                     }).orElse("invalid");
                 })
                 .collect(Collectors.groupingBy(status -> status, Collectors.counting()));
