@@ -23,22 +23,21 @@ public class SensorLorawanService {
      */
     private String getApplicationIdForGateway(String gatewayId) {
         if (gatewayId == null) return null;
-        
-        switch (gatewayId.toLowerCase()) {
-            case "rpi-mantu":
-                // Châteaudun-Mantu-Building (3 devices)
-                return "rpi-mantu-appli";
-            case "leva-rpi-mantu":
-                // Levallois-Mantu-Building (114 devices)
-                return "lorawan-network-mantu";
-            case "lil-rpi-mantu":
-                // Lille-Mantu-Building (0 devices)
-                return "lil-rpi-mantu-appli";
-            default:
-                // Par défaut, ajouter "-appli" au gateway ID
-                return gatewayId + "-appli";
+
+        String g = gatewayId.trim().toLowerCase();
+
+        if (g.endsWith("-appli") || g.endsWith("-app")) {
+            return g;
         }
+
+        return switch (g) {
+            case "rpi-mantu" -> "rpi-mantu-appli";
+            case "leva-rpi-mantu" -> "lorawan-network-mantu";
+            case "lil-rpi-mantu" -> "lil-rpi-mantu-appli";
+            default -> g + "-appli";
+        };
     }
+
 
     public void createDevice(String idGateway, LorawanSensorData body) {
         String applicationId = getApplicationIdForGateway(idGateway);

@@ -414,11 +414,7 @@ public class SensorController {
             Date endDate = Date.from(java.time.Instant.parse(endDateStr));
 
             // The frontend sends channel numbers; prepend the required prefix for the service layer.
-            List<String> consumptionChannels = channels.stream()
-                    .map(ch -> "CONSUMPTION_CHANNEL_" + ch)
-                    .collect(Collectors.toList());
-
-            return sensorService.getConsumptionByChannels(idSensor, startDate, endDate, consumptionChannels);
+            return sensorService.getConsumptionByChannels(idSensor, startDate, endDate, channels);
         } catch (java.time.format.DateTimeParseException e) {
             log.error("[API] Invalid date format for consumption request. startDate='{}', endDate='{}'", startDateStr, endDateStr, e);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid date format. Please use ISO 8601 format.", e);

@@ -53,11 +53,73 @@ public class BuildingController {
         return ResponseEntity.ok(building);
     }
 
+    @PostMapping(path = "/{id}", consumes = {"multipart/form-data"})
+    public ResponseEntity<Building> updateBuilding(
+            @PathVariable Integer id,
+            @RequestParam("name") String name,
+            @RequestParam("floors") int floors,
+            @RequestParam("scale") double scale,
+            @RequestParam("svgFile") MultipartFile svgFile
+    ) throws Exception {
+
+        // BindingResult pour éventuelles erreurs
+        BindingResult bindingResult = new BeanPropertyBindingResult(
+                new Object(),
+                "building"
+        );
+
+        Building building;
+
+        if (svgFile != null && !svgFile.isEmpty()) {
+            // Mise à jour avec nouveau SVG
+            building = buildingService.updateBuildingWithSvg(
+                    id,
+                    name,
+                    floors,
+                    scale,
+                    svgFile,
+                    bindingResult
+            );
+        } else {
+            // Mise à jour sans modifier le SVG
+            building = buildingService.updateBuildingWithoutSvg(
+                    id,
+                    name,
+                    floors,
+                    scale,
+                    bindingResult
+            );
+        }
+
+        if (bindingResult.hasErrors()) {
+            // Option : renvoyer les messages d'erreur dans le body
+            return ResponseEntity.badRequest().build();
+        }
+
+        return ResponseEntity.ok(building);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Building> getBuilding(@PathVariable Integer id) {
         return buildingService.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseBody
+    public ResponseEntity<?> deleteBuilding(@PathVariable Integer id) {
+
+        BindingResult bindingResult = new BeanPropertyBindingResult(
+                new Object(),
+                "building"
+        );
+        buildingService.deleteBuildingInDatabase(id, bindingResult);
+        if (bindingResult.hasErrors()) {
+            // Option : renvoyer les messages d'erreur dans le body
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok().body(Map.of("message", "Building deleted successfully"));
     }
 
     @GetMapping

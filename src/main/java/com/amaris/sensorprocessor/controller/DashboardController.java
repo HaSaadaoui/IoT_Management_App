@@ -65,10 +65,15 @@ public class DashboardController {
 
     @GetMapping("/api/dashboard/occupancy")
     @ResponseBody
-    public List<Desk> getOccupancy(@RequestParam String floor, @RequestParam(required = false) String deskId) {
-        var desks = dashboardService.getDesksByFloor(floor, Optional.ofNullable(deskId));
-        return desks;
+    public List<Desk> getOccupancy(
+            @RequestParam(required = false) String building,
+            @RequestParam(required = false) String floor,
+            @RequestParam(required = false) String deskId
+    ) {
+        return dashboardService.getDesks(building, floor, Optional.ofNullable(deskId));
     }
+
+
 
     @GetMapping("/api/dashboard/sensors")
     @ResponseBody
@@ -98,24 +103,47 @@ public class DashboardController {
             @RequestParam(required = false) String timeRange,
             @RequestParam(required = false) String granularity,
             @RequestParam(required = false) String timeSlot,
+            @RequestParam(required = false) String excludeSensorType,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date customStartDate,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date customEndDate) {
 
-        // Build histogram request
         HistogramRequest request = HistogramRequest.builder()
                 .building(building)
                 .floor(floor)
                 .sensorType(sensorType)
                 .sensorId(sensorId)
-                .metricType(metricType != null ? PayloadValueType.valueOf(metricType) : null)
+                .metricType(parseMetricType(metricType)) // ✅ ici
                 .timeRange(timeRange != null ? HistogramRequest.TimeRangePreset.valueOf(timeRange) : null)
                 .granularity(granularity != null ? HistogramRequest.Granularity.valueOf(granularity) : null)
                 .timeSlot(timeSlot != null ? HistogramRequest.TimeSlot.valueOf(timeSlot) : null)
+                .excludeSensorType(excludeSensorType)
                 .customStartDate(customStartDate)
                 .customEndDate(customEndDate)
                 .build();
 
         return dashboardService.getHistogramData(request);
     }
+
+    /**
+     * Parse robuste de metricType + alias éventuels.
+     * - évite les 500 (No enum constant)
+     * - permet d'introduire POWER_TOTAL / ENERGY_TOTAL proprement
+     */
+    private PayloadValueType parseMetricType(String metricType) {
+        if (metricType == null || metricType.isBlank()) return null;
+
+        final String mt = metricType.trim().toUpperCase();
+
+        try {
+            return PayloadValueType.valueOf(mt);
+        } catch (IllegalArgumentException e) {
+            // IMPORTANT: renvoyer 400 au lieu de 500
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Unknown metricType: " + metricType
+            );
+        }
+    }
+
 
 }

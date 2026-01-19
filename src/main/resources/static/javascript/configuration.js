@@ -219,7 +219,19 @@ function initScene() {
     const grid = new THREE.GridHelper(50, 50, COLORS.primary, 0x334155);
     grid.position.y = -0.4;
     scene.add(grid);
+        // Contrôles
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 5, 0);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 8;
+        controls.maxDistance = 40;
+        controls.maxPolarAngle = Math.PI / 2.1;
+        controls.update();
 
+        window.addEventListener("resize", onWindowResize);
+        animate();
+}
 // ======================================================
 // ===============  GATEWAY CONFIGURATION  =============
 // ======================================================
@@ -390,21 +402,6 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
-    // Contrôles
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 5, 0);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.minDistance = 8;
-    controls.maxDistance = 40;
-    controls.maxPolarAngle = Math.PI / 2.1;
-    controls.update();
-
-    window.addEventListener("resize", onWindowResize);
-
-    animate();
-}
-
 function onWindowResize() {
     const wrapper = document.getElementById("three-wrapper");
     if (!wrapper || !renderer || !camera) return;
@@ -570,16 +567,7 @@ function generate3DFromForm() {
         initScene();
         extrudeBuilding(shape, floors, scale);
     });
-}
-    const value = (selectEl.value || "").toLowerCase();
-    let mode = "ace/mode/javascript";
-
-    if (value.includes("python")) mode = "ace/mode/python";
-    else if (value.includes("java")) mode = "ace/mode/java";
-    else if (value.includes("c++")) mode = "ace/mode/c_cpp";
-
-    editor.session.setMode(mode);
-}
+    }
 
 // Utilitaire hex → bytes
 function hexToBytes(hex) {
@@ -634,7 +622,173 @@ function toggleNotifChannelInput() {
     if (phoneDiv) phoneDiv.style.display = smsChk && smsChk.checked ? "block" : "none";
 }
 
+async function loadBuildings() {
+    const select = document.getElementById('filter-building');
+    if (!select) return;
+
+    try {
+        const resp = await fetch('/api/buildings');
+        let buildings = resp.ok ? await resp.json() : [];
+
+        // Remplissage du select
+        select.innerHTML = '';
+
+        const noneOption = document.createElement('option');
+        noneOption.value = '';
+        noneOption.textContent = 'New Building';
+        select.appendChild(noneOption);
+
+        buildings.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b.id;
+            opt.textContent = b.name;
+            select.appendChild(opt);
+        });
+
+    } catch (e) {
+        console.error('Error loading buildings', e);
+    }
+}
+
+async function loadBuildingConfig() {
+    const selectBuilding = document.getElementById('filter-building');
+    const nameEl   = document.getElementById("building-name");
+    const floorsEl = document.getElementById("building-floors");
+    const scaleEl  = document.getElementById("building-scale");
+
+    const buildingId = selectBuilding.value;
+
+    if (!isNaN(buildingId) && buildingId !== null && buildingId !== "") {
+        try {
+            const resp = await fetch(`/api/buildings/${buildingId}`);
+            if (!resp.ok) {
+                throw new Error(`HTTP ${resp.status}`);
+            }
+            const b = await resp.json();
+            nameEl.value   = b.name || "";
+            floorsEl.value = b.floorsCount || 1;
+            scaleEl.value  = b.scale || 0.01;
+        } catch (e) {
+            console.error("Erreur lors du chargement du bâtiment :", e);
+        }
+    } else {
+        nameEl.value   = "";
+        floorsEl.value = 3;
+        scaleEl.value  = 0.01;
+    }
+}
+
+async function deleteBuildingConfig() {
+
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    
+    if (!csrfMeta || !csrfHeaderMeta) {
+        alert("CSRF token not found. Please refresh the page.");
+        return;
+    }
+    
+    const csrfToken = csrfMeta.getAttribute("content");
+    const csrfHeader = csrfHeaderMeta.getAttribute("content");
+
+    const selectBuilding = document.getElementById('filter-building');
+    const buildingId = selectBuilding.value;
+    if (!isNaN(buildingId) && buildingId !== null && buildingId !== "") {
+
+        try {
+            const response = await fetch("/api/buildings/" + buildingId, {
+                method: "DELETE",
+                headers: {
+                    [csrfHeader]: csrfToken
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            } else {
+                console.log("Building deleted:" + buildingId);
+                alert("Building deleted successfully");
+            }
+            
+        } catch (error) {
+            console.error("Error deleting building:", error);
+            alert("Failed to delete building: " + error.message);
+        }
+
+        loadBuildings();
+
+        const nameEl   = document.getElementById("building-name");
+        const floorsEl = document.getElementById("building-floors");
+        const scaleEl  = document.getElementById("building-scale");
+
+        // Set default values after deletion
+        selectBuilding.value = "";
+        nameEl.value   = "";
+        floorsEl.value = 3;
+        scaleEl.value  = 0.01;
+    }
+}
+
+async function createBuildingConfig(formData) {
+    const selectBuilding = document.getElementById('filter-building');
+
+    fetch("/api/buildings", {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin"
+    })
+    .then(resp => {
+        if (!resp.ok) {
+            throw new Error("HTTP error " + resp.status);
+        }
+        return resp.json();
+    })
+    .then(data => {
+        console.log("Building created:", data);
+        loadBuildings().then(() => {
+            const values = Array.from(selectBuilding.options)
+                .map(opt => parseFloat(opt.value))
+                .filter(v => !Number.isNaN(v));
+
+            const maxValue = Math.max(...values);
+            selectBuilding.value = isNaN(maxValue) ? "" : maxValue;
+            alert("Building créé avec succès (id=" + (maxValue ?? "?") + ")");
+        });
+
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Erreur lors de la création du building.");
+    });
+}
+
+async function updateBuildingConfig(formData) {
+    const selectBuilding = document.getElementById('filter-building');
+    const buildingId = selectBuilding.value;
+
+    fetch("/api/buildings/" + buildingId, {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin"
+    })
+    .then(resp => {
+        if (!resp.ok) {
+            throw new Error("HTTP error " + resp.status);
+        }
+        return resp.json();
+    })
+    .then(data => {
+        console.log("Building updated :", data);
+        alert("Building modifié avec succès (id=" + (data.id ?? "?") + ")");
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Erreur lors de la modification du building.");
+    });
+}
+
 async function saveBuildingConfig() {
+    const selectBuilding = document.getElementById('filter-building');
     const nameEl   = document.getElementById("building-name");
     const floorsEl = document.getElementById("building-floors");
     const scaleEl  = document.getElementById("building-scale");
@@ -643,18 +797,24 @@ async function saveBuildingConfig() {
     const name    = (nameEl.value || "").trim();
     const floors  = parseInt(floorsEl.value, 10) || 1;
     const scale   = parseFloat(scaleEl.value) || 0.01;
-    const svgFile = svgInput.files[0];
+    svgFile = svgInput.files[0];
 
     if (!name) {
         alert("Merci de saisir un nom de bâtiment.");
         return;
     }
+
     if (!svgFile) {
-        alert("Merci de sélectionner un fichier SVG.");
-        return;
+        // Si création de bâtiment, le SVG est obligatoire
+        if (!isNaN(selectBuilding.value) && selectBuilding.value !== null && selectBuilding.value !== "") {
+            svgFile = new File([], "");
+        } else {
+            alert("Merci de sélectionner un fichier SVG.");
+            return;
+        }
     }
 
-    // 1) récupérer le CSRF sur /api/buildings/csrf-token
+    // Récupérer le CSRF sur /api/buildings/csrf-token
     let csrf;
     try {
         const csrfResp = await fetch("/api/buildings/csrf-token", {
@@ -671,37 +831,21 @@ async function saveBuildingConfig() {
         return;
     }
 
-    // 2) Construire le FormData
+    // Construire le FormData
     const formData = new FormData();
     formData.append("name", name);
     formData.append("floors", floors);
     formData.append("scale", scale);
     formData.append("svgFile", svgFile);
-
-    // ⚠️ IMPORTANT : ajouter le token CSRF comme champ de formulaire
-    // csrf.parameterName est typiquement "_csrf"
     formData.append(csrf.parameterName, csrf.token);
 
-    // 3) POST sur /api/buildings
-    fetch("/api/buildings", {
-        method: "POST",
-        body: formData,
-        credentials: "same-origin"
-    })
-    .then(resp => {
-        if (!resp.ok) {
-            throw new Error("HTTP error " + resp.status);
-        }
-        return resp.json();
-    })
-    .then(data => {
-        console.log("Building saved:", data);
-        alert("Building enregistré avec succès (id=" + (data.id ?? "?") + ")");
-    })
-    .catch(err => {
-        console.error(err);
-        alert("Erreur lors de l'enregistrement du building.");
-    });
+    // Si aucun bâtiment sélectionné, on appelle la méthode createBuildingConfig sinon updateBuildingConfig
+    if (!isNaN(selectBuilding.value) && selectBuilding.value !== null && selectBuilding.value !== "") {
+        return updateBuildingConfig(formData);
+    } else {
+        return createBuildingConfig(formData);
+    }
+
 }
 
 // ======================================================
@@ -1176,22 +1320,27 @@ async function deleteSensorThreshold(thresholdId) {
     }
 }
 
+function changeEditorLanguage(selectEl) {
+    if (!editor || !selectEl) return;
+
+    const value = (selectEl.value || "").toLowerCase();
+    let mode = "ace/mode/javascript";
+
+    if (value.includes("python")) mode = "ace/mode/python";
+    else if (value.includes("java")) mode = "ace/mode/java";
+    else if (value.includes("c++")) mode = "ace/mode/c_cpp";
+
+    editor.session.setMode(mode);
+}
+
+
 // ======================================================
 // ================== GLOBAL EXPORTS =====================
 // ======================================================
 
 window.generate3DFromForm = generate3DFromForm;
-window.show2D = function show2D() {
-    const wrapper = document.getElementById("three-wrapper");
-    const plan    = document.getElementById("plan2D");
-
-    if (wrapper) wrapper.style.display = "none";
-    if (plan) {
-        plan.style.display = "block";
-        plan.innerHTML = "<h3 style='text-align:center;padding-top:120px;'>2D View Placeholder</h3>";
-    }
-};
-
+window.loadBuildingConfig = loadBuildingConfig;
+window.deleteBuildingConfig = deleteBuildingConfig;
 window.changeEditorLanguage = changeEditorLanguage;
 window.testDecoder = testDecoder;
 window.toggleNotifChannelInput = toggleNotifChannelInput;
@@ -1214,4 +1363,5 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof loadSensors === 'function') loadSensors();
     if (typeof loadNotificationPreferences === 'function') loadNotificationPreferences();
     if (typeof loadAllSensorThresholds === 'function') loadAllSensorThresholds();
+    if (typeof loadBuildings === 'function') loadBuildings();
 });

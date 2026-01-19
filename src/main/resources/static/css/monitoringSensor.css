@@ -249,6 +249,22 @@ main {
     transition: all 0.3s;
 }
 
+.channel-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.channel-left {
+  font-size: 0.9rem;
+  color: #111;
+}
+
+.channel-right {
+  font-weight: 700;
+  color: #6b21a8; /* violet */
+}
+
 .badge--ok {
     background: linear-gradient(135deg, #10b981, #059669);
     color: white;

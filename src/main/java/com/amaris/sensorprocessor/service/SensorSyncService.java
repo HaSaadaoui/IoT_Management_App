@@ -62,10 +62,13 @@ public class SensorSyncService {
 
     private final ObjectMapper objectMapper;
     private final GatewayService gatewayService;
-    
+
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2));
     private final Map<String, ScheduledFuture<?>> scheduledSyncTasks = new ConcurrentHashMap<>();
     private final Map<String, AtomicBoolean> initialSyncCompleted = new ConcurrentHashMap<>();
+
+    private static final java.util.Set<PayloadValueType> ALLOWED_TYPES =
+            PayloadValueType.BUSINESS_TYPES;
 
     private static final Map<PayloadValueType, String> JSON_PATH_MAP;
 
@@ -89,16 +92,16 @@ public class SensorSyncService {
         try {
             String json = lorawanService.fetchDevicesForGateway(gatewayId);
             TtnDeviceInfo response = objectMapper.readValue(json, TtnDeviceInfo.class);
-            
+
             if (response.getEndDevices() != null) {
-                log.info("[SensorSync] Fetched {} devices from TTN for gateway {}", 
+                log.info("[SensorSync] Fetched {} devices from TTN for gateway {}",
                     response.getEndDevices().size(), gatewayId);
                 return response.getEndDevices();
             }
-            
+
             return new ArrayList<>();
         } catch (Exception e) {
-            log.error("[SensorSync] Error fetching devices from TTN for gateway {}: {}", 
+            log.error("[SensorSync] Error fetching devices from TTN for gateway {}: {}",
                 gatewayId, e.getMessage(), e);
             return new ArrayList<>();
         }
@@ -145,7 +148,7 @@ public class SensorSyncService {
 
             // Vérifier si le sensor existe déjà en DB
             Optional<Sensor> existing = sensorDao.findByIdOfSensor(deviceId);
-            
+
             if (existing.isEmpty()) {
                 // Créer un nouveau sensor en DB
                 Sensor newSensor = new Sensor();
@@ -155,7 +158,7 @@ public class SensorSyncService {
                 newSensor.setCommissioningDate(
                     device.getCreatedAt() != null ? device.getCreatedAt() : Instant.now().toString()
                 );
-                        
+
                 String devEui = device.getIds().getDevEui();
                 if (devEui != null) {
                     newSensor.setDevEui(devEui);
@@ -165,8 +168,10 @@ public class SensorSyncService {
                 newSensor.setFrequencyPlan(frequencyPlan);
 
                 // Utiliser DEV_EUI comme deviceType pour l'affichage seulement si l'on a pas pu détecter le deviceType
-                newSensor.setDeviceType(devEui == null ? devEui : detectDeviceType(deviceId));
-                
+                String detected = detectDeviceType(deviceId);              // ex: TEMPEX / CO2 / ...
+                String type = ("GENERIC".equals(detected) && devEui != null) ? devEui : detected;
+                newSensor.setDeviceType(type);
+
                 // Définir building_name et floor selon la gateway
                 if ("leva-rpi-mantu".equals(gatewayId)) {
                     newSensor.setBuildingName("Levallois-Building");
@@ -181,20 +186,20 @@ public class SensorSyncService {
                     newSensor.setFloor(1);
                     newSensor.setLocation("Floor 1");
                 }
-                
+
                 try {
                     sensorDao.insertSensor(newSensor);
                     log.info("[SensorSync] Created sensor {} from TTN (DevEUI: {})", deviceId, devEui);
                     syncCount++;
                 } catch (Exception e) {
-                    log.error("[SensorSync] Failed to create sensor {} from TTN: {}", 
+                    log.error("[SensorSync] Failed to create sensor {} from TTN: {}",
                         deviceId, e.getMessage());
                 }
                 existing = Optional.of(newSensor);
             }
-            
+
         }
-    
+
         log.info("[SensorSync] Synchronized {} sensors from TTN for gateway {}", syncCount, gatewayId);
         return syncCount;
     }
@@ -219,11 +224,11 @@ public class SensorSyncService {
         try {
             // Fetch latest data from monitoring API
             final String appId;
-            if (gatewayId.toLowerCase().contains("leva-rpi")) {
+            if (gatewayId.toLowerCase().equals("leva-rpi-mantu")) {
                 appId = "lorawan-network-mantu";
-            } else if (gatewayId.contains("lil")) {
+            } else if (gatewayId.equals("lil-rip-mantu")) {
                 appId = "lil-rpi-mantu-appli";
-            } else if (gatewayId.contains("rpi")) {
+            } else if (gatewayId.equals("rpi-mantu")) {
                 appId = "rpi-mantu-appli";
             } else {
                 appId = gatewayId + "-mantu-appli";
@@ -345,7 +350,7 @@ public class SensorSyncService {
      */
     private String detectDeviceType(String deviceId) {
         if (deviceId == null) return "GENERIC";
-        
+
         String lower = deviceId.toLowerCase();
         if (lower.startsWith("desk")) return "DESK";
         if (lower.startsWith("co2")) return "CO2";
@@ -355,7 +360,7 @@ public class SensorSyncService {
         if (lower.startsWith("son")) return "SON";
         if (lower.startsWith("eye")) return "EYE";
         if (lower.startsWith("count")) return "COUNT";
-        
+
         return "GENERIC";
     }
 
@@ -408,62 +413,52 @@ public class SensorSyncService {
         private List<String> missingInTtn;
     }
 
-    // TODO: refactor in its own class file with normalizeToMonitoringSensorDataJson
     public void storeDataFromPayload(String json, String appId) {
-       
 
         Configuration conf = Configuration
-            .defaultConfiguration()
-            .addOptions(Option.DEFAULT_PATH_LEAF_TO_NULL)
-            .addOptions(Option.SUPPRESS_EXCEPTIONS);
+                .defaultConfiguration()
+                .addOptions(Option.DEFAULT_PATH_LEAF_TO_NULL)
+                .addOptions(Option.SUPPRESS_EXCEPTIONS);
 
         var reader = JsonPath.using(conf);
-
         DocumentContext context = reader.parse(json);
+
         String receivedAtString = context.read("$.result.received_at");
         LocalDateTime receivedAt = convertTimestampToLocalDateTime(receivedAtString);
         String deviceId = context.read("$.result.end_device_ids.device_id");
-        
+
+        int inserted = 0;
 
         try {
+            for (var entry : JSON_PATH_MAP.entrySet()) {
+                PayloadValueType key = entry.getKey();
+                if (!ALLOWED_TYPES.contains(key)) continue; // <-- ICI
 
-            JSON_PATH_MAP.forEach((PayloadValueType key, String jsonPath) -> {
-                // The enum itself holds the path
-                
-                if (json.contains("hardwareData") && key.equals(PayloadValueType.CONSUMPTION_CHANNEL_11)) {
-                    log.debug(appId);
-                }
+                String jsonPath = entry.getValue();
 
-                // The root can either be "data" or "result"
                 Object value;
-
                 if (context.read("$.result") != null) {
-                    // replace $. by $.result. in the path
-                    String resultJsonPath = jsonPath.replace("$.", "$.result.");
-                    value = context.read(resultJsonPath);
-                    
-                } else if (context.read("$.data") != null) { // For conso sensors
-                    // replace $. by $.data. in the path
-                    String dataJsonPath = jsonPath.replace("$.", "$.data.");
-                    value = context.read(dataJsonPath);
+                    value = context.read(jsonPath.replace("$.", "$.result."));
+                } else if (context.read("$.data") != null) {
+                    value = context.read(jsonPath.replace("$.", "$.data."));
                 } else {
                     value = null;
                 }
 
-
                 if (value != null) {
                     SensorData sd = new SensorData(deviceId, receivedAt, value.toString(), key.toString());
                     sensorDataDao.insertSensorData(sd);
-                } else {
-                    log.debug("[SensorSync] Skipping null value for key {} for device {}", key, deviceId);
                 }
-            });
+            }
+
+            // IMPORTANT : diagnostic ciblé TempEx
+            if (inserted == 0 && deviceId != null && deviceId.toLowerCase().startsWith("tempex")) {
+                log.warn("[SensorSync] TEMPEX payload produced 0 extracted values. appId={}, deviceId={}, receivedAt={}, raw={}",
+                        appId, deviceId, receivedAtString, json);
+            }
 
         } catch (Exception e) {
-            if (e instanceof DuplicateKeyException) {
-                // We can skip and ignore already existing items
-                // log.warn("[SensorSync] Duplicate key exception, likely a retry or already processed data for device {}", deviceId);
-            } else {
+            if (!(e instanceof DuplicateKeyException)) {
                 log.error("[SensorSync] Error decoding payload: {}", e.getMessage(), e);
             }
         }
@@ -480,6 +475,6 @@ public class SensorSyncService {
         // Convert to LocalDateTime in the system's default time zone
         return LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
     }
-        
+
 
 }
