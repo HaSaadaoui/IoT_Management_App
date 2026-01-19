@@ -120,54 +120,6 @@ public class SensorService {
         return sensorDao.findByIdOfSensor(idSensor);
     }
 
-    public void persistNetworkMetricsFromNormalizedJson(String normalizedJson) {
-        try {
-            ObjectMapper om = new ObjectMapper();
-            JsonNode root = om.readTree(normalizedJson);
-
-            JsonNode ids  = root.path("ids");
-            JsonNode link = root.path("link");
-
-            String idSensor = ids.path("device_id").asText(null);
-            if (idSensor == null || idSensor.isBlank()) return;
-
-            LocalDateTime receivedAt = LocalDateTime.now();
-            if (root.has("timestamp")) {
-                receivedAt = LocalDateTime.parse(
-                        root.get("timestamp").asText().replace("Z", "")
-                );
-            }
-
-            // RSSI
-            if (link.has("rssi") && !link.get("rssi").isNull()) {
-                sensorDataDao.insertSensorData(
-                        new SensorData(
-                                idSensor,
-                                receivedAt,
-                                link.get("rssi").asText(),
-                                PayloadValueType.RSSI.name()
-                        )
-                );
-            }
-
-            // SNR
-            if (link.has("snr") && !link.get("snr").isNull()) {
-                sensorDataDao.insertSensorData(
-                        new SensorData(
-                                idSensor,
-                                receivedAt,
-                                link.get("snr").asText(),
-                                PayloadValueType.SNR.name()
-                        )
-                );
-            }
-
-        } catch (Exception e) {
-            // ⚠️ NE JAMAIS casser le SSE
-            log.warn("[persistNetworkMetrics] failed", e);
-        }
-    }
-
 
     public Sensor getOrThrow(String idSensor) {
         return findByIdSensor(idSensor)
