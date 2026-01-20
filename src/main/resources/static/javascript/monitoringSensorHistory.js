@@ -33,131 +33,193 @@ function getLastTimestamp(values) {
     return parsed.toLocaleDateString("en-CA", { timeZone: 'UTC' });
 }
 
+function energyIndexToDeltasWh(energyMap) {
+  // energyMap: { "2026-01-20T11:19:43.850103": "50450", ... }  // Wh cumulés
+  const entries = Object.entries(energyMap || {})
+    .map(([ts, v]) => [new Date(ts).getTime(), Number(v)])
+    .filter(([t, v]) => Number.isFinite(t) && Number.isFinite(v))
+    .sort((a, b) => a[0] - b[0]);
+
+  const deltas = {}; // { isoTs: deltaWh }
+  for (let i = 1; i < entries.length; i++) {
+    const [tPrev, vPrev] = entries[i - 1];
+    const [tCur, vCur] = entries[i];
+
+    let d = vCur - vPrev;
+
+    // compteur reset / rollback / out-of-order => on neutralise
+    if (!Number.isFinite(d) || d < 0) d = 0;
+
+    deltas[new Date(tCur).toISOString()] = d; // delta attribué au point courant
+  }
+  return deltas;
+}
+
+function sumDeltaGroupsFromHistory(j) {
+  // 1) deltas par channel
+  const deltasByChannel = {};
+  for (let ch = 0; ch <= 11; ch++) {
+    const key = `ENERGY_CHANNEL_${ch}`;
+    deltasByChannel[ch] = energyIndexToDeltasWh(j.data?.[key] || {});
+  }
+
+  // 2) union des timestamps (après delta)
+  const allTs = new Set();
+  Object.values(deltasByChannel).forEach(m => Object.keys(m).forEach(ts => allTs.add(ts)));
+  const tsSorted = Array.from(allTs).sort(); // ISO => tri lexical OK
+
+  const sumAt = (chs, ts) => chs.reduce((s, ch) => s + (Number(deltasByChannel[ch]?.[ts]) || 0), 0);
+
+  // 3) séries Wh par groupe
+  const red = {};
+  const vent = {};
+  const white = {};
+  const other = {};
+
+  for (const ts of tsSorted) {
+    const redWh = sumAt([0,1,2], ts);
+    const ventWh = sumAt([6,7,8], ts);
+    const whiteRawWh = sumAt([3,4,5], ts);
+
+    red[ts] = redWh;
+    vent[ts] = ventWh;
+    white[ts] = Math.abs(ventWh - whiteRawWh);
+    other[ts] = sumAt([9,10,11], ts);
+  }
+
+  return { red, white, vent, other };
+}
+
+function groupWhByInterval(seriesWh, intervalHours) {
+  // seriesWh: { isoTs: whDelta }
+  const grouped = {};
+  for (const [ts, wh] of Object.entries(seriesWh || {})) {
+    const d = new Date(ts);
+    const hour = d.getUTCHours(); // important si tu bosses en UTC côté back
+    const bucketHour = Math.floor(hour / intervalHours) * intervalHours;
+    const bucket = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), bucketHour, 0, 0, 0)).toISOString();
+    grouped[bucket] = (grouped[bucket] || 0) + (Number(wh) || 0);
+  }
+  return grouped;
+}
+
 async function loadHistory(fromISO, toISO) {
     const SENSOR_ID = document.documentElement.dataset.deviceId;
     const GATEWAY_ID = document.documentElement.dataset.gatewayId;
+
     const params = new URLSearchParams();
     if (fromISO) params.set('startDate', fromISO);
     if (toISO) params.set('endDate', toISO);
-    const res = await fetch(`/manage-sensors/monitoring/${encodeURIComponent(GATEWAY_ID)}/${encodeURIComponent(SENSOR_ID)}/history?` + params.toString());
+
+    const res = await fetch(
+        `/manage-sensors/monitoring/${encodeURIComponent(GATEWAY_ID)}/${encodeURIComponent(SENSOR_ID)}/history?` + params.toString()
+    );
     if (!res.ok) throw new Error("History fetch failed");
     const j = await res.json();
 
-    document.getElementById('network-quality-section').style.display = 'none';
-    document.getElementById('sensor-metrics-section').style.display = 'none';
+    // Hide sections by default
+    const netSection = document.getElementById('network-quality-section');
+    const sensSection = document.getElementById('sensor-metrics-section');
+    if (netSection) netSection.style.display = 'none';
+    if (sensSection) sensSection.style.display = 'none';
 
+    // Clear containers
     if (networkMetricsContainer) networkMetricsContainer.innerHTML = '';
     if (sensorMetricsContainer) sensorMetricsContainer.innerHTML = '';
     dynamicMetricCharts = [];
 
     const devType = (document.documentElement.dataset.devType || '').toUpperCase();
+
+    // ==============================
+    // ENERGY / CONSO (HISTOGRAM)
+    // ==============================
     if (devType === 'ENERGY' || devType === 'CONSO') {
-        document.getElementById('consumption-histogram-section').style.display = 'block';
+        const consoSection = document.getElementById('consumption-histogram-section');
+        if (consoSection) consoSection.style.display = 'block';
 
-        // Fetch raw data for all channel groups
-        const redData = await loadChannelHistogramData([0, 1, 2], fromISO, toISO);
-        const whiteRawData = await loadChannelHistogramData([3, 4, 5], fromISO, toISO);
-        const ventData = await loadChannelHistogramData([6, 7, 8], fromISO, toISO);
-        const otherData = await loadChannelHistogramData([9, 10, 11], fromISO, toISO);
+        // 1) Build delta series (Wh) per group from cumulative ENERGY indexes
+        const { red, white, vent, other } = sumDeltaGroupsFromHistory(j);
 
-        // Calculate white outlets by subtracting ventilation from channels 3,4,5
-        const whiteData = {};
-        if (whiteRawData && ventData) {
-            // Collect all unique timestamps from both datasets
-            const allTimestamps = new Set([
-                ...Object.keys(whiteRawData),
-                ...Object.keys(ventData)
-            ]);
-
-            // Calculate white = |Ch 3,4,5 - Ch 6,7,8| for each timestamp
-            for (const timestamp of allTimestamps) {
-                const whiteValue = whiteRawData[timestamp] || 0;
-                const ventValue = ventData[timestamp] || 0;
-                whiteData[timestamp] = Math.abs(whiteValue - ventValue);
-            }
-
-            console.log('White calculation debug:');
-            console.log('Sample whiteRawData (first 3):', Object.entries(whiteRawData).slice(0, 3));
-            console.log('Sample ventData (first 3):', Object.entries(ventData).slice(0, 3));
-            console.log('Sample whiteData (first 3):', Object.entries(whiteData).slice(0, 3));
-        } else if (whiteRawData) {
-            Object.assign(whiteData, whiteRawData);
+        // 2) Choose grouping: hourly for <= 1 day, daily for > 1 day
+        let intervalHours = 1;
+        if (fromISO && toISO) {
+            const fromD = new Date(fromISO);
+            const toD = new Date(toISO);
+            const diffDays = Math.ceil(Math.abs(toD - fromD) / (1000 * 60 * 60 * 24));
+            if (diffDays > 1) intervalHours = 24;
         }
 
-        // Group data in the same order as consumptionCharts
-        const allGroupData = [redData, whiteData, ventData, otherData];
-
-        // Helper to group data by a specified interval in hours
-        const groupDataByInterval = (data, intervalHours = 1) => {
-            if (!data) return {};
-            const grouped = {};
-            for (const timestamp in data) {
-                const date = new Date(timestamp);
-                const hour = date.getHours();
-                // Calculate the start hour of the interval (e.g., 0, 6, 12, 18)
-                const groupHour = Math.floor(hour / intervalHours) * intervalHours;
-                
-                const groupKeyDate = new Date(date);
-                groupKeyDate.setHours(groupHour, 0, 0, 0);
-                const groupKey = groupKeyDate.toISOString();
-
-                if (!grouped[groupKey]) {
-                    grouped[groupKey] = 0;
-                }
-                grouped[groupKey] += data[timestamp];
-            }
-            return grouped;
-        };
-
         const getGroupingText = (interval) => {
-            if (interval === 24) {
-                return "Daily";
-            }
-            if (interval === 1) {
-                return "Hourly";
-            }
+            if (interval === 24) return "Daily";
+            if (interval === 1) return "Hourly";
             return `every ${interval} hours`;
         };
 
-        // Determine grouping interval based on the selected date range
-        let intervalHours = 1; // Default to 1 hour
-        const from = new Date(fromISO);
-        const to = new Date(toISO);
-        const diffTime = Math.abs(to - from);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        // 3) Group deltas by interval
+        const redG = groupWhByInterval(red, intervalHours);
+        const whiteG = groupWhByInterval(white, intervalHours);
+        const ventG = groupWhByInterval(vent, intervalHours);
+        const otherG = groupWhByInterval(other, intervalHours);
 
-        if (diffDays > 1) {
-            intervalHours = 24; // Group by day if range is more than 1 day
-        }
-        const intervalGroupedData = allGroupData.map(groupData => groupDataByInterval(groupData, intervalHours));
+        // 4) Build sorted buckets union
+        const allBuckets = Array.from(new Set([
+            ...Object.keys(redG),
+            ...Object.keys(whiteG),
+            ...Object.keys(ventG),
+            ...Object.keys(otherG),
+        ])).sort();
 
-        // Generate labels showing just the start time for each interval
-        const allTimestamps = new Set();
-        intervalGroupedData.forEach(group => {
-            if (group) {
-                Object.keys(group).forEach(ts => allTimestamps.add(ts));
-            }
-        });
-        const allLabels = Array.from(allTimestamps).sort();
-
-        const labels = allLabels.map(intervalStart => {
-            // Parse the full ISO string to correctly handle it as a UTC date.
-            const startDate = new Date(intervalStart);
-            // For daily grouping, show only the date. Otherwise, show date and time.
+        // 5) Labels
+        const labels = allBuckets.map(bucketIso => {
+            const d = new Date(bucketIso);
             if (intervalHours === 24) {
-                return startDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-            } else {
-                const startStr = startDate.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
-                return startStr;
+                return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             }
+            return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
         });
 
-        const datasets = intervalGroupedData.map((intervalData, index) => {
-            const groupInfo = Object.values(consumptionCharts)[index];
-            const values = allLabels.map(key => (intervalData[key] || 0) / 1000); // Wh to kWh
-            return { label: groupInfo.label, data: values, backgroundColor: groupInfo.color, borderColor: groupInfo.color, borderWidth: 1, borderRadius: 4, barPercentage: 0.8 };
-        });
+        // 6) Datasets (kWh)
+        const groupInfos = Object.values(consumptionCharts); // expected order: red, white, vent, other
+        const datasets = [
+            {
+                label: groupInfos[0]?.label || 'Red Outlets',
+                data: allBuckets.map(k => (Number(redG[k]) || 0) / 1000),
+                backgroundColor: groupInfos[0]?.color,
+                borderColor: groupInfos[0]?.color,
+                borderWidth: 1,
+                borderRadius: 4,
+                barPercentage: 0.8
+            },
+            {
+                label: groupInfos[1]?.label || 'White Outlets & Lightning',
+                data: allBuckets.map(k => (Number(whiteG[k]) || 0) / 1000),
+                backgroundColor: groupInfos[1]?.color,
+                borderColor: groupInfos[1]?.color,
+                borderWidth: 1,
+                borderRadius: 4,
+                barPercentage: 0.8
+            },
+            {
+                label: groupInfos[2]?.label || 'Ventilation & Heaters',
+                data: allBuckets.map(k => (Number(ventG[k]) || 0) / 1000),
+                backgroundColor: groupInfos[2]?.color,
+                borderColor: groupInfos[2]?.color,
+                borderWidth: 1,
+                borderRadius: 4,
+                barPercentage: 0.8
+            },
+            {
+                label: groupInfos[3]?.label || 'Other Circuits',
+                data: allBuckets.map(k => (Number(otherG[k]) || 0) / 1000),
+                backgroundColor: groupInfos[3]?.color,
+                borderColor: groupInfos[3]?.color,
+                borderWidth: 1,
+                borderRadius: 4,
+                barPercentage: 0.8
+            }
+        ];
 
+        // 7) Create chart if needed
         if (!combinedConsumptionChart) {
             const chartCtx = ctx('histConsumptionAll');
             if (chartCtx) {
@@ -169,56 +231,100 @@ async function loadHistory(fromISO, toISO) {
                             stacked: false,
                             ticks: { autoSkip: true, maxRotation: 45, minRotation: 45 }
                         },
-                        y: { beginAtZero: true, grace: '5%', title: { display: true, text: 'Total Consumption (kWh)' } }
+                        y: {
+                            beginAtZero: true,
+                            grace: '5%',
+                            title: { display: true, text: 'Total Consumption (kWh)' }
+                        }
                     },
                     plugins: { title: { display: true, text: '' } }
                 };
-                combinedConsumptionChart = new Chart(chartCtx, { type: 'bar', data: { labels: [], datasets: [] }, options: chartOptions });
+                combinedConsumptionChart = new Chart(chartCtx, {
+                    type: 'bar',
+                    data: { labels: [], datasets: [] },
+                    options: chartOptions
+                });
             }
         }
 
+        // 8) Update chart
         if (combinedConsumptionChart) {
             combinedConsumptionChart.data.labels = labels;
             combinedConsumptionChart.data.datasets = datasets;
-            // Update the chart title to include the grouping interval
-            combinedConsumptionChart.options.plugins.title.text = `Total Consumption (kWh) - ${intervalHours}h`;
             combinedConsumptionChart.options.plugins.title.text = `Consumption (kWh) - ${getGroupingText(intervalHours)}`;
             combinedConsumptionChart.update();
         }
 
-        // Calculate the total for each group and update its display
-        const groupTotals = allGroupData.map((groupData, index) => {
-            const groupKey = Object.keys(consumptionCharts)[index];
-            const totalKWh = Object.values(groupData || {}).reduce((sum, v) => sum + v / 1000, 0);
+        // 9) Totals by group (kWh)
+        const sumKWh = (obj) => Object.values(obj || {}).reduce((s, v) => s + ((Number(v) || 0) / 1000), 0);
+
+        const totals = {
+            red: sumKWh(red),
+            white: sumKWh(white),
+            vent: sumKWh(vent),
+            other: sumKWh(other)
+        };
+
+        // Update per-group totals
+        const keys = Object.keys(consumptionCharts); // should match: red, white, vent, other
+        const totalsArr = [totals.red, totals.white, totals.vent, totals.other];
+
+        keys.forEach((groupKey, idx) => {
             const totalEl = document.getElementById(`hist-total-${groupKey}`);
-            if (totalEl) totalEl.textContent = totalKWh.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            return totalKWh;
+            if (totalEl) {
+                totalEl.textContent = totalsArr[idx].toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
         });
 
-        // Sum all groups for the total consumption display
-        const totalAllGroups = groupTotals.reduce((sum, val) => sum + val, 0);
+        // Total all groups
+        const totalAllGroups = totalsArr.reduce((a, b) => a + b, 0);
 
-        // Update the hist-total-total element (below the histogram chart)
         const histTotalEl = document.getElementById('hist-total-total');
-        if (histTotalEl) histTotalEl.textContent = totalAllGroups.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        if (histTotalEl) {
+            histTotalEl.textContent = totalAllGroups.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
 
-        // Update the KPI card
-        updateCard('kpi-card-conso', 'kpi-conso', totalAllGroups > 0 ? totalAllGroups.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '', ' kWh');
+        // KPI conso
+        updateCard(
+            'kpi-card-conso',
+            'kpi-conso',
+            totalAllGroups > 0
+                ? totalAllGroups.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                : '',
+            ' kWh'
+        );
+    } else {
+        // If not energy, hide conso histogram section if it exists
+        const consoSection = document.getElementById('consumption-histogram-section');
+        if (consoSection) consoSection.style.display = 'none';
+        // hide conso KPI for non-energy, KPIs handler does it too but keep safe
+        updateCard('kpi-card-conso', 'kpi-conso', '');
     }
 
+    // ==============================
+    // OTHER METRICS (RSSI/SNR + device metrics)
+    // ==============================
     const networkMetrics = ['RSSI', 'SNR'];
     const sensorMetrics = DEVICE_TYPE_METRICS[devType] || [];
 
     const processMetric = (metricName, container) => {
         const canvasId = `histMetric-${metricName.replace(/[^a-zA-Z0-9]/g, '')}`;
         const chartTitle = METRIC_TITLES[metricName] || metricName;
-        const legendLabel = chartTitle.replace(/\s*\(.*\)/, ''); // Remove unit for legend
+        const legendLabel = chartTitle.replace(/\s*\(.*\)/, '');
         const color = getMetricColor(metricName);
-        const inputData = j.data[metricName] || {};
+        const inputData = j.data?.[metricName] || {};
 
-        if (Object.keys(inputData).length === 0) return;
+        if (!container || Object.keys(inputData).length === 0) return;
 
-        container.parentElement.style.display = 'block';
+        // Show section
+        if (container.parentElement) container.parentElement.style.display = 'block';
+
         const chartCardHtml = `
             <div class="chart-container">
                 <div class="chart-header">
@@ -230,56 +336,85 @@ async function loadHistory(fromISO, toISO) {
                 <div class="chart-canvas-wrapper">
                     <canvas id="${canvasId}"></canvas>
                 </div>
-            </div>`;
-        if (container) container.insertAdjacentHTML('beforeend', chartCardHtml);
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', chartCardHtml);
 
         const chartCtx = document.getElementById(canvasId)?.getContext("2d");
-        if (chartCtx) {
-            let chartConfig = JSON.parse(JSON.stringify(createChartConfig(chartTitle, color, '', getLastTimestamp(Object.keys(inputData)))));
-            const transformedData = Object.entries(inputData).map(([timestamp, value]) => ({ x: timestamp, y: value }));
-            let bgColor = color + "A0";
-            if (metricName === 'RSSI' || metricName === 'SNR') {
-                bgColor = 'transparent';
-            }
-            chartConfig.data = {
-                datasets: [{
-                    data: transformedData, borderColor: color, backgroundColor: bgColor, fill: true, tension: 0.1,
-                }]
-            };
+        if (!chartCtx) return;
 
-            const generatedLabels = generateLabels(Object.values(j.data[metricName] || {}));
-            let yType = containsStrings(generatedLabels) ? 'category' : 'linear';
-            
-            // Omit the last label to prevent it from being cut off at the top of the chart
-            if (yType === 'category' && generatedLabels.length > 1) {
-                generatedLabels.pop();
-            }
+        // Clone config to avoid shared references
+        let chartConfig = JSON.parse(JSON.stringify(
+            createChartConfig(chartTitle, color, '', getLastTimestamp(Object.keys(inputData)))
+        ));
 
-            chartConfig.options.scales = {
-                y: {
-                    type: yType, labels: generatedLabels, title: { display: true, text: chartTitle, font: { size: 14, weight: 'bold' } }, beginAtZero: true,
+        const transformedData = Object.entries(inputData).map(([timestamp, value]) => ({ x: timestamp, y: value }));
+
+        let bgColor = color + "A0";
+        if (metricName === 'RSSI' || metricName === 'SNR') bgColor = 'transparent';
+
+        chartConfig.data = {
+            datasets: [{
+                data: transformedData,
+                borderColor: color,
+                backgroundColor: bgColor,
+                fill: true,
+                tension: 0.1
+            }]
+        };
+
+        const generatedLabels = generateLabels(Object.values(inputData || {}));
+        let yType = containsStrings(generatedLabels) ? 'category' : 'linear';
+
+        // Prevent last category label cut
+        if (yType === 'category' && generatedLabels.length > 1) generatedLabels.pop();
+
+        chartConfig.options.scales = {
+            y: {
+                type: yType,
+                labels: generatedLabels,
+                title: {
+                    display: true,
+                    text: chartTitle,
+                    font: { size: 14, weight: 'bold' }
                 },
-                x: {
-                    type: 'time',
-                    time: { displayFormats: { 'day': 'yyyy-MM-dd', 'hour': 'HH:mm', 'minute': 'HH:mm' }, minUnit: 'minute' },
-                    title: { display: true, text: 'Time', font: { size: 14, weight: 'bold' } },
-                    ticks: { autoSkip: true, maxTicksLimit: 10, major: { enabled: true }, maxRotation: 0, minRotation: 0 },
-                    grid: {
-                        color: function(context) {
-                            return context.tick.major ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.05)';
-                        }
+                beginAtZero: true
+            },
+            x: {
+                type: 'time',
+                time: {
+                    displayFormats: { 'day': 'yyyy-MM-dd', 'hour': 'HH:mm', 'minute': 'HH:mm' },
+                    minUnit: 'minute'
+                },
+                title: {
+                    display: true,
+                    text: 'Time',
+                    font: { size: 14, weight: 'bold' }
+                },
+                ticks: {
+                    autoSkip: true,
+                    maxTicksLimit: 10,
+                    major: { enabled: true },
+                    maxRotation: 0,
+                    minRotation: 0
+                },
+                grid: {
+                    color: function (context) {
+                        return context.tick.major ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.05)';
                     }
                 }
-            };
-            let newChart = new Chart(chartCtx, chartConfig);
-            newChart.update();
-            dynamicMetricCharts.push(newChart);
-        }
+            }
+        };
+
+        const newChart = new Chart(chartCtx, chartConfig);
+        newChart.update();
+        dynamicMetricCharts.push(newChart);
     };
 
     networkMetrics.forEach(metricName => processMetric(metricName, networkMetricsContainer));
     sensorMetrics.forEach(metricName => processMetric(metricName, sensorMetricsContainer));
 
+    // KPI cards (battery/rssi/period etc.)
     updateKPICards(j, fromISO, toISO);
 }
 

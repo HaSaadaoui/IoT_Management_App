@@ -59,13 +59,12 @@ public class SensorService {
      * GET /api/monitoring/sensor/{appId}/{deviceId}?threadId=...
      * Retourne un Flux<String> (JSON brut) pour le pousser tel quel au navigateur via SseEmitter.
      */
-    public Flux<String> getMonitoringData(String appId, String deviceId, String clientId) {
+    public Flux<String> getMonitoringData(String appId, String deviceId) {
         List<String> deviceIds = List.of(deviceId);
 
         return webClientSse.post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/api/monitoring/app/{appId}/stream")
-                        .queryParam("clientId", clientId)
                         .build(appId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.TEXT_EVENT_STREAM)
@@ -96,11 +95,10 @@ public class SensorService {
                 .doOnError(err -> log.error("[Sensor] NDJSON error appId={}: {}", appId, err.getMessage(), err));
     }
 
-    public Flux<String> getMonitoringMany(String appId, List<String> deviceIds, String clientId) {
+    public Flux<String> getMonitoringMany(String appId, List<String> deviceIds) {
         return webClientSse.post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/api/monitoring/app/{appId}/stream")
-                        .queryParam("clientId", clientId)
                         .build(appId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.TEXT_EVENT_STREAM)
