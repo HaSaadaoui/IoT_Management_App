@@ -319,7 +319,7 @@
 
             <div class="d-flex justify-content-end">
                 <button type="submit" class="btn btn-violet btn-lg" style="margin: 20px 0;">💾 Save Global Thresholds</button>
-                <button type="button" class="btn btn-success btn-lg ms-3" onclick="saveGatewayThresholds()" style="margin: 20px 0;">🖥️ Save Gateway Thresholds</button>
+                <button type="button" class="btn btn-violet btn-lg ms-3" onclick="saveGatewayThresholds()" style="margin: 20px 0;">🖥️ Save Gateway Thresholds</button>
             </div>
         </form>
 
@@ -532,30 +532,88 @@
 
             <div class="col-md-4">
                 <label>Number of Floors</label>
-                <input type="number" id="building-floors" class="form-control" value="3" min="1">
+                <input type="number" id="building-floors" class="form-control" value="3" min="1" onchange="update3DConfig()">
             </div>
 
             <div class="col-md-4">
                 <label>Scale (optional)</label>
-                <input type="number" id="building-scale" class="form-control" value="0.01" step="0.001">
+                <input type="number" id="building-scale" class="form-control" value="0.01" step="0.001" onchange="update3DConfig()">
             </div>
         </div>
 
         <div class="mb-3">
             <label>Building SVG Contour</label>
-            <input type="file" id="building-svg" class="form-control" accept=".svg">
+            <input type="file" id="building-svg" class="form-control" accept=".svg" onchange="update3DConfig()">
             <small class="text-muted">Upload the SVG outline of the building (1 path only).</small>
         </div>
 
         <div class="mt-2 mb-3">
-            <button class="btn btn-violet" type="button" onclick="generate3DFromForm()" style="margin: 20px 10px 20px 0;">Generate 3D</button>
             <button class="btn btn-violet" type="button" onclick="saveBuildingConfig()" style="margin: 20px 10px 20px 0;">Save Building</button>
             <button class="btn btn-violet" type="button" onclick="deleteBuildingConfig()" style="margin: 20px 0;">Delete Building</button>
         </div>
 
-        <!-- Wrapper façon dashboard -->
-        <div id="three-wrapper" class="building-3d-container" style="display:none;">
-            <div id="three-container"></div>
+        <!-- 3D Building Visualization -->
+        <div id="floor-plan-card" class="floor-plan-card" style="display: none"></div>
+            <div class="building-3d-header">
+                <button id="back-to-3d-btn" class="btn btn-violet" style="display: none" onclick="return3DView()">← Back to 3D View</button>
+            </div>
+
+            <!-- 3D Canvas Container -->
+            <div id="building-3d-container" class="building-3d-container">
+                <canvas id="building-canvas"></canvas>
+                <div class="building-controls">
+                    <div class="control-hint">
+                        <span>🖱️ Rotate: Left Click + Drag</span>
+                        <span>🔍 Zoom: Scroll</span>
+                        <span>👆 Click floor to enter</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2D Floor Plan View (Hidden by default) -->
+            <div id="floor-plan-2d" class="floor-plan-2d" style="display: none">
+                <div class="floor-plan-header">
+                    <h4 id="current-floor-title"> Floor 1 - Ceiling View</h4>
+                </div>
+                <div class="floor-plan">
+                    <!-- Desk Grid -->
+                    <div class="desk-grid" id="desk-grid">
+                        <!-- Desks will be dynamically generated -->
+                    </div>
+                </div>
+                <!-- 2D Element Parameters -->
+                <div class="filter-card">
+                    <label>Object</label>
+                    <select id="filter-type" class="form-select" style="height: 45px;">
+                        <option value="1" selected>Sensor</option>
+                        <option value="2" selected>Rectangle</option>
+                        <option value="3" selected>Triangle</option>
+                    </select>
+                </div>
+
+                <div class="filter-card">
+                    <label>Sensor Type</label>
+                    <select id="filter-sensor-type" class="form-select" style="height: 45px;">
+                        <option value="DESK" selected>Desk</option>
+                        <option value="LIGHT" selected>Light</option>
+                        <option value="CO2" selected>CO2</option>
+                    </select>
+                </div>
+
+                <div class="filter-card">
+                    <label>Floor</label>
+                    <select id="filter-floor" class="form-select" style="height: 45px;">
+                        <option value="0" selected>Ground Floor</option>
+                        <option value="1" selected>Floor 1</option>
+                        <option value="2" selected>Floor 2</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label>Sensor ID</label>
+                    <input type="text" id="sensor_id" class="form-control">
+                </div>
+            </div>
         </div>
 
     <!-- Ace: seulement pour le payload decoder -->
@@ -565,6 +623,11 @@
     <script src="/javascript/lib/three.min.js"></script>
     <script src="/javascript/lib/OrbitControls.js"></script>
     <script src="/javascript/lib/SVGLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
+    <script src="/javascript/chartUtils.js"></script>
+    <script src="/javascript/deskSensorConfig.js"></script>
+    <script src="/javascript/architecturalFloorPlan.js"></script>
+    <script src="/javascript/building3D.js"></script>
 
     <!-- ================= SCRIPT SPECIFIQUE PAGE ================= -->
     <script th:inline="javascript">

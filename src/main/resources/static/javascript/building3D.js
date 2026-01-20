@@ -142,7 +142,6 @@ const BASE_FLOOR_DATA = {
     }
 };
 
-
 const LEVALLOIS_BASE_FLOOR_DATA = {
     0: {
         name: 'Ground Floor',
@@ -172,7 +171,7 @@ const LEVALLOIS_BASE_FLOOR_DATA = {
         name: 'Floor 6',
         desks: window.DeskSensorConfig.getFloorDesks(6, 'invalid', 'LEVALLOIS')
     }
-}; // test!
+};
 
 // FloorData par site
 const CHATEAUDUN_FLOOR_DATA = JSON.parse(JSON.stringify(BASE_FLOOR_DATA));
@@ -202,16 +201,15 @@ const BUILDINGS = {
 // ================== CLASS BUILDING3D ==================
 
 class Building3D {
-    constructor(containerId, buildingKey = 'CHATEAUDUN') {
+    constructor(containerId, buildingKey = null) {
         this.container = document.getElementById(containerId);
         this.canvas = document.getElementById('building-canvas');
-        this.buildingKey = (buildingKey || 'CHATEAUDUN');
+        this.buildingKey = buildingKey;
         this.isDbBuilding = false;
         this.dbBuildingConfig = null;
         this.dbShapeCache = null;
-
-        this.config = BUILDINGS.CHATEAUDUN;
-        this.floorData = JSON.parse(JSON.stringify(this.config.floorData));
+        this.config = null;
+        this.floorData = {};
 
         // Three.js
         this.scene = null;
@@ -254,13 +252,14 @@ class Building3D {
         this.init();
     }
 
-    init() {
+    async init() {
         this.setupScene();
         this.setupCamera();
         this.setupRenderer();
         this.setupLights();
         this.setupControls();
-        this.setBuilding(this.buildingKey);
+        await this.loadConfig();
+        await this.setBuilding();
 
         this.setupEventListeners();
         this.animate();
@@ -278,17 +277,15 @@ class Building3D {
         if (this.isDbBuilding && this.dbBuildingConfig?.svgUrl) {
             return this.dbBuildingConfig.svgUrl;
         }
-        // Cas catalogue
-        if (this.config?.svgPlanUrl) {
-            return this.config.svgPlanUrl;
-        }
         return null;
     }
 
-
     computeDynamicViewForBuilding() {
         if (!this.building || !this.camera || !this.controls || !THREE) {
-            return null;
+            const target = new THREE.Vector3(0, 0, 0);
+            const camPos = new THREE.Vector3(6, 6, 6);
+            const minD = 8, maxD = 40;
+            return { target, camPos, minD, maxD };
         }
 
         this.building.updateMatrixWorld(true);
@@ -329,11 +326,11 @@ class Building3D {
         }
 
         try {
-const b = this.buildingKey; // CHATEAUDUN / LEVALLOIS / DB:4 ...
+            const b = this.buildingKey; // CHATEAUDUN / LEVALLOIS / DB:4 ...
 
-const response = await fetch(
-  `/api/dashboard/occupancy?building=${encodeURIComponent(b)}&floor=${floorNumber}`
-);
+            const response = await fetch(
+                `/api/dashboard/occupancy?building=${encodeURIComponent(b)}&floor=${floorNumber}`
+            );
 
             if (response.ok) {
                 const occupancyData = await response.json();
@@ -383,10 +380,13 @@ const response = await fetch(
             const deskOccupancy = await this.loadOccupancyDataForFloor(this.currentFloorNumber);
 
             // Only draw floor plan if this is still the current floor (prevent overwrites from race conditions)
-            if (this.currentArchPlan && this.currentFloorNumber !== null) {
+            if (this.currentArchPlan) {
                 this.currentArchPlan.drawFloorPlan(deskOccupancy || {});
             }
         } else {
+            const overlay = document.getElementById('floor-info-overlay');
+            if (!overlay) return;
+
             // In 3D view, update all floors for the hover info
             for (let [floorNumberKey, floorInfo] of Object.entries(this.floorData)) {
                 const floorIndex = parseInt(floorNumberKey, 10);
@@ -479,117 +479,115 @@ const response = await fetch(
         this.controls.update();
     }
 
-async createBuilding() {
-    if (this.building) {
-        this.scene.remove(this.building);
-    }
-    this.building = new THREE.Group();
-    this.floors = [];
-    this.roofs  = [];
+    async createBuilding() {
+        if (this.building) {
+            this.scene.remove(this.building);
+        }
+        this.building = new THREE.Group();
+        this.floors = [];
+        this.roofs  = [];
 
-    const floorHeight = 2;
+        const floorHeight = 2;
 
-    let buildingShape, centerX, centerZ, floorsCount;
-    let dbScale = 1;
+        let buildingShape, centerX, centerZ, floorsCount;
+        let dbScale = 1;
 
-    if (this.isDbBuilding && this.dbBuildingConfig) {
-        floorsCount = this.dbBuildingConfig.floors || 1;
+        if (this.isDbBuilding && this.dbBuildingConfig) {
+            floorsCount = this.dbBuildingConfig.floors || 1;
 
-        if (!this.dbShapeCache) {
-            console.log("Loading DB building SVG from:", this.dbBuildingConfig.svgUrl);
-            this.dbShapeCache = await loadSVGShapeFromUrl(
-                this.dbBuildingConfig.svgUrl
-            );
+            if (!this.dbShapeCache) {
+                console.log("Loading DB building SVG from:", this.dbBuildingConfig.svgUrl);
+                this.dbShapeCache = await loadSVGShapeFromUrl(this.dbBuildingConfig.svgUrl);
+            }
+
+            dbScale       = this.dbBuildingConfig.scale || 1;
+            buildingShape = this.dbShapeCache.shape;
+            centerX       = this.dbShapeCache.centerX * dbScale;
+            centerZ       = this.dbShapeCache.centerZ * dbScale;
+        } else {
+            const result  = this.config.createShape(this.config.scale);
+            buildingShape = result.shape;
+            centerX       = result.centerX;
+            centerZ       = result.centerZ;
+            floorsCount   = this.config.floors;
         }
 
-        dbScale       = this.dbBuildingConfig.scale || 1;
-        buildingShape = this.dbShapeCache.shape;
-        centerX       = this.dbShapeCache.centerX * dbScale;
-        centerZ       = this.dbShapeCache.centerZ * dbScale;
-    } else {
-        const result  = this.config.createShape(this.config.scale);
-        buildingShape = result.shape;
-        centerX       = result.centerX;
-        centerZ       = result.centerZ;
-        floorsCount   = this.config.floors;
-    }
+        for (let i = 0; i < floorsCount; i++) {
+            const floorGroup = new THREE.Group();
+            floorGroup.userData = { floorNumber: i, type: 'floor' };
 
-    for (let i = 0; i < floorsCount; i++) {
-        const floorGroup = new THREE.Group();
-        floorGroup.userData = { floorNumber: i, type: 'floor' };
+            const extrudeSettings     = { depth: 0.3,      bevelEnabled: false };
+            const wallExtrudeSettings = { depth: floorHeight, bevelEnabled: false };
 
-        const extrudeSettings     = { depth: 0.3,      bevelEnabled: false };
-        const wallExtrudeSettings = { depth: floorHeight, bevelEnabled: false };
+            // ---------- FLOOR ----------
+            const floorGeometry = new THREE.ExtrudeGeometry(buildingShape, extrudeSettings);
+            if (this.isDbBuilding) {
+                floorGeometry.scale(dbScale, dbScale, dbScale);
+            }
+            const floorMaterial = new THREE.MeshStandardMaterial({
+                color: this.colors.floorBase,
+                metalness: 0.1,
+                roughness: 0.8
+            });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.set(-centerX, i * floorHeight, -centerZ);
+            floor.castShadow = true;
+            floor.receiveShadow = true;
+            floor.userData = { floorNumber: i, type: 'floor', clickable: true };
+            floorGroup.add(floor);
+            this.floors.push(floor);
 
-        // ---------- FLOOR ----------
-        const floorGeometry = new THREE.ExtrudeGeometry(buildingShape, extrudeSettings);
-        if (this.isDbBuilding) {
-            floorGeometry.scale(dbScale, dbScale, dbScale);
+            // ---------- WALLS ----------
+            const wallGeometry = new THREE.ExtrudeGeometry(buildingShape, wallExtrudeSettings);
+            if (this.isDbBuilding) {
+                wallGeometry.scale(dbScale, dbScale, 1);
+            }
+            const wallMaterial = new THREE.MeshStandardMaterial({
+                color: this.colors.walls,
+                transparent: true,
+                opacity: 0.3,
+                metalness: 0.1,
+                roughness: 0.9,
+                side: THREE.DoubleSide
+            });
+            const walls = new THREE.Mesh(wallGeometry, wallMaterial);
+            walls.rotation.x = -Math.PI / 2;
+            walls.position.set(-centerX, i * floorHeight, -centerZ);
+            walls.castShadow = true;
+            floorGroup.add(walls);
+
+            // ---------- ROOF ----------
+            const roofGeometry = new THREE.ExtrudeGeometry(buildingShape, extrudeSettings);
+            if (this.isDbBuilding) {
+                roofGeometry.scale(dbScale, dbScale, dbScale);
+            }
+            const roofMaterial = new THREE.MeshStandardMaterial({
+                color: this.colors.roof,
+                metalness: 0.3,
+                roughness: 0.7
+            });
+            const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+            roof.rotation.x = -Math.PI / 2;
+            roof.position.set(-centerX, i * floorHeight + floorHeight, -centerZ);
+            roof.castShadow = true;
+            roof.userData = { type: 'roof', floorNumber: i };
+            floorGroup.add(roof);
+            this.roofs.push(roof);
+
+            // ---------- EDGES ----------
+            const edgeGeometry = new THREE.EdgesGeometry(floorGeometry);
+            const edgeMaterial = new THREE.LineBasicMaterial({
+                color: this.colors.primary,
+                linewidth: 2
+            });
+            const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+            edges.position.copy(floor.position);
+            edges.rotation.copy(floor.rotation);
+            floorGroup.add(edges);
+
+            this.building.add(floorGroup);
         }
-        const floorMaterial = new THREE.MeshStandardMaterial({
-            color: this.colors.floorBase,
-            metalness: 0.1,
-            roughness: 0.8
-        });
-        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-        floor.rotation.x = -Math.PI / 2;
-        floor.position.set(-centerX, i * floorHeight, -centerZ);
-        floor.castShadow = true;
-        floor.receiveShadow = true;
-        floor.userData = { floorNumber: i, type: 'floor', clickable: true };
-        floorGroup.add(floor);
-        this.floors.push(floor);
-
-        // ---------- WALLS ----------
-        const wallGeometry = new THREE.ExtrudeGeometry(buildingShape, wallExtrudeSettings);
-        if (this.isDbBuilding) {
-            wallGeometry.scale(dbScale, dbScale, 1); // comme dans config.js
-        }
-        const wallMaterial = new THREE.MeshStandardMaterial({
-            color: this.colors.walls,
-            transparent: true,
-            opacity: 0.3,
-            metalness: 0.1,
-            roughness: 0.9,
-            side: THREE.DoubleSide
-        });
-        const walls = new THREE.Mesh(wallGeometry, wallMaterial);
-        walls.rotation.x = -Math.PI / 2;
-        walls.position.set(-centerX, i * floorHeight, -centerZ);
-        walls.castShadow = true;
-        floorGroup.add(walls);
-
-        // ---------- ROOF ----------
-        const roofGeometry = new THREE.ExtrudeGeometry(buildingShape, extrudeSettings);
-        if (this.isDbBuilding) {
-            roofGeometry.scale(dbScale, dbScale, dbScale);
-        }
-        const roofMaterial = new THREE.MeshStandardMaterial({
-            color: this.colors.roof,
-            metalness: 0.3,
-            roughness: 0.7
-        });
-        const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-        roof.rotation.x = -Math.PI / 2;
-        roof.position.set(-centerX, i * floorHeight + floorHeight, -centerZ);
-        roof.castShadow = true;
-        roof.userData = { type: 'roof', floorNumber: i };
-        floorGroup.add(roof);
-        this.roofs.push(roof);
-
-        // ---------- EDGES ----------
-        const edgeGeometry = new THREE.EdgesGeometry(floorGeometry);
-        const edgeMaterial = new THREE.LineBasicMaterial({
-            color: this.colors.primary,
-            linewidth: 2
-        });
-        const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
-        edges.position.copy(floor.position);
-        edges.rotation.copy(floor.rotation);
-        floorGroup.add(edges);
-
-        this.building.add(floorGroup);
-    }
 
         if (!this.ground) {
             const groundGeometry = new THREE.PlaneGeometry(50, 50);
@@ -670,7 +668,7 @@ async createBuilding() {
                 const mapping = window.DeskSensorConfig?.mappings?.[this.buildingKey] ?? {};
                 const keys = Object.keys(mapping);
                 const raw = keys[floor?.userData?.floorNumber];
-                const parsed = Number.parseInt(raw ?? '0', 10);
+                const parsed = Number.parseInt(raw ?? floor.userData.floorNumber, 10);
                 const actualFloor = Number.isNaN(parsed) ? 0 : parsed;
                 this.enterFloor(floor.userData.floorNumber, actualFloor);
             }
@@ -708,13 +706,11 @@ async createBuilding() {
             const excludedIds = new Set(desksToExclude.map(d => d.id));
             desks = desks.filter(desk => !excludedIds.has(desk.id));
         }
-        const totalDesks = desks.length;
 
         const freeDesks = desks.filter(d => d.status === 'free').length;
         const usedDesks = desks.filter(d => d.status === 'used').length;
         const invalidDesks = desks.filter(d => d.status === 'invalid').length;
         const floorTotalDesks = freeDesks + usedDesks + invalidDesks;
-
 
         overlay.innerHTML = `
             <h4 style="margin:0 0 0.5rem;color:#662179;font-size:1rem;">${data.name}</h4>
@@ -805,10 +801,11 @@ async createBuilding() {
         deskGrid.style.border = '2px solid #e2e8f0';
         deskGrid.style.minHeight = '600px';
 
+        const floorData = this.floorData[floorNumber] || {};
         const currentFloorData = {
             floorNumber: floorNumber,
-            name: this.floorData[floorNumber].name,
-            desks: this.floorData[floorNumber].desks
+            name: floorData.name || "",
+            desks: floorData.desks || {}
         };
 
         if (window.ArchitecturalFloorPlan) {
@@ -883,7 +880,6 @@ async createBuilding() {
     }
 
     return3DView() {
-
         this.isIn3DView = true;
 
         const container3D   = document.getElementById('building-3d-container');
@@ -912,28 +908,16 @@ async createBuilding() {
         this.currentFloorNumber = null;
     }
 
-    async setBuilding(buildingKey) {
-        const raw   = buildingKey || 'CHATEAUDUN';
-        const upper = raw.toUpperCase();
+    async loadConfig() {
 
-        this.currentFloorNumber = null;
-        this.isIn3DView = true;
-        this.currentArchPlan = null;
-
-        const container3D   = document.getElementById('building-3d-container');
-        const floorPlan2D   = document.getElementById('floor-plan-2d');
-        const backBtn       = document.getElementById('back-to-3d-btn');
-
-        if (container3D) container3D.style.display = 'block';
-        if (floorPlan2D) floorPlan2D.style.display = 'none';
-        if (backBtn)     backBtn.style.display     = 'none';
-
+        if (!this.buildingKey || this.buildingKey.trim() === '') return;
+        
+        const upper = this.buildingKey.toUpperCase();
         let dbId = null;
-
         if (upper.startsWith('DB:')) {
-            dbId = parseInt(raw.split(':')[1], 10);
-        } else if (/^\d+$/.test(raw)) {
-            dbId = parseInt(raw, 10);
+            dbId = parseInt(this.buildingKey.split(':')[1], 10);
+        } else if (/^\d+$/.test(this.buildingKey)) {
+            dbId = parseInt(this.buildingKey, 10);
         }
 
         if (!isNaN(dbId) && dbId !== null) {
@@ -946,6 +930,7 @@ async createBuilding() {
 
                 this.buildingKey = `DB:${dbId}`;
                 this.isDbBuilding = true;
+                this.dbShapeCache = null;
                 this.dbBuildingConfig = {
                     id: b.id,
                     name: b.name,
@@ -957,26 +942,31 @@ async createBuilding() {
                     id: b.id,
                     floors: b.floorsCount || 1,
                     scale: b.scale || 0.01,
-                    floorData: BASE_FLOOR_DATA
+                    floorData: {}
                 };
-                this.dbShapeCache = null;
 
-                this.floorData = JSON.parse(JSON.stringify(this.config.floorData)); // TODO: check if it brashes
+                this.config.floorData[0] = {
+                    name: 'Ground Floor',
+                    desks: [] //TODO load from DB?
+                };
+                for (let i = 1; i < b.floorsCount; i++) {
+                    this.config.floorData[i] = {
+                        name: 'Floor '+i,
+                        desks: [] //TODO load from DB?
+                    };
+                }
+
+                this.floorData = JSON.parse(JSON.stringify(this.config.floorData));
 
                 console.log("Loaded DB building config:", this.dbBuildingConfig);
-
-                await this.createBuilding();
-                this.resetCameraForBuilding();
-                this.loadRealOccupancyData();
             } catch (e) {
                 console.error("Erreur lors du chargement du bâtiment DB:", e);
             }
         } else {
             const key = upper;
-
             if (!BUILDINGS[key]) {
-                console.warn('Unknown building key, falling back to CHATEAUDUN:', key);
-                this.buildingKey = 'CHATEAUDUN';
+                console.warn('Unknown building key:', key);
+                return;     
             } else {
                 this.buildingKey = key;
             }
@@ -987,18 +977,76 @@ async createBuilding() {
 
             this.config = BUILDINGS[this.buildingKey];
             this.floorData = JSON.parse(JSON.stringify(this.config.floorData));
+        }
+    }
 
-            if (this.building) {
-                this.scene.remove(this.building);
-            }
+    async setBuilding() {
+        this.currentFloorNumber = null;
+        this.isIn3DView = true;
+        this.currentArchPlan = null;
+
+        const container3D   = document.getElementById('building-3d-container');
+        const floorPlan2D   = document.getElementById('floor-plan-2d');
+        const backBtn       = document.getElementById('back-to-3d-btn');
+
+        if (container3D) container3D.style.display = 'block';
+        if (floorPlan2D) floorPlan2D.style.display = 'none';
+        if (backBtn)     backBtn.style.display     = 'none';
+
+        if (!this.buildingKey || this.buildingKey.trim() === '') {
+            this.clearBuilding();
+            this.showEmptyScene();
+            return;
+        }
+
+        await this.createBuilding();
+        this.resetCameraForBuilding();
+        this.loadRealOccupancyData();
+    }
+
+    clearBuilding() {
+        if (this.building) {
+            this.scene.remove(this.building);
             this.building = null;
-            this.floors = [];
-            this.roofs  = [];
+        }
+        this.floors = [];
+        this.roofs = [];
+    }
 
-            await this.createBuilding();
-            this.resetCameraForBuilding();
-            this.loadRealOccupancyData();
-            }
+    showEmptyScene() {
+        this.config = null;
+        this.floorData = {};
+
+        // Ground
+        const groundGeometry = new THREE.PlaneGeometry(50, 50);
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x1e293b,
+            metalness: 0.1,
+            roughness: 0.9
+        });
+        this.ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        this.ground.rotation.x = -Math.PI / 2;
+        this.ground.position.y = -0.5;
+        this.ground.receiveShadow = true;
+        this.scene.add(this.ground);
+        
+        // Grid
+        this.gridHelper = new THREE.GridHelper(50, 50, this.colors.primary, 0x334155);
+        this.gridHelper.position.y = -0.4;
+        this.scene.add(this.gridHelper);
+
+        // Camera & Controls
+        if (this.controls) {
+            this.controls.target.set(0, 0, 0);
+            this.controls.minDistance = 8;
+            this.controls.maxDistance = 40;
+            this.controls.update();
+        }
+        if (this.camera) {
+            this.camera.position.set(6, 6, 6);
+            this.camera.lookAt(0, 0, 0);
+            this.camera.updateProjectionMatrix();
+        }
     }
 
     onWindowResize() {
@@ -1035,12 +1083,15 @@ window.return3DView = function () {
 };
 
 document.addEventListener('DOMContentLoaded', function () {
-const container = document.getElementById('building-3d-container');
+    const container = document.getElementById('building-3d-container');
     if (!container) return;
 
-    const siteAttr = (container.dataset.site || 'CHATEAUDUN').toUpperCase();
+    const siteAttr = container.dataset.site
+        ? container.dataset.site.toUpperCase()
+        : null;
+
     window.building3D = new Building3D('building-3d-container', siteAttr);
-    console.log('3D Building Digital Twin initialized for site:', siteAttr);
+    console.log('3D Building Digital Twin initialized for site:', siteAttr ?? '(empty scene)');
 
     const sensorSelect = document.getElementById('filter-sensor-type');
     if (sensorSelect) {
@@ -1053,7 +1104,7 @@ const container = document.getElementById('building-3d-container');
 
     const buildingSelect = document.getElementById('filter-building');
     if (buildingSelect) {
-        buildingSelect.addEventListener('change', () => {
+        buildingSelect.addEventListener('change', async () => {
             let val = buildingSelect.value; // "chateaudun", "levallois", "lille", "all", "DB:4" ...
 
             if (val.toUpperCase() === 'ALL') {
@@ -1061,14 +1112,16 @@ const container = document.getElementById('building-3d-container');
             }
 
             if (window.building3D && typeof window.building3D.setBuilding === 'function') {
-                window.building3D.setBuilding(val);
+                 window.building3D.buildingKey = val.toUpperCase();
+                await window.building3D.loadConfig();
+                window.building3D.setBuilding();
             }
 
             const labels = {
                 CHATEAUDUN: 'Châteaudun Office',
                 LEVALLOIS: 'Levallois Office'
             };
-            const upperVal = val.toUpperCase();
+            const upperVal = val ? val.toUpperCase() : '';
             const label = labels[upperVal] || 'Office';
 
             const liveTitle     = document.getElementById('live-section-title');

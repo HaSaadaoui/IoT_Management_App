@@ -10,22 +10,9 @@ let gatewayThresholds = {
     temperature: { warning: 70.0, critical: 80.0 }
 };
 
-// --- 3D / SVG ---
-let scene, camera, renderer, controls;
-let svgShape = null;
-let buildingGroup = null; // groupe du bâtiment extrudé
-
-// Palette identique au viewer 3D
-const COLORS = {
-    primary: 0x662179,
-    primaryLight: 0x8b2fa3,
-    floorBase: 0xe2e8f0,
-    roof: 0x94a3b8,
-    walls: 0xf8fafc
-};
-
 // Ace editor pour le payload
 let editor;
+let defaultSVGFile;
 
 // ======================================================
 // ===============  TEMPLATE PAYLOAD ELSYS  =============
@@ -75,163 +62,6 @@ function decodePayload(bytes){
 }
 `;
 
-// ======================================================
-// ==================  SVG → SHAPE LOADER  ===============
-// ======================================================
-
-function loadSVGShape(file, callback) {
-    const reader = new FileReader();
-
-    reader.onload = (event) => {
-        const svgText = event.target.result;
-
-        if (!THREE || !THREE.SVGLoader) {
-            console.error("THREE.SVGLoader not available");
-            alert("SVGLoader not available. Check SVGLoader.js script.");
-            return;
-        }
-
-        const loader = new THREE.SVGLoader();
-        const data = loader.parse(svgText);
-
-        if (!data.paths.length) {
-            alert("No <path> found in SVG!");
-            return;
-        }
-
-        // Collect ALL shapes from ALL paths
-        const shapes = [];
-        data.paths.forEach(path => {
-            const pathShapes = path.toShapes(true);
-            pathShapes.forEach(s => shapes.push(s));
-        });
-
-        if (!shapes.length) {
-            alert("SVG contains no convertible shapes.");
-            return;
-        }
-
-        console.log(`Found ${shapes.length} shapes from SVG paths`);
-        
-        // Use only the LARGEST shape to avoid artifacts
-        // Often SVG files have small artifacts or background shapes
-        let largestShape = shapes[0];
-        let largestArea = 0;
-        
-        shapes.forEach(shape => {
-            // Calculate approximate area by counting curves
-            const area = shape.curves.length;
-            if (area > largestArea) {
-                largestArea = area;
-                largestShape = shape;
-            }
-        });
-        
-        svgShape = largestShape;
-        console.log("Using largest shape with", svgShape.curves.length, "curves");
-        callback(svgShape);
-    };
-
-    reader.readAsText(file);
-}
-
-// ======================================================
-// ======================  3D SCENE  =====================
-// ======================================================
-
-function initScene() {
-    const wrapper   = document.getElementById("three-wrapper");
-    const container = document.getElementById("three-container");
-
-    if (!wrapper || !container) {
-        console.error("three-wrapper or three-container not found");
-        return;
-    }
-
-    // Affiche le wrapper 3D et nettoie l'ancien canvas
-    wrapper.style.display = "block";
-    container.innerHTML = "";
-
-    const width  = wrapper.clientWidth;
-    const height = wrapper.clientHeight;
-
-    // Même fond + fog que dans Building3D
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0f172a);
-    scene.fog = new THREE.Fog(0x0f172a, 20, 50);
-
-    camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 1000);
-    camera.position.set(20, 18, 20);
-    camera.lookAt(0, 10, 0);
-
-    // Renderer avec alpha pour voir le gradient CSS derrière
-    renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: true
-    });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(width, height);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-    container.appendChild(renderer.domElement);
-
-    // Lumières proches du dashboard
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
-
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(10, 20, 10);
-    dirLight.castShadow = true;
-    dirLight.shadow.camera.left = -15;
-    dirLight.shadow.camera.right = 15;
-    dirLight.shadow.camera.top = 15;
-    dirLight.shadow.camera.bottom = -15;
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
-    scene.add(dirLight);
-
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
-    hemiLight.position.set(0, 20, 0);
-    scene.add(hemiLight);
-
-    const pointLight1 = new THREE.PointLight(COLORS.primary, 0.5, 30);
-    pointLight1.position.set(-10, 10, -10);
-    scene.add(pointLight1);
-
-    const pointLight2 = new THREE.PointLight(COLORS.primaryLight, 0.5, 30);
-    pointLight2.position.set(10, 10, 10);
-    scene.add(pointLight2);
-
-    // Sol foncé + grille
-    const groundGeometry = new THREE.PlaneGeometry(50, 50);
-    const groundMaterial = new THREE.MeshStandardMaterial({
-        color: 0x1e293b,
-        metalness: 0.1,
-        roughness: 0.9
-    });
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.5;
-    ground.receiveShadow = true;
-    scene.add(ground);
-
-    const grid = new THREE.GridHelper(50, 50, COLORS.primary, 0x334155);
-    grid.position.y = -0.4;
-    scene.add(grid);
-        // Contrôles
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.target.set(0, 5, 0);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.minDistance = 8;
-        controls.maxDistance = 40;
-        controls.maxPolarAngle = Math.PI / 2.1;
-        controls.update();
-
-        window.addEventListener("resize", onWindowResize);
-        animate();
-}
 // ======================================================
 // ===============  GATEWAY CONFIGURATION  =============
 // ======================================================
@@ -402,172 +232,9 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
-function onWindowResize() {
-    const wrapper = document.getElementById("three-wrapper");
-    if (!wrapper || !renderer || !camera) return;
-
-    const width  = wrapper.clientWidth;
-    const height = wrapper.clientHeight;
-
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-    renderer.setSize(width, height);
-}
-
-function animate() {
-    requestAnimationFrame(animate);
-    if (controls) controls.update();
-
-    // Légère rotation du bâtiment
-    if (buildingGroup) {
-        buildingGroup.rotation.y += 0.0005;
-    }
-
-    if (renderer && scene && camera) {
-        renderer.render(scene, camera);
-    }
-}
-
-// ======================================================
-// ==================  BUILDING EXTRUDE  =================
-// ======================================================
-
-function extrudeBuilding(originalShape, floors, scale) {
-    if (buildingGroup && scene) {
-        scene.remove(buildingGroup);
-    }
-
-    const group = new THREE.Group();
-    const floorHeight = 3;
-
-    // Clone the shape for manipulation
-    const shape = originalShape.clone();
-    
-    console.log("Extruding building with shape:", shape);
-    console.log("Shape curves:", shape.curves.length);
-
-    // ---------- GÉOMÉTRIE DE BASE (DALLE) ----------
-    const baseExtrudeSettings = { 
-        depth: 0.3, 
-        bevelEnabled: true,
-        bevelThickness: 0.05,
-        bevelSize: 0.05,
-        bevelSegments: 2
-    };
-    const baseFloorGeom = new THREE.ExtrudeGeometry(shape, baseExtrudeSettings);
-    
-    // Apply scale uniformly
-    baseFloorGeom.scale(scale, scale, scale);
-
-    // Centre approximatif
-    baseFloorGeom.computeBoundingBox();
-    const bbox = baseFloorGeom.boundingBox;
-    const centerX = (bbox.min.x + bbox.max.x) / 2;
-    const centerZ = (bbox.min.y + bbox.max.y) / 2; // l'axe Y devient Z après rotation
-    
-    console.log("Bounding box:", bbox);
-    console.log("Center:", centerX, centerZ);
-
-    // ---------- MATÉRIAUX ----------
-    const floorMaterial = new THREE.MeshStandardMaterial({
-        color: COLORS.floorBase,
-        metalness: 0.1,
-        roughness: 0.8
-    });
-
-    const roofMaterial = new THREE.MeshStandardMaterial({
-        color: COLORS.roof,
-        metalness: 0.3,
-        roughness: 0.7
-    });
-
-    const wallMaterial = new THREE.MeshStandardMaterial({
-        color: COLORS.walls,
-        transparent: true,
-        opacity: 0.35,
-        metalness: 0.1,
-        roughness: 0.9,
-        side: THREE.DoubleSide
-    });
-
-    // ---------- GÉOMÉTRIE DES MURS ----------
-    const baseWallGeom = new THREE.ExtrudeGeometry(
-        shape,
-        { depth: floorHeight, bevelEnabled: false }
-    );
-    baseWallGeom.scale(scale, scale, 1); // on ne touche pas à la hauteur
-
-    for (let i = 0; i < floors; i++) {
-        const yBase = i * floorHeight;
-
-        // ===== FLOOR =====
-        const floorMesh = new THREE.Mesh(baseFloorGeom, floorMaterial);
-        floorMesh.rotation.x = -Math.PI / 2;
-        floorMesh.position.set(-centerX, yBase, -centerZ);
-        floorMesh.castShadow = true;
-        floorMesh.receiveShadow = true;
-        group.add(floorMesh);
-
-        // ===== MURS =====
-        const walls = new THREE.Mesh(baseWallGeom, wallMaterial);
-        walls.rotation.x = -Math.PI / 2;
-        walls.position.set(-centerX, yBase, -centerZ);
-        walls.castShadow = true;
-        group.add(walls);
-
-        // ===== TOIT =====
-        const roofMesh = new THREE.Mesh(baseFloorGeom, roofMaterial);
-        roofMesh.rotation.x = -Math.PI / 2;
-        roofMesh.position.set(-centerX, yBase + floorHeight, -centerZ);
-        roofMesh.castShadow = true;
-        group.add(roofMesh);
-
-        // ===== EDGES VIOLETS =====
-        const edgeGeometry = new THREE.EdgesGeometry(baseFloorGeom);
-        const edgeMaterial = new THREE.LineBasicMaterial({
-            color: COLORS.primary,
-            linewidth: 2
-        });
-        const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
-        edges.position.copy(floorMesh.position);
-        edges.rotation.copy(floorMesh.rotation);
-        group.add(edges);
-    }
-
-    buildingGroup = group;
-    scene.add(group);
-    console.log("Floors requested:", floors, "meshes in group:", group.children.length);
-    return group;
-}
-
 // ======================================================
 // =====================  MAIN ACTION  ===================
 // ======================================================
-
-function generate3DFromForm() {
-    if (typeof THREE === "undefined") {
-        alert("THREE is not loaded. Check three.min.js script tag.");
-        return;
-    }
-
-    const floorsEl = document.getElementById("building-floors");
-    const scaleEl  = document.getElementById("building-scale");
-    const svgInput = document.getElementById("building-svg");
-
-    const floors  = parseInt(floorsEl.value, 10) || 1;
-    const scale   = parseFloat(scaleEl.value) || 0.01;
-    const svgFile = svgInput.files[0];
-
-    if (!svgFile) {
-        alert("Please upload a building SVG first.");
-        return;
-    }
-
-    loadSVGShape(svgFile, (shape) => {
-        initScene();
-        extrudeBuilding(shape, floors, scale);
-    });
-    }
 
 // Utilitaire hex → bytes
 function hexToBytes(hex) {
@@ -655,6 +322,7 @@ async function loadBuildingConfig() {
     const nameEl   = document.getElementById("building-name");
     const floorsEl = document.getElementById("building-floors");
     const scaleEl  = document.getElementById("building-scale");
+    const svgInput = document.getElementById("building-svg");
 
     const buildingId = selectBuilding.value;
 
@@ -668,6 +336,7 @@ async function loadBuildingConfig() {
             nameEl.value   = b.name || "";
             floorsEl.value = b.floorsCount || 1;
             scaleEl.value  = b.scale || 0.01;
+            defaultSVGFile = b.svgPlan || "";
         } catch (e) {
             console.error("Erreur lors du chargement du bâtiment :", e);
         }
@@ -675,11 +344,48 @@ async function loadBuildingConfig() {
         nameEl.value   = "";
         floorsEl.value = 3;
         scaleEl.value  = 0.01;
+        defaultSVGFile = "";
+    }
+
+    svgInput.value = "";
+}
+
+async function update3DConfig() {
+    if(!window.building3D || !window.building3D.isIn3DView) return;
+
+    const selectBuilding = document.getElementById('filter-building');
+    const floorsEl = document.getElementById("building-floors");
+    const scaleEl  = document.getElementById("building-scale");
+
+    const buildingId = selectBuilding.value;
+
+    if(isNaN(buildingId) || buildingId === null || buildingId === "") return;
+
+    window.building3D.buildingKey = buildingId;
+    window.building3D.dbBuildingConfig.floors = floorsEl.value;
+    window.building3D.dbBuildingConfig.scale = scaleEl.value;
+    window.building3D.config.floors = floorsEl.value;
+    window.building3D.config.scale = scaleEl.value;
+    window.building3D.dbShapeCache = null;
+
+    const svgInput = document.getElementById("building-svg");
+    let blobUrl = "";
+    if (svgInput.value && svgInput.value.trim() !== "") {
+        const file = svgInput.files[0];
+        blobUrl = URL.createObjectURL(file);
+        window.building3D.dbBuildingConfig.svgUrl = blobUrl;
+    } else {
+        window.building3D.dbBuildingConfig.svgUrl = defaultSVGFile;
+    }
+
+    window.building3D.setBuilding();
+
+    if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);   
     }
 }
 
 async function deleteBuildingConfig() {
-
     const csrfMeta = document.querySelector('meta[name="_csrf"]');
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
     
@@ -726,6 +432,9 @@ async function deleteBuildingConfig() {
         nameEl.value   = "";
         floorsEl.value = 3;
         scaleEl.value  = 0.01;
+        defaultSVGFile = "";
+    } else {
+        alert("Please select a building to delete.");
     }
 }
 
@@ -1333,12 +1042,10 @@ function changeEditorLanguage(selectEl) {
     editor.session.setMode(mode);
 }
 
-
 // ======================================================
 // ================== GLOBAL EXPORTS =====================
 // ======================================================
 
-window.generate3DFromForm = generate3DFromForm;
 window.loadBuildingConfig = loadBuildingConfig;
 window.deleteBuildingConfig = deleteBuildingConfig;
 window.changeEditorLanguage = changeEditorLanguage;
