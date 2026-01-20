@@ -49,6 +49,9 @@ class OccupancyAnalytics {
     async loadSection(sectionType) {
         console.log(`🔄 Loading analytics for section: ${sectionType}`);
         
+        // Show loading state
+        this.showLoading(sectionType);
+        
         // Get date filters if available
         const startDateInput = document.getElementById('hist-from');
         const endDateInput = document.getElementById('hist-to');
@@ -71,7 +74,7 @@ class OccupancyAnalytics {
                 headers: {
                     'Accept': 'application/json'
                 },
-                signal: AbortSignal.timeout(60000) // 60 second timeout for desk with 90 sensors
+                signal: AbortSignal.timeout(180000) // 180 second timeout (3 minutes) for large sections
             });
             
             console.log(`📥 Response status for ${sectionType}: ${response.status}`);
@@ -294,6 +297,31 @@ class OccupancyAnalytics {
             interview: 'Interview Room'
         };
         return titles[sectionType] || sectionType;
+    }
+
+    /**
+     * Show loading state
+     */
+    showLoading(sectionType) {
+        const tbody = document.getElementById(`${sectionType}-analytics-tbody`);
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 2rem;">
+                        <div class="analytics-loading">⏳ Chargement en cours...</div>
+                    </td>
+                </tr>
+            `;
+        }
+        
+        // Update global stats to show loading
+        ['daily', 'weekly', 'monthly'].forEach(period => {
+            const el = document.getElementById(`${sectionType}-global-${period}`);
+            if (el) {
+                el.textContent = '...';
+                el.style.color = '#6b7280';
+            }
+        });
     }
 
     /**
