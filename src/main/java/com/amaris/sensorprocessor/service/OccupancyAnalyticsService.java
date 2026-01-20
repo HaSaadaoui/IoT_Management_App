@@ -38,19 +38,39 @@ public class OccupancyAnalyticsService {
     /**
      * Get occupancy analytics for a specific section
      */
-    public SectionOccupancyResponse getSectionOccupancy(String sectionType) {
+    public SectionOccupancyResponse getSectionOccupancy(String sectionType, String startDateStr, String endDateStr) {
         List<String> sensorIds = getSensorIdsBySection(sectionType);
         String sectionName = getSectionName(sectionType);
         
-        log.info("Calculating occupancy for section: {} with {} sensors", sectionName, sensorIds.size());
+        log.info("Calculating occupancy for section: {} with {} sensors (dates: {} to {})", 
+                sectionName, sensorIds.size(), startDateStr, endDateStr);
+
+        // Parse custom dates if provided
+        LocalDate customStartDate = null;
+        LocalDate customEndDate = null;
+        
+        if (startDateStr != null && endDateStr != null) {
+            try {
+                // Parse datetime-local format: "2026-01-20T09:00"
+                customStartDate = LocalDateTime.parse(startDateStr).toLocalDate();
+                customEndDate = LocalDateTime.parse(endDateStr).toLocalDate();
+                log.info("Using custom date range: {} to {}", customStartDate, customEndDate);
+            } catch (Exception e) {
+                log.warn("Failed to parse custom dates, using defaults: {}", e.getMessage());
+            }
+        }
 
         // Calculate stats for each sensor
+        final LocalDate finalStartDate = customStartDate;
+        final LocalDate finalEndDate = customEndDate;
+        
         List<OccupancyStats> sensorStats = sensorIds.stream()
-                .map(this::calculateSensorOccupancy)
+                .map(sensorId -> calculateSensorOccupancyWithDates(sensorId, finalStartDate, finalEndDate))
                 .collect(Collectors.toList());
 
         // Calculate global stats for the section
-        OccupancyStats globalStats = calculateGlobalStats(sectionName + " - Global", sensorIds);
+        OccupancyStats globalStats = calculateGlobalStatsWithDates(
+                sectionName + " - Global", sensorIds, finalStartDate, finalEndDate);
 
         return SectionOccupancyResponse.builder()
                 .sectionName(sectionName)
@@ -63,28 +83,38 @@ public class OccupancyAnalyticsService {
     }
 
     /**
-     * Calculate occupancy stats for a single sensor
+     * Calculate occupancy stats for a single sensor with custom date range
      */
-    private OccupancyStats calculateSensorOccupancy(String sensorId) {
-        LocalDate today = LocalDate.now();
+    private OccupancyStats calculateSensorOccupancyWithDates(String sensorId, LocalDate customStart, LocalDate customEnd) {
+        LocalDate today = (customEnd != null) ? customEnd : LocalDate.now();
+        LocalDate start = (customStart != null) ? customStart : LocalDate.now().minusDays(30);
         
-        // Get first day of current week (Monday)
+        // If custom dates provided, use full range for all stats
+        if (customStart != null && customEnd != null) {
+            Map<String, Integer> rangeStats = calculateOccupancyForPeriod(sensorId, customStart, customEnd.plusDays(1));
+            
+            return OccupancyStats.builder()
+                    .sensorId(sensorId)
+                    .sensorName(formatSensorName(sensorId))
+                    .dailyOccupancyRate(calculateRate(rangeStats))
+                    .dailyOccupiedIntervals(rangeStats.get("occupied"))
+                    .dailyTotalIntervals(rangeStats.get("total"))
+                    .weeklyOccupancyRate(calculateRate(rangeStats))
+                    .weeklyOccupiedIntervals(rangeStats.get("occupied"))
+                    .weeklyTotalIntervals(rangeStats.get("total"))
+                    .monthlyOccupancyRate(calculateRate(rangeStats))
+                    .monthlyOccupiedIntervals(rangeStats.get("occupied"))
+                    .monthlyTotalIntervals(rangeStats.get("total"))
+                    .build();
+        }
+        
+        // Default behavior: calculate day/week/month separately
         LocalDate weekStart = today.with(DayOfWeek.MONDAY);
-        
-        // Get first day of current month
         LocalDate monthStart = today.with(TemporalAdjusters.firstDayOfMonth());
 
-        // Calculate daily occupancy
-        Map<String, Integer> dailyStats = calculateOccupancyForPeriod(
-                sensorId, today, today.plusDays(1));
-        
-        // Calculate weekly occupancy
-        Map<String, Integer> weeklyStats = calculateOccupancyForPeriod(
-                sensorId, weekStart, today.plusDays(1));
-        
-        // Calculate monthly occupancy
-        Map<String, Integer> monthlyStats = calculateOccupancyForPeriod(
-                sensorId, monthStart, today.plusDays(1));
+        Map<String, Integer> dailyStats = calculateOccupancyForPeriod(sensorId, today, today.plusDays(1));
+        Map<String, Integer> weeklyStats = calculateOccupancyForPeriod(sensorId, weekStart, today.plusDays(1));
+        Map<String, Integer> monthlyStats = calculateOccupancyForPeriod(sensorId, monthStart, today.plusDays(1));
 
         return OccupancyStats.builder()
                 .sensorId(sensorId)
@@ -102,10 +132,30 @@ public class OccupancyAnalyticsService {
     }
 
     /**
-     * Calculate global stats for all sensors in a section
+     * Calculate global stats for all sensors in a section with custom dates
      */
-    private OccupancyStats calculateGlobalStats(String name, List<String> sensorIds) {
-        LocalDate today = LocalDate.now();
+    private OccupancyStats calculateGlobalStatsWithDates(String name, List<String> sensorIds, LocalDate customStart, LocalDate customEnd) {
+        LocalDate today = (customEnd != null) ? customEnd : LocalDate.now();
+        
+        if (customStart != null && customEnd != null) {
+            Map<String, Integer> rangeStats = calculateGlobalOccupancyForPeriod(
+                    sensorIds, customStart, customEnd.plusDays(1));
+            
+            return OccupancyStats.builder()
+                    .sensorId("GLOBAL")
+                    .sensorName(name)
+                    .dailyOccupancyRate(calculateRate(rangeStats))
+                    .dailyOccupiedIntervals(rangeStats.get("occupied"))
+                    .dailyTotalIntervals(rangeStats.get("total"))
+                    .weeklyOccupancyRate(calculateRate(rangeStats))
+                    .weeklyOccupiedIntervals(rangeStats.get("occupied"))
+                    .weeklyTotalIntervals(rangeStats.get("total"))
+                    .monthlyOccupancyRate(calculateRate(rangeStats))
+                    .monthlyOccupiedIntervals(rangeStats.get("occupied"))
+                    .monthlyTotalIntervals(rangeStats.get("total"))
+                    .build();
+        }
+        
         LocalDate weekStart = today.with(DayOfWeek.MONDAY);
         LocalDate monthStart = today.with(TemporalAdjusters.firstDayOfMonth());
 

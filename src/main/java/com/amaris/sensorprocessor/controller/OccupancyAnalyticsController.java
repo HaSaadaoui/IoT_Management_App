@@ -18,14 +18,19 @@ public class OccupancyAnalyticsController {
     /**
      * Get occupancy analytics for a specific section
      * @param section Section type: desk, meeting, phone, interview
+     * @param startDate Optional start date for custom date range
+     * @param endDate Optional end date for custom date range
      * @return Occupancy statistics for all sensors in the section
      */
     @GetMapping("/occupancy/{section}")
-    public ResponseEntity<SectionOccupancyResponse> getSectionOccupancy(@PathVariable String section) {
-        log.info("Getting occupancy analytics for section: {}", section);
+    public ResponseEntity<SectionOccupancyResponse> getSectionOccupancy(
+            @PathVariable String section,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        log.info("Getting occupancy analytics for section: {} (dates: {} to {})", section, startDate, endDate);
         
         try {
-            SectionOccupancyResponse response = analyticsService.getSectionOccupancy(section);
+            SectionOccupancyResponse response = analyticsService.getSectionOccupancy(section, startDate, endDate);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error getting occupancy analytics for section {}: {}", section, e.getMessage(), e);
@@ -42,10 +47,10 @@ public class OccupancyAnalyticsController {
         log.info("Getting occupancy analytics for all sections");
         
         try {
-            var desk = analyticsService.getSectionOccupancy("desk");
-            var meeting = analyticsService.getSectionOccupancy("meeting");
-            var phone = analyticsService.getSectionOccupancy("phone");
-            var interview = analyticsService.getSectionOccupancy("interview");
+            var desk = analyticsService.getSectionOccupancy("desk", null, null);
+            var meeting = analyticsService.getSectionOccupancy("meeting", null, null);
+            var phone = analyticsService.getSectionOccupancy("phone", null, null);
+            var interview = analyticsService.getSectionOccupancy("interview", null, null);
             
             return ResponseEntity.ok(new java.util.HashMap<String, SectionOccupancyResponse>() {{
                 put("desk", desk);

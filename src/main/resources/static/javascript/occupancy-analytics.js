@@ -47,17 +47,41 @@ class OccupancyAnalytics {
      * Load data for a specific section
      */
     async loadSection(sectionType) {
-        console.log(`Loading analytics for section: ${sectionType}`);
+        console.log(`🔄 Loading analytics for section: ${sectionType}`);
+        
+        // Get date filters if available
+        const startDateInput = document.getElementById('hist-from');
+        const endDateInput = document.getElementById('hist-to');
+        
+        let url = `/api/analytics/occupancy/${sectionType}`;
+        
+        // Add date parameters if available
+        if (startDateInput?.value && endDateInput?.value) {
+            const params = new URLSearchParams({
+                startDate: startDateInput.value,
+                endDate: endDateInput.value
+            });
+            url += `?${params.toString()}`;
+        }
+        
+        console.log(`📡 Fetching: ${url}`);
         
         try {
-            const response = await fetch(`/api/analytics/occupancy/${sectionType}`);
+            const response = await fetch(url, {
+                headers: {
+                    'Accept': 'application/json'
+                },
+                signal: AbortSignal.timeout(60000) // 60 second timeout for desk with 90 sensors
+            });
+            
+            console.log(`📥 Response status for ${sectionType}: ${response.status}`);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const data = await response.json();
-            console.log(`${sectionType} data:`, data);
+            console.log(`✅ ${sectionType} data loaded:`, data);
             
             // Update global stats
             this.updateGlobalStats(sectionType, data.globalStats);
@@ -69,7 +93,7 @@ class OccupancyAnalytics {
             this.updateChart(sectionType, data.sensorStats);
             
         } catch (error) {
-            console.error(`Error loading ${sectionType} analytics:`, error);
+            console.error(`❌ Error loading ${sectionType} analytics:`, error);
             this.showError(sectionType);
         }
     }
@@ -312,17 +336,15 @@ class OccupancyAnalytics {
 }
 
 // Initialize when DOM is ready
-let analyticsManager = null;
-
 document.addEventListener('DOMContentLoaded', () => {
     console.log('=== Occupancy Analytics: DOM Ready ===');
-    analyticsManager = new OccupancyAnalytics();
-    analyticsManager.init();
+    window.analyticsManager = new OccupancyAnalytics();
+    window.analyticsManager.init();
 });
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
-    if (analyticsManager) {
-        analyticsManager.destroy();
+    if (window.analyticsManager) {
+        window.analyticsManager.destroy();
     }
 });

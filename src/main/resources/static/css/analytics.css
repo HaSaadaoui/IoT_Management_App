@@ -42,7 +42,7 @@
 }
 
 .analytics-table thead {
-    background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
     position: sticky;
     top: 0;
     z-index: 10;
@@ -52,8 +52,8 @@
     padding: 0.875rem 0.75rem;
     text-align: left;
     font-weight: 600;
-    color: #374151;
-    border-bottom: 2px solid #d1d5db;
+    color: white;
+    border-bottom: 2px solid #6d28d9;
 }
 
 .analytics-table tbody tr {

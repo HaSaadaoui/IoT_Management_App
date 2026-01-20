@@ -565,10 +565,6 @@
 
         <!-- Occupation Rate Analytics -->
         <h3 class="section-title">📊 Occupation Rate Analytics</h3>
-        <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">
-            📌 Méthode: Occupation détectée au moins une fois par intervalle de 30 minutes<br>
-            ⏰ Heures bureau: 9h00-12h30 et 14h00-18h30 | 📅 Jours: Lundi à Vendredi
-        </p>
 
         <!-- 1. Desk-Bureau-Standard Section -->
         <div class="chart-card full-width" style="margin-bottom: 2rem;">
@@ -1047,6 +1043,11 @@
 
             const data = await response.json();
             updateEnergyConsumptionChart(data);
+            
+            // Also reload occupancy analytics with new date range
+            if (window.analyticsManager) {
+                window.analyticsManager.loadAllSections();
+            }
         } catch (error) {
             console.error('Error loading energy data:', error);
         }
