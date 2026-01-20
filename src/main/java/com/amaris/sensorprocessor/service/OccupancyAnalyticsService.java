@@ -7,6 +7,7 @@ import com.amaris.sensorprocessor.model.analytics.SectionOccupancyResponse;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.*;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 public class OccupancyAnalyticsService {
 
     private final SensorDataDao sensorDataDao;
+    private final JdbcTemplate jdbcTemplate;
 
     // Business hours: 9h-12h30 and 14h-18h30
     private static final int MORNING_START = 9;
@@ -209,7 +211,7 @@ public class OccupancyAnalyticsService {
                 ORDER BY received_at
                 """;
             
-            List<Map<String, Object>> results = sensorDataDao.getJdbcTemplate().queryForList(
+            List<Map<String, Object>> results = jdbcTemplate.queryForList(
                     query, sensorId, start, end);
             
             // Check if any value is > 0 (occupied)
