@@ -928,7 +928,15 @@ class Building3D {
         const titleEl = document.getElementById('current-floor-title');
         if (!titleEl) return;
 
-        const data = this.floorData[floorNumber];
+        const data = this.floorData[floorNumber] || {};
+        let name = '';
+        if (data.name) {
+            name = data.name;
+        } else if (floorNumber === 0) {
+            name = 'Ground Floor';
+        } else {
+            name = `Floor ${floorNumber+1}`;
+        }
         const sensorNames = {
             'DESK': 'Occupancy',
             'CO2': 'CO₂ Air Quality',
@@ -942,7 +950,7 @@ class Building3D {
             'SECURITY': 'Security Alerts'
         };
         const label = sensorNames[this.currentSensorMode] || this.currentSensorMode;
-        const title = `${data.name} - ${label} Visualization`;
+        const title = `${name} - ${label} Visualization`;
         titleEl.textContent = title;
     }
 
@@ -1055,7 +1063,7 @@ class Building3D {
                 };
                 for (let i = 1; i < b.floorsCount; i++) {
                     this.config.floorData[i] = {
-                        name: 'Floor '+i,
+                        name: 'Floor '+(i+1),
                         desks: [] //TODO load from DB?
                     };
                 }
@@ -1206,6 +1214,21 @@ document.addEventListener('DOMContentLoaded', function () {
         sensorSelect.addEventListener('change', () => {
             if (window.building3D) {
                 window.building3D.setSensorMode(sensorSelect.value);
+            }
+        });
+    }
+
+    const floorSelect = document.getElementById('filter-floor');
+    if (floorSelect) {
+        floorSelect.addEventListener('change', () => {
+            if (window.building3D) {
+                if (floorSelect.value === ""){
+                    window.building3D.return3DView();
+                    return;
+                }
+                const floorNumber = parseInt(floorSelect.value, 10);
+                window.building3D.currentFloorNumber = floorNumber;
+                window.building3D.switch2DFloorView(floorNumber);
             }
         });
     }

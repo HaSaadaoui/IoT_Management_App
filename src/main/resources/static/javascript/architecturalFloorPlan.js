@@ -110,6 +110,9 @@ class ArchitecturalFloorPlan {
           // 🔥 LIVE
           this.startLiveSensors();
         }
+
+        // On modifie le SVG pour le centrer sur l'écran
+        this.centerSVGContent({ targetWidth: 1200, targetHeight: 1200, padding: 20, fit: true });
     }
 
     generateSensorData(mode, floor, valueMap = null) {
@@ -252,7 +255,6 @@ class ArchitecturalFloorPlan {
       this.stopLiveSensors();
     }
 
-
     startLiveSensors() {
       // stop stream existant
       this.stopLiveSensors();
@@ -380,7 +382,6 @@ class ArchitecturalFloorPlan {
       }
     }
 
-
     updateSensorValue(sensorId, value) {
       if (!this.overlayManager) return;
 
@@ -395,7 +396,6 @@ class ArchitecturalFloorPlan {
         // capteur hors étage affiché → ignore
       }
     }
-
 
     async drawGroundFloorSVG(deskOccupancy = {}) {
 
@@ -432,7 +432,17 @@ class ArchitecturalFloorPlan {
             'use'
         ].join(', ');
 
-        const elements = Array.from(doc.querySelectorAll(graphicSelector));
+        const elements = Array.from(doc.querySelectorAll(graphicSelector))
+            .filter(el => {
+                const attr = el.getAttribute('floor-number');
+                return attr === null || Number(attr) === this.floorData.floorNumber + 1;
+            })
+            .filter(el => {
+                const attr = el.getAttribute('sensor-mode');
+                return attr === null || attr === this.sensorMode;
+            });
+        
+
         if (!elements.length) {
             console.warn('SVG sans éléments graphiques');
             return;
@@ -3151,47 +3161,6 @@ class ArchitecturalFloorPlan {
         parent.appendChild(chair);
     }
 
-    drawStaircase(parent, x, y, width, height) {
-        // Staircase outline
-        const stairsOutline = [
-            { x: x, y: y },
-            { x: x + width, y: y },
-            { x: x + width, y: y + height },
-            { x: x, y: y + height },
-        ];
-        this.drawWall(parent, stairsOutline, false);
-
-        // Draw individual steps
-        const numSteps = 7;
-        for (let i = 0; i < numSteps; i++) {
-            const stepY = y + 10 + (i * (height - 20)) / numSteps;
-            this.drawLine(
-                parent,
-                [
-                    { x: x + 5, y: stepY },
-                    { x: x + width - 5, y: stepY },
-                ],
-                this.colors.interiorLine,
-                1.5,
-            );
-        }
-
-        // Stair direction arrow
-        const arrow = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "text",
-        );
-        arrow.setAttribute("x", x + width / 2);
-        arrow.setAttribute("y", y + height / 2 + 8);
-        arrow.setAttribute("text-anchor", "middle");
-        arrow.setAttribute("font-size", "24");
-        arrow.textContent = "⬇️";
-        parent.appendChild(arrow);
-
-        // Label
-        this.drawLabel(parent, x + width / 2, y - 8, "Stairs", 10, "bold");
-    }
-
     // Public method to load desk occupancy data from API
     async loadDeskOccupancy() {
         if (this.sensorMode !== "DESK") {
@@ -3220,25 +3189,6 @@ class ArchitecturalFloorPlan {
         } catch (error) {
             console.error("Error loading desk occupancy:", error);
         }
-    }
-
-    // Public method to export SVG
-    exportSVG() {
-        const serializer = new XMLSerializer();
-        const svgString = serializer.serializeToString(this.svg);
-        return svgString;
-    }
-
-    // Public method to download SVG
-    downloadSVG(filename = "floor-plan.svg") {
-        const svgData = this.exportSVG();
-        const blob = new Blob([svgData], { type: "image/svg+xml" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = filename;
-        link.click();
-        URL.revokeObjectURL(url);
     }
 
     /**

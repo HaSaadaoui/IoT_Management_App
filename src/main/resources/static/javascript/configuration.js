@@ -289,6 +289,31 @@ function toggleNotifChannelInput() {
     if (phoneDiv) phoneDiv.style.display = smsChk && smsChk.checked ? "block" : "none";
 }
 
+function loadBuildingFloors() {
+    const floorSelect = document.getElementById('filter-floor');
+    const floorsEl = document.getElementById("building-floors");
+    if (!floorSelect) {
+        console.warn('Floor select not found (#filter-floor). Skipping floors update.');
+        return;
+    }
+
+    floorSelect.innerHTML = '';
+    if(!floorsEl || isNaN(floorsEl.value)) {
+        console.warn('Building floors input not found or invalid (#building-floors). Skipping floors update.');
+        return;
+    }
+    for (let i = 0; i < floorsEl.value; i++) {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        if (i === 0) {
+            opt.textContent = `Ground Floor`;
+        } else {
+            opt.textContent = `Floor ${i+1}`;
+        }
+        floorSelect.appendChild(opt);
+    }
+}
+
 async function loadBuildings() {
     const select = document.getElementById('filter-building');
     if (!select) return;
@@ -348,10 +373,10 @@ async function loadBuildingConfig() {
     }
 
     svgInput.value = "";
+    this.loadBuildingFloors();
 }
 
 async function update3DConfig() {
-    if(!window.building3D || !window.building3D.isIn3DView) return;
 
     const selectBuilding = document.getElementById('filter-building');
     const floorsEl = document.getElementById("building-floors");
@@ -383,6 +408,8 @@ async function update3DConfig() {
     if (blobUrl) {
         URL.revokeObjectURL(blobUrl);   
     }
+
+    this.loadBuildingFloors();
 }
 
 async function deleteBuildingConfig() {
@@ -555,6 +582,7 @@ async function saveBuildingConfig() {
         return createBuildingConfig(formData);
     }
 
+    //TODO si on est en 2D, on sauvegarde les modifications dans le fichier .SVG
 }
 
 // ======================================================

@@ -286,35 +286,6 @@ class SensorOverlayManager {
         });
     }
 
-    /*
-
-    addSensorIcon(x, y, emoji, label) {
-        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        g.setAttribute("class", "sensor-marker");
-        
-        const icon = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        icon.setAttribute("x", x);
-        icon.setAttribute("y", y);
-        icon.setAttribute("text-anchor", "middle");
-        icon.setAttribute("font-size", "20");
-        icon.textContent = emoji;
-        
-        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        text.setAttribute("x", x);
-        text.setAttribute("y", y + 20);
-        text.setAttribute("text-anchor", "middle");
-        text.setAttribute("font-size", "10");
-        text.setAttribute("font-weight", "bold");
-        text.setAttribute("fill", "#374151");
-        text.textContent = label;
-        
-        g.appendChild(icon);
-        g.appendChild(text);
-        this.overlayGroup.appendChild(g);
-    }*/
-
-
-
     addSensorIcon(x, y, emoji, label, sensorId) {
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
         g.setAttribute("class", "sensor-marker");
@@ -345,12 +316,6 @@ class SensorOverlayManager {
         g.appendChild(text);
         this.overlayGroup.appendChild(g);
     }
-
-
-
-
-
-
 
     addPulseAnimation(element) {
         let scale = 1;
@@ -416,42 +381,6 @@ class SensorOverlayManager {
 
         this.svg.insertBefore(defs, this.svg.firstChild);
     }
-
-    /*createEnergyMap() {
-        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-
-        this.sensors.forEach((sensor, i) => {
-            const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
-            //gradient.setAttribute("id", `energy-grad-${i}`);
-            label.setAttribute("id", `sensor-value-${sensor.id}`);
-            const color = this.getEnergyColor(sensor.value);
-
-            gradient.innerHTML = `
-                <stop offset="0%" style="stop-color:${color};stop-opacity:0.55"/>
-                <stop offset="100%" style="stop-color:${color};stop-opacity:0"/>
-            `;
-
-            defs.appendChild(gradient);
-
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            circle.setAttribute("cx", sensor.x);
-            circle.setAttribute("cy", sensor.y);
-            circle.setAttribute("r", "75");
-            circle.setAttribute("fill", `url(#energy-grad-${i})`);
-
-            this.overlayGroup.appendChild(circle);
-
-            // ⚡ Icône + valeur
-            this.addSensorIcon(
-                sensor.x,
-                sensor.y,
-                "⚡",
-                sensor.value != null ? `${sensor.value} kWh` : "—", sensor.id
-            );
-        });
-
-        this.svg.insertBefore(defs, this.svg.firstChild);
-    }*/
 
     createEnergyMap() {
         // Définitions pour les gradients
@@ -555,7 +484,6 @@ class SensorOverlayManager {
       console.log('Updated visual: ', sensor);
       return true;
     }
-
 
     updateVisual(sensor) {
       if (!sensor) return;
