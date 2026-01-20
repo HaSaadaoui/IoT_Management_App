@@ -1,32 +1,5 @@
 // ===== ARCHITECTURAL FLOOR PLAN - CEILING VIEW =====
 // Professional architectural drawing system matching "Occupation Live" style
-async function fetchLiveSensorValues(buildingKey, floor, mode) {
-      const params = new URLSearchParams({
-        building: buildingKey,     // "LEVALLOIS"
-        floor: String(floor),      // "3"
-        sensorType: mode           // "CO2", "TEMP", "NOISE", ...
-      });
-
-      const resp = await fetch(`/api/dashboard?${params.toString()}`);
-      if (!resp.ok) throw new Error("dashboard error");
-
-      const data = await resp.json(); // DashboardData
-      const map = new Map();
-
-      if (!data.liveSensorData || !Array.isArray(data.liveSensorData)) {
-        return map; // vide → fallback possible
-      }
-
-      data.liveSensorData.forEach(sensor => {
-        if (sensor.sensorId && sensor.value != null) {
-          map.set(sensor.sensorId, sensor.value);
-        }
-  });
-
-  return map;
-}
-
-
 class ArchitecturalFloorPlan {
     constructor(
         containerId,
@@ -125,42 +98,18 @@ class ArchitecturalFloorPlan {
         }
 
         // Add sensor overlay if not DESK mode
-        /*
         if (this.sensorMode !== "DESK" && window.SensorOverlayManager) {
-            this.overlayManager = new SensorOverlayManager(this.svg);
-            const sensors = this.generateSensorData(
-                this.sensorMode,
-                this.floorData.floorNumber,
-            );
-            this.overlayManager.setSensorMode(this.sensorMode, sensors);
-        }*/
-
-        if (this.sensorMode !== "DESK" && window.SensorOverlayManager) {
-          let valueMap = null;
-          try {
-            valueMap = await fetchLiveSensorValues(
-              this.buildingKey,
-              this.floorData.floorNumber,
-              this.sensorMode
-            );
-          } catch (e) {
-            console.warn("Live values error, fallback random", e);
-          }
-
           const sensors = this.generateSensorData(
             this.sensorMode,
-            this.floorData.floorNumber,
-            valueMap
+            this.floorData.floorNumber
           );
 
           this.overlayManager = new SensorOverlayManager(this.svg);
           this.overlayManager.setSensorMode(this.sensorMode, sensors);
+
+          // 🔥 LIVE
+          this.startLiveSensors();
         }
-
-
-        // On modifie le SVG pour le centrer sur l'écran
-        this.centerSVGContent({ targetWidth: 1200, targetHeight: 1200, padding: 20, fit: true });
-
     }
 
     generateSensorData(mode, floor, valueMap = null) {
@@ -218,10 +167,7 @@ class ArchitecturalFloorPlan {
         if (floorConfig && floorConfig.length) {
           return floorConfig.map((pos) => {
             const live =
-              valueMap?.get(pos.id) ??
-              valueMap?.get("*ALL*") ??
-              this.getRandomSensorValue(mode);
-
+              valueMap?.get(pos.id) ?? this.getRandomSensorValue(mode);
             return {
               id: pos.id,
               type: mode,
@@ -295,8 +241,160 @@ class ArchitecturalFloorPlan {
         }
     }
 
+    stopLiveSensors() {
+      if (this._sensorEs) {
+        this._sensorEs.close();
+        this._sensorEs = null;
+      }
+    }
+
+    destroy() {
+      this.stopLiveSensors();
+    }
 
 
+    startLiveSensors() {
+      // stop stream existant
+      this.stopLiveSensors();
+
+      const building = this.buildingKey;
+      const clientId = `ui-sensors-${Date.now()}`;
+
+      //capteurs réellement affichés
+      const sensors = this.overlayManager?.sensors ?? [];
+      const deviceIds = sensors.map(s => s.id);
+
+      if (!deviceIds.length) {
+        console.warn("[SSE] no sensors to subscribe");
+        return;
+      }
+
+      console.info("[SSE] subscribe devices", deviceIds);
+
+      // SSE = GET + query params
+      const url =
+        `/api/dashboard/live/stream` +
+        `?building=${encodeURIComponent(building)}` +
+        `&clientId=${encodeURIComponent(clientId)}` +
+        `&deviceIds=${encodeURIComponent(deviceIds.join(","))}`;
+
+      console.info("[SSE] connect", url);
+
+      // ouverture du flux SSE
+      this._sensorEs = new EventSource(url);
+
+      // données capteurs
+      this._sensorEs.addEventListener("uplink", (e) => {
+        try {
+          const raw = JSON.parse(e.data);
+          const msg = raw?.result ?? raw;
+
+          const sensorId =
+            msg?.end_device_ids?.device_id ||
+            msg?.deviceId ||
+            msg?.device_id;
+
+          if (!sensorId) return;
+
+          const decoded =
+            msg?.uplink_message?.decoded_payload ||
+            msg?.decoded_payload ||
+            msg?.payload ||
+            {};
+
+          //valeur utile selon le mode courant
+          const value = this.extractSensorValue(this.sensorMode, decoded);
+          console.log('Extracted value: ', value);
+
+          if (value == null) return;
+
+          // Mise à jour UI
+          this.updateSensorValue(sensorId, value);
+
+        } catch (err) {
+          console.warn("[SSE sensors] parse error", err, e.data);
+        }
+      });
+
+      // keepalive (silencieux)
+      this._sensorEs.addEventListener("keepalive", () => {
+        // no-op
+      });
+
+      // erreurs SSE
+      this._sensorEs.onerror = (e) => {
+        console.warn("[SSE sensors] error", e);
+      };
+    }
+
+    extractSensorValue(mode, payload) {
+      if (!payload) return null;
+
+      switch (mode) {
+        case "CO2":
+          return payload["co2"] ?? payload["co2 (ppm)"];
+        case "TEMPEX", "TEMP":
+          return payload["temperature"] ?? payload["temperature (°C)"];
+        case "HUMIDITY":
+          return payload["humidity"] ?? payload["humidity (%)"];
+        case "NOISE":
+          return payload["humidity"] ?? payload["LAeq (dB)"];
+        case "LIGHT":
+          return payload["light"];
+        case "COUNT":
+          return {
+            in: payload.period_in ?? 0,
+            out: payload.period_out ?? 0,
+          };
+        case "ENERGY":{
+           const powerMap = {};
+           Object.values(payload)
+                .filter(p => p.type === "power")
+                .forEach(p => {
+                    powerMap[p.uuid] = p.value ?? 0;
+                    //powerMap[p.uuid] = Math.abs(p.value ?? 0);
+                });
+
+           const c = (i) => powerMap[`clamp_s0_c${i}`] ?? 0;
+          // 2. Appliquer la formule métier EXACTE
+          const totalW =
+              c(0) + c(1) + c(2)
+              + (c(6) + c(7) + c(8) - (c(3) + c(4) + c(5)))
+              + c(6) + c(7) + c(8)
+              + c(9) + c(10) + c(11);
+
+          console.table({
+              c0: c(0), c1: c(1), c2: c(2),
+              c3: c(3), c4: c(4), c5: c(5),
+              c6: c(6), c7: c(7), c8: c(8),
+              c9: c(9), c10: c(10), c11: c(11),
+              total: totalW
+          });
+
+          return totalW; // en W
+      }
+        case "MOTION":
+            return payload["pir"] ?? "Motion";
+        default:
+          return null;
+      }
+    }
+
+
+    updateSensorValue(sensorId, value) {
+      if (!this.overlayManager) return;
+
+      const updated = this.overlayManager.updateSensorValue(
+        sensorId,
+        value,
+        new Date().toISOString()
+      );
+      console.log('Updated sensor: ', updated);
+
+      if (!updated) {
+        // capteur hors étage affiché → ignore
+      }
+    }
 
 
     async drawGroundFloorSVG(deskOccupancy = {}) {

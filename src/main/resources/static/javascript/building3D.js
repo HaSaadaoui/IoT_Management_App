@@ -263,6 +263,7 @@ class Building3D {
 
         this.setupEventListeners();
         this.animate();
+        this.openOccupancySSE();
     }
 
     getDeskSensor(floorNumber, deskId) {
@@ -315,6 +316,109 @@ class Building3D {
         const maxD = THREE.MathUtils.clamp(radius * 5.0, 15, 120);
 
         return { target, camPos, minD, maxD };
+    }
+
+    openOccupancySSE() {
+        this.closeOccupancySSE();
+
+        const b = this.buildingKey;
+        const url = `/api/dashboard/occupancy/stream?building=${encodeURIComponent(b)}&clientId=ui-${Date.now()}`;
+
+        this._occEs = new EventSource(url);
+
+        this._occEs.addEventListener("uplink", (e) => {
+            try {
+                const raw = JSON.parse(e.data);
+
+                // ✅ ton SSE (d'après ton curl) : { result: { end_device_ids..., uplink_message... } }
+                const msg = raw?.result ?? raw;
+
+                const deviceId =
+                    msg?.end_device_ids?.device_id ||
+                    msg?.deviceId ||
+                    msg?.device_id;
+
+                const decoded =
+                    msg?.uplink_message?.decoded_payload ||
+                    msg?.decoded_payload ||
+                    msg?.payload ||
+                    {};
+
+                const occRaw = decoded?.occupancy;
+
+                if (!deviceId) return;
+
+                const status = this.normalizeDeskStatus(occRaw);
+                this.applyDeviceStatus(deviceId, status);
+            } catch (err) {
+                console.warn("[SSE] parse error", err, e?.data);
+            }
+        });
+
+        this._occEs.addEventListener("keepalive", () => {});
+        this._occEs.onerror = (e) => console.warn("[SSE] error", e);
+    }
+
+    closeOccupancySSE() {
+        if (this._occEs) {
+            this._occEs.close();
+            this._occEs = null;
+        }
+    }
+
+    // Convertit ce que tu reçois (bool/int/string) en free/used/invalid
+    normalizeDeskStatus(v) {
+        if (v == null) return "invalid";
+
+        if (typeof v === "string") {
+            const s = v.toLowerCase();
+            if (s === "occupied") return "used";
+            if (s === "vacant") return "free";
+            if (s === "used" || s === "true" || s === "1") return "used";
+            if (s === "free" || s === "false" || s === "0") return "free";
+            return "invalid";
+        }
+
+        if (typeof v === "boolean") return v ? "used" : "free";
+        if (typeof v === "number") return v > 0 ? "used" : "free";
+
+        return "invalid";
+    }
+
+    // Met à jour le desk correspondant à un deviceId (sensorId) dans TOUS les floors
+    applyDeviceStatus(sensorId, status) {
+        let updated = false;
+
+        for (const [floorKey, floorInfo] of Object.entries(this.floorData)) {
+            const floorNumber = parseInt(floorKey, 10);
+            if (!floorInfo?.desks) continue;
+
+            for (const desk of Object.values(floorInfo.desks)) {
+                const mappedSensor = this.getDeskSensor(floorNumber, desk.id);
+                if (mappedSensor && mappedSensor === sensorId) {
+                    if (desk.status !== status) {
+                    desk.status = status;
+                    updated = true;
+                    }
+                }
+            }
+        }
+
+        if (!updated) return;
+
+        // Refresh overlay en 3D
+        if (this.isIn3DView && this.hoveredFloor) {
+            this.showFloorInfo(this.hoveredFloor.userData.floorNumber);
+        }
+
+        // Refresh plan 2D si ouvert
+        if (!this.isIn3DView && this.currentArchPlan && this.currentFloorNumber != null) {
+            // si ton ArchitecturalFloorPlan supporte drawFloorPlan(map)
+            const floorInfo = this.floorData[this.currentFloorNumber];
+            const m = {};
+            Object.values(floorInfo.desks).forEach(d => (m[d.id] = d.status));
+            this.currentArchPlan.drawFloorPlan(m);
+        }
     }
 
     async loadOccupancyDataForFloor(floorNumber) {
@@ -971,6 +1075,8 @@ class Building3D {
                 this.buildingKey = key;
             }
 
+            this.openOccupancySSE();
+
             this.isDbBuilding = false;
             this.dbBuildingConfig = null;
             this.dbShapeCache = null;
@@ -981,6 +1087,8 @@ class Building3D {
     }
 
     async setBuilding() {
+
+        this.closeOccupancySSE();
         this.currentFloorNumber = null;
         this.isIn3DView = true;
         this.currentArchPlan = null;
