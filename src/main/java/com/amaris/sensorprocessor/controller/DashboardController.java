@@ -57,8 +57,8 @@ public class DashboardController {
 
     @GetMapping("/api/alerts")
     @ResponseBody
-    public List<Alert> getAlerts() {
-        return alertService.getCurrentAlerts();
+    public List<Alert> getAlerts(@RequestParam(required = false) String building) {
+        return alertService.getCurrentAlerts(building);
     }
 
     @GetMapping("/api/dashboard")
@@ -88,12 +88,11 @@ public class DashboardController {
     @ResponseBody
     public Flux<ServerSentEvent<String>> streamOccupancy(
             @RequestParam(required = false) String building,
-            @RequestParam(required = false) String floor,
-            @RequestParam(required = false, defaultValue = "ui") String clientId
+            @RequestParam(required = false) String floor
     ) {
         final String appId = mapBuildingToAppId(building);
 
-        Flux<String> upstream = sensorService.getMonitoringMany(appId, List.of(), clientId);
+        Flux<String> upstream = sensorService.getMonitoringMany(appId, List.of());
         Flux<ServerSentEvent<String>> keepAlive =
                 Flux.interval(Duration.ofSeconds(15))
                         .map(t -> ServerSentEvent.builder("ping").event("keepalive").build());
@@ -195,7 +194,6 @@ public class DashboardController {
     @ResponseBody
     public Flux<ServerSentEvent<String>> streamLiveData(
             @RequestParam String building,
-            @RequestParam(defaultValue = "ui") String clientId,
             @RequestParam(required = false) String deviceIds
     ) {
         final String appId = mapBuildingToAppId(building);
@@ -206,7 +204,7 @@ public class DashboardController {
                         : Arrays.asList(deviceIds.split(","));
 
         return sensorService
-                .getMonitoringMany(appId, ids, clientId)
+                .getMonitoringMany(appId, ids)
                 .filter(s -> s != null && !s.isBlank())
                 .map(payload ->
                         ServerSentEvent.builder(payload)

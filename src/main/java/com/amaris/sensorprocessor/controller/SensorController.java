@@ -331,8 +331,6 @@
                     .map(gid -> "leva-rpi-mantu".equalsIgnoreCase(gid) ? "lorawan-network-mantu" : gid + "-appli")
                     .orElseThrow(() -> new IllegalStateException("Gateway introuvable pour le capteur " + idSensor));
 
-            // ✅ Nouveau : clientId (informational). Plus de threadId.
-            String clientId = "ui-" + session.getId();
 
             // SSE côté navigateur
             SseEmitter emitter = new SseEmitter(3600000L); // 1h
@@ -348,7 +346,7 @@
             // ✅ Nouveau : on consomme le hub 8081 :
             // POST /api/monitoring/app/{appId}/stream?clientId=...
             // Body: ["idSensor"]
-            var subscription = sensorService.getMonitoringData(appId, idSensor, clientId)
+            var subscription = sensorService.getMonitoringData(appId, idSensor)
                     .map(json -> normalizer.normalizeToMonitoringSensorDataJson(json, appId, sensor))
                     .subscribe(
                             normalizedJson -> {

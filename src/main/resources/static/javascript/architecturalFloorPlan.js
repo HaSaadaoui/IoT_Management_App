@@ -258,7 +258,6 @@ class ArchitecturalFloorPlan {
       this.stopLiveSensors();
 
       const building = this.buildingKey;
-      const clientId = `ui-sensors-${Date.now()}`;
 
       //capteurs réellement affichés
       const sensors = this.overlayManager?.sensors ?? [];
@@ -275,7 +274,6 @@ class ArchitecturalFloorPlan {
       const url =
         `/api/dashboard/live/stream` +
         `?building=${encodeURIComponent(building)}` +
-        `&clientId=${encodeURIComponent(clientId)}` +
         `&deviceIds=${encodeURIComponent(deviceIds.join(","))}`;
 
       console.info("[SSE] connect", url);

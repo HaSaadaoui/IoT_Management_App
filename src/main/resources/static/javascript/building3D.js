@@ -263,7 +263,6 @@ class Building3D {
 
         this.setupEventListeners();
         this.animate();
-        this.openOccupancySSE();
     }
 
     getDeskSensor(floorNumber, deskId) {
@@ -322,7 +321,7 @@ class Building3D {
         this.closeOccupancySSE();
 
         const b = this.buildingKey;
-        const url = `/api/dashboard/occupancy/stream?building=${encodeURIComponent(b)}&clientId=ui-${Date.now()}`;
+        const url = `/api/dashboard/occupancy/stream?building=${encodeURIComponent(b)}`;
 
         this._occEs = new EventSource(url);
 
@@ -1075,8 +1074,6 @@ class Building3D {
                 this.buildingKey = key;
             }
 
-            this.openOccupancySSE();
-
             this.isDbBuilding = false;
             this.dbBuildingConfig = null;
             this.dbShapeCache = null;
@@ -1110,6 +1107,7 @@ class Building3D {
         await this.createBuilding();
         this.resetCameraForBuilding();
         this.loadRealOccupancyData();
+        this.openOccupancySSE();
     }
 
     clearBuilding() {
