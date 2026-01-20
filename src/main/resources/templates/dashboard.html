@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/css/alerts.css"/>
     <link rel="stylesheet" href="/css/monitoringSensor.css"/>
     <link rel="stylesheet" href="/css/dashboard-live.css"/>
+    <link rel="stylesheet" href="/css/analytics.css"/>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -564,112 +565,223 @@
 
         <!-- Occupation Rate Analytics -->
         <h3 class="section-title">📊 Occupation Rate Analytics</h3>
-        <div class="analytics-grid">
-            <!-- Daily Occupation Rate Table -->
-            <div class="chart-card">
-                <h4>📅 Daily Occupation Rate</h4>
-                <div class="history-table-container">
-                    <table class="history-table">
-                        <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Total Desks</th>
-                            <th>Occupied</th>
-                            <th>Free</th>
-                            <th>Rate</th>
-                        </tr>
-                        </thead>
-                        <tbody id="daily-occupation-tbody">
-                        <tr>
-                            <td colspan="5" style="text-align: center; color: #999;">
-                                Load data to view daily occupation rates
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">
+            📌 Méthode: Occupation détectée au moins une fois par intervalle de 30 minutes<br>
+            ⏰ Heures bureau: 9h00-12h30 et 14h00-18h30 | 📅 Jours: Lundi à Vendredi
+        </p>
 
-            <!-- Monthly Occupation Rate Table -->
-            <div class="chart-card">
-                <h4>📆 Monthly Occupation Rate</h4>
-                <div class="history-table-container">
-                    <table class="history-table">
-                        <thead>
-                        <tr>
-                            <th>Month</th>
-                            <th>Avg Occupied</th>
-                            <th>Avg Free</th>
-                            <th>Avg Rate</th>
-                        </tr>
-                        </thead>
-                        <tbody id="monthly-occupation-tbody">
-                        <tr>
-                            <td colspan="4" style="text-align: center; color: #999;">
-                                Load data to view monthly occupation rates
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Occupancy Trends Chart -->
-        <div class="chart-card full-width" style="margin-top: 2rem;">
-            <div class="chart-header">
-                <div class="chart-title">
-                    <span class="chart-icon" style="background: linear-gradient(135deg, #ec4899, #db2777);">👥</span>
-                    <span>Occupancy Trends</span>
-                </div>
-            </div>
-            <div class="chart-container">
-                <canvas id="hist-occupancy-chart"></canvas>
-            </div>
-        </div>
-
-        <!-- Global Occupation Statistics -->
-        <div class="chart-card" style="margin-top: 2rem;">
-            <h4 id="global-chart-title">Global Occupation Statistics</h4>
-            <div class="global-occupation">
-                <div class="doughnut-container">
-                    <div class="doughnut-chart">
-                        <canvas id="chart-global"></canvas>
-                        <div class="global-percentage" id="global-percentage-value">0.0%</div>
-                    </div>
-                    <div class="doughnut-labels">
-                        <div class="stat-legend" id="global-legend">
-                            <div class="custom-label">
-                                <span class="dot free"></span> Free
-                            </div>
-                            <div class="custom-label">
-                                <span class="dot used"></span> Occupied
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Desk Occupancy Bar Chart -->
-        <div class="chart-card full-width" style="margin-top: 2rem;">
-            <div class="histogram-header">
-                <h4 id="histogram-chart-title">
-                    📋 Individual Desk Occupancy Status
+        <!-- 1. Desk-Bureau-Standard Section -->
+        <div class="chart-card full-width" style="margin-bottom: 2rem;">
+            <div class="section-header" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
+                <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>💼</span>
+                    <span>1. Desk-Bureau-Standard (90 capteurs)</span>
                 </h4>
-                <div class="histogram-summary" id="histogram-summary">
-                    <span class="summary-item">Total Sensors: <strong id="summary-total-sensors">--</strong></span>
-                    <span class="summary-item">Occupied: <strong id="summary-active-sensors">--</strong></span>
-                    <span class="summary-item">Avg: <strong id="summary-avg-value">--</strong></span>
-                    <span class="summary-item">Min: <strong id="summary-min-value">--</strong></span>
-                    <span class="summary-item">Max: <strong id="summary-max-value">--</strong></span>
+            </div>
+            <div style="padding: 1.5rem;">
+                <!-- Statistiques Globales -->
+                <div class="stats-summary" id="desk-global-stats" style="margin-bottom: 1.5rem;">
+                    <div class="stat-card">
+                        <span class="stat-label">📅 Aujourd'hui</span>
+                        <span class="stat-value" id="desk-global-daily">--</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">📊 Cette Semaine</span>
+                        <span class="stat-value" id="desk-global-weekly">--</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">📆 Ce Mois</span>
+                        <span class="stat-value" id="desk-global-monthly">--</span>
+                    </div>
+                </div>
+
+                <!-- Tableau des capteurs individuels -->
+                <div class="history-table-container">
+                    <table class="history-table analytics-table">
+                        <thead>
+                        <tr>
+                            <th>Capteur</th>
+                            <th>Taux Jour (%)</th>
+                            <th>Intervalles/Total</th>
+                            <th>Taux Semaine (%)</th>
+                            <th>Intervalles/Total</th>
+                            <th>Taux Mois (%)</th>
+                            <th>Intervalles/Total</th>
+                        </tr>
+                        </thead>
+                        <tbody id="desk-analytics-tbody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: #999; padding: 2rem;">
+                                🔄 Chargement des données...
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Histogramme -->
+                <div class="chart-container" style="margin-top: 2rem; height: 400px;">
+                    <canvas id="chart-desk-analytics"></canvas>
                 </div>
             </div>
-            <div class="chart-container" style="height: 400px;">
-                <canvas id="chart-desk-occupancy-bar"></canvas>
+        </div>
+
+        <!-- 2. Salle de Réunion Section -->
+        <div class="chart-card full-width" style="margin-bottom: 2rem;">
+            <div class="section-header" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
+                <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>🏢</span>
+                    <span>2. Salle de Réunion (3 capteurs)</span>
+                </h4>
             </div>
-            <div class="histogram-loading" id="histogram-loading" style="display: none">
-                <span>🔄 Loading desk occupancy data...</span>
+            <div style="padding: 1.5rem;">
+                <div class="stats-summary" id="meeting-global-stats" style="margin-bottom: 1.5rem;">
+                    <div class="stat-card">
+                        <span class="stat-label">📅 Aujourd'hui</span>
+                        <span class="stat-value" id="meeting-global-daily">--</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">📊 Cette Semaine</span>
+                        <span class="stat-value" id="meeting-global-weekly">--</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">📆 Ce Mois</span>
+                        <span class="stat-value" id="meeting-global-monthly">--</span>
+                    </div>
+                </div>
+
+                <div class="history-table-container">
+                    <table class="history-table analytics-table">
+                        <thead>
+                        <tr>
+                            <th>Salle</th>
+                            <th>Taux Jour (%)</th>
+                            <th>Intervalles/Total</th>
+                            <th>Taux Semaine (%)</th>
+                            <th>Intervalles/Total</th>
+                            <th>Taux Mois (%)</th>
+                            <th>Intervalles/Total</th>
+                        </tr>
+                        </thead>
+                        <tbody id="meeting-analytics-tbody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: #999; padding: 2rem;">
+                                🔄 Chargement des données...
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="chart-container" style="margin-top: 2rem; height: 300px;">
+                    <canvas id="chart-meeting-analytics"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Phone Booth Section -->
+        <div class="chart-card full-width" style="margin-bottom: 2rem;">
+            <div class="section-header" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
+                <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>📞</span>
+                    <span>3. Phone Booth (7 capteurs)</span>
+                </h4>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="stats-summary" id="phone-global-stats" style="margin-bottom: 1.5rem;">
+                    <div class="stat-card">
+                        <span class="stat-label">📅 Aujourd'hui</span>
+                        <span class="stat-value" id="phone-global-daily">--</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">📊 Cette Semaine</span>
+                        <span class="stat-value" id="phone-global-weekly">--</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">📆 Ce Mois</span>
+                        <span class="stat-value" id="phone-global-monthly">--</span>
+                    </div>
+                </div>
+
+                <div class="history-table-container">
+                    <table class="history-table analytics-table">
+                        <thead>
+                        <tr>
+                            <th>Booth</th>
+                            <th>Taux Jour (%)</th>
+                            <th>Intervalles/Total</th>
+                            <th>Taux Semaine (%)</th>
+                            <th>Intervalles/Total</th>
+                            <th>Taux Mois (%)</th>
+                            <th>Intervalles/Total</th>
+                        </tr>
+                        </thead>
+                        <tbody id="phone-analytics-tbody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: #999; padding: 2rem;">
+                                🔄 Chargement des données...
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="chart-container" style="margin-top: 2rem; height: 300px;">
+                    <canvas id="chart-phone-analytics"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Interview Room Section -->
+        <div class="chart-card full-width" style="margin-bottom: 2rem;">
+            <div class="section-header" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
+                <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>🎯</span>
+                    <span>4. Interview Room (2 capteurs)</span>
+                </h4>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="stats-summary" id="interview-global-stats" style="margin-bottom: 1.5rem;">
+                    <div class="stat-card">
+                        <span class="stat-label">📅 Aujourd'hui</span>
+                        <span class="stat-value" id="interview-global-daily">--</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">📊 Cette Semaine</span>
+                        <span class="stat-value" id="interview-global-weekly">--</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">📆 Ce Mois</span>
+                        <span class="stat-value" id="interview-global-monthly">--</span>
+                    </div>
+                </div>
+
+                <div class="history-table-container">
+                    <table class="history-table analytics-table">
+                        <thead>
+                        <tr>
+                            <th>Room</th>
+                            <th>Taux Jour (%)</th>
+                            <th>Intervalles/Total</th>
+                            <th>Taux Semaine (%)</th>
+                            <th>Intervalles/Total</th>
+                            <th>Taux Mois (%)</th>
+                            <th>Intervalles/Total</th>
+                        </tr>
+                        </thead>
+                        <tbody id="interview-analytics-tbody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: #999; padding: 2rem;">
+                                🔄 Chargement des données...
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="chart-container" style="margin-top: 2rem; height: 300px;">
+                    <canvas id="chart-interview-analytics"></canvas>
+                </div>
             </div>
         </div>
 
@@ -877,6 +989,7 @@
 <script src="/javascript/building3D.js"></script>
 <script src="/javascript/alerts.js"></script>
 <script src="/javascript/dashboard.js"></script>
+<script src="/javascript/occupancy-analytics.js"></script>
 <script>
     // Tab switching functionality
     function showPane(which) {
