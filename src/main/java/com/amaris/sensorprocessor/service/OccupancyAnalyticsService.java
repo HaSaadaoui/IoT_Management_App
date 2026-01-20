@@ -235,18 +235,34 @@ public class OccupancyAnalyticsService {
             
             // Check if any data point in this interval shows occupancy
             boolean occupied = data.stream().anyMatch(row -> {
-                LocalDateTime timestamp = ((java.sql.Timestamp) row.get("received_at")).toLocalDateTime();
-                if (timestamp.isBefore(intervalStart) || timestamp.isAfter(intervalEnd)) {
-                    return false;
-                }
-                
-                String value = (String) row.get("value");
-                if (value == null) return false;
-                
                 try {
-                    return Integer.parseInt(value) > 0;
-                } catch (NumberFormatException e) {
-                    return "occupied".equalsIgnoreCase(value) || "used".equalsIgnoreCase(value);
+                    Object receivedAtObj = row.get("received_at");
+                    if (receivedAtObj == null) return false;
+                    
+                    LocalDateTime timestamp;
+                    if (receivedAtObj instanceof java.sql.Timestamp) {
+                        timestamp = ((java.sql.Timestamp) receivedAtObj).toLocalDateTime();
+                    } else if (receivedAtObj instanceof LocalDateTime) {
+                        timestamp = (LocalDateTime) receivedAtObj;
+                    } else {
+                        return false;
+                    }
+                    
+                    // Check if timestamp is within interval [start, end)
+                    if (timestamp.isBefore(intervalStart) || !timestamp.isBefore(intervalEnd)) {
+                        return false;
+                    }
+                    
+                    String value = (String) row.get("value");
+                    if (value == null) return false;
+                    
+                    try {
+                        return Integer.parseInt(value) > 0;
+                    } catch (NumberFormatException e) {
+                        return "occupied".equalsIgnoreCase(value) || "used".equalsIgnoreCase(value);
+                    }
+                } catch (Exception e) {
+                    return false;
                 }
             });
             
