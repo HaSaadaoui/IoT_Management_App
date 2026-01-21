@@ -1,5 +1,6 @@
 package com.amaris.sensorprocessor.service;
 
+import com.amaris.sensorprocessor.entity.BuildingMapping;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.Sensor;
 import com.amaris.sensorprocessor.entity.SensorData;
@@ -64,9 +65,13 @@ public class DashboardServiceImpl implements DashboardService {
 
         // Set defaults if parameters are null
         sensorType = sensorType != null ? sensorType : "DESK";
+        // avoir le vrai nom du bulding de la BDD
+        String buildingName = BuildingMapping.toDbName(building);
 
         // Get alerts
-        List<Alert> alerts = getAlerts();
+        //List<Alert> alerts = getAlerts();
+        List<Alert> alerts = getAlerts(buildingName);
+
 
         // Get live sensor data with filters
         List<LiveSensorData> liveSensorData = getLiveSensorData(building, floor, sensorType);
@@ -77,8 +82,8 @@ public class DashboardServiceImpl implements DashboardService {
         return new DashboardData(alerts, liveSensorData, historicalData);
     }
 
-    private List<Alert> getAlerts() {
-        return alertService.getCurrentAlerts();
+    private List<Alert> getAlerts(String building) {
+        return alertService.getCurrentAlerts(building);
     }
 
     private List<LiveSensorData> getLiveSensorData(String building, String floor, String sensorType) {

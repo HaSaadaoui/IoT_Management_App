@@ -51,7 +51,7 @@ public class AlertNotificationScheduler {
         
         try {
             // Get current alerts from dashboard (same logic as dashboard)
-            List<Alert> currentAlerts = alertService.getCurrentAlerts();
+            List<Alert> currentAlerts = alertService.getCurrentAlerts(null);
             
             if (currentAlerts.isEmpty()) {
                 log.debug("No active alerts found");

@@ -57,8 +57,8 @@ public class DashboardController {
 
     @GetMapping("/api/alerts")
     @ResponseBody
-    public List<Alert> getAlerts(@RequestParam(required = false) String building) {
-        return alertService.getCurrentAlerts();
+    public List<Alert> getAlerts() {
+        return alertService.getCurrentAlerts("");
     }
 
     @GetMapping("/api/dashboard")
