@@ -81,7 +81,7 @@ public final class Constants {
      * Elles peuvent être récupéré sans avoir à les "attraper" au moment
      * meme où elles sont générées.
      */
-    public static final Integer SENSOR_DATA_SYNC_PERIOD_MINUTE = 5; // Executer la synchro toutes les 15 minutes
+    public static final Integer SENSOR_DATA_SYNC_PERIOD_MINUTE = 10; // Executer la synchro toutes les 15 minutes
 
     /*
      * Récupérer les données sur une plage plus longue que la période de synchro afin ne pas en rater aucune données
