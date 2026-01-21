@@ -1006,9 +1006,9 @@ async function loadHistory(fromISO, toISO) {
         }
     };
 
-console.log("keys j.data:", Object.keys(j.data || {}));
-console.log("RSSI size:", Object.keys(j.data?.RSSI || {}).length);
-console.log("SNR size:", Object.keys(j.data?.SNR || {}).length);
+    console.log("keys j.data:", Object.keys(j.data || {}));
+    console.log("RSSI size:", Object.keys(j.data?.RSSI || {}).length);
+    console.log("SNR size:", Object.keys(j.data?.SNR || {}).length);
     networkMetrics.forEach(metricName => processMetric(metricName, networkMetricsContainer));
     sensorMetrics.forEach(metricName => processMetric(metricName, sensorMetricsContainer));
 
@@ -1304,8 +1304,15 @@ function updateEnergyConsumption(data) {
     }
 
     updateEnergyChart(channelGroups, chartDataPower, {
-        mode: 'power'
+        mode: 'power',
+        totalsW: {
+            'red-outlets': redW,
+            'white-outlets': whiteW,
+            'ventilation': ventW,
+            'other': otherW
+        }
     });
+
 }
 
 function renderChannelCard(channelEl, ch, powerW) {
@@ -1347,14 +1354,22 @@ function updateEnergyChart(groups, data, opts = {}) {
     const mode = opts.mode || 'energy'; // 'energy' ou 'power'
     const unit = (mode === 'power') ? 'kW' : 'kWh';
 
+    const totalsW = opts.totalsW || null; // <-- AJOUT
+
     const groupData = Object.entries(groups).map(([groupId, group]) => {
         let total = 0;
-        group.channels.forEach(channel => {
-            const channelData = data[channel];
-            if (channelData && typeof channelData.value === 'number') {
-                total += channelData.value; // W si mode=power, Wh si mode=energy
-            }
-        });
+
+        if (totalsW && typeof totalsW[groupId] === 'number') {
+            // <-- AJOUT : on force le total calculé ailleurs (ex: whiteW ajusté)
+            total = totalsW[groupId];
+        } else {
+            group.channels.forEach(channel => {
+                const channelData = data[channel];
+                if (channelData && typeof channelData.value === 'number') {
+                    total += channelData.value;
+                }
+            });
+        }
 
         return {
             name: group.name,
