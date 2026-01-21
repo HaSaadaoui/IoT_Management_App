@@ -63,7 +63,7 @@ public class SensorSyncService {
     private final ObjectMapper objectMapper;
     private final GatewayService gatewayService;
 
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2));
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final Map<String, ScheduledFuture<?>> scheduledSyncTasks = new ConcurrentHashMap<>();
     private final Map<String, AtomicBoolean> initialSyncCompleted = new ConcurrentHashMap<>();
 
@@ -222,34 +222,38 @@ public class SensorSyncService {
     @Transactional
     public void syncSensorsData(String gatewayId, Instant after) {
         try {
-            // Fetch latest data from monitoring API
             final String appId;
-            if (gatewayId.toLowerCase().equals("leva-rpi-mantu")) {
+            if ("leva-rpi-mantu".equalsIgnoreCase(gatewayId)) {
                 appId = "lorawan-network-mantu";
-            } else if (gatewayId.equals("lil-rpi-mantu")) {
+            } else if ("lil-rpi-mantu".equals(gatewayId)) {
                 appId = "lil-rpi-mantu-appli";
-            } else if (gatewayId.equals("rpi-mantu")) {
+            } else if ("rpi-mantu".equals(gatewayId)) {
                 appId = "rpi-mantu-appli";
             } else {
                 appId = gatewayId + "-mantu-appli";
             }
 
             sensorService.getGatewayDevices(appId, after)
-                    .takeWhile(json -> {
-                        var val = !"".equalsIgnoreCase(json);
-                        return val;
+                    .doOnSubscribe(s -> log.info("[SensorSync] SUBSCRIBE appId={}, after={}", appId, after))
+                    .doOnNext(j -> log.info("[SensorSync] NEXT {} bytes", j == null ? 0 : j.length()))
+                    .doOnError(e -> log.error("[SensorSync] STREAM ERROR appId={}, after={}", appId, after, e))
+                    .doOnComplete(() -> log.warn("[SensorSync] STREAM COMPLETE appId={}, after={}", appId, after))
+
+                    // stop si on reçoit des keep-alive vides / null
+                    .filter(json -> json != null && !json.isBlank())
+
+                    // side-effect: insertion
+                    .doOnNext(json -> {
+                        try {
+                            storeDataFromPayload(json, appId);
+                        } catch (Exception e) {
+                            log.error("[SensorSync] Error inserting sensor data: {}", e.getMessage(), e);
+                        }
                     })
-                    .map(
-                            (String json) -> {
-                                try {
-                                    storeDataFromPayload(json, appId);
-                                    return true;
-                                } catch (Exception e) {
-                                    log.error("[SensorSync] Error inserting sensor data: {}", e.getMessage(), e);
-                                }
-                                return false;
-                            })
+
+                    // on déclenche l'exécution
                     .subscribe();
+
         } catch (Exception e) {
             log.error("[SensorSync] Error syncing sensors data: {}", e.getMessage(), e);
         }
@@ -424,30 +428,42 @@ public class SensorSyncService {
         DocumentContext context = reader.parse(json);
 
         String receivedAtString = context.read("$.result.received_at");
-        LocalDateTime receivedAt = convertTimestampToLocalDateTime(receivedAtString);
+        if (receivedAtString == null) {
+            receivedAtString = context.read("$.received_at");
+        }
+
         String deviceId = context.read("$.result.end_device_ids.device_id");
+        if (deviceId == null) {
+            deviceId = context.read("$.end_device_ids.device_id");
+        }
+
+        if (deviceId == null || receivedAtString == null) {
+            log.warn("[SensorSync] Payload missing deviceId or received_at. appId={}, rawHead={}",
+                    appId, json.substring(0, Math.min(300, json.length())));
+            return;
+        }
+
+        LocalDateTime receivedAt = convertTimestampToLocalDateTime(receivedAtString);
 
         int inserted = 0;
 
         try {
             for (var entry : JSON_PATH_MAP.entrySet()) {
                 PayloadValueType key = entry.getKey();
-                if (!ALLOWED_TYPES.contains(key)) continue; // <-- ICI
-
+                if (!ALLOWED_TYPES.contains(key)) continue;
                 String jsonPath = entry.getValue();
 
                 Object value;
-                if (context.read("$.result") != null) {
-                    value = context.read(jsonPath.replace("$.", "$.result."));
-                } else if (context.read("$.data") != null) {
-                    value = context.read(jsonPath.replace("$.", "$.data."));
-                } else {
-                    value = null;
-                }
+                String basePrefix =
+                        context.read("$.result") != null ? "$.result." :
+                                context.read("$.data")   != null ? "$.data."   :
+                                        "$.";
 
+                value = context.read(jsonPath.replace("$.", basePrefix));
                 if (value != null) {
                     SensorData sd = new SensorData(deviceId, receivedAt, value.toString(), key.toString());
                     sensorDataDao.insertSensorData(sd);
+                    inserted++;
                 }
             }
 
@@ -461,6 +477,14 @@ public class SensorSyncService {
             if (!(e instanceof DuplicateKeyException)) {
                 log.error("[SensorSync] Error decoding payload: {}", e.getMessage(), e);
             }
+        }
+
+        if (inserted == 0) {
+            log.warn("[SensorSync] 0 values extracted. appId={}, deviceId={}, receivedAt={}, rawHead={}",
+                    appId, deviceId, receivedAtString,
+                    json.substring(0, Math.min(300, json.length())));
+        } else {
+            log.info("[SensorSync] Inserted {} metrics for deviceId={} at {}", inserted, deviceId, receivedAt);
         }
     }
 

@@ -64,10 +64,10 @@ public enum PayloadValueType {
     DEV_ADDR(Category.TECH, "$.end_device_ids.dev_addr"),
     RECEIVED_AT(Category.TECH, "$.received_at"),
 
-    RSSI(Category.BUSINESS, "$.uplink_message.rx_metadata.[0].rssi"),
-    SNR(Category.BUSINESS, "$.uplink_message.rx_metadata.[0].snr"),
-    CHANNEL_INDEX(Category.BUSINESS, "$.uplink_message.rx_metadata.[0].channel_index"),
-    CHANNEL_RSSI(Category.BUSINESS, "$.uplink_message.rx_metadata.[0].channel_rssi"),
+    RSSI(Category.BUSINESS, "$.uplink_message.rx_metadata[0].rssi"),
+    SNR(Category.BUSINESS, "$.uplink_message.rx_metadata[0].snr"),
+    CHANNEL_INDEX(Category.BUSINESS, "$.uplink_message.rx_metadata[0].channel_index"),
+    CHANNEL_RSSI(Category.BUSINESS, "$.uplink_message.rx_metadata[0].channel_rssi"),
     FREQUENCY_OFFSET(Category.TECH, "$.uplink_message.rx_metadata.[0].frequency_offset"),
 
     F_CNT(Category.TECH, "$.uplink_message.f_cnt"),

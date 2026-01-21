@@ -82,17 +82,33 @@ public class SensorService {
                     uriBuilder.path("/api/monitoring/app/{appId}/uplinks");
                     if (after != null) uriBuilder.queryParam("after", after.toString());
                     uriBuilder.queryParam("limit", 200);
+                    uriBuilder.queryParam("order", "-received_at"); // si ton gateway-supporte ce param
                     return uriBuilder.build(appId);
                 })
                 .accept(MediaType.valueOf("application/x-ndjson"))
                 .retrieve()
                 .bodyToFlux(String.class)
-                .timeout(java.time.Duration.ofSeconds(120))
-                .onErrorResume(java.util.concurrent.TimeoutException.class, e -> {
-                    log.warn("[Sensor] NDJSON timeout for appId={}: {}", appId, e.getMessage());
-                    return Flux.empty();
-                })
-                .doOnError(err -> log.error("[Sensor] NDJSON error appId={}: {}", appId, err.getMessage(), err));
+                .flatMap(chunk -> {
+                    if (chunk == null || chunk.isBlank()) return Flux.empty();
+
+                    // 1) split par lignes si jamais il y en a
+                    List<String> parts = new ArrayList<>(Arrays.asList(chunk.split("\\R")));
+
+                    // 2) fallback : split entre deux JSON collés : ...}{...
+                    // regex = "après un }" suivi immédiatement d'un "{"
+                    List<String> expanded = new ArrayList<>();
+                    for (String p : parts) {
+                        if (p != null && p.contains("}{")) {
+                            expanded.addAll(Arrays.asList(p.split("(?<=\\})(?=\\{)")));
+                        } else {
+                            expanded.add(p);
+                        }
+                    }
+
+                    return Flux.fromIterable(expanded)
+                            .map(String::trim)
+                            .filter(s -> !s.isBlank());
+                });
     }
 
     public Flux<String> getMonitoringMany(String appId, List<String> deviceIds) {
