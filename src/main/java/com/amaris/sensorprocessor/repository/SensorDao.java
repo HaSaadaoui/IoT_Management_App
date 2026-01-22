@@ -92,20 +92,18 @@ public class SensorDao {
 
     public List<Sensor> findAllByDeviceTypeAndBuilding(String deviceType, String building) {
         return jdbcTemplate.query(
-                "SELECT * FROM sensors WHERE DEVICE_TYPE = ? AND (? IS NULL OR BUILDING_NAME = ?)",
+                "SELECT * FROM sensors WHERE DEVICE_TYPE = ? AND BUILDING_NAME = ?",
                 new BeanPropertyRowMapper<>(Sensor.class),
                 deviceType,
-                building,
                 building
         );
     }
 
     public boolean existsByBuildingAndType(String building, String deviceType){
         Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(1) FROM sensors WHERE DEVICE_TYPE = ? AND (? IS NULL OR BUILDING_NAME = ?)",
+                "SELECT COUNT(1) FROM sensors WHERE DEVICE_TYPE = ? AND  BUILDING_NAME = ?",
                 Integer.class,
                 deviceType,
-                building,
                 building
         );
 
