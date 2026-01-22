@@ -493,7 +493,7 @@ DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' }
 
 		if (this.useMockData) {
 			console.log('Loading mock data');
-			this.loadSampleData();
+			//this.loadSampleData();
 			return;
 		}
 
@@ -530,7 +530,7 @@ DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' }
 		} catch (error) {
 			console.error('Error Loading Dashboard Data', error);
 			this.showError('Failed to load dashboard data. Using sample data.');
-			this.loadSampleData();
+			//this.loadSampleData();
 		}
 	}
 
