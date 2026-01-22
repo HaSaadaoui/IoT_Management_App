@@ -491,11 +491,6 @@ DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' }
 	async loadDashboardData() {
 		console.log('=== Loading Dashboard Data ===');
 
-		if (this.useMockData) {
-			console.log('Loading mock data');
-			//this.loadSampleData();
-			return;
-		}
 
 		try {
 			this.showLoading();
@@ -530,7 +525,6 @@ DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' }
 		} catch (error) {
 			console.error('Error Loading Dashboard Data', error);
 			this.showError('Failed to load dashboard data. Using sample data.');
-			//this.loadSampleData();
 		}
 	}
 
@@ -574,38 +568,6 @@ DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' }
 
 		console.log(`Backing off. Next retry in ${this.currentRefreshInterval / 1000} seconds`);
 		this.scheduleNextRefresh();
-	}
-
-	loadSampleData() {
-		const days = 30;
-		const historicalData = [];
-
-		for (let i = days - 1; i >= 0; i--) {
-			const date = new Date();
-			date.setDate(date.getDate() - i);
-
-			historicalData.push({
-				date: date.toISOString().split('T')[0],
-				occupancyRate: Math.random() * 40 + 20,
-				sensorCount: Math.floor(Math.random() * 50) + 100,
-				avgValue: Math.random() * 100
-			});
-		}
-
-		const data = {
-			...this.currentData,
-			alerts: this.generateSampleAlerts(),
-			liveSensorData: this.generateSampleLiveData(),
-			historicalData: {
-				dataPoints: historicalData,
-				globalOccupancy: 0,
-				totalSensors: 0,
-				activeSensors: 0
-			}
-		};
-
-		this.updateDashboard(data);
-		this.updateRefreshTime();
 	}
 
 	generateSampleAlerts() {
