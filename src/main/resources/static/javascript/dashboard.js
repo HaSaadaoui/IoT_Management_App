@@ -2,7 +2,14 @@ class DashboardManager {
 	constructor() {
 		this.buildings = [];
 		this.currentBuilding = null;
-		this.useMockData = false;
+		this.consoSse = null;
+        // power par device (en W typiquement)
+        this.consoPowerByDevice = new Map();
+        // last-seen par device pour purge (anti “valeur figée”)
+        this.consoLastSeenByDevice = new Map();
+        // TTL (ms) : si un device ne remonte plus, on l’enlève du total
+        this.consoTtlMs = 2 * 60 * 1000; // 2 minutes
+
 
 		// Bâtiments "hors base"
 		this.virtualBuildings = {
@@ -133,6 +140,74 @@ DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' }
 			);
 		});
 	}
+
+// =========================
+// ===== CONSO SSE (aggregate)
+// =========================
+
+startConsoAggregateSse() {
+  const building = this.filters.building;
+  if (!building) return;
+
+  // Stop ancien SSE si existant
+  this.stopConsoAggregateSse();
+
+  const url = `/api/dashboard/conso/live/aggregate/stream?building=${encodeURIComponent(building)}`;
+  console.log('[CONSO SSE] starting', url);
+
+  const es = new EventSource(url);
+  this.consoSse = es;
+
+  es.addEventListener('conso_aggregate', (ev) => {
+    try {
+      const payload = JSON.parse(ev.data);
+
+      // 1) Current Power: privilégie kW si fourni, sinon convertit W -> kW
+      const kw = (payload.powerTotalkW != null)
+        ? Number(payload.powerTotalkW)
+        : (payload.powerTotalW != null ? Number(payload.powerTotalW) / 1000 : null);
+
+      if (kw != null && !Number.isNaN(kw)) {
+        this.updateMetricValue('live-current-power', kw.toFixed(3));
+      }
+
+      // 2) Today Energy: privilégie kWh si fourni, sinon convertit Wh -> kWh
+      const kwh = (payload.todayEnergykWh != null)
+        ? Number(payload.todayEnergykWh)
+        : (payload.todayEnergyWh != null ? Number(payload.todayEnergyWh) / 1000 : null);
+
+      if (kwh != null && !Number.isNaN(kwh)) {
+        this.updateMetricValue('live-daily-energy', kwh.toFixed(2));
+      }
+
+      // Optionnel: debug / affichage deviceCount
+      // this.updateMetricValue('live-conso-device-count', String(payload.deviceCount ?? '--'));
+
+      // Si tu veux afficher l'horodatage
+      // this.consoLastUpdatedAt = payload.updatedAtEpochMs;
+
+    } catch (e) {
+      console.warn('[CONSO SSE] parse error', e);
+    }
+  });
+
+  es.addEventListener('keepalive', () => {
+    // rien à faire
+  });
+
+  es.onerror = (err) => {
+    console.warn('[CONSO SSE] error', err);
+    // EventSource auto-reconnect. Tu peux ajouter une UI "degraded" si besoin.
+  };
+}
+
+stopConsoAggregateSse() {
+  if (this.consoSse) {
+    console.log('[CONSO SSE] stopping');
+    try { this.consoSse.close(); } catch {}
+    this.consoSse = null;
+  }
+}
 
 	async fetchDeskSensors(building, floor) {
 		const params = new URLSearchParams({
@@ -315,6 +390,7 @@ DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' }
 
 			this.currentBuilding = current;
 			this.filters.building = this.getBuildingKey(current); // normalisation filtre
+            this.startConsoAggregateSse();
 
 			// Charger les étages
 			const floorsLookupId = current.code ? current.code : current.id;
@@ -352,6 +428,8 @@ DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' }
 
 			// 2) Mettre à jour currentBuilding
 			this.currentBuilding = building;
+			this.startConsoAggregateSse();
+
 
 			// 3) Charger les floors (virtuel => code ok, DB => id)
 			const floorsLookupId = building.code ? building.code : building.id;
@@ -747,17 +825,7 @@ async updateLiveBuildingMetrics() {
       console.warn('Temperature EXT (TEMPEX) failed', e?.message || e);
     }
 
-    try {
-const powerW = await this.fetchLiveMetric('CURRENT_POWER');
 
-if (powerW != null && !Number.isNaN(Number(powerW))) {
-  const totalKw = Math.abs(Number(powerW)) / 1000;
-  this.updateMetricValue('live-current-power', totalKw.toFixed(3));
-}
-
-    } catch (e) {
-      console.warn('Current power (kW) failed', e?.message || e);
-    }
 
     try {
       const humExt = await getAvg({ sensorType: 'TEMPEX', metricType: 'HUMIDITY' });

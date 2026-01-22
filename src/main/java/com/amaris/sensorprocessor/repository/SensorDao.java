@@ -95,6 +95,7 @@ public class SensorDao {
                 "SELECT * FROM sensors WHERE DEVICE_TYPE = ? AND (? IS NULL OR BUILDING_NAME = ?)",
                 new BeanPropertyRowMapper<>(Sensor.class),
                 deviceType,
+                building,
                 building
         );
     }
@@ -104,6 +105,7 @@ public class SensorDao {
                 "SELECT COUNT(1) FROM sensors WHERE DEVICE_TYPE = ? AND (? IS NULL OR BUILDING_NAME = ?)",
                 Integer.class,
                 deviceType,
+                building,
                 building
         );
 
