@@ -489,10 +489,7 @@ class SensorOverlayManager {
       if (!sensor) return;
 
       const el = document.getElementById(`sensor-value-${sensor.id}`);
-      console.log("Element:", el);
-
       if (!el) return;
-
       switch (sensor.type) {
         case "CO2":
           el.textContent = `${sensor.value} ppm`;
@@ -518,8 +515,15 @@ class SensorOverlayManager {
           }
           break;
         case "ENERGY":
-          //el.textContent = `${sensor.value} kWh`;
-          el.textContent = `${(sensor.value / 1000).toFixed(2)} kW`;
+          // On garde la valeur valeur affichée dans les statistique
+          const elt = document.getElementById("live-current-power");
+          if (elt) {
+            const energyConsumption = elt.textContent.trim();
+            console.log("live total power:", energyConsumption);
+            el.textContent = `${energyConsumption} kW`;
+          } else{
+            el.textContent = `-- kW`;
+          }
           break;
         default:
           el.textContent = sensor.value;
