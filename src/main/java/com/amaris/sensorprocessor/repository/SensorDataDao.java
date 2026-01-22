@@ -2,14 +2,7 @@ package com.amaris.sensorprocessor.repository;
 
 import lombok.AllArgsConstructor;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Date;
+import java.util.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -206,6 +199,57 @@ public class SensorDataDao {
             return Optional.empty();
         }
     }
+
+    public Map<PayloadValueType, Double> findFirstValuesOfDayByTypes(
+            String idSensor,
+            Set<PayloadValueType> types,
+            LocalDateTime dayStart,
+            LocalDateTime dayEnd
+    ) {
+        if (types == null || types.isEmpty()) return Map.of();
+
+        String inClause = String.join(",",
+                types.stream().map(t -> "'" + t.toString() + "'").toList()
+        );
+
+        // On prend, pour chaque value_type, la première ligne du jour
+        // MySQL: join sur MIN(received_at) par value_type
+        String query = """
+        SELECT sd.*
+        FROM sensor_data sd
+        JOIN (
+            SELECT value_type, MIN(received_at) AS min_received_at
+            FROM sensor_data
+            WHERE id_sensor = ?
+              AND value_type IN (%s)
+              AND received_at >= ?
+              AND received_at < ?
+            GROUP BY value_type
+        ) firsts
+          ON sd.value_type = firsts.value_type
+         AND sd.received_at = firsts.min_received_at
+        WHERE sd.id_sensor = ?
+    """.formatted(inClause);
+
+        try {
+            List<SensorData> rows = jdbcTemplate.query(query, (rs, rowNum) -> new SensorData(
+                    rs.getString("id_sensor"),
+                    rs.getTimestamp("received_at").toLocalDateTime(),
+                    rs.getString("value"),
+                    rs.getString("value_type")
+            ), idSensor, dayStart, dayEnd, idSensor);
+
+            Map<PayloadValueType, Double> out = new HashMap<>();
+            for (SensorData sd : rows) {
+                Double v = sd.getValueAsDouble();
+                if (v != null) out.put(sd.getValueType(), v);
+            }
+            return out;
+        } catch (Exception e) {
+            return Map.of();
+        }
+    }
+
 
     public Optional<SensorData> findLastValueBefore(String idSensor, PayloadValueType channel, Instant instant) {
         String query = "SELECT * FROM sensor_data WHERE id_sensor = ? AND value_type = ? AND received_at < ? ORDER BY received_at DESC LIMIT 1";
