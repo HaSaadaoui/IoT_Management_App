@@ -3,6 +3,8 @@ package com.amaris.sensorprocessor.controller;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.Sensor;
 import com.amaris.sensorprocessor.entity.User;
+import reactor.core.scheduler.Schedulers;
+
 import com.amaris.sensorprocessor.model.dashboard.Alert;
 import com.amaris.sensorprocessor.model.dashboard.*;
 import com.amaris.sensorprocessor.repository.SensorDao;
@@ -31,6 +33,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
@@ -147,19 +150,12 @@ public class DashboardController {
         };
     }
 
-    @GetMapping(
-            value = "/api/dashboard/conso/live/aggregate/stream",
-            produces = MediaType.TEXT_EVENT_STREAM_VALUE
-    )
+    @GetMapping(value="/api/dashboard/conso/live/aggregate/stream", produces=MediaType.TEXT_EVENT_STREAM_VALUE)
     @ResponseBody
-    public Flux<ServerSentEvent<ConsoLiveAggregate>> streamConsoAggregate(
-            @RequestParam String building
-    ) {
+    public Flux<ServerSentEvent<ConsoLiveAggregate>> streamConsoAggregate(@RequestParam String building) {
         final String appId = mapBuildingToAppId(building);
 
-        // cons* du building
         List<SensorInfo> sensors = dashboardService.getSensorsList(building, null, "CONSO");
-
         List<String> consoDeviceIds = sensors.stream()
                 .map(SensorInfo::getIdSensor)
                 .filter(Objects::nonNull)
@@ -169,24 +165,26 @@ public class DashboardController {
                 .distinct()
                 .toList();
 
-
         if (consoDeviceIds.isEmpty()) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "No conso device found for building=" + building + " (prefix=cons*)"
-            );
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "No conso device found for building=" + building);
         }
 
-        // init maps
-        powerW.computeIfAbsent(building, k -> new java.util.concurrent.ConcurrentHashMap<>());
-        energyWhCurrent.computeIfAbsent(building, k -> new java.util.concurrent.ConcurrentHashMap<>());
-        energyWhMinToday.computeIfAbsent(building, k -> new java.util.concurrent.ConcurrentHashMap<>());
+        powerW.computeIfAbsent(building, k -> new ConcurrentHashMap<>());
+        energyWhCurrent.computeIfAbsent(building, k -> new ConcurrentHashMap<>());
+        energyWhMinToday.computeIfAbsent(building, k -> new ConcurrentHashMap<>());
 
-        preloadEnergyBaselineFromDb(building, consoDeviceIds);
+        Mono<ServerSentEvent<ConsoLiveAggregate>> initial = Mono.fromCallable(() -> {
+                    resetIfNewDay(building);
+                    preloadEnergyBaselineFromDb(building, consoDeviceIds);
+                    ConsoLiveAggregate dto = computeAggregate(building);
+                    return ServerSentEvent.<ConsoLiveAggregate>builder(dto).event("conso_aggregate").build();
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .onErrorResume(e -> Mono.empty());
 
-        Flux<String> upstream = sensorService.getMonitoringMany(appId, consoDeviceIds);
-
-        Flux<ServerSentEvent<ConsoLiveAggregate>> agg = upstream
+        // ✅ 2) live
+        Flux<ServerSentEvent<ConsoLiveAggregate>> live = sensorService.getMonitoringMany(appId, consoDeviceIds)
                 .filter(s -> s != null && !s.isBlank())
                 .flatMap(json -> {
                     try {
@@ -194,33 +192,32 @@ public class DashboardController {
 
                         ParsedUplink p = parseUplink(json);
                         if (p == null || p.deviceId == null || p.decodedPayload == null) {
-                            return reactor.core.publisher.Mono.empty(); // ✅ pas de null
+                            return Mono.empty();
                         }
 
                         applyDecodedPayload(building, p.deviceId, p.decodedPayload);
 
                         ConsoLiveAggregate dto = computeAggregate(building);
 
-                        return reactor.core.publisher.Mono.just(
-                                ServerSentEvent.<ConsoLiveAggregate>builder(dto)
-                                        .event("conso_aggregate")
-                                        .build()
-                        );
+                        return Mono.just(ServerSentEvent.<ConsoLiveAggregate>builder(dto)
+                                .event("conso_aggregate")
+                                .build());
                     } catch (Exception e) {
-                        log.warn("Conso aggregate parse/apply failed: {}", e.getMessage());
-                        return reactor.core.publisher.Mono.empty();
+                        return Mono.empty();
                     }
                 });
 
-
+        // ✅ 3) keepalive avec data (sinon certains front ignorent)
         Flux<ServerSentEvent<ConsoLiveAggregate>> keepAlive =
                 Flux.interval(Duration.ofSeconds(15))
                         .map(t -> ServerSentEvent.<ConsoLiveAggregate>builder()
                                 .event("keepalive")
+                                .data(new ConsoLiveAggregate(building, 0, 0, 0, 0, 0, System.currentTimeMillis()))
                                 .build());
 
-        return agg.mergeWith(keepAlive);
+        return Flux.concat(initial, live).mergeWith(keepAlive);
     }
+
 
     private double computeTodayEnergyWh(String building) {
         double[] d = new double[12];
