@@ -1,12 +1,17 @@
 package com.amaris.sensorprocessor.controller;
 
 import com.amaris.sensorprocessor.entity.PayloadValueType;
+import com.amaris.sensorprocessor.entity.Sensor;
 import com.amaris.sensorprocessor.entity.User;
 import com.amaris.sensorprocessor.model.dashboard.Alert;
 import com.amaris.sensorprocessor.model.dashboard.*;
+import com.amaris.sensorprocessor.repository.SensorDao;
 import com.amaris.sensorprocessor.service.AlertService;
 import com.amaris.sensorprocessor.service.DashboardService;
 import com.amaris.sensorprocessor.service.UserService;
+import com.amaris.sensorprocessor.repository.SensorDataDao;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -16,10 +21,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.*;
+
 import com.amaris.sensorprocessor.service.SensorService;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
@@ -38,13 +42,32 @@ public class DashboardController {
     private final UserService userService;
     private final DashboardService dashboardService;
     private final AlertService alertService;
+    private final ObjectMapper om = new ObjectMapper();
+    private final SensorDataDao sensorDataDao;
+
+    // POWER (W) : building -> device -> channel(0..11) -> lastW
+    private final Map<String, Map<String, Map<Integer, Double>>> powerW =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    // ENERGY index (Wh) current : building -> device -> channel -> currentWh
+    private final Map<String, Map<String, Map<Integer, Double>>> energyWhCurrent =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    // ENERGY index (Wh) min-of-day : building -> device -> channel -> minWh (depuis minuit)
+    private final Map<String, Map<String, Map<Integer, Double>>> energyWhMinToday =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    // Pour reset quotidien
+    private final Map<String, java.time.LocalDate> lastDaySeen =
+            new java.util.concurrent.ConcurrentHashMap<>();
 
     @Autowired
-    public DashboardController(UserService userService, DashboardService dashboardService, AlertService alertService, SensorService sensorService) {
+    public DashboardController(UserService userService, DashboardService dashboardService, AlertService alertService, SensorService sensorService, SensorDataDao sensorDataDao) {
         this.userService = userService;
         this.dashboardService = dashboardService;
         this.alertService = alertService;
         this.sensorService = sensorService;
+        this.sensorDataDao = sensorDataDao;
     }
 
     @GetMapping("/dashboard")
@@ -84,6 +107,13 @@ public class DashboardController {
         return dashboardService.getDesks(building, floor, Optional.ofNullable(deskId));
     }
 
+    private static LocalDateTime parisStartOfDay() {
+        return java.time.ZonedDateTime.now(java.time.ZoneId.of("Europe/Paris"))
+                .toLocalDate()
+                .atStartOfDay();
+    }
+
+
     @GetMapping(value = "/api/dashboard/occupancy/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @ResponseBody
     public Flux<ServerSentEvent<String>> streamOccupancy(
@@ -115,6 +145,75 @@ public class DashboardController {
         };
     }
 
+    @GetMapping(
+            value = "/api/dashboard/conso/live/aggregate/stream",
+            produces = MediaType.TEXT_EVENT_STREAM_VALUE
+    )
+    @ResponseBody
+    public Flux<ServerSentEvent<ConsoLiveAggregate>> streamConsoAggregate(
+            @RequestParam String building
+    ) {
+        final String appId = mapBuildingToAppId(building);
+
+        // cons* du building
+        List<SensorInfo> sensors = dashboardService.getSensorsList(building, null, "CONSO");
+
+        List<String> consoDeviceIds = sensors.stream()
+                .map(SensorInfo::getIdSensor)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .filter(id -> id.toLowerCase().startsWith("cons"))
+                .distinct()
+                .toList();
+
+
+        if (consoDeviceIds.isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "No conso device found for building=" + building + " (prefix=cons*)"
+            );
+        }
+
+        // init maps
+        powerW.computeIfAbsent(building, k -> new java.util.concurrent.ConcurrentHashMap<>());
+        energyWhCurrent.computeIfAbsent(building, k -> new java.util.concurrent.ConcurrentHashMap<>());
+        energyWhMinToday.computeIfAbsent(building, k -> new java.util.concurrent.ConcurrentHashMap<>());
+
+        preloadEnergyBaselineFromDb(building, consoDeviceIds);
+
+        Flux<String> upstream = sensorService.getMonitoringMany(appId, consoDeviceIds);
+
+        Flux<ServerSentEvent<ConsoLiveAggregate>> agg = upstream
+                .filter(s -> s != null && !s.isBlank())
+                .map(json -> {
+                    // 1) reset quotidien si besoin (timezone Paris)
+                    resetIfNewDay(building);
+
+                    // 2) parse uplink => deviceId + decoded_payload
+                    ParsedUplink p = parseUplink(json);
+                    if (p == null || p.deviceId == null || p.decodedPayload == null) return null;
+
+                    // 3) update state à partir de ton format (0..23)
+                    applyDecodedPayload(building, p.deviceId, p.decodedPayload);
+
+                    // 4) compute totals
+                    ConsoLiveAggregate dto = computeAggregate(building);
+
+                    return ServerSentEvent.<ConsoLiveAggregate>builder(dto)
+                            .event("conso_aggregate")
+                            .build();
+                })
+                .filter(Objects::nonNull);
+
+        Flux<ServerSentEvent<ConsoLiveAggregate>> keepAlive =
+                Flux.interval(Duration.ofSeconds(15))
+                        .map(t -> ServerSentEvent.<ConsoLiveAggregate>builder()
+                                .event("keepalive")
+                                .build());
+
+        return agg.mergeWith(keepAlive);
+    }
 
     @GetMapping("/api/dashboard/sensors")
     @ResponseBody
@@ -124,6 +223,36 @@ public class DashboardController {
             @RequestParam(required = false) String sensorType) {
         return dashboardService.getSensorsList(building, floor, sensorType);
     }
+
+    private void preloadEnergyBaselineFromDb(String building, List<String> deviceIds) {
+        var baseByDev = energyWhMinToday.computeIfAbsent(building, k -> new java.util.concurrent.ConcurrentHashMap<>());
+
+        LocalDateTime dayStart = parisStartOfDay();
+        LocalDateTime dayEnd = dayStart.plusDays(1);
+
+        Set<PayloadValueType> energyTypes = new HashSet<>();
+        for (int ch = 0; ch <= 11; ch++) {
+            energyTypes.add(PayloadValueType.valueOf("ENERGY_CHANNEL_" + ch));
+        }
+
+        for (String dev : deviceIds) {
+            baseByDev.computeIfAbsent(dev, k -> new java.util.concurrent.ConcurrentHashMap<>());
+
+            Map<PayloadValueType, Double> firsts =
+                    sensorDataDao.findFirstValuesOfDayByTypes(dev, energyTypes, dayStart, dayEnd);
+
+            for (int ch = 0; ch <= 11; ch++) {
+                PayloadValueType vt = PayloadValueType.valueOf("ENERGY_CHANNEL_" + ch);
+                Double v = firsts.get(vt);
+                if (v != null) {
+                    baseByDev.get(dev).putIfAbsent(ch, v);
+                }
+            }
+        }
+
+        log.info("CONSO {} baseline DB loaded for {} device(s)", building, deviceIds.size());
+    }
+
 
     @GetMapping("/api/dashboard/occupation-history")
     @ResponseBody
@@ -219,4 +348,167 @@ public class DashboardController {
                 );
     }
 
+
+    // =========================
+    // Helpers
+    // =========================
+
+    private static class ParsedUplink {
+        final String deviceId;
+        final com.fasterxml.jackson.databind.JsonNode decodedPayload;
+        ParsedUplink(String deviceId, com.fasterxml.jackson.databind.JsonNode decodedPayload) {
+            this.deviceId = deviceId;
+            this.decodedPayload = decodedPayload;
+        }
+    }
+
+    private ParsedUplink parseUplink(String json) {
+        try {
+            var root = om.readTree(json);
+            var r = root.has("result") ? root.get("result") : root;
+
+            String deviceId = textAt(r, "/end_device_ids/device_id");
+            var decoded = nodeAt(r, "/uplink_message/decoded_payload");
+            if (deviceId == null || decoded == null || decoded.isMissingNode() || decoded.isNull()) return null;
+
+            return new ParsedUplink(deviceId, decoded);
+        } catch (Exception e) {
+            log.debug("parseUplink failed: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private void applyDecodedPayload(String building, String deviceId, com.fasterxml.jackson.databind.JsonNode decoded) {
+        powerW.get(building).computeIfAbsent(deviceId, k -> new java.util.concurrent.ConcurrentHashMap<>());
+        energyWhCurrent.get(building).computeIfAbsent(deviceId, k -> new java.util.concurrent.ConcurrentHashMap<>());
+        energyWhMinToday.get(building).computeIfAbsent(deviceId, k -> new java.util.concurrent.ConcurrentHashMap<>());
+
+        var fields = decoded.fields();
+        while (fields.hasNext()) {
+            var e = fields.next();
+            var obj = e.getValue();
+            if (obj == null || !obj.isObject()) continue;
+
+            String type = obj.path("type").asText(null);
+            double value = obj.path("value").isNumber() ? obj.path("value").asDouble() : Double.NaN;
+
+            int channel = obj.path("hardwareData").path("channel").isInt()
+                    ? obj.path("hardwareData").path("channel").asInt()
+                    : -1;
+
+            if (channel < 0 || channel > 11) continue;
+            if (Double.isNaN(value)) continue;
+
+            if ("power".equalsIgnoreCase(type)) {
+                powerW.get(building).get(deviceId).put(channel, value);
+            } else if ("consumedActiveEnergyIndex".equalsIgnoreCase(type)) {
+                // Wh index current
+//                energyWhCurrent.get(building).get(deviceId).put(channel, value);
+//                // baseline "since midnight" (première valeur vue aujourd'hui)
+//                var baseMap = energyWhMinToday.get(building).get(deviceId);
+//                baseMap.putIfAbsent(channel, value); // fallback si DB vide
+            }
+        }
+    }
+
+    private ConsoLiveAggregate computeAggregate(String building) {
+        long now = System.currentTimeMillis();
+
+        double[] c = new double[12]; // C0..C11
+        var devices = powerW.getOrDefault(building, Map.of());
+
+        for (var devEntry : devices.entrySet()) {
+            var map = devEntry.getValue();
+            for (int ch = 0; ch <= 11; ch++) {
+                Double v = map.get(ch);
+                if (v != null) c[ch] += v;
+            }
+        }
+
+        // 1) absolu par channel (pas par groupe)
+        double[] a = new double[12];
+        for (int i = 0; i < 12; i++) a[i] = Math.abs(c[i]);
+
+        double red = a[0] + a[1] + a[2];
+        double white = Math.abs(
+                (a[6] + a[7] + a[8]) - (a[3] + a[4] + a[5])
+        );
+        double vent = a[6] + a[7] + a[8];
+        double other = a[9] + a[10] + a[11];
+        double powerTotalW = Math.abs(red + white + vent + other);
+
+
+        log.info("CONSO {} channels (power): C0={} C1={} C2={} C3={} C4={} C5={} C6={} C7={} C8={} C9={} C10={} C11={}",
+                building,
+                c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11]
+        );
+        double[] d = new double[12];
+
+        var curByDev = energyWhCurrent.getOrDefault(building, Map.of());
+        var baseByDev = energyWhMinToday.getOrDefault(building, Map.of()); // baseline
+
+        for (var dev : curByDev.keySet()) {
+            var curMap = curByDev.getOrDefault(dev, Map.of());
+            var baseMap = baseByDev.getOrDefault(dev, Map.of());
+
+            for (int ch = 0; ch <= 11; ch++) {
+                Double cur = curMap.get(ch);
+                Double base = baseMap.get(ch);
+                if (cur == null || base == null) continue;
+
+                double delta = cur - base;
+
+                // reset compteur (ou rollover) : si current < base, on prend current comme consommation depuis reset
+                if (delta < 0) delta = cur;
+
+                d[ch] += delta;
+            }
+        }
+
+        double[] ea = new double[12];
+        for (int i = 0; i < 12; i++) ea[i] = Math.abs(d[i]);
+
+        double redWh   = ea[0] + ea[1] + ea[2];
+        double whiteWh = Math.abs((ea[6] + ea[7] + ea[8]) - (ea[3] + ea[4] + ea[5]));
+        double ventWh  = ea[6] + ea[7] + ea[8];
+        double otherWh = ea[9] + ea[10] + ea[11];
+
+        double todayEnergyWh = Math.abs(redWh + whiteWh + ventWh + otherWh);
+
+        int deviceCount = powerW.getOrDefault(building, Map.of()).size();
+
+        return new ConsoLiveAggregate(
+                building,
+                powerTotalW,
+                powerTotalW / 1000d,
+                todayEnergyWh,
+                todayEnergyWh / 1000d,
+                deviceCount,
+                now
+        );
+    }
+
+    private void resetIfNewDay(String building) {
+        java.time.ZoneId zone = java.time.ZoneId.of("Europe/Paris");
+        java.time.LocalDate today = java.time.LocalDate.now(zone);
+
+        java.time.LocalDate last = lastDaySeen.get(building);
+        if (last == null || !last.equals(today)) {
+            energyWhMinToday.computeIfAbsent(building, k -> new java.util.concurrent.ConcurrentHashMap<>()).clear();
+            lastDaySeen.put(building, today);
+        }
+    }
+
+    private String textAt(com.fasterxml.jackson.databind.JsonNode node, String jsonPointer) {
+        var n = node.at(jsonPointer);
+        return (n == null || n.isMissingNode() || n.isNull()) ? null : n.asText(null);
+    }
+
+    private com.fasterxml.jackson.databind.JsonNode nodeAt(com.fasterxml.jackson.databind.JsonNode node, String jsonPointer) {
+        var n = node.at(jsonPointer);
+        return (n == null) ? com.fasterxml.jackson.databind.node.MissingNode.getInstance() : n;
+    }
+
 }
+
+
