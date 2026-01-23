@@ -522,7 +522,7 @@ class SensorOverlayManager {
       const el = document.getElementById(`sensor-value-${sensor.id}`);
       console.log("Element:", el);
 
-      if (!el || sensor.value === "") return;
+      if (!el) return;
 
       switch (sensor.type) {
         case "CO2":
@@ -586,6 +586,7 @@ class SensorOverlayManager {
         icon.setAttribute("floor-number", floor);
         icon.setAttribute("sensor-mode", sensorType);
         icon.setAttribute("id", sensorId);
+        icon.setAttribute("class", "sensor");
         icon.textContent = this.getIcon(sensorType);
         g.appendChild(icon);
 
