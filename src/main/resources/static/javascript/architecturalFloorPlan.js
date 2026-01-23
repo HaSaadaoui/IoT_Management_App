@@ -137,7 +137,7 @@ class ArchitecturalFloorPlan {
           ],
           LIGHT: [
                   { id: "eye-03-01", x: 500, y: 210 }, // au-dessus de D07–D09
-                  { id: "eye-03-03", x: 90, y: 420 }, // au-dessus de D41
+                  { id: "eye-03-02", x: 90, y: 420 }, // au-dessus de D41
                   { id: "eye-03-03", x: 490, y: 465 }, // au-dessus de D72
           ],
           NOISE: [
