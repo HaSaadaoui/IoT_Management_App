@@ -103,6 +103,37 @@ function groupWhByInterval(seriesWh, intervalHours) {
   return grouped;
 }
 
+function firstLastDeltaWh(energyMap) {
+  const entries = Object.entries(energyMap || {})
+    .map(([ts, v]) => [new Date(ts).getTime(), Number(v)])
+    .filter(([t, v]) => Number.isFinite(t) && Number.isFinite(v))
+    .sort((a, b) => a[0] - b[0]);
+
+  if (entries.length < 2) return 0;
+
+  const first = entries[0][1];
+  const last  = entries[entries.length - 1][1];
+
+  let d = last - first;
+  if (!Number.isFinite(d) || d < 0) d = 0; // reset/rollback
+  return d;
+}
+
+function totalKWhLikeBackend(j) {
+  const d = Array.from({ length: 12 }, (_, ch) =>
+    firstLastDeltaWh(j.data?.[`ENERGY_CHANNEL_${ch}`] || {})
+  );
+
+  const red   = d[0] + d[1] + d[2];
+  const vent  = d[6] + d[7] + d[8];
+  const white = Math.abs(vent - (d[3] + d[4] + d[5]));
+  const other = d[9] + d[10] + d[11];
+
+  const totalWh = Math.abs(red + white + vent + other);
+  return totalWh / 1000;
+}
+
+
 async function loadHistory(fromISO, toISO) {
     const SENSOR_ID = document.documentElement.dataset.deviceId;
     const GATEWAY_ID = document.documentElement.dataset.gatewayId;
@@ -280,7 +311,11 @@ async function loadHistory(fromISO, toISO) {
         });
 
         // Total all groups
-        const totalAllGroups = totalsArr.reduce((a, b) => a + b, 0);
+const totalAllGroups = totalKWhLikeBackend(j);
+updateCard('kpi-card-conso','kpi-conso',
+  totalAllGroups.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}),
+  ' kWh'
+);
 
         const histTotalEl = document.getElementById('hist-total-total');
         if (histTotalEl) {

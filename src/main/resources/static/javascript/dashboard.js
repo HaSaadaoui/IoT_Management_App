@@ -168,7 +168,7 @@ startConsoAggregateSse() {
         : (payload.powerTotalW != null ? Number(payload.powerTotalW) / 1000 : null);
 
       if (kw != null && !Number.isNaN(kw)) {
-        this.updateMetricValue('live-current-power', kw.toFixed(3));
+        this.updateMetricValue('live-current-power', kw.toFixed(2));
       }
 
       // 2) Today Energy: privilégie kWh si fourni, sinon convertit Wh -> kWh
