@@ -21,7 +21,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 import com.amaris.sensorprocessor.service.SensorService;
@@ -31,7 +33,7 @@ import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
-
+import java.util.concurrent.ConcurrentHashMap;
 
 
 @Slf4j
@@ -186,25 +188,30 @@ public class DashboardController {
 
         Flux<ServerSentEvent<ConsoLiveAggregate>> agg = upstream
                 .filter(s -> s != null && !s.isBlank())
-                .map(json -> {
-                    // 1) reset quotidien si besoin (timezone Paris)
-                    resetIfNewDay(building);
+                .flatMap(json -> {
+                    try {
+                        resetIfNewDay(building);
 
-                    // 2) parse uplink => deviceId + decoded_payload
-                    ParsedUplink p = parseUplink(json);
-                    if (p == null || p.deviceId == null || p.decodedPayload == null) return null;
+                        ParsedUplink p = parseUplink(json);
+                        if (p == null || p.deviceId == null || p.decodedPayload == null) {
+                            return reactor.core.publisher.Mono.empty(); // ✅ pas de null
+                        }
 
-                    // 3) update state à partir de ton format (0..23)
-                    applyDecodedPayload(building, p.deviceId, p.decodedPayload);
+                        applyDecodedPayload(building, p.deviceId, p.decodedPayload);
 
-                    // 4) compute totals
-                    ConsoLiveAggregate dto = computeAggregate(building);
+                        ConsoLiveAggregate dto = computeAggregate(building);
 
-                    return ServerSentEvent.<ConsoLiveAggregate>builder(dto)
-                            .event("conso_aggregate")
-                            .build();
-                })
-                .filter(Objects::nonNull);
+                        return reactor.core.publisher.Mono.just(
+                                ServerSentEvent.<ConsoLiveAggregate>builder(dto)
+                                        .event("conso_aggregate")
+                                        .build()
+                        );
+                    } catch (Exception e) {
+                        log.warn("Conso aggregate parse/apply failed: {}", e.getMessage());
+                        return reactor.core.publisher.Mono.empty();
+                    }
+                });
+
 
         Flux<ServerSentEvent<ConsoLiveAggregate>> keepAlive =
                 Flux.interval(Duration.ofSeconds(15))
@@ -213,6 +220,41 @@ public class DashboardController {
                                 .build());
 
         return agg.mergeWith(keepAlive);
+    }
+
+    private double computeTodayEnergyWh(String building) {
+        double[] d = new double[12];
+
+        var curByDev  = energyWhCurrent.getOrDefault(building, Map.of());
+        var baseByDev = energyWhMinToday.getOrDefault(building, Map.of());
+
+        for (var dev : curByDev.keySet()) {
+            var curMap  = curByDev.getOrDefault(dev, Map.of());
+            var baseMap = baseByDev.getOrDefault(dev, Map.of());
+
+            for (int ch = 0; ch <= 11; ch++) {
+                Double cur  = curMap.get(ch);
+                Double base = baseMap.get(ch);
+                if (cur == null || base == null) continue;
+
+                double delta = cur - base;
+
+                // si reset/rollover : index repasse en dessous
+                if (delta < 0) delta = cur;
+
+                d[ch] += delta;
+            }
+        }
+
+        double[] ea = new double[12];
+        for (int i = 0; i < 12; i++) ea[i] = Math.abs(d[i]);
+
+        double redWh   = ea[0] + ea[1] + ea[2];
+        double whiteWh = Math.abs((ea[6] + ea[7] + ea[8]) - (ea[3] + ea[4] + ea[5]));
+        double ventWh  = ea[6] + ea[7] + ea[8];
+        double otherWh = ea[9] + ea[10] + ea[11];
+
+        return Math.abs(redWh + whiteWh + ventWh + otherWh);
     }
 
     @GetMapping("/api/dashboard/sensors")
@@ -282,7 +324,7 @@ public class DashboardController {
                 .floor(floor)
                 .sensorType(sensorType)
                 .sensorId(sensorId)
-                .metricType(parseMetricType(metricType)) // ✅ ici
+                .metricType(parseMetricType(metricType))
                 .timeRange(timeRange != null ? HistogramRequest.TimeRangePreset.valueOf(timeRange) : null)
                 .granularity(granularity != null ? HistogramRequest.Granularity.valueOf(granularity) : null)
                 .timeSlot(timeSlot != null ? HistogramRequest.TimeSlot.valueOf(timeSlot) : null)
@@ -307,7 +349,6 @@ public class DashboardController {
         try {
             return PayloadValueType.valueOf(mt);
         } catch (IllegalArgumentException e) {
-            // IMPORTANT: renvoyer 400 au lieu de 500
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Unknown metricType: " + metricType
@@ -402,11 +443,9 @@ public class DashboardController {
             if ("power".equalsIgnoreCase(type)) {
                 powerW.get(building).get(deviceId).put(channel, value);
             } else if ("consumedActiveEnergyIndex".equalsIgnoreCase(type)) {
-                // Wh index current
-//                energyWhCurrent.get(building).get(deviceId).put(channel, value);
-//                // baseline "since midnight" (première valeur vue aujourd'hui)
-//                var baseMap = energyWhMinToday.get(building).get(deviceId);
-//                baseMap.putIfAbsent(channel, value); // fallback si DB vide
+                energyWhCurrent.get(building).get(deviceId).put(channel, value);
+                var baseMap = energyWhMinToday.get(building).get(deviceId);
+                baseMap.putIfAbsent(channel, value);
             }
         }
     }
@@ -458,23 +497,13 @@ public class DashboardController {
 
                 double delta = cur - base;
 
-                // reset compteur (ou rollover) : si current < base, on prend current comme consommation depuis reset
                 if (delta < 0) delta = cur;
 
                 d[ch] += delta;
             }
         }
 
-        double[] ea = new double[12];
-        for (int i = 0; i < 12; i++) ea[i] = Math.abs(d[i]);
-
-        double redWh   = ea[0] + ea[1] + ea[2];
-        double whiteWh = Math.abs((ea[6] + ea[7] + ea[8]) - (ea[3] + ea[4] + ea[5]));
-        double ventWh  = ea[6] + ea[7] + ea[8];
-        double otherWh = ea[9] + ea[10] + ea[11];
-
-        double todayEnergyWh = Math.abs(redWh + whiteWh + ventWh + otherWh);
-
+        double todayEnergyWh = computeTodayEnergyWh(building);
         int deviceCount = powerW.getOrDefault(building, Map.of()).size();
 
         return new ConsoLiveAggregate(
@@ -489,12 +518,16 @@ public class DashboardController {
     }
 
     private void resetIfNewDay(String building) {
-        java.time.ZoneId zone = java.time.ZoneId.of("Europe/Paris");
-        java.time.LocalDate today = java.time.LocalDate.now(zone);
+        ZoneId zone = ZoneId.of("Europe/Paris");
+        LocalDate today = LocalDate.now(zone);
 
-        java.time.LocalDate last = lastDaySeen.get(building);
-        if (last == null || !last.equals(today)) {
-            energyWhMinToday.computeIfAbsent(building, k -> new java.util.concurrent.ConcurrentHashMap<>()).clear();
+        LocalDate last = lastDaySeen.putIfAbsent(building, today);
+
+        if (last == null) return;
+
+        if (!last.equals(today)) {
+            energyWhMinToday.computeIfAbsent(building, k -> new ConcurrentHashMap<>()).clear();
+            energyWhCurrent.computeIfAbsent(building, k -> new ConcurrentHashMap<>()).clear();
             lastDaySeen.put(building, today);
         }
     }
