@@ -170,7 +170,7 @@ class ArchitecturalFloorPlan {
         if (floorConfig && floorConfig.length) {
           return floorConfig.map((pos) => {
             const live =
-              valueMap?.get(pos.id) ?? this.getRandomSensorValue(mode);
+              valueMap?.get(pos.id) ?? '--';
             return {
               id: pos.id,
               type: mode,
@@ -196,7 +196,7 @@ class ArchitecturalFloorPlan {
         if (floorConfig && floorConfig.length) {
           return floorConfig.map((pos) => {
             const live =
-            valueMap?.get(pos.id) ?? this.getRandomSensorValue(mode);
+            valueMap?.get(pos.id) ?? '--';
             return {
               id: pos.id,
               type: mode,
