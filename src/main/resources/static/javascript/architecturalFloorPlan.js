@@ -6,7 +6,8 @@ class ArchitecturalFloorPlan {
         floorData,
         sensorMode = "DESK",
         buildingKey = "CHATEAUDUN",
-        svgPath
+        svgPath,
+        isDashboard = true,
     ) {
         this.container = document.getElementById(containerId);
         this.floorData = floorData;
@@ -18,6 +19,7 @@ class ArchitecturalFloorPlan {
         this.overlayManager = null;
         this.buildingKey = buildingKey;
         this.svgPath = svgPath;
+        this.isDashboard = isDashboard;
 
         // Colors matching screenshot
         this.colors = {
@@ -56,7 +58,7 @@ class ArchitecturalFloorPlan {
 
     async drawFloorPlan(deskOccupancy = {}) {
         // Clear any existing floor plan before drawing a new one
-        this.init();
+        this.createSVG();
 
         // Draw based on floor number
         switch (this.buildingKey) {
@@ -99,16 +101,37 @@ class ArchitecturalFloorPlan {
 
         // Add sensor overlay if not DESK mode
         if (this.sensorMode !== "DESK" && window.SensorOverlayManager) {
-          const sensors = this.generateSensorData(
-            this.sensorMode,
-            this.floorData.floorNumber
-          );
 
-          this.overlayManager = new SensorOverlayManager(this.svg);
-          this.overlayManager.setSensorMode(this.sensorMode, sensors);
+            let sensors = [];
+            if (this.isDashboard){
+                sensors = this.generateSensorData(
+                                this.sensorMode,
+                                this.floorData.floorNumber
+                            );
+            } else {
+                // TODO Récupérer les sensors pour l'étage en question depuis le fichier SVG
+                sensors = [{ id : "humidity-1-1",
+                    type : "HUMIDITY",
+                    floor : 1,
+                    x : 50,
+                    y : 50,
+                    size : 20},
+                    { id : "light-1-2",
+                    type : "LIGHT",
+                    floor : 1,
+                    x : 150,
+                    y : 50,
+                    size : 40}
+                ];
+            }
 
-          // 🔥 LIVE
-          this.startLiveSensors();
+            this.overlayManager = new SensorOverlayManager(this.svg);
+            this.overlayManager.setSensorMode(this.sensorMode, sensors, this.isDashboard);
+
+            if (this.isDashboard){
+                // 🔥 LIVE
+                this.startLiveSensors();
+            }
         }
 
         // On modifie le SVG pour le centrer sur l'écran
@@ -137,7 +160,7 @@ class ArchitecturalFloorPlan {
           ],
           LIGHT: [
                   { id: "eye-03-01", x: 500, y: 210 }, // au-dessus de D07–D09
-                  { id: "eye-03-03", x: 90, y: 420 }, // au-dessus de D41
+                  { id: "eye-03-02", x: 90, y: 420 }, // au-dessus de D41
                   { id: "eye-03-03", x: 490, y: 465 }, // au-dessus de D72
           ],
           NOISE: [
@@ -170,7 +193,7 @@ class ArchitecturalFloorPlan {
         if (floorConfig && floorConfig.length) {
           return floorConfig.map((pos) => {
             const live =
-              valueMap?.get(pos.id) ?? this.getRandomSensorValue(mode);
+              valueMap?.get(pos.id) ?? '--';
             return {
               id: pos.id,
               type: mode,
@@ -196,7 +219,7 @@ class ArchitecturalFloorPlan {
         if (floorConfig && floorConfig.length) {
           return floorConfig.map((pos) => {
             const live =
-            valueMap?.get(pos.id) ?? this.getRandomSensorValue(mode);
+            valueMap?.get(pos.id) ?? '--';
             return {
               id: pos.id,
               type: mode,

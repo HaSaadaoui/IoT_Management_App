@@ -302,6 +302,8 @@ function loadBuildingFloors() {
         console.warn('Building floors input not found or invalid (#building-floors). Skipping floors update.');
         return;
     }
+
+    floorSelect.innerHTML = '<option value="">All Floors</option>';
     for (let i = 0; i < floorsEl.value; i++) {
         const opt = document.createElement('option');
         opt.value = String(i);
@@ -583,6 +585,48 @@ async function saveBuildingConfig() {
     }
 
     //TODO si on est en 2D, on sauvegarde les modifications dans le fichier .SVG
+}
+
+function addElementSVG() {
+    const sensorType  = document.getElementById("filter-sensor-type");
+    const floorNumber = document.getElementById("filter-floor");
+    const sensorId  = document.getElementById("sensor_id");
+    const sensorX = document.getElementById("sensor_x");
+    const sensorY = document.getElementById("sensor_y");
+    const sensorSize = document.getElementById("sensor_size");
+
+    if (!sensorId) {
+        alert("Merci de saisir un id.");
+        return;
+    }
+
+    if (!sensorX || !sensorY) {
+        alert("Merci de saisir les coordonnées de l'élément.");
+        return;
+    }
+
+    if (!sensorSize) {
+        alert("Merci de saisir la taille de l'élément.");
+        return;
+    }
+
+    if (window.building3D && window.building3D.currentArchPlan && window.building3D.currentArchPlan.overlayManager) {
+        window.building3D.currentArchPlan.overlayManager.drawSensorIcon(sensorId.value, sensorType.value, floorNumber.value, sensorX.value, sensorY.value, sensorSize.value);
+    }
+}
+
+function removeElementSVG() {
+
+    const sensorId  = document.getElementById("sensor_id");
+
+    if (!sensorId) {
+        alert("Merci de saisir un id.");
+        return;
+    }
+
+    if (window.building3D && window.building3D.currentArchPlan && window.building3D.currentArchPlan.overlayManager) {
+        window.building3D.currentArchPlan.overlayManager.removeElementById(sensorId.value);
+    }
 }
 
 // ======================================================
@@ -1074,6 +1118,8 @@ function changeEditorLanguage(selectEl) {
 // ================== GLOBAL EXPORTS =====================
 // ======================================================
 
+window.addElementSVG = addElementSVG;
+window.removeElementSVG = removeElementSVG;
 window.loadBuildingConfig = loadBuildingConfig;
 window.deleteBuildingConfig = deleteBuildingConfig;
 window.changeEditorLanguage = changeEditorLanguage;
@@ -1099,4 +1145,6 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof loadNotificationPreferences === 'function') loadNotificationPreferences();
     if (typeof loadAllSensorThresholds === 'function') loadAllSensorThresholds();
     if (typeof loadBuildings === 'function') loadBuildings();
+    if (window.building3D) { window.building3D.isDashboard = false};
+
 });

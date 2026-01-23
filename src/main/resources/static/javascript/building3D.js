@@ -236,6 +236,8 @@ class Building3D {
         this.currentSensorMode = 'DESK';
         this.currentArchPlan = null;
 
+        this.isDashboard = true;
+
         this.colors = {
             primary: 0x662179,
             primaryLight: 0x8b2fa3,
@@ -913,7 +915,7 @@ class Building3D {
 
         if (window.ArchitecturalFloorPlan) {
             const svgPath = this.getSvgPlanUrl();
-            this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', currentFloorData, this.currentSensorMode, this.config.id, svgPath);
+            this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', currentFloorData, this.currentSensorMode, this.config.id, svgPath, this.isDashboard);
             this.loadRealOccupancyData();
         } else {
             console.error('ArchitecturalFloorPlan not loaded');
@@ -1221,7 +1223,7 @@ document.addEventListener('DOMContentLoaded', function () {
         floorSelect.addEventListener('change', () => {
             if (window.building3D) {
                 if (floorSelect.value === ""){
-                    window.building3D.return3DView();
+                    //window.building3D.return3DView();
                     return;
                 }
                 const floorNumber = parseInt(floorSelect.value, 10);
