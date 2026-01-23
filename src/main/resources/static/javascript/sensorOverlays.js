@@ -1,16 +1,44 @@
 // Multi-Sensor Visualization Overlay System
 class SensorOverlayManager {
+
+    static ICONS = {
+        CO2:      "🌫️",
+        TEMP:     "🌡️",
+        TEMPEX:   "🌪️",
+        LIGHT:    "💡",
+        MOTION:   "👁️",
+        NOISE:    "🔉",
+        HUMIDITY: "💧",
+        PR:       { present: "👤", empty: "⚪" },
+        SECURITY: { alert: "🚨", ok: "🔒" },
+        COUNT:    "🧑‍🤝‍🧑",
+        ENERGY:   "⚡"
+    };
+
     constructor(svgContainer) {
         this.svg = svgContainer;
+        this.isDashboard = true;
         this.currentMode = 'DESK';
         this.sensors = [];
         this.overlayGroup = null;
         this.animationFrames = [];
     }
 
-    setSensorMode(mode, sensors) {
+    getIcon(sensorType, options = {}) {
+        const icon = SensorOverlayManager.ICONS[sensorType];
+        if (!icon) return "❓";
+        if (sensorType === "SECURITY") {
+            return options.alert ? icon.alert : icon.ok;
+        } else if (sensorType === "PR") {
+            return options.present ? icon.present : icon.empty;
+        }
+        return icon;
+    }
+
+    setSensorMode(mode, sensors, isDashboard = true) {
         this.currentMode = mode;
         this.sensors = sensors;
+        this.isDashboard = isDashboard;
         this.clearOverlay();
         this.createOverlay(mode);
     }
@@ -27,19 +55,23 @@ class SensorOverlayManager {
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
         g.setAttribute("id", `overlay-${mode}`);
         this.overlayGroup = g;
-        
-        switch(mode) {
-            case 'CO2': this.createCO2Heatmap(); break;
-            case 'TEMP': this.createTempThermal(); break;
-            case 'LIGHT': this.createLightMap(); break;
-            case 'MOTION': this.createMotionRadar(); break;
-            case 'NOISE': this.createNoiseMap(); break;
-            case 'HUMIDITY': this.createHumidityZones(); break;
-            case 'TEMPEX': this.createTempexFlow(); break;
-            case 'PR': this.createPresenceLight(); break;
-            case 'SECURITY': this.createSecurityOverlay(); break;
-            case 'COUNT': this.createCounterMap(); break;
-            case 'ENERGY': this.createEnergyMap(); break;
+
+        if (this.isDashboard){
+            switch(mode) {
+                case 'CO2': this.createCO2Heatmap(); break;
+                case 'TEMP': this.createTempThermal(); break;
+                case 'LIGHT': this.createLightMap(); break;
+                case 'MOTION': this.createMotionRadar(); break;
+                case 'NOISE': this.createNoiseMap(); break;
+                case 'HUMIDITY': this.createHumidityZones(); break;
+                case 'TEMPEX': this.createTempexFlow(); break;
+                case 'PR': this.createPresenceLight(); break;
+                case 'SECURITY': this.createSecurityOverlay(); break;
+                case 'COUNT': this.createCounterMap(); break;
+                case 'ENERGY': this.createEnergyMap(); break;
+            }
+        } else {
+            this.createSensorsConfig();
         }
         
         this.svg.appendChild(this.overlayGroup);
@@ -68,7 +100,7 @@ class SensorOverlayManager {
             }
             this.overlayGroup.appendChild(circle);
             
-            this.addSensorIcon(sensor.x, sensor.y, "🌫️", sensor.value + " ppm", sensor.id);
+            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("CO2"), sensor.value + " ppm", sensor.id);
         });
         this.svg.insertBefore(defs, this.svg.firstChild);
     }
@@ -100,7 +132,7 @@ class SensorOverlayManager {
             circle.setAttribute("fill", `url(#temp-grad-${i})`);
             this.overlayGroup.appendChild(circle);
             
-            this.addSensorIcon(sensor.x, sensor.y, "🌡️", sensor.value + "°C", sensor.id);
+            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("TEMP"), sensor.value + "°C", sensor.id);
         });
         this.svg.insertBefore(defs, this.svg.firstChild);
     }
@@ -131,7 +163,7 @@ class SensorOverlayManager {
             circle.setAttribute("fill", `url(#light-grad-${i})`);
             this.overlayGroup.appendChild(circle);
             
-            this.addSensorIcon(sensor.x, sensor.y, "💡", sensor.value + " lux", sensor.id);
+            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("LIGHT"), sensor.value + " lux", sensor.id);
         });
         this.svg.insertBefore(defs, this.svg.firstChild);
     }
@@ -190,7 +222,7 @@ class SensorOverlayManager {
                 ring.setAttribute("opacity", 0.6 - i * 0.2);
                 this.overlayGroup.appendChild(ring);
             }
-            this.addSensorIcon(sensor.x, sensor.y, "🔉", sensor.value + " dB", sensor.id);
+            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("NOISE"), sensor.value + " dB", sensor.id);
         });
     }
 
@@ -220,7 +252,7 @@ class SensorOverlayManager {
             circle.setAttribute("fill", `url(#humid-grad-${i})`);
             this.overlayGroup.appendChild(circle);
             
-            this.addSensorIcon(sensor.x, sensor.y, "💧", sensor.value + "%", sensor.id);
+            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("HUMIDITY"), sensor.value + "%", sensor.id);
         });
         this.svg.insertBefore(defs, this.svg.firstChild);
     }
@@ -235,7 +267,7 @@ class SensorOverlayManager {
         this.sensors.forEach(sensor => {
             const arrow = this.createArrow(sensor.x, sensor.y, sensor.direction || 0, sensor.intensity || 1);
             this.overlayGroup.appendChild(arrow);
-            this.addSensorIcon(sensor.x, sensor.y - 25, "🌀", `${sensor.value}°C`, sensor.id);
+            this.addSensorIcon(sensor.x, sensor.y - 25, this.getIcon("TEMPEX"), `${sensor.value}°C`, sensor.id);
         });
     }
 
@@ -262,9 +294,9 @@ class SensorOverlayManager {
                 glow.setAttribute("fill", "#fbbf24");
                 glow.setAttribute("opacity", "0.3");
                 this.overlayGroup.appendChild(glow);
-                this.addSensorIcon(sensor.x, sensor.y, "👤", "Present");
+                this.addSensorIcon(sensor.x, sensor.y, this.getIcon("PR", { sensor: sensor.presence }), "Present");
             } else {
-                this.addSensorIcon(sensor.x, sensor.y, "⚪", "Empty");
+                this.addSensorIcon(sensor.x, sensor.y, this.getIcon("PR"), "Empty");
             }
         });
     }
@@ -281,8 +313,7 @@ class SensorOverlayManager {
                 this.overlayGroup.appendChild(circle);
                 this.addPulseAnimation(circle);
             }
-            const icon = sensor.alert ? "🚨" : "🔒";
-            this.addSensorIcon(sensor.x, sensor.y, icon, sensor.message || "OK", sensor.id);
+            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("SECURITY", { alert: sensor.alert }), sensor.message || "OK", sensor.id);
         });
     }
 
@@ -359,7 +390,7 @@ class SensorOverlayManager {
             icon.setAttribute("y", sensor.y - 6);
             icon.setAttribute("text-anchor", "middle");
             icon.setAttribute("font-size", "20");
-            icon.textContent = "🧑‍🤝‍🧑";
+            icon.textContent = this.getIcon("COUNT");
             this.overlayGroup.appendChild(icon);
 
             // Valeurs IN | OUT
@@ -408,7 +439,7 @@ class SensorOverlayManager {
 
             // 🔹 Icône et valeur
             const labelText = sensor.value != null ? `${sensor.value} kWh` : "—";
-            this.addSensorIcon(sensor.x, sensor.y, "⚡", labelText, sensor.id);
+            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("ENERGY"), labelText, sensor.id);
         });
 
         // Insérer defs avant le reste du SVG
@@ -452,7 +483,7 @@ class SensorOverlayManager {
             icon.setAttribute("text-anchor", "middle");
             icon.setAttribute("dominant-baseline", "middle");
             icon.setAttribute("font-size", "20");
-            icon.textContent = "👁️";
+            icon.textContent = this.getIcon("MOTION");
             this.overlayGroup.appendChild(icon);
 
             // Texte "Motion"
@@ -491,7 +522,7 @@ class SensorOverlayManager {
       const el = document.getElementById(`sensor-value-${sensor.id}`);
       console.log("Element:", el);
 
-      if (!el) return;
+      if (!el || sensor.value === "") return;
 
       switch (sensor.type) {
         case "CO2":
@@ -518,13 +549,61 @@ class SensorOverlayManager {
           }
           break;
         case "ENERGY":
-          //el.textContent = `${sensor.value} kWh`;
           el.textContent = `${(sensor.value / 1000).toFixed(2)} kW`;
           break;
         default:
           el.textContent = sensor.value;
       }
     }
+
+    createSensorsConfig() {
+        this.sensors.forEach((sensor) => {
+            if (sensor.type === this.currentMode){
+                this.drawSensorIcon(sensor.id, sensor.type, sensor.floor, sensor.x, sensor.y, sensor.size);
+            }
+        });
+    }
+
+    drawSensorIcon(sensorId, sensorType, floor, x, y, size) {
+
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("class", "sensor-marker");
+        g.setAttribute("id", "marker-"+sensorId);
+
+        const icon = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        icon.setAttribute("x", x);
+        icon.setAttribute("y", y);
+        icon.setAttribute("text-anchor", "middle");
+        icon.setAttribute("font-size", size);
+        icon.setAttribute("floor-number", floor);
+        icon.setAttribute("sensor-mode", sensorType);
+        icon.setAttribute("id", sensorId);
+        icon.textContent = this.getIcon(sensorType);
+        g.appendChild(icon);
+
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", x);
+        text.setAttribute("y", parseInt(y) + parseInt(size));
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("font-size", parseInt(size) / 2);
+        text.setAttribute("font-weight", "bold");
+        text.setAttribute("fill", "#374151");
+        text.textContent = sensorId;
+        g.appendChild(text);
+        
+        this.overlayGroup.appendChild(g);
+    }
+ 
+    removeElementById(id) {
+        if (!this.overlayGroup || !id) return false;
+
+        const el = this.overlayGroup.querySelector(`#${CSS.escape("marker-"+id)}`);
+        if (!el) return false;
+
+        el.remove();
+        return true;
+    }
+
 }
 
 window.SensorOverlayManager = SensorOverlayManager;
