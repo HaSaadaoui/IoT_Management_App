@@ -200,7 +200,6 @@ public class AlertService {
 
         // Get all sensors from the database
         List<Sensor> allSensors = sensorDao.findAllByBuilding(building);
-        LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes());
 
         log.info("🔍 Checking {} sensors for offline alerts. DESK threshold: {}h, default: {}min",
                 allSensors.size(), 
