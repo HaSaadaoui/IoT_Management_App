@@ -20,15 +20,12 @@ class OccupancyAnalytics {
 
     /**
      * Initialize analytics
+     * Note: No auto-refresh - data loads only when user clicks "Load Data" button
      */
     init() {
         console.log('=== Initializing Occupancy Analytics ===');
-        this.loadAllSections();
-        
-        // Auto-refresh every 5 minutes
-        this.refreshInterval = setInterval(() => {
-            this.loadAllSections();
-        }, 5 * 60 * 1000);
+        // Initial load removed - wait for user to click "Load Data"
+        console.log('💡 Waiting for user to select date range and click "Load Data"');
     }
 
     /**
@@ -145,12 +142,12 @@ class OccupancyAnalytics {
             
             row.innerHTML = `
                 <td><strong>${sensor.sensorName}</strong></td>
-                <td>${this.formatRate(sensor.dailyOccupancyRate)}</td>
                 <td class="interval-info">${sensor.dailyOccupiedIntervals}/${sensor.dailyTotalIntervals}</td>
-                <td>${this.formatRate(sensor.weeklyOccupancyRate)}</td>
+                <td>${this.formatRate(sensor.dailyOccupancyRate)}</td>
                 <td class="interval-info">${sensor.weeklyOccupiedIntervals}/${sensor.weeklyTotalIntervals}</td>
-                <td>${this.formatRate(sensor.monthlyOccupancyRate)}</td>
+                <td>${this.formatRate(sensor.weeklyOccupancyRate)}</td>
                 <td class="interval-info">${sensor.monthlyOccupiedIntervals}/${sensor.monthlyTotalIntervals}</td>
+                <td>${this.formatRate(sensor.monthlyOccupancyRate)}</td>
             `;
             
             tbody.appendChild(row);
@@ -353,9 +350,7 @@ class OccupancyAnalytics {
      * Cleanup
      */
     destroy() {
-        if (this.refreshInterval) {
-            clearInterval(this.refreshInterval);
-        }
+        // No refresh interval to clear anymore
         
         Object.values(this.charts).forEach(chart => {
             if (chart) chart.destroy();

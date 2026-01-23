@@ -1,0 +1,496 @@
+/* ========================================
+   MODERN OCCUPANCY ANALYTICS - DAILY VIEW
+   Premium Design by Cascade
+   ======================================== */
+
+/* ===== GLOBAL STATS CARDS ===== */
+.stats-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: 2px solid #e9ecef;
+    border-radius: 16px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #8b5cf6, #7c3aed, #6d28d9);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(139, 92, 246, 0.15);
+    border-color: #8b5cf6;
+}
+
+.stat-card:hover::before {
+    opacity: 1;
+}
+
+.stat-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stat-value {
+    font-size: 3rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+}
+
+.stat-info {
+    font-size: 0.875rem;
+    color: #9ca3af;
+    font-weight: 500;
+}
+
+/* ===== PERFORMANCE DISTRIBUTION CARD ===== */
+.stat-card .stat-label + div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.performance-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    transition: all 0.3s ease;
+}
+
+.performance-item:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.performance-item.excellent {
+    border-left: 4px solid #10b981;
+    background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%);
+}
+
+.performance-item.good {
+    border-left: 4px solid #f59e0b;
+    background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+}
+
+.performance-item.poor {
+    border-left: 4px solid #ef4444;
+    background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+}
+
+.performance-number {
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.performance-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    margin-left: 0.75rem;
+}
+
+.performance-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid currentColor;
+    opacity: 0.8;
+}
+
+/* ===== PAGINATION CONTROLS ===== */
+.pagination-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #f9fafb, #ffffff);
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+}
+
+.pagination-controls button {
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-radius: 8px;
+    border: 2px solid #8b5cf6;
+    background: white;
+    color: #8b5cf6;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pagination-controls button:hover:not(:disabled) {
+    background: #8b5cf6;
+    color: white;
+    transform: scale(1.05);
+}
+
+.pagination-controls button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    border-color: #d1d5db;
+    color: #9ca3af;
+}
+
+.pagination-controls span {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #1f2937;
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ===== DAILY TABLE - MODERN DESIGN ===== */
+.history-table-container {
+    background: white;
+    border-radius: 16px;
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 600px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+}
+
+.analytics-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.95rem;
+}
+
+/* ===== TABLE HEADER ===== */
+.analytics-table thead {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.analytics-table thead tr:first-child th {
+    padding: 1.25rem 1rem;
+    text-align: center;
+    font-weight: 700;
+    color: white;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+}
+
+.analytics-table thead tr:first-child th:first-child {
+    text-align: left;
+    background: linear-gradient(135deg, #6d28d9, #5b21b6);
+    position: sticky;
+    left: 0;
+    z-index: 11;
+}
+
+.analytics-table thead tr:last-child th {
+    padding: 0.875rem 0.75rem;
+    text-align: center;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.85rem;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.analytics-table thead tr:last-child th:first-child {
+    background: linear-gradient(135deg, #5b21b6, #4c1d95);
+    position: sticky;
+    left: 0;
+    z-index: 11;
+}
+
+/* ===== TABLE BODY ===== */
+.analytics-table tbody tr {
+    transition: background 0.2s;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.analytics-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+.analytics-table tbody tr:nth-child(even) {
+    background: #fafbfc;
+}
+
+.analytics-table tbody tr:nth-child(even):hover {
+    background: linear-gradient(90deg, #faf5ff, #fafbfc);
+}
+
+.analytics-table td {
+    padding: 1rem 0.875rem;
+    border-right: 1px solid #f3f4f6;
+    text-align: center !important;
+}
+
+.analytics-table td:first-child {
+    font-weight: 700;
+    color: #1f2937;
+    text-align: left;
+    font-size: 1rem;
+    background: #ffffff;
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    border-right: 2px solid #e5e7eb;
+    padding-left: 1.25rem;
+}
+
+/* ===== INTERVAL INFO CELLS ===== */
+.interval-info {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #4b5563;
+    font-family: 'Courier New', monospace;
+}
+
+/* Force center alignment for interval cells */
+.analytics-table tbody td:nth-child(2n+2):not(:first-child) {
+    text-align: center !important;
+}
+
+/* Add visible separator between days - columns 4, 6, 8, 10 (start of each new day) */
+.analytics-table tbody td:nth-child(4),
+.analytics-table tbody td:nth-child(6),
+.analytics-table tbody td:nth-child(8),
+.analytics-table tbody td:nth-child(10),
+.analytics-table tbody td:nth-child(12) {
+    border-left: 3px solid #8b5cf6 !important;
+}
+
+/* Separator in sub-headers row (Intervalles/Taux) */
+.analytics-table thead tr:last-child th:nth-child(4),
+.analytics-table thead tr:last-child th:nth-child(6),
+.analytics-table thead tr:last-child th:nth-child(8),
+.analytics-table thead tr:last-child th:nth-child(10),
+.analytics-table thead tr:last-child th:nth-child(12) {
+    border-left: 3px solid rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Separator in main header row (day names with colspan=2) */
+.analytics-table thead tr:first-child th:nth-child(3),
+.analytics-table thead tr:first-child th:nth-child(4),
+.analytics-table thead tr:first-child th:nth-child(5),
+.analytics-table thead tr:first-child th:nth-child(6),
+.analytics-table thead tr:first-child th:nth-child(7) {
+    border-left: 3px solid rgba(255, 255, 255, 0.5) !important;
+}
+
+/* ===== RATE CELLS WITH COLOR CODING ===== */
+.analytics-table td[style*="color"] {
+    font-weight: 700;
+    font-size: 1.05rem;
+    padding: 0.5rem 0.75rem;
+}
+
+/* Rate color classes */
+.rate-excellent {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #065f46 !important;
+    font-weight: 800;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+}
+
+.rate-good {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #92400e !important;
+    font-weight: 800;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+}
+
+.rate-poor {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    color: #991b1b !important;
+    font-weight: 800;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+}
+
+/* ===== CHART CONTAINER ===== */
+.chart-container {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+    margin-top: 2rem;
+}
+
+.chart-container canvas {
+    max-height: 400px;
+}
+
+/* ===== SECTION HEADERS ===== */
+.section-header {
+    border-radius: 16px 16px 0 0 !important;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed) !important;
+    padding: 1.5rem !important;
+}
+
+.section-header h4 {
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px;
+}
+
+/* ===== EMPTY STATE ===== */
+.analytics-table tbody td[colspan] {
+    padding: 3rem !important;
+    text-align: center;
+    font-size: 1.125rem;
+    color: #9ca3af;
+    background: linear-gradient(135deg, #fafbfc, #ffffff);
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 1200px) {
+    .stat-value {
+        font-size: 2.5rem;
+    }
+    
+    .analytics-table {
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-summary {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-card {
+        padding: 1.5rem;
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+    }
+    
+    .pagination-controls {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .analytics-table th,
+    .analytics-table td {
+        padding: 0.625rem 0.5rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.analytics-table tbody tr {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* ===== LOADING STATE ===== */
+.analytics-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4rem;
+    color: #8b5cf6;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.analytics-loading::before {
+    content: "🔄 ";
+    animation: spin 1.5s linear infinite;
+    display: inline-block;
+    margin-right: 0.75rem;
+    font-size: 1.5rem;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===== SCROLLBAR STYLING ===== */
+.history-table-container::-webkit-scrollbar {
+    height: 12px;
+}
+
+.history-table-container::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 8px;
+}
+
+.history-table-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    border-radius: 8px;
+}
+
+.history-table-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+}

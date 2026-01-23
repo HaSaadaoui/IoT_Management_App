@@ -1,5 +1,6 @@
 package com.amaris.sensorprocessor.controller;
 
+import com.amaris.sensorprocessor.model.analytics.SectionDailyOccupancyResponse;
 import com.amaris.sensorprocessor.model.analytics.SectionOccupancyResponse;
 import com.amaris.sensorprocessor.service.OccupancyAnalyticsService;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +61,26 @@ public class OccupancyAnalyticsController {
             }});
         } catch (Exception e) {
             log.error("Error getting all occupancy analytics: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * NEW ENDPOINT: Get daily occupancy data for a section
+     * Returns day-by-day occupancy statistics (excluding weekends)
+     */
+    @GetMapping("/occupancy-daily/{section}")
+    public ResponseEntity<SectionDailyOccupancyResponse> getSectionDailyOccupancy(
+            @PathVariable String section,
+            @RequestParam String startDate,
+            @RequestParam String endDate) {
+        log.info("📊 Getting DAILY occupancy analytics for section: {} (dates: {} to {})", section, startDate, endDate);
+        
+        try {
+            SectionDailyOccupancyResponse response = analyticsService.getSectionDailyOccupancy(section, startDate, endDate);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error getting daily occupancy analytics for section {}: {}", section, e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
         }
     }

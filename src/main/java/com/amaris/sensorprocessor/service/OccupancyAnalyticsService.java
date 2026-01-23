@@ -2,8 +2,7 @@ package com.amaris.sensorprocessor.service;
 
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.SensorData;
-import com.amaris.sensorprocessor.model.analytics.OccupancyStats;
-import com.amaris.sensorprocessor.model.analytics.SectionOccupancyResponse;
+import com.amaris.sensorprocessor.model.analytics.*;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -87,7 +86,7 @@ public class OccupancyAnalyticsService {
                 .sectionName(sectionName)
                 .sensorStats(sensorStats)
                 .globalStats(globalStats)
-                .calculationMethod("Méthode 1: Occupation détectée au moins une fois par intervalle de 30 minutes")
+                .calculationMethod("Taux = (Intervalles Occupés / Intervalles avec Données) × 100. Compte uniquement les intervalles où le capteur a envoyé des données.")
                 .businessHours("9h00-12h30 et 14h00-18h30")
                 .workingDays("Lundi à Vendredi")
                 .build();
@@ -95,38 +94,34 @@ public class OccupancyAnalyticsService {
 
     /**
      * Calculate occupancy stats for a single sensor with custom date range
-     * OPTIMIZED: Reuses bulk-fetched data instead of individual queries
+     * New logic: Daily = start date, Weekly = start + 7d, Monthly = start + 30d
      */
     private OccupancyStats calculateSensorOccupancyWithDates(String sensorId, LocalDate customStart, LocalDate customEnd) {
-        LocalDate today = (customEnd != null) ? customEnd : LocalDate.now();
-        LocalDate start = (customStart != null) ? customStart : LocalDate.now().minusDays(30);
-        
-        // If custom dates provided, use full range for all stats
-        if (customStart != null && customEnd != null) {
-            Map<String, Integer> rangeStats = calculateOccupancyForPeriod(sensorId, customStart, customEnd.plusDays(1));
-            
-            return OccupancyStats.builder()
-                    .sensorId(sensorId)
-                    .sensorName(formatSensorName(sensorId))
-                    .dailyOccupancyRate(calculateRate(rangeStats))
-                    .dailyOccupiedIntervals(rangeStats.get("occupied"))
-                    .dailyTotalIntervals(rangeStats.get("total"))
-                    .weeklyOccupancyRate(calculateRate(rangeStats))
-                    .weeklyOccupiedIntervals(rangeStats.get("occupied"))
-                    .weeklyTotalIntervals(rangeStats.get("total"))
-                    .monthlyOccupancyRate(calculateRate(rangeStats))
-                    .monthlyOccupiedIntervals(rangeStats.get("occupied"))
-                    .monthlyTotalIntervals(rangeStats.get("total"))
-                    .build();
+        // If no custom dates provided, return empty stats
+        if (customStart == null || customEnd == null) {
+            return createEmptyStats(sensorId);
         }
         
-        // Default behavior: calculate day/week/month separately
-        LocalDate weekStart = today.with(DayOfWeek.MONDAY);
-        LocalDate monthStart = today.with(TemporalAdjusters.firstDayOfMonth());
-
-        Map<String, Integer> dailyStats = calculateOccupancyForPeriod(sensorId, today, today.plusDays(1));
-        Map<String, Integer> weeklyStats = calculateOccupancyForPeriod(sensorId, weekStart, today.plusDays(1));
-        Map<String, Integer> monthlyStats = calculateOccupancyForPeriod(sensorId, monthStart, today.plusDays(1));
+        long daysBetween = ChronoUnit.DAYS.between(customStart, customEnd);
+        
+        // Daily: Start date only (1 day)
+        Map<String, Integer> dailyStats = calculateOccupancyForPeriod(sensorId, customStart, customStart.plusDays(1));
+        
+        // Weekly: Start date + 7 days (only if range >= 7 days)
+        Map<String, Integer> weeklyStats = null;
+        if (daysBetween >= 7) {
+            LocalDate weekEnd = customStart.plusDays(7);
+            if (weekEnd.isAfter(customEnd)) weekEnd = customEnd;
+            weeklyStats = calculateOccupancyForPeriod(sensorId, customStart, weekEnd.plusDays(1));
+        }
+        
+        // Monthly: Start date + 30 days (only if range >= 30 days)
+        Map<String, Integer> monthlyStats = null;
+        if (daysBetween >= 30) {
+            LocalDate monthEnd = customStart.plusDays(30);
+            if (monthEnd.isAfter(customEnd)) monthEnd = customEnd;
+            monthlyStats = calculateOccupancyForPeriod(sensorId, customStart, monthEnd.plusDays(1));
+        }
 
         return OccupancyStats.builder()
                 .sensorId(sensorId)
@@ -134,30 +129,48 @@ public class OccupancyAnalyticsService {
                 .dailyOccupancyRate(calculateRate(dailyStats))
                 .dailyOccupiedIntervals(dailyStats.get("occupied"))
                 .dailyTotalIntervals(dailyStats.get("total"))
-                .weeklyOccupancyRate(calculateRate(weeklyStats))
-                .weeklyOccupiedIntervals(weeklyStats.get("occupied"))
-                .weeklyTotalIntervals(weeklyStats.get("total"))
-                .monthlyOccupancyRate(calculateRate(monthlyStats))
-                .monthlyOccupiedIntervals(monthlyStats.get("occupied"))
-                .monthlyTotalIntervals(monthlyStats.get("total"))
+                .weeklyOccupancyRate(weeklyStats != null ? calculateRate(weeklyStats) : 0.0)
+                .weeklyOccupiedIntervals(weeklyStats != null ? weeklyStats.get("occupied") : 0)
+                .weeklyTotalIntervals(weeklyStats != null ? weeklyStats.get("total") : 0)
+                .monthlyOccupancyRate(monthlyStats != null ? calculateRate(monthlyStats) : 0.0)
+                .monthlyOccupiedIntervals(monthlyStats != null ? monthlyStats.get("occupied") : 0)
+                .monthlyTotalIntervals(monthlyStats != null ? monthlyStats.get("total") : 0)
                 .build();
     }
     
     /**
      * OPTIMIZED: Calculate stats for multiple sensors in one bulk query
+     * New logic: Daily=startDate, Weekly=startDate+7d, Monthly=startDate+30d
      */
     private Map<String, OccupancyStats> calculateBulkSensorOccupancy(List<String> sensorIds, LocalDate customStart, LocalDate customEnd) {
         log.info("🚀 BULK calculation for {} sensors", sensorIds.size());
         
-        LocalDate today = (customEnd != null) ? customEnd : LocalDate.now();
-        LocalDate monthStart = (customStart != null) ? customStart : today.with(TemporalAdjusters.firstDayOfMonth());
-        LocalDate weekStart = today.with(DayOfWeek.MONDAY);
+        // Require custom dates for bulk calculation
+        if (customStart == null || customEnd == null) {
+            Map<String, OccupancyStats> emptyResults = new HashMap<>();
+            for (String sensorId : sensorIds) {
+                emptyResults.put(sensorId, createEmptyStats(sensorId));
+            }
+            return emptyResults;
+        }
         
-        // Fetch ALL data in ONE query
-        LocalDateTime startDateTime = monthStart.atTime(MORNING_START, 0);
-        LocalDateTime endDateTime = today.plusDays(1).atStartOfDay();
+        long daysBetween = ChronoUnit.DAYS.between(customStart, customEnd);
         
-        log.info("📡 Fetching bulk data from {} to {}", startDateTime, endDateTime);
+        // Determine date ranges for daily/weekly/monthly
+        LocalDate dailyEnd = customStart.plusDays(1);
+        LocalDate weeklyEnd = daysBetween >= 7 ? customStart.plusDays(7) : null;
+        LocalDate monthlyEnd = daysBetween >= 30 ? customStart.plusDays(30) : null;
+        
+        // Fetch data from start date to max end date needed
+        LocalDate maxEndDate = customStart.plusDays(1);
+        if (monthlyEnd != null && monthlyEnd.isBefore(customEnd)) maxEndDate = monthlyEnd;
+        else if (weeklyEnd != null && weeklyEnd.isBefore(customEnd)) maxEndDate = weeklyEnd;
+        else if (customEnd != null) maxEndDate = customEnd;
+        
+        LocalDateTime startDateTime = customStart.atTime(MORNING_START, 0);
+        LocalDateTime endDateTime = maxEndDate.plusDays(1).atStartOfDay();
+        
+        log.info("📡 Fetching bulk data from {} to {} (range: {} days)", startDateTime, endDateTime, daysBetween);
         
         String inClause = sensorIds.stream()
                 .map(id -> "?")
@@ -195,10 +208,18 @@ public class OccupancyAnalyticsService {
         for (String sensorId : sensorIds) {
             List<Map<String, Object>> sensorData = dataPerSensor.getOrDefault(sensorId, new ArrayList<>());
             
-            // Calculate stats from in-memory data
-            Map<String, Integer> dailyStats = calculateStatsFromData(sensorData, today, today.plusDays(1));
-            Map<String, Integer> weeklyStats = calculateStatsFromData(sensorData, weekStart, today.plusDays(1));
-            Map<String, Integer> monthlyStats = calculateStatsFromData(sensorData, monthStart, today.plusDays(1));
+            // Calculate stats from in-memory data with new date logic
+            Map<String, Integer> dailyStats = calculateStatsFromData(sensorData, customStart, dailyEnd);
+            
+            Map<String, Integer> weeklyStats = null;
+            if (weeklyEnd != null) {
+                weeklyStats = calculateStatsFromData(sensorData, customStart, weeklyEnd);
+            }
+            
+            Map<String, Integer> monthlyStats = null;
+            if (monthlyEnd != null) {
+                monthlyStats = calculateStatsFromData(sensorData, customStart, monthlyEnd);
+            }
             
             OccupancyStats stats = OccupancyStats.builder()
                     .sensorId(sensorId)
@@ -206,12 +227,12 @@ public class OccupancyAnalyticsService {
                     .dailyOccupancyRate(calculateRate(dailyStats))
                     .dailyOccupiedIntervals(dailyStats.get("occupied"))
                     .dailyTotalIntervals(dailyStats.get("total"))
-                    .weeklyOccupancyRate(calculateRate(weeklyStats))
-                    .weeklyOccupiedIntervals(weeklyStats.get("occupied"))
-                    .weeklyTotalIntervals(weeklyStats.get("total"))
-                    .monthlyOccupancyRate(calculateRate(monthlyStats))
-                    .monthlyOccupiedIntervals(monthlyStats.get("occupied"))
-                    .monthlyTotalIntervals(monthlyStats.get("total"))
+                    .weeklyOccupancyRate(weeklyStats != null ? calculateRate(weeklyStats) : 0.0)
+                    .weeklyOccupiedIntervals(weeklyStats != null ? weeklyStats.get("occupied") : 0)
+                    .weeklyTotalIntervals(weeklyStats != null ? weeklyStats.get("total") : 0)
+                    .monthlyOccupancyRate(monthlyStats != null ? calculateRate(monthlyStats) : 0.0)
+                    .monthlyOccupiedIntervals(monthlyStats != null ? monthlyStats.get("occupied") : 0)
+                    .monthlyTotalIntervals(monthlyStats != null ? monthlyStats.get("total") : 0)
                     .build();
             
             results.put(sensorId, stats);
@@ -223,21 +244,26 @@ public class OccupancyAnalyticsService {
     
     /**
      * Calculate occupancy stats from in-memory data
+     * NEW LOGIC: Only count intervals where sensor sent data
      */
     private Map<String, Integer> calculateStatsFromData(List<Map<String, Object>> data, LocalDate startDate, LocalDate endDate) {
         // Generate all 30-min intervals
         List<LocalDateTime> intervals = generateIntervals(startDate, endDate);
         
         int occupiedCount = 0;
+        int totalIntervalsWithData = 0;
         
         for (LocalDateTime intervalStart : intervals) {
             LocalDateTime intervalEnd = intervalStart.plusMinutes(INTERVAL_MINUTES);
             
-            // Check if any data point in this interval shows occupancy
-            boolean occupied = data.stream().anyMatch(row -> {
+            // Check if sensor sent data in this interval and if occupied
+            Boolean hasDataAndOccupied = null;
+            boolean hasAnyData = false;
+            
+            for (Map<String, Object> row : data) {
                 try {
                     Object receivedAtObj = row.get("received_at");
-                    if (receivedAtObj == null) return false;
+                    if (receivedAtObj == null) continue;
                     
                     LocalDateTime timestamp;
                     if (receivedAtObj instanceof java.sql.Timestamp) {
@@ -245,33 +271,48 @@ public class OccupancyAnalyticsService {
                     } else if (receivedAtObj instanceof LocalDateTime) {
                         timestamp = (LocalDateTime) receivedAtObj;
                     } else {
-                        return false;
+                        continue;
                     }
                     
                     // Check if timestamp is within interval [start, end)
                     if (timestamp.isBefore(intervalStart) || !timestamp.isBefore(intervalEnd)) {
-                        return false;
+                        continue;
                     }
+                    
+                    // This interval has data
+                    hasAnyData = true;
                     
                     String value = (String) row.get("value");
-                    if (value == null) return false;
-                    
-                    try {
-                        return Integer.parseInt(value) > 0;
-                    } catch (NumberFormatException e) {
-                        return "occupied".equalsIgnoreCase(value) || "used".equalsIgnoreCase(value);
+                    if (value != null) {
+                        try {
+                            if (Integer.parseInt(value) > 0) {
+                                hasDataAndOccupied = true;
+                                break; // Found occupied data, no need to check more
+                            }
+                        } catch (NumberFormatException e) {
+                            if ("occupied".equalsIgnoreCase(value) || "used".equalsIgnoreCase(value)) {
+                                hasDataAndOccupied = true;
+                                break;
+                            }
+                        }
                     }
                 } catch (Exception e) {
-                    return false;
+                    // Ignore parsing errors
                 }
-            });
+            }
             
-            if (occupied) occupiedCount++;
+            // Only count intervals with data
+            if (hasAnyData) {
+                totalIntervalsWithData++;
+                if (hasDataAndOccupied != null && hasDataAndOccupied) {
+                    occupiedCount++;
+                }
+            }
         }
         
         Map<String, Integer> result = new HashMap<>();
         result.put("occupied", occupiedCount);
-        result.put("total", intervals.size());
+        result.put("total", totalIntervalsWithData);  // CHANGED: Only intervals with data
         return result;
     }
     
@@ -296,40 +337,47 @@ public class OccupancyAnalyticsService {
 
     /**
      * Calculate global stats for all sensors in a section with custom dates
+     * New logic: Daily=startDate, Weekly=startDate+7d, Monthly=startDate+30d
      */
     private OccupancyStats calculateGlobalStatsWithDates(String name, List<String> sensorIds, LocalDate customStart, LocalDate customEnd) {
-        LocalDate today = (customEnd != null) ? customEnd : LocalDate.now();
-        
-        if (customStart != null && customEnd != null) {
-            Map<String, Integer> rangeStats = calculateGlobalOccupancyForPeriod(
-                    sensorIds, customStart, customEnd.plusDays(1));
-            
+        // If no custom dates provided, return empty stats
+        if (customStart == null || customEnd == null) {
             return OccupancyStats.builder()
                     .sensorId("GLOBAL")
                     .sensorName(name)
-                    .dailyOccupancyRate(calculateRate(rangeStats))
-                    .dailyOccupiedIntervals(rangeStats.get("occupied"))
-                    .dailyTotalIntervals(rangeStats.get("total"))
-                    .weeklyOccupancyRate(calculateRate(rangeStats))
-                    .weeklyOccupiedIntervals(rangeStats.get("occupied"))
-                    .weeklyTotalIntervals(rangeStats.get("total"))
-                    .monthlyOccupancyRate(calculateRate(rangeStats))
-                    .monthlyOccupiedIntervals(rangeStats.get("occupied"))
-                    .monthlyTotalIntervals(rangeStats.get("total"))
+                    .dailyOccupancyRate(0.0)
+                    .dailyOccupiedIntervals(0)
+                    .dailyTotalIntervals(0)
+                    .weeklyOccupancyRate(0.0)
+                    .weeklyOccupiedIntervals(0)
+                    .weeklyTotalIntervals(0)
+                    .monthlyOccupancyRate(0.0)
+                    .monthlyOccupiedIntervals(0)
+                    .monthlyTotalIntervals(0)
                     .build();
         }
         
-        LocalDate weekStart = today.with(DayOfWeek.MONDAY);
-        LocalDate monthStart = today.with(TemporalAdjusters.firstDayOfMonth());
-
+        long daysBetween = ChronoUnit.DAYS.between(customStart, customEnd);
+        
+        // Daily: Start date only (1 day)
         Map<String, Integer> dailyStats = calculateGlobalOccupancyForPeriod(
-                sensorIds, today, today.plusDays(1));
+                sensorIds, customStart, customStart.plusDays(1));
         
-        Map<String, Integer> weeklyStats = calculateGlobalOccupancyForPeriod(
-                sensorIds, weekStart, today.plusDays(1));
+        // Weekly: Start date + 7 days (only if range >= 7 days)
+        Map<String, Integer> weeklyStats = null;
+        if (daysBetween >= 7) {
+            LocalDate weekEnd = customStart.plusDays(7);
+            if (weekEnd.isAfter(customEnd)) weekEnd = customEnd;
+            weeklyStats = calculateGlobalOccupancyForPeriod(sensorIds, customStart, weekEnd.plusDays(1));
+        }
         
-        Map<String, Integer> monthlyStats = calculateGlobalOccupancyForPeriod(
-                sensorIds, monthStart, today.plusDays(1));
+        // Monthly: Start date + 30 days (only if range >= 30 days)
+        Map<String, Integer> monthlyStats = null;
+        if (daysBetween >= 30) {
+            LocalDate monthEnd = customStart.plusDays(30);
+            if (monthEnd.isAfter(customEnd)) monthEnd = customEnd;
+            monthlyStats = calculateGlobalOccupancyForPeriod(sensorIds, customStart, monthEnd.plusDays(1));
+        }
 
         return OccupancyStats.builder()
                 .sensorId("GLOBAL")
@@ -337,22 +385,23 @@ public class OccupancyAnalyticsService {
                 .dailyOccupancyRate(calculateRate(dailyStats))
                 .dailyOccupiedIntervals(dailyStats.get("occupied"))
                 .dailyTotalIntervals(dailyStats.get("total"))
-                .weeklyOccupancyRate(calculateRate(weeklyStats))
-                .weeklyOccupiedIntervals(weeklyStats.get("occupied"))
-                .weeklyTotalIntervals(weeklyStats.get("total"))
-                .monthlyOccupancyRate(calculateRate(monthlyStats))
-                .monthlyOccupiedIntervals(monthlyStats.get("occupied"))
-                .monthlyTotalIntervals(monthlyStats.get("total"))
+                .weeklyOccupancyRate(weeklyStats != null ? calculateRate(weeklyStats) : 0.0)
+                .weeklyOccupiedIntervals(weeklyStats != null ? weeklyStats.get("occupied") : 0)
+                .weeklyTotalIntervals(weeklyStats != null ? weeklyStats.get("total") : 0)
+                .monthlyOccupancyRate(monthlyStats != null ? calculateRate(monthlyStats) : 0.0)
+                .monthlyOccupiedIntervals(monthlyStats != null ? monthlyStats.get("occupied") : 0)
+                .monthlyTotalIntervals(monthlyStats != null ? monthlyStats.get("total") : 0)
                 .build();
     }
 
     /**
-     * Calculate occupancy for a single sensor over a period using 30-min intervals
+     * Calculate occupancy for a single sensor over a period
+     * NEW LOGIC: Total = number of intervals with data (not theoretical 16 intervals/day)
      */
     private Map<String, Integer> calculateOccupancyForPeriod(
             String sensorId, LocalDate startDate, LocalDate endDate) {
         
-        int totalIntervals = 0;
+        int totalIntervalsWithData = 0;
         int occupiedIntervals = 0;
 
         // Iterate through each day in the period
@@ -371,12 +420,15 @@ public class OccupancyAnalyticsService {
             for (LocalDateTime intervalStart : intervals) {
                 LocalDateTime intervalEnd = intervalStart.plusMinutes(INTERVAL_MINUTES);
                 
-                // Check if there's at least one occupied measurement in this interval
-                boolean isOccupied = isIntervalOccupied(sensorId, intervalStart, intervalEnd);
+                // Check if there's data in this interval
+                Integer occupancyStatus = getIntervalOccupancyStatus(sensorId, intervalStart, intervalEnd);
                 
-                totalIntervals++;
-                if (isOccupied) {
-                    occupiedIntervals++;
+                // Only count intervals where sensor sent data
+                if (occupancyStatus != null) {
+                    totalIntervalsWithData++;
+                    if (occupancyStatus > 0) {
+                        occupiedIntervals++;
+                    }
                 }
             }
 
@@ -385,7 +437,7 @@ public class OccupancyAnalyticsService {
 
         Map<String, Integer> result = new HashMap<>();
         result.put("occupied", occupiedIntervals);
-        result.put("total", totalIntervals);
+        result.put("total", totalIntervalsWithData);  // CHANGED: Real data intervals, not 16
         return result;
     }
 
@@ -411,9 +463,10 @@ public class OccupancyAnalyticsService {
     }
 
     /**
-     * Check if a 30-min interval has at least one occupied measurement
+     * Get occupancy status for a 30-min interval
+     * Returns: null if no data, 0 if free, >0 if occupied
      */
-    private boolean isIntervalOccupied(String sensorId, LocalDateTime start, LocalDateTime end) {
+    private Integer getIntervalOccupancyStatus(String sensorId, LocalDateTime start, LocalDateTime end) {
         try {
             String query = """
                 SELECT value FROM sensor_data 
@@ -427,28 +480,34 @@ public class OccupancyAnalyticsService {
             List<Map<String, Object>> results = jdbcTemplate.queryForList(
                     query, sensorId, start, end);
             
-            // Check if any value is > 0 (occupied)
+            // No data in this interval
+            if (results.isEmpty()) {
+                return null;
+            }
+            
+            // Check if any value shows occupied (>0)
             for (Map<String, Object> row : results) {
                 String value = (String) row.get("value");
                 if (value != null) {
                     try {
                         int occupancyValue = Integer.parseInt(value);
                         if (occupancyValue > 0) {
-                            return true;
+                            return 1; // Occupied
                         }
                     } catch (NumberFormatException e) {
                         // Check string values
                         if ("occupied".equalsIgnoreCase(value) || "used".equalsIgnoreCase(value)) {
-                            return true;
+                            return 1; // Occupied
                         }
                     }
                 }
             }
             
-            return false;
+            // Has data but all values are 0 (free)
+            return 0;
         } catch (Exception e) {
             log.error("Error checking interval occupancy for sensor {}: {}", sensorId, e.getMessage());
-            return false;
+            return null;
         }
     }
 
@@ -552,28 +611,237 @@ public class OccupancyAnalyticsService {
     }
 
     /**
-     * Format sensor name for display
+     * Format sensor name for display with explicit mappings
      */
     private String formatSensorName(String sensorId) {
+        // Desk section
         if (sensorId.startsWith("desk-03-")) {
             return "Desk " + sensorId.substring(8);
-        } else if (sensorId.startsWith("occup-vs70-03-")) {
-            return "SR" + sensorId.substring(14);
-        } else if (sensorId.equals("count-03-01")) {
-            return "SR3";
-        } else if (sensorId.startsWith("desk-vs41-03-")) {
-            String num = sensorId.substring(13);
-            if (num.equals("01") || num.equals("02")) {
-                return "IR" + num;
-            }
-            return "PB" + num;
-        } else if (sensorId.startsWith("occup-vs30-03-")) {
-            return "PB" + (Integer.parseInt(sensorId.substring(14)) + 2);
-        } else if (sensorId.equals("desk-vs40-03-01")) {
-            return "PB5";
-        } else if (sensorId.startsWith("occup-vs70-03-")) {
-            return "PB" + (Integer.parseInt(sensorId.substring(14)) + 5);
         }
+        
+        // Salle de Réunion (Meeting Room) - SR01, SR02, SR03
+        if (sensorId.equals("occup-vs70-03-01")) return "SR01";
+        if (sensorId.equals("occup-vs70-03-02")) return "SR02";
+        if (sensorId.equals("count-03-01")) return "SR03";
+        
+        // Phone Booth - PB1 to PB7 (explicit mapping)
+        if (sensorId.equals("desk-vs41-03-03")) return "PB1";
+        if (sensorId.equals("desk-vs41-03-04")) return "PB2";
+        if (sensorId.equals("occup-vs30-03-01")) return "PB3";
+        if (sensorId.equals("occup-vs30-03-02")) return "PB4";
+        if (sensorId.equals("desk-vs40-03-01")) return "PB5";
+        if (sensorId.equals("occup-vs70-03-03")) return "PB6";
+        if (sensorId.equals("occup-vs70-03-04")) return "PB7";
+        
+        // Interview Room - IR01, IR02
+        if (sensorId.equals("desk-vs41-03-01")) return "IR01";
+        if (sensorId.equals("desk-vs41-03-02")) return "IR02";
+        
+        // Fallback to original ID
         return sensorId;
+    }
+
+    /**
+     * NEW METHOD: Get daily occupancy data for a section
+     * Returns data day-by-day (excluding weekends) for each sensor
+     */
+    public SectionDailyOccupancyResponse getSectionDailyOccupancy(String sectionType, String startDateStr, String endDateStr) {
+        List<String> sensorIds = getSensorIdsBySection(sectionType);
+        String sectionName = getSectionName(sectionType);
+        
+        log.info("📊 Calculating DAILY occupancy for section: {} with {} sensors (dates: {} to {})", 
+                sectionName, sensorIds.size(), startDateStr, endDateStr);
+
+        // Parse dates
+        LocalDate startDate = LocalDate.parse(startDateStr);
+        LocalDate endDate = LocalDate.parse(endDateStr);
+        
+        // Generate list of working days (Mon-Fri only)
+        List<LocalDate> workingDays = generateWorkingDays(startDate, endDate);
+        log.info("📅 Working days in range: {}", workingDays.size());
+        
+        // Fetch all data in one bulk query for performance
+        LocalDateTime startDateTime = startDate.atTime(MORNING_START, 0);
+        LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();
+        
+        String inClause = sensorIds.stream()
+                .map(id -> "?")
+                .collect(Collectors.joining(","));
+        
+        String query = String.format("""
+            SELECT id_sensor, received_at, value 
+            FROM sensor_data 
+            WHERE id_sensor IN (%s)
+            AND value_type = 'OCCUPANCY'
+            AND received_at >= ? 
+            AND received_at < ?
+            ORDER BY id_sensor, received_at
+            """, inClause);
+        
+        Object[] params = new Object[sensorIds.size() + 2];
+        for (int i = 0; i < sensorIds.size(); i++) {
+            params[i] = sensorIds.get(i);
+        }
+        params[sensorIds.size()] = startDateTime;
+        params[sensorIds.size() + 1] = endDateTime;
+        
+        List<Map<String, Object>> allData = jdbcTemplate.queryForList(query, params);
+        log.info("✅ Fetched {} rows for {} sensors", allData.size(), sensorIds.size());
+        
+        // Group data by sensor
+        Map<String, List<Map<String, Object>>> dataPerSensor = allData.stream()
+                .collect(Collectors.groupingBy(row -> (String) row.get("id_sensor")));
+        
+        // Process each sensor
+        List<SensorDailyStats> allSensorStats = new ArrayList<>();
+        int totalIntervalsGlobal = 0;
+        int totalOccupiedGlobal = 0;
+        
+        for (String sensorId : sensorIds) {
+            List<Map<String, Object>> sensorData = dataPerSensor.getOrDefault(sensorId, new ArrayList<>());
+            
+            // Calculate daily stats for each working day
+            List<DailyOccupancyData> dailyDataList = new ArrayList<>();
+            int sensorTotalIntervals = 0;
+            int sensorOccupiedIntervals = 0;
+            
+            for (LocalDate day : workingDays) {
+                Map<String, Integer> dayStats = calculateStatsFromDataForSingleDay(sensorData, day);
+                
+                double dayRate = dayStats.get("total") > 0 
+                        ? (dayStats.get("occupied") * 100.0 / dayStats.get("total")) 
+                        : 0.0;
+                
+                dailyDataList.add(DailyOccupancyData.builder()
+                        .date(day)
+                        .occupiedIntervals(dayStats.get("occupied"))
+                        .totalIntervals(dayStats.get("total"))
+                        .occupancyRate(dayRate)
+                        .build());
+                
+                sensorTotalIntervals += dayStats.get("total");
+                sensorOccupiedIntervals += dayStats.get("occupied");
+            }
+            
+            // Calculate overall rate for this sensor across entire period
+            double overallRate = sensorTotalIntervals > 0 
+                    ? (sensorOccupiedIntervals * 100.0 / sensorTotalIntervals) 
+                    : 0.0;
+            
+            allSensorStats.add(SensorDailyStats.builder()
+                    .sensorId(sensorId)
+                    .sensorName(formatSensorName(sensorId))
+                    .dailyData(dailyDataList)
+                    .overallOccupancyRate(overallRate)
+                    .build());
+            
+            totalIntervalsGlobal += sensorTotalIntervals;
+            totalOccupiedGlobal += sensorOccupiedIntervals;
+        }
+        
+        // Calculate global occupancy rate (all sensors, all days)
+        double globalRate = totalIntervalsGlobal > 0 
+                ? (totalOccupiedGlobal * 100.0 / totalIntervalsGlobal) 
+                : 0.0;
+        
+        log.info("✅ Global occupancy rate: {:.2f}% ({}/{} intervals)", globalRate, totalOccupiedGlobal, totalIntervalsGlobal);
+        
+        return SectionDailyOccupancyResponse.builder()
+                .sectionName(sectionName)
+                .totalSensors(sensorIds.size())
+                .globalOccupancyRate(globalRate)
+                .dateRange(workingDays)
+                .sensorStats(allSensorStats)
+                .calculationMethod("Taux = (Intervalles Occupés / Intervalles avec Données) × 100")
+                .businessHours("9h00-12h30 et 14h00-18h30")
+                .workingDays("Lundi à Vendredi (weekends exclus)")
+                .build();
+    }
+
+    /**
+     * Generate list of working days (Monday-Friday) between start and end date
+     */
+    private List<LocalDate> generateWorkingDays(LocalDate start, LocalDate end) {
+        List<LocalDate> workingDays = new ArrayList<>();
+        LocalDate current = start;
+        
+        while (!current.isAfter(end)) {
+            if (current.getDayOfWeek() != DayOfWeek.SATURDAY && 
+                current.getDayOfWeek() != DayOfWeek.SUNDAY) {
+                workingDays.add(current);
+            }
+            current = current.plusDays(1);
+        }
+        
+        return workingDays;
+    }
+
+    /**
+     * Calculate occupancy stats for a single day from in-memory data
+     */
+    private Map<String, Integer> calculateStatsFromDataForSingleDay(List<Map<String, Object>> data, LocalDate day) {
+        List<LocalDateTime> intervals = generateBusinessHoursIntervals(day);
+        
+        int occupiedCount = 0;
+        int totalIntervalsWithData = 0;
+        
+        for (LocalDateTime intervalStart : intervals) {
+            LocalDateTime intervalEnd = intervalStart.plusMinutes(INTERVAL_MINUTES);
+            
+            boolean hasAnyData = false;
+            boolean isOccupied = false;
+            
+            for (Map<String, Object> row : data) {
+                try {
+                    Object receivedAtObj = row.get("received_at");
+                    if (receivedAtObj == null) continue;
+                    
+                    LocalDateTime timestamp;
+                    if (receivedAtObj instanceof java.sql.Timestamp) {
+                        timestamp = ((java.sql.Timestamp) receivedAtObj).toLocalDateTime();
+                    } else if (receivedAtObj instanceof LocalDateTime) {
+                        timestamp = (LocalDateTime) receivedAtObj;
+                    } else {
+                        continue;
+                    }
+                    
+                    // Check if timestamp is within interval [start, end)
+                    if (timestamp.isBefore(intervalStart) || !timestamp.isBefore(intervalEnd)) {
+                        continue;
+                    }
+                    
+                    hasAnyData = true;
+                    
+                    String value = (String) row.get("value");
+                    if (value != null) {
+                        try {
+                            if (Integer.parseInt(value) > 0) {
+                                isOccupied = true;
+                                break;
+                            }
+                        } catch (NumberFormatException e) {
+                            if ("occupied".equalsIgnoreCase(value) || "used".equalsIgnoreCase(value)) {
+                                isOccupied = true;
+                                break;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    // Ignore parsing errors
+                }
+            }
+            
+            if (hasAnyData) {
+                totalIntervalsWithData++;
+                if (isOccupied) {
+                    occupiedCount++;
+                }
+            }
+        }
+        
+        Map<String, Integer> result = new HashMap<>();
+        result.put("occupied", occupiedCount);
+        result.put("total", totalIntervalsWithData);
+        return result;
     }
 }

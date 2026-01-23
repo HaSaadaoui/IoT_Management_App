@@ -9,7 +9,13 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "alert.thresholds")
 public class AlertThresholdConfig {
 
-    private int dataMaxAgeMinutes = 60;  // Ignore alerts older than 1 hour by default
+    private int dataMaxAgeMinutes = 60;  // Default for regular sensors (temperature, humidity, etc.)
+    
+    // Specific thresholds by device type
+    private int deskOfflineThresholdHours = 24;      // DESK sensors: 24 hours (send data only on state change)
+    private int occupOfflineThresholdHours = 24;     // OCCUP sensors: 24 hours (event-based)
+    private int pirLightOfflineThresholdHours = 12;  // PIR_LIGHT: 12 hours (motion detection)
+    private int countOfflineThresholdHours = 12;     // COUNT: 12 hours (people counting)
 
     private Co2Thresholds co2 = new Co2Thresholds();
     private TemperatureThresholds temperature = new TemperatureThresholds();
