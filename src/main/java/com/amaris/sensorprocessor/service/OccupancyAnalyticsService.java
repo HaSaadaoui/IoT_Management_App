@@ -34,6 +34,9 @@ public class OccupancyAnalyticsService {
     // 30-minute interval
     private static final int INTERVAL_MINUTES = 30;
 
+    private static final ZoneId PARIS_ZONE = ZoneId.of("Europe/Paris");
+    private static final ZoneId UTC_ZONE = ZoneId.of("UTC");
+
     /**
      * Get occupancy analytics for a specific section
      */
@@ -167,7 +170,8 @@ public class OccupancyAnalyticsService {
         else if (weeklyEnd != null && weeklyEnd.isBefore(customEnd)) maxEndDate = weeklyEnd;
         else if (customEnd != null) maxEndDate = customEnd;
         
-        LocalDateTime startDateTime = customStart.atTime(MORNING_START, 0);
+        // Azure MySQL stores received_at in UTC; fetch a full-day UTC range to avoid timezone edge issues.
+        LocalDateTime startDateTime = customStart.atStartOfDay();
         LocalDateTime endDateTime = maxEndDate.plusDays(1).atStartOfDay();
         
         log.info("📡 Fetching bulk data from {} to {} (range: {} days)", startDateTime, endDateTime, daysBetween);
@@ -267,9 +271,9 @@ public class OccupancyAnalyticsService {
                     
                     LocalDateTime timestamp;
                     if (receivedAtObj instanceof java.sql.Timestamp) {
-                        timestamp = ((java.sql.Timestamp) receivedAtObj).toLocalDateTime();
+                        timestamp = ((java.sql.Timestamp) receivedAtObj).toInstant().atZone(PARIS_ZONE).toLocalDateTime();
                     } else if (receivedAtObj instanceof LocalDateTime) {
-                        timestamp = (LocalDateTime) receivedAtObj;
+                        timestamp = ZonedDateTime.of((LocalDateTime) receivedAtObj, UTC_ZONE).withZoneSameInstant(PARIS_ZONE).toLocalDateTime();
                     } else {
                         continue;
                     }
@@ -468,6 +472,10 @@ public class OccupancyAnalyticsService {
      */
     private Integer getIntervalOccupancyStatus(String sensorId, LocalDateTime start, LocalDateTime end) {
         try {
+            // Convert Paris local interval bounds to UTC for querying the UTC stored received_at.
+            LocalDateTime startUtc = ZonedDateTime.of(start, PARIS_ZONE).withZoneSameInstant(UTC_ZONE).toLocalDateTime();
+            LocalDateTime endUtc = ZonedDateTime.of(end, PARIS_ZONE).withZoneSameInstant(UTC_ZONE).toLocalDateTime();
+
             String query = """
                 SELECT value FROM sensor_data 
                 WHERE id_sensor = ? 
@@ -478,7 +486,7 @@ public class OccupancyAnalyticsService {
                 """;
             
             List<Map<String, Object>> results = jdbcTemplate.queryForList(
-                    query, sensorId, start, end);
+                    query, sensorId, startUtc, endUtc);
             
             // No data in this interval
             if (results.isEmpty()) {
@@ -660,8 +668,8 @@ public class OccupancyAnalyticsService {
         List<LocalDate> workingDays = generateWorkingDays(startDate, endDate);
         log.info("📅 Working days in range: {}", workingDays.size());
         
-        // Fetch all data in one bulk query for performance
-        LocalDateTime startDateTime = startDate.atTime(MORNING_START, 0);
+        // Azure MySQL stores received_at in UTC; fetch a full-day UTC range to avoid timezone edge issues.
+        LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();
         
         String inClause = sensorIds.stream()
@@ -798,9 +806,9 @@ public class OccupancyAnalyticsService {
                     
                     LocalDateTime timestamp;
                     if (receivedAtObj instanceof java.sql.Timestamp) {
-                        timestamp = ((java.sql.Timestamp) receivedAtObj).toLocalDateTime();
+                        timestamp = ((java.sql.Timestamp) receivedAtObj).toInstant().atZone(PARIS_ZONE).toLocalDateTime();
                     } else if (receivedAtObj instanceof LocalDateTime) {
-                        timestamp = (LocalDateTime) receivedAtObj;
+                        timestamp = ZonedDateTime.of((LocalDateTime) receivedAtObj, UTC_ZONE).withZoneSameInstant(PARIS_ZONE).toLocalDateTime();
                     } else {
                         continue;
                     }

@@ -103,15 +103,15 @@ class DailyOccupancyAnalytics {
         if (!this.data || !this.data.sensorStats) return;
         
         let excellent = 0;  // >= 70%
-        let good = 0;       // 50-69%
-        let poor = 0;       // < 50%
+        let good = 0;       // 30-69%
+        let poor = 0;       // < 30%
         
         // Count sensors by performance level using overall occupancy rate
         this.data.sensorStats.forEach(sensor => {
             const rate = sensor.overallOccupancyRate;
             if (rate >= 70) {
                 excellent++;
-            } else if (rate >= 50) {
+            } else if (rate >= 30) {
                 good++;
             } else {
                 poor++;
@@ -196,11 +196,9 @@ class DailyOccupancyAnalytics {
                     if (rate >= 70) {
                         rateCell.style.color = '#10b981';
                         rateCell.className = 'rate-excellent';
-                    } else if (rate >= 50) {
+                    } else if (rate >= 30) {
                         rateCell.style.color = '#f59e0b';
                         rateCell.className = 'rate-good';
-                    } else if (rate >= 30) {
-                        rateCell.style.color = '#f97316';
                     } else {
                         rateCell.style.color = '#ef4444';
                         rateCell.className = 'rate-poor';
@@ -324,8 +322,7 @@ class DailyOccupancyAnalytics {
     
     getRateColor(rate) {
         if (rate >= 70) return '#10b981'; // Green
-        if (rate >= 50) return '#f59e0b'; // Orange
-        if (rate >= 30) return '#f97316'; // Dark orange
+        if (rate >= 30) return '#f59e0b'; // Orange
         return '#ef4444'; // Red
     }
     
