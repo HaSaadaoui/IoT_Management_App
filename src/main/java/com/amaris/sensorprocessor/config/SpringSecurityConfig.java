@@ -40,7 +40,7 @@ public class SpringSecurityConfig {
                         .requestMatchers("/", "/css/**", "/image/**", "/login", "/register").permitAll()
                         .requestMatchers("/verify", "/resend-verification", "/verification-success", "/verification-pending").permitAll() // Email verification endpoints
                         .requestMatchers("/api/sensors/**").permitAll() // API REST publique
-                        .requestMatchers("/api/test-alerts", "/api/dashboard/**").permitAll() // Allow alerts and dashboard APIs for development
+                        .requestMatchers("/api/test-alerts", "/api/dashboard/**", "/api/analytics/**").permitAll() // Allow alerts, dashboard, and analytics APIs for development
                         .requestMatchers("/home").authenticated()
                         .anyRequest().hasAnyRole("ADMIN", "USER", "SUPERUSER")
                 )
