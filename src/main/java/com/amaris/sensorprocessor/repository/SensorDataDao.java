@@ -172,6 +172,57 @@ public class SensorDataDao {
         }
     }
 
+    public Map<PayloadValueType, Double> findFirstValuesOfDayByTypes(
+            String idSensor,
+            Set<PayloadValueType> types,
+            Date dayStart,
+            Date dayEnd
+    ) {
+        if (types == null || types.isEmpty()) return Map.of();
+
+        String inClause = String.join(",",
+                types.stream().map(t -> "'" + t.toString() + "'").toList()
+        );
+
+        // Pour chaque value_type, on prend la première ligne du jour
+        // (MIN(received_at) par value_type), puis on récupère la ligne complète.
+        String query = """
+        SELECT sd.*
+        FROM sensor_data sd
+        JOIN (
+            SELECT value_type, MIN(received_at) AS min_received_at
+            FROM sensor_data
+            WHERE id_sensor = ?
+              AND value_type IN (%s)
+              AND received_at >= ?
+              AND received_at < ?
+            GROUP BY value_type
+        ) firsts
+          ON sd.value_type = firsts.value_type
+         AND sd.received_at = firsts.min_received_at
+        WHERE sd.id_sensor = ?
+    """.formatted(inClause);
+
+        try {
+            List<SensorData> rows = jdbcTemplate.query(query, (rs, rowNum) -> new SensorData(
+                    rs.getString("id_sensor"),
+                    rs.getTimestamp("received_at").toLocalDateTime(),
+                    rs.getString("value"),
+                    rs.getString("value_type")
+            ), idSensor, dayStart, dayEnd, idSensor);
+
+            Map<PayloadValueType, Double> out = new HashMap<>();
+            for (SensorData sd : rows) {
+                Double v = sd.getValueAsDouble();
+                if (v != null) out.put(sd.getValueType(), v);
+            }
+            return out;
+        } catch (Exception e) {
+            return Map.of();
+        }
+    }
+
+
     public Optional<SensorData> findLatestByGateway(String gatewayId) {
         String query = """
             SELECT sd.* FROM sensor_data sd 
@@ -200,11 +251,11 @@ public class SensorDataDao {
         }
     }
 
-    public Map<PayloadValueType, Double> findFirstValuesOfDayByTypes(
+    public Map<PayloadValueType, Double> findLastValuesOfDayByTypes(
             String idSensor,
             Set<PayloadValueType> types,
-            LocalDateTime dayStart,
-            LocalDateTime dayEnd
+            Date dayStart,
+            Date dayEnd
     ) {
         if (types == null || types.isEmpty()) return Map.of();
 
@@ -212,22 +263,20 @@ public class SensorDataDao {
                 types.stream().map(t -> "'" + t.toString() + "'").toList()
         );
 
-        // On prend, pour chaque value_type, la première ligne du jour
-        // MySQL: join sur MIN(received_at) par value_type
         String query = """
         SELECT sd.*
         FROM sensor_data sd
         JOIN (
-            SELECT value_type, MIN(received_at) AS min_received_at
+            SELECT value_type, MAX(received_at) AS max_received_at
             FROM sensor_data
             WHERE id_sensor = ?
               AND value_type IN (%s)
               AND received_at >= ?
               AND received_at < ?
             GROUP BY value_type
-        ) firsts
-          ON sd.value_type = firsts.value_type
-         AND sd.received_at = firsts.min_received_at
+        ) lasts
+          ON sd.value_type = lasts.value_type
+         AND sd.received_at = lasts.max_received_at
         WHERE sd.id_sensor = ?
     """.formatted(inClause);
 
