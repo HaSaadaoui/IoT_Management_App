@@ -1,6 +1,184 @@
 // ===== CHART UTILITIES =====
 // Shared chart creation utilities for dashboard, alerts, and prediction pages
 
+const OCCUPANCY_ZONES = {
+    /* ======================================================
+     * LEVALLOIS
+     * ====================================================== */
+    LEVALLOIS: {
+        3: {
+            OPEN_SPACE: {
+                title: "Open_03_01",
+                match: (id) => /^desk-03-(0[1-9]|[1-7][0-9]|8[0-2])$/.test(id)
+            },
+            VALUEMENT: {
+                title: "Valuement",
+                match: (id) => /^desk-03-(8[3-9]|9[0-2])$/.test(id)
+            },
+            MEETING_ROOM: {
+                title: "Meeting Room",
+                match: (id) => /^occup-vs70-03-0[1-2]$/.test(id) || id === "count-03-01"
+            },
+            INTERVIEW_ROOM: {
+                title: "Interview Room",
+                match: (id) => /^desk-vs41-03-0[1-2]$/.test(id)
+            },
+            PHONE_BOOTH: {
+                title: "Phone Booth",
+                match: (id) =>
+                    id === "desk-vs41-03-03" ||  // PB1
+                    id === "desk-vs41-03-04" ||  // PB2
+                    id === "occup-vs30-03-01" || // PB3
+                    id === "occup-vs30-03-02" || // PB4
+                    id === "desk-vs40-03-01" ||  // PB5
+                    id === "occup-vs70-03-03" || // PB6
+                    id === "occup-vs70-03-04"    // PB7
+            }
+        }
+    },
+
+    /* ======================================================
+     * CHATEAUDUN
+     * ====================================================== */
+    CHATEAUDUN: {
+        0: {},
+        1: {},
+        2: {
+            OPEN_SPACE: {
+                title: "Open Space",
+                match: (id) =>
+                    /^desk-01-0[1-9]|desk-01-1[0-5]$/.test(id)
+            }
+        },
+        3: {},
+        4: {
+            OPEN_SPACE: {
+                title: "Open Space",
+                match: (id) =>
+                    /^desk-01-0[1-8]$/.test(id)
+            }
+        },
+        5: {
+            OPEN_SPACE: {
+                title: "Open Space",
+                match: (id) =>
+                    /^desk-01-(0[1-9]|1[0-9]|2[0-4])$/.test(id)
+            }
+        },
+        6: {
+            OPEN_SPACE: {
+                title: "Open Space",
+                match: (id) =>
+                    /^desk-01-(0[1-9]|1[0-6])$/.test(id)
+            }
+        }
+    }
+};
+
+console.log("OCCUPANCY_ZONES", OCCUPANCY_ZONES);
+
+async function fetchOccupancy(building, floor) {
+    const url = `/api/dashboard/occupancy?building=${building}&floor=${floor}`;
+    const res = await fetch(url);
+
+    if (!res.ok) {
+        throw new Error(`Occupancy API failed (${res.status})`);
+    }
+
+    const data = await res.json();   // ✅ une seule lecture
+    console.log("Occupancy API data:", data);
+    return data;
+}
+
+
+function aggregateByZone(rawData, building, floor) {
+    const zones = OCCUPANCY_ZONES?.[building]?.[floor];
+    if (!zones) return {};
+
+    const result = {};
+
+    Object.entries(zones).forEach(([zoneKey, zone]) => {
+        result[zoneKey] = {
+            location: zone.title,
+            free: 0,
+            used: 0,
+            invalid: 0
+        };
+    });
+
+    const FORCED_INVALID = new Set(["desk-03-89", "desk-03-90"]);
+    rawData.forEach(({ id, status }) => {
+        const effectiveStatus = FORCED_INVALID.has(id)
+            ? "invalid"
+            : status;
+
+        Object.entries(zones).forEach(([zoneKey, zone]) => {
+            if (zone.match(id)) {
+                if (effectiveStatus === "free") result[zoneKey].free++;
+                else if (effectiveStatus === "used") result[zoneKey].used++;
+                else result[zoneKey].invalid++;
+            }
+        });
+    });
+
+    console.log("Result from alert js", JSON.stringify(result, null, 2));
+    return result;
+}
+
+
+function updateAllStatCards(zoneStats) {
+    document.querySelectorAll(".stat-card[data-zone]").forEach(card => {
+        const zoneKey = card.dataset.zone;
+        const data = zoneStats[zoneKey];
+        if (!data) return;
+
+        ChartUtils.updateStatCard(card, data);
+    });
+}
+
+
+
+const DASHBOARD_CTX = {
+    building: "LEVALLOIS",
+    floor: 3
+};
+
+async function refreshOccupancyDashboard() {
+    try {
+        const rawData = await fetchOccupancy(
+            DASHBOARD_CTX.building,
+            DASHBOARD_CTX.floor
+        );
+
+        const zoneStats = aggregateByZone(
+            rawData,
+            DASHBOARD_CTX.building,
+            DASHBOARD_CTX.floor
+        );
+
+        updateAllStatCards(zoneStats);
+
+    } catch (e) {
+        console.error("Occupancy refresh failed", e);
+    }
+}
+
+// Initial load
+refreshOccupancyDashboard();
+
+// Auto refresh
+setInterval(refreshOccupancyDashboard, 30000);
+
+
+
+
+
+
+
+
+
+
+
 // Color constants - read from CSS variables for single source of truth
 const getComputedColor = (varName) => {
     const color = getComputedStyle(document.documentElement)
@@ -476,12 +654,12 @@ function updateStatCard(statCard, data) {
     const legendElement = statCard.querySelector(".stat-legend");
     const titleElement = statCard.querySelector(".stat-card-title");
 
-    const total = data.freeCount + data.usedCount + data.invalidCount;
+    const total = data.free + data.used + data.invalid;
     if (total === 0) return;
 
-    const freePercent = ((data.freeCount / total) * 100).toFixed(2);
-    const usedPercent = ((data.usedCount / total) * 100).toFixed(2);
-    const invalidPercent = ((data.invalidCount / total) * 100).toFixed(2);
+    const freePercent = ((data.free / total) * 100).toFixed(2);
+    const usedPercent = ((data.used / total) * 100).toFixed(2);
+    const invalidPercent = ((data.invalid / total) * 100).toFixed(2);
 
     // Update chart
     if (chartElement) {
