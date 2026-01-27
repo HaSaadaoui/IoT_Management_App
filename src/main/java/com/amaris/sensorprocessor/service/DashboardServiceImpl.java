@@ -183,7 +183,7 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public List<Desk> getDesks(String building, String floor, Optional<String> deskId) {
 
-        List<Sensor> deskSensors = sensorDao.findAllByDeviceTypes(List.of("DESK", "OCCUP"));
+        List<Sensor> deskSensors = sensorDao.findAllByDeviceTypes(List.of("DESK", "OCCUP", "COUNT"));
 
         // building filter (si fourni)
         if (building != null && !"all".equalsIgnoreCase(building) && !building.isBlank()) {
