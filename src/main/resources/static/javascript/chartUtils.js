@@ -75,8 +75,6 @@ const OCCUPANCY_ZONES = {
     }
 };
 
-
-
 console.log("OCCUPANCY_ZONES", OCCUPANCY_ZONES);
 
 async function fetchOccupancy(building, floor) {
@@ -108,11 +106,16 @@ function aggregateByZone(rawData, building, floor) {
         };
     });
 
+    const FORCED_INVALID = new Set(["desk-03-89", "desk-03-90"]);
     rawData.forEach(({ id, status }) => {
+        const effectiveStatus = FORCED_INVALID.has(id)
+            ? "invalid"
+            : status;
+
         Object.entries(zones).forEach(([zoneKey, zone]) => {
             if (zone.match(id)) {
-                if (status === "free") result[zoneKey].free++;
-                else if (status === "used") result[zoneKey].used++;
+                if (effectiveStatus === "free") result[zoneKey].free++;
+                else if (effectiveStatus === "used") result[zoneKey].used++;
                 else result[zoneKey].invalid++;
             }
         });
@@ -121,6 +124,7 @@ function aggregateByZone(rawData, building, floor) {
     console.log("Result from alert js", JSON.stringify(result, null, 2));
     return result;
 }
+
 
 function updateAllStatCards(zoneStats) {
     document.querySelectorAll(".stat-card[data-zone]").forEach(card => {
