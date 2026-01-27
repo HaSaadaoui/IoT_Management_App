@@ -552,6 +552,13 @@
                     <label for="hist-to">📅 End Date</label>
                     <input type="datetime-local" id="hist-to" step="3600">
                 </div>
+                <div class="filter-card">
+                    <label>📍 Building</label>
+                    <select id="filter-building" class="form-select">
+                        <option value="LEVALLOIS">Levallois</option>
+                        <option value="CHATEAUDUN" selected>Châteaudun</option>
+                    </select>   
+                </div>
                 <div class="filter-item" style="align-self:end;">
                     <button id="hist-load" class="btn btn-primary">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"
@@ -579,17 +586,17 @@
                 <!-- Statistiques Globales (NOUVEAU: 3 cartes) -->
                 <div class="stats-summary" id="desk-global-stats" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
                     <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">📊 Taux d'Occupation Global</span>
+                        <span class="stat-label">📊 Global Occupancy Rate</span>
                         <span class="stat-value" id="desk-global-rate" style="font-size: 2.5rem;">--</span>
-                        <span class="stat-info" id="desk-global-period" style="font-size: 0.9rem; color: #666;">Sur toute la période</span>
+                        <span class="stat-info" id="desk-global-period" style="font-size: 0.9rem; color: #666;">Over entire period</span>
                     </div>
                     <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">🔢 Nombre de Capteurs</span>
+                        <span class="stat-label">🔢 Number of Sensors</span>
                         <span class="stat-value" id="desk-total-sensors" style="font-size: 2.5rem;">--</span>
-                        <span class="stat-info" style="font-size: 0.9rem; color: #666;">Capteurs actifs</span>
+                        <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
                     </div>
                     <div class="stat-card performance-stat" style="flex: 1;">
-                        <span class="stat-label">📈 Répartition Performance</span>
+                        <span class="stat-label">📈 Performance Distribution</span>
                         <div>
                             <div class="performance-item excellent">
                                 <span class="performance-number" style="color: #10b981;" id="desk-perf-excellent">--</span>
@@ -601,14 +608,14 @@
                             <div class="performance-item good">
                                 <span class="performance-number" style="color: #f59e0b;" id="desk-perf-good">--</span>
                                 <span class="performance-label" style="color: #d97706;">
-                                    <span>🟡 Bon</span>
+                                    <span>🟡 Good</span>
                                     <span class="performance-badge" style="color: #d97706;">30-69%</span>
                                 </span>
                             </div>
                             <div class="performance-item poor">
                                 <span class="performance-number" style="color: #ef4444;" id="desk-perf-poor">--</span>
                                 <span class="performance-label" style="color: #dc2626;">
-                                    <span>🔴 Faible</span>
+                                    <span>🔴 Poor</span>
                                     <span class="performance-badge" style="color: #dc2626;"><30%</span>
                                 </span>
                             </div>
@@ -619,11 +626,11 @@
                 <!-- Pagination Controls -->
                 <div class="pagination-controls">
                     <button id="desk-prev-btn" disabled>
-                        ◄ Précédent
+                        ◄ Previous
                     </button>
                     <span id="desk-page-info">Page 1/1</span>
                     <button id="desk-next-btn" disabled>
-                        Suivant ►
+                        Next ►
                     </button>
                 </div>
 
@@ -632,14 +639,14 @@
                     <table class="history-table analytics-table" id="desk-daily-table">
                         <thead id="desk-table-head">
                         <tr>
-                            <th>Capteur</th>
-                            <th colspan="10" style="text-align: center; color: #999;">Sélectionnez une période et cliquez sur "Load Data"</th>
+                            <th>Sensor</th>
+                            <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
                         </tr>
                         </thead>
                         <tbody id="desk-analytics-tbody">
                         <tr>
                             <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
-                                🔄 En attente du chargement des données...
+                                🔄 Waiting for data loading...
                             </td>
                         </tr>
                         </tbody>
@@ -664,17 +671,17 @@
             <div style="padding: 1.5rem;">
                 <div class="stats-summary" id="meeting-global-stats" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
                     <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">📊 Taux d'Occupation Global</span>
+                        <span class="stat-label">📊 Global Occupancy Rate</span>
                         <span class="stat-value" id="meeting-global-rate" style="font-size: 2.5rem;">--</span>
-                        <span class="stat-info" id="meeting-global-period" style="font-size: 0.9rem; color: #666;">Sur toute la période</span>
+                        <span class="stat-info" id="meeting-global-period" style="font-size: 0.9rem; color: #666;">Over entire period</span>
                     </div>
                     <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">🔢 Nombre de Capteurs</span>
+                        <span class="stat-label">🔢 Number of Sensors</span>
                         <span class="stat-value" id="meeting-total-sensors" style="font-size: 2.5rem;">--</span>
-                        <span class="stat-info" style="font-size: 0.9rem; color: #666;">Capteurs actifs</span>
+                        <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
                     </div>
                     <div class="stat-card performance-stat" style="flex: 1;">
-                        <span class="stat-label">📈 Répartition Performance</span>
+                        <span class="stat-label">📈 Performance Distribution</span>
                         <div>
                             <div class="performance-item excellent">
                                 <span class="performance-number" style="color: #10b981;" id="meeting-perf-excellent">--</span>
@@ -686,14 +693,14 @@
                             <div class="performance-item good">
                                 <span class="performance-number" style="color: #f59e0b;" id="meeting-perf-good">--</span>
                                 <span class="performance-label" style="color: #d97706;">
-                                    <span>🟡 Bon</span>
+                                    <span>🟡 Good</span>
                                     <span class="performance-badge" style="color: #d97706;">30-69%</span>
                                 </span>
                             </div>
                             <div class="performance-item poor">
                                 <span class="performance-number" style="color: #ef4444;" id="meeting-perf-poor">--</span>
                                 <span class="performance-label" style="color: #dc2626;">
-                                    <span>🔴 Faible</span>
+                                    <span>🔴 Poor</span>
                                     <span class="performance-badge" style="color: #dc2626;"><30%</span>
                                 </span>
                             </div>
@@ -703,11 +710,11 @@
 
                 <div class="pagination-controls">
                     <button id="meeting-prev-btn" disabled>
-                        ◄ Précédent
+                        ◄ Previous
                     </button>
                     <span id="meeting-page-info">Page 1/1</span>
                     <button id="meeting-next-btn" disabled>
-                        Suivant ►
+                        Next ►
                     </button>
                 </div>
 
@@ -715,14 +722,14 @@
                     <table class="history-table analytics-table" id="meeting-daily-table">
                         <thead id="meeting-table-head">
                         <tr>
-                            <th>Salle</th>
-                            <th colspan="10" style="text-align: center; color: #999;">Sélectionnez une période et cliquez sur "Load Data"</th>
+                            <th>Room</th>
+                            <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
                         </tr>
                         </thead>
                         <tbody id="meeting-analytics-tbody">
                         <tr>
                             <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
-                                🔄 En attente du chargement des données...
+                                🔄 Waiting for data loading...
                             </td>
                         </tr>
                         </tbody>
@@ -746,17 +753,17 @@
             <div style="padding: 1.5rem;">
                 <div class="stats-summary" id="phone-global-stats" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
                     <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">📊 Taux d'Occupation Global</span>
+                        <span class="stat-label">📊 Global Occupancy Rate</span>
                         <span class="stat-value" id="phone-global-rate" style="font-size: 2.5rem;">--</span>
-                        <span class="stat-info" id="phone-global-period" style="font-size: 0.9rem; color: #666;">Sur toute la période</span>
+                        <span class="stat-info" id="phone-global-period" style="font-size: 0.9rem; color: #666;">Over entire period</span>
                     </div>
                     <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">🔢 Nombre de Capteurs</span>
+                        <span class="stat-label">🔢 Number of Sensors</span>
                         <span class="stat-value" id="phone-total-sensors" style="font-size: 2.5rem;">--</span>
-                        <span class="stat-info" style="font-size: 0.9rem; color: #666;">Capteurs actifs</span>
+                        <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
                     </div>
                     <div class="stat-card performance-stat" style="flex: 1;">
-                        <span class="stat-label">📈 Répartition Performance</span>
+                        <span class="stat-label">📈 Performance Distribution</span>
                         <div>
                             <div class="performance-item excellent">
                                 <span class="performance-number" style="color: #10b981;" id="phone-perf-excellent">--</span>
@@ -768,14 +775,14 @@
                             <div class="performance-item good">
                                 <span class="performance-number" style="color: #f59e0b;" id="phone-perf-good">--</span>
                                 <span class="performance-label" style="color: #d97706;">
-                                    <span>🟡 Bon</span>
+                                    <span>🟡 Good</span>
                                     <span class="performance-badge" style="color: #d97706;">30-69%</span>
                                 </span>
                             </div>
                             <div class="performance-item poor">
                                 <span class="performance-number" style="color: #ef4444;" id="phone-perf-poor">--</span>
                                 <span class="performance-label" style="color: #dc2626;">
-                                    <span>🔴 Faible</span>
+                                    <span>🔴 Poor</span>
                                     <span class="performance-badge" style="color: #dc2626;"><30%</span>
                                 </span>
                             </div>
@@ -785,11 +792,11 @@
 
                 <div class="pagination-controls">
                     <button id="phone-prev-btn" disabled>
-                        ◄ Précédent
+                        ◄ Previous
                     </button>
                     <span id="phone-page-info">Page 1/1</span>
                     <button id="phone-next-btn" disabled>
-                        Suivant ►
+                        Next ►
                     </button>
                 </div>
 
@@ -798,13 +805,13 @@
                         <thead id="phone-table-head">
                         <tr>
                             <th>Booth</th>
-                            <th colspan="10" style="text-align: center; color: #999;">Sélectionnez une période et cliquez sur "Load Data"</th>
+                            <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
                         </tr>
                         </thead>
                         <tbody id="phone-analytics-tbody">
                         <tr>
                             <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
-                                🔄 En attente du chargement des données...
+                                🔄 Waiting for data loading...
                             </td>
                         </tr>
                         </tbody>
@@ -828,17 +835,17 @@
             <div style="padding: 1.5rem;">
                 <div class="stats-summary" id="interview-global-stats" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
                     <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">📊 Taux d'Occupation Global</span>
+                        <span class="stat-label">📊 Global Occupancy Rate</span>
                         <span class="stat-value" id="interview-global-rate" style="font-size: 2.5rem;">--</span>
-                        <span class="stat-info" id="interview-global-period" style="font-size: 0.9rem; color: #666;">Sur toute la période</span>
+                        <span class="stat-info" id="interview-global-period" style="font-size: 0.9rem; color: #666;">Over entire period</span>
                     </div>
                     <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">🔢 Nombre de Capteurs</span>
+                        <span class="stat-label">🔢 Number of Sensors</span>
                         <span class="stat-value" id="interview-total-sensors" style="font-size: 2.5rem;">--</span>
-                        <span class="stat-info" style="font-size: 0.9rem; color: #666;">Capteurs actifs</span>
+                        <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
                     </div>
                     <div class="stat-card performance-stat" style="flex: 1;">
-                        <span class="stat-label">📈 Répartition Performance</span>
+                        <span class="stat-label">📈 Performance Distribution</span>
                         <div>
                             <div class="performance-item excellent">
                                 <span class="performance-number" style="color: #10b981;" id="interview-perf-excellent">--</span>
@@ -850,14 +857,14 @@
                             <div class="performance-item good">
                                 <span class="performance-number" style="color: #f59e0b;" id="interview-perf-good">--</span>
                                 <span class="performance-label" style="color: #d97706;">
-                                    <span>🟡 Bon</span>
+                                    <span>🟡 Good</span>
                                     <span class="performance-badge" style="color: #d97706;">30-69%</span>
                                 </span>
                             </div>
                             <div class="performance-item poor">
                                 <span class="performance-number" style="color: #ef4444;" id="interview-perf-poor">--</span>
                                 <span class="performance-label" style="color: #dc2626;">
-                                    <span>🔴 Faible</span>
+                                    <span>🔴 Poor</span>
                                     <span class="performance-badge" style="color: #dc2626;"><30%</span>
                                 </span>
                             </div>
@@ -867,11 +874,11 @@
 
                 <div class="pagination-controls">
                     <button id="interview-prev-btn" disabled>
-                        ◄ Précédent
+                        ◄ Previous
                     </button>
                     <span id="interview-page-info">Page 1/1</span>
                     <button id="interview-next-btn" disabled>
-                        Suivant ►
+                        Next ►
                     </button>
                 </div>
 
@@ -880,13 +887,13 @@
                         <thead id="interview-table-head">
                         <tr>
                             <th>Room</th>
-                            <th colspan="10" style="text-align: center; color: #999;">Sélectionnez une période et cliquez sur "Load Data"</th>
+                            <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
                         </tr>
                         </thead>
                         <tbody id="interview-analytics-tbody">
                         <tr>
                             <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
-                                🔄 En attente du chargement des données...
+                                🔄 Waiting for data loading...
                             </td>
                         </tr>
                         </tbody>
@@ -899,10 +906,12 @@
             </div>
         </div>
 
-        <!-- Energy Rate Analytics -->
+        <!-- ========================================
+             ENERGY RATE ANALYTICS SECTION (COMMENTED OUT)
+             ======================================== -->
+        <!--
         <h3 class="section-title" style="margin-top: 3rem;">⚡ Energy Rate Analytics</h3>
         <div class="analytics-grid">
-            <!-- Daily Energy Rate Table -->
             <div class="chart-card">
                 <h4>📅 Daily Energy Rate</h4>
                 <div class="history-table-container">
@@ -927,7 +936,6 @@
                 </div>
             </div>
 
-            <!-- Monthly Energy Rate Table -->
             <div class="chart-card">
                 <h4>📆 Monthly Energy Rate</h4>
                 <div class="history-table-container">
@@ -952,10 +960,8 @@
             </div>
         </div>
 
-        <!-- Energy Consumption Chart -->
         <div class="charts-section" id="consumption-histogram-section">
             <h4 class="subsection-title">⚡ Energy Consumption</h4>
-            <!-- Red Outlets -->
             <div class="chart-card">
                 <div class="chart-header">
                     <div class="chart-title">
@@ -973,11 +979,9 @@
             <br>
         </div>
 
-        <!-- Historical Data Analysis -->
         <h3 class="section-title">📈 Historical Data Analysis</h3>
         <div class="charts-section">
             <div class="charts-grid charts-grid--2col">
-                <!-- Temperature History Chart -->
                 <div class="chart-card">
                     <div class="chart-header">
                         <div class="chart-title">
@@ -991,7 +995,6 @@
                     </div>
                 </div>
 
-                <!-- Humidity History Chart -->
                 <div class="chart-card">
                     <div class="chart-header">
                         <div class="chart-title">
@@ -1005,7 +1008,6 @@
                     </div>
                 </div>
 
-                <!-- CO2 History Chart -->
                 <div class="chart-card">
                     <div class="chart-header">
                         <div class="chart-title">
@@ -1019,7 +1021,6 @@
                     </div>
                 </div>
 
-                <!-- Sound Level History Chart -->
                 <div class="chart-card">
                     <div class="chart-header">
                         <div class="chart-title">
@@ -1035,10 +1036,8 @@
             </div>
         </div>
 
-        <!-- Cost Analysis Section -->
         <h3 class="section-title">💰 Cost Analysis</h3>
         <div class="cost-analysis-section">
-            <!-- Cost Summary Cards -->
             <div class="analytics-grid">
                 <div class="chart-card">
                     <h4>📊 Cost Summary</h4>
@@ -1068,7 +1067,6 @@
                 </div>
             </div>
 
-            <!-- Energy Cost Trend - Area Chart -->
             <div class="chart-card full-width" style="margin-top: 2rem;">
                 <div class="chart-header">
                     <div class="chart-title">
@@ -1081,7 +1079,6 @@
                 </div>
             </div>
 
-            <!-- Cost vs Consumption - Scatter Plot -->
             <div class="chart-card full-width" style="margin-top: 2rem;">
                 <div class="chart-header">
                     <div class="chart-title">
@@ -1094,6 +1091,8 @@
                 </div>
             </div>
         </div>
+        -->
+        <!-- ======================================== -->
     </section>
 </main>
 

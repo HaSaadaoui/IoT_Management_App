@@ -137,12 +137,12 @@ class DailyOccupancyAnalytics {
         const visibleDays = workingDays.slice(startIdx, endIdx);
         
         // Build table header with modern styling
-        let headerHtml = '<tr><th>Capteur</th>';
+        let headerHtml = '<tr><th>Sensor</th>';
         
         visibleDays.forEach(date => {
             const dateObj = new Date(date);
-            const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'short' });
-            const dateStr = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+            const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+            const dateStr = dateObj.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
             
             headerHtml += `
                 <th colspan="2" style="text-align: center;">
@@ -154,8 +154,8 @@ class DailyOccupancyAnalytics {
         
         visibleDays.forEach(() => {
             headerHtml += `
-                <th>Intervalles</th>
-                <th>Taux (%)</th>
+                <th>Intervals</th>
+                <th>Rate (%)</th>
             `;
         });
         headerHtml += '</tr>';
@@ -253,13 +253,13 @@ class DailyOccupancyAnalytics {
                     },
                     title: {
                         display: true,
-                        text: `Taux d'Occupation par Capteur (Période Complète)`,
+                        text: `Occupancy Rate per Sensor (Full Period)`,
                         font: { size: 14, weight: 'bold' }
                     },
                     tooltip: {
                         callbacks: {
                             label: (context) => {
-                                return `Taux: ${context.parsed.y.toFixed(2)}%`;
+                                return `Rate: ${context.parsed.y.toFixed(2)}%`;
                             }
                         }
                     }
@@ -270,7 +270,7 @@ class DailyOccupancyAnalytics {
                         max: 100,
                         title: {
                             display: true,
-                            text: 'Taux (%)'
+                            text: 'Rate (%)'
                         }
                     },
                     x: {
@@ -291,7 +291,7 @@ class DailyOccupancyAnalytics {
         const totalPages = Math.ceil(totalDays / this.daysPerPage);
         
         if (this.pageInfo) {
-            this.pageInfo.textContent = `Page ${this.currentPage + 1}/${totalPages} (${totalDays} jours ouvrés)`;
+            this.pageInfo.textContent = `Page ${this.currentPage + 1}/${totalPages} (${totalDays} working days)`;
         }
         
         if (this.prevBtn) {
