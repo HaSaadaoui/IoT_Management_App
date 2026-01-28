@@ -23,6 +23,9 @@ public enum PayloadValueType {
     DISTANCE(Category.BUSINESS, "$.uplink_message.decoded_payload.distance"),
     BATTERY(Category.BUSINESS, "$.uplink_message.decoded_payload.battery"),
     VDD(Category.BUSINESS, "$.uplink_message.decoded_payload.vdd"),
+    
+    PERIOD_IN(Category.BUSINESS, "$.uplink_message.decoded_payload.period_in"),
+    PERIOD_OUT(Category.BUSINESS, "$.uplink_message.decoded_payload.period_out"),
 
     ENERGY_CHANNEL_0 (Category.BUSINESS, "$.uplink_message.decoded_payload[\"0\"].value"),
     ENERGY_CHANNEL_1 (Category.BUSINESS, "$.uplink_message.decoded_payload[\"1\"].value"),

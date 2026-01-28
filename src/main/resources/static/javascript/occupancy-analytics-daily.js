@@ -359,7 +359,7 @@ class OccupancyAnalyticsManager {
         console.log('📊 Daily Occupancy Analytics Manager initialized');
     }
     
-    loadAllSections() {
+    async loadAllSections() {
         const startDateEl = document.getElementById('hist-from');
         const endDateEl = document.getElementById('hist-to');
         
@@ -386,9 +386,13 @@ class OccupancyAnalyticsManager {
         
         console.log(`🔄 Loading all sections: ${startDate} → ${endDate}`);
         
-        Object.values(this.sections).forEach(section => {
-            section.loadData(startDate, endDate);
-        });
+        // Load all sections in parallel and wait for all to complete
+        const loadPromises = Object.values(this.sections).map(section => 
+            section.loadData(startDate, endDate)
+        );
+        
+        await Promise.all(loadPromises);
+        console.log('✅ All 4 sections loaded successfully');
     }
     
     destroy() {

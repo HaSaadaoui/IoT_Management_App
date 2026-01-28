@@ -469,6 +469,8 @@ public class OccupancyAnalyticsService {
     /**
      * Get occupancy status for a 30-min interval
      * Returns: null if no data, 0 if free, >0 if occupied
+     * 
+     * For COUNT sensors: calculates (period_in - period_out). If = 0, room is empty; otherwise occupied
      */
     private Integer getIntervalOccupancyStatus(String sensorId, LocalDateTime start, LocalDateTime end) {
         try {
@@ -476,6 +478,49 @@ public class OccupancyAnalyticsService {
             LocalDateTime startUtc = ZonedDateTime.of(start, PARIS_ZONE).withZoneSameInstant(UTC_ZONE).toLocalDateTime();
             LocalDateTime endUtc = ZonedDateTime.of(end, PARIS_ZONE).withZoneSameInstant(UTC_ZONE).toLocalDateTime();
 
+            // First, try COUNT sensor logic (period_in / period_out)
+            if (sensorId.toLowerCase().startsWith("count")) {
+                String countQuery = """
+                    SELECT value_type, value FROM sensor_data 
+                    WHERE id_sensor = ? 
+                    AND value_type IN ('PERIOD_IN', 'PERIOD_OUT')
+                    AND received_at >= ? 
+                    AND received_at < ?
+                    ORDER BY received_at
+                    """;
+                
+                List<Map<String, Object>> countResults = jdbcTemplate.queryForList(
+                        countQuery, sensorId, startUtc, endUtc);
+                
+                if (!countResults.isEmpty()) {
+                    int periodIn = 0;
+                    int periodOut = 0;
+                    
+                    for (Map<String, Object> row : countResults) {
+                        String valueType = (String) row.get("value_type");
+                        String value = (String) row.get("value");
+                        
+                        if (value != null) {
+                            try {
+                                int numValue = (int) Double.parseDouble(value);
+                                if ("PERIOD_IN".equals(valueType)) {
+                                    periodIn += numValue;
+                                } else if ("PERIOD_OUT".equals(valueType)) {
+                                    periodOut += numValue;
+                                }
+                            } catch (NumberFormatException e) {
+                                // Ignore invalid values
+                            }
+                        }
+                    }
+                    
+                    // Calculate occupancy: if (in - out) = 0, room is empty; otherwise occupied
+                    int netOccupancy = periodIn - periodOut;
+                    return (netOccupancy == 0) ? 0 : 1;
+                }
+            }
+            
+            // Standard OCCUPANCY sensor logic
             String query = """
                 SELECT value FROM sensor_data 
                 WHERE id_sensor = ? 
