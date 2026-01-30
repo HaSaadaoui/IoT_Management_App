@@ -616,6 +616,7 @@ main {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 16px;
+    padding:15px;
 }
 
 .stat-card::before {
@@ -1163,10 +1164,9 @@ main {
 }
 
 /* Canvas du chart */
-.stat-chart-container .chart-office {
-    display: block;
-    margin: 0 auto;
-    height: auto !important;
+.stat-card .chart-office {
+    width: 100% !important;
+    height: 100% !important;
 }
 
 .doughnut-labels {

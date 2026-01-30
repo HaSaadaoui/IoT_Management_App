@@ -575,67 +575,75 @@ function createOrUpdateChart(canvas, config) {
  * @param {Array<number>} data - Array of data values [free, used, invalid]
  * @returns {Object} Chart.js configuration object
  */
-function createDoughnutChartConfig(data) {
-    return {
-        type: "doughnut",
-        data: {
-            labels: ["Free", "Used", "Invalid"],
-            datasets: [
-                {
-                    data: data,
-                    backgroundColor: [okColor, notOkColor, otherColor],
-                    borderWidth: 0,
-                    hoverOffset: 10,
-                },
-            ],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            cutout: "70%",
-            animation: {
-                duration: 0,
-            },
-            plugins: {
-                legend: {
-                    display: true,
-                    position: "bottom",
-                    labels: {
-                        usePointStyle: true,
-                        pointStyle: "circle",
-                        padding: 20,
-                        font: {
-                            family: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-                            size: 12,
-                        },
-                        generateLabels: (chart) => {
-                            const data = chart.data;
-                            if (data.labels.length && data.datasets.length) {
-                                return data.labels.map((label, i) => {
-                                    const value = data.datasets[0].data[i];
-                                    return {
-                                        text: `${label} (${value}%)`,
-                                        fillStyle:
-                                            data.datasets[0].backgroundColor[i],
-                                        hidden: false,
-                                        index: i,
-                                    };
-                                });
-                            }
-                            return [];
-                        },
-                    },
-                },
-                tooltip: {
-                    callbacks: {
-                        label: (context) =>
-                            context.label + ": " + context.parsed + "%",
-                    },
-                },
-            },
-        },
-    };
-}
+ function createDoughnutChartConfig(dataCounts) {
+     // dataCounts = [freeCount, usedCount, invalidCount]
+     const total = dataCounts.reduce((a, b) => a + b, 0);
+     return {
+         type: "doughnut",
+         data: {
+             labels: ["Free", "Used", "Invalid"],
+             datasets: [
+                 {
+                     data: dataCounts.map(count => total ? (count / total) * 100 : 0),
+                     backgroundColor: [okColor, notOkColor, otherColor],
+                     borderWidth: 0,
+                     hoverOffset: 10,
+                 },
+             ],
+         },
+         options: {
+             responsive: true,
+             maintainAspectRatio: true,
+             cutout: "70%",
+             layout: {
+                padding: {
+                    top: 20,
+                    bottom: 5
+                }
+             },
+             animation: { duration: 0 },
+             plugins: {
+                 legend: {
+                     display: true,
+                     position: "bottom",
+                     labels: {
+                         usePointStyle: true,
+                         pointStyle: "circle",
+                         padding: 12,
+                         font: { family: "'Inter', sans-serif", size: 12 },
+                         generateLabels: (chart) => {
+                             const data = chart.data;
+                             if (data.labels.length && data.datasets.length) {
+                                 const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                 return data.labels.map((label, i) => {
+                                     const value = data.datasets[0].data[i];
+                                     return {
+                                         text: `${label} (${value.toFixed(0)}%)`,
+                                         fillStyle: data.datasets[0].backgroundColor[i],
+                                         hidden: false,
+                                         index: i,
+                                     };
+                                 });
+                             }
+                             return [];
+                         },
+                     },
+                 },
+                 tooltip: {
+                     callbacks: {
+                         label: (context) => {
+                             const idx = context.dataIndex;
+                             const label = context.label;
+                             const percent = Math.round(context.parsed);
+                             const count = dataCounts[idx];
+                             return `${label}: ${percent}% (${count} desks)`;
+                         },
+                     },
+                 },
+             },
+         },
+     };
+ }
 
 /**
  * Creates and renders a doughnut chart on a canvas element
@@ -686,28 +694,28 @@ function updateStatCard(statCard, data) {
     const legendElement = statCard.querySelector(".stat-legend");
     const titleElement = statCard.querySelector(".stat-card-title");
 
-    const total = data.free + data.used + data.invalid;
+    const counts = [data.free, data.used, data.invalid];
+    const total = counts.reduce((a, b) => a + b, 0);
     if (total === 0) return;
 
-    const freePercent = ((data.free / total) * 100).toFixed(2);
-    const usedPercent = ((data.used / total) * 100).toFixed(2);
-    const invalidPercent = ((data.invalid / total) * 100).toFixed(2);
+    // Arrondir pour que la somme des % = 100
+    let rawPercents = counts.map(c => (c / total) * 100);
+    let rounded = rawPercents.map(p => Math.floor(p));
+    let remainder = 100 - rounded.reduce((a, b) => a + b, 0);
+    const remainders = rawPercents.map((p, i) => ({ idx: i, diff: p - Math.floor(p) }))
+                                  .sort((a, b) => b.diff - a.diff);
+    for (let i = 0; i < remainder; i++) {
+        rounded[remainders[i].idx]++;
+    }
 
-    // Update chart
     if (chartElement) {
-        createDoughnutChart(chartElement, [
-            freePercent,
-            usedPercent,
-            invalidPercent,
-        ]);
+        createDoughnutChart(chartElement, counts);
     }
 
-    // Update legend
     if (legendElement) {
-        updateLegend(legendElement, freePercent, usedPercent, invalidPercent);
+        updateLegend(legendElement, rounded[0], rounded[1], rounded[2]);
     }
 
-    // Update title
     if (titleElement && data.location) {
         titleElement.textContent = data.location;
     }
