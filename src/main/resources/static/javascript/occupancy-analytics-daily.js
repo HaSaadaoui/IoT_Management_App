@@ -24,6 +24,7 @@ class DailyOccupancyAnalytics {
         // Table elements
         this.tableHead = document.getElementById(`${this.sectionType}-table-head`);
         this.tbody = document.getElementById(`${this.sectionType}-analytics-tbody`);
+        this.tfoot = document.getElementById(`${this.sectionType}-table-foot`);
         
         // Chart
         this.chartCanvas = document.getElementById(`${this.sectionType}-chart-overall`);
@@ -97,6 +98,47 @@ class DailyOccupancyAnalytics {
         
         // Calculate performance distribution (NEW)
         this.updatePerformanceDistribution();
+        
+        // Calculate low usage average (ONLY for desk section)
+        if (this.sectionType === 'desk') {
+            this.updateLowUsageAverage();
+        }
+    }
+    
+    updateLowUsageAverage() {
+        // Only for desk section
+        if (this.sectionType !== 'desk') return;
+        
+        if (!this.data || !this.data.sensorStats || !this.data.dateRange) return;
+        
+        // Calculate daily low usage counts for ALL days in the period
+        const allDays = this.data.dateRange;
+        let totalLowUsageCount = 0;
+        
+        allDays.forEach(date => {
+            let dailyLowCount = 0;
+            this.data.sensorStats.forEach(sensor => {
+                const dayData = sensor.dailyData.find(d => d.date === date);
+                if (dayData && dayData.totalIntervals > 0 && dayData.occupancyRate <= 12.5) {
+                    dailyLowCount++;
+                }
+            });
+            totalLowUsageCount += dailyLowCount;
+        });
+        
+        const workingDays = allDays.length;
+        
+        const lowUsageAvgEl = document.getElementById('desk-low-usage-avg');
+        if (lowUsageAvgEl) {
+            if (workingDays > 0) {
+                const avgDesksPerDay = totalLowUsageCount / workingDays;
+                lowUsageAvgEl.innerHTML = `${avgDesksPerDay.toFixed(1)} <span style="font-size: 1.2rem; color: #dc2626; font-weight: 600;">desks/day</span>`;
+                lowUsageAvgEl.style.color = '#f59e0b';
+            } else {
+                lowUsageAvgEl.textContent = 'N/A';
+                lowUsageAvgEl.style.color = '#9ca3af';
+            }
+        }
     }
     
     updatePerformanceDistribution() {
@@ -174,12 +216,15 @@ class DailyOccupancyAnalytics {
             row.appendChild(sensorCell);
             
             // Data for each visible day
-            visibleDays.forEach(date => {
+            visibleDays.forEach((date, dayIndex) => {
                 const dayData = sensor.dailyData.find(d => d.date === date);
                 
                 // Intervals cell
                 const intervalCell = document.createElement('td');
                 intervalCell.className = 'interval-info';
+                if (dayIndex > 0) {
+                    intervalCell.style.borderLeft = '2px solid #d1d5db';
+                }
                 
                 // Rate cell
                 const rateCell = document.createElement('td');
@@ -215,6 +260,61 @@ class DailyOccupancyAnalytics {
             
             this.tbody.appendChild(row);
         });
+        
+        // Add summary row to tfoot: Low Usage Count per day (ONLY for desk section)
+        if (this.sectionType === 'desk') {
+            this.addLowUsageCountRow(visibleDays);
+        }
+    }
+    
+    addLowUsageCountRow(visibleDays) {
+        if (!this.tfoot) return;
+        
+        const summaryRow = document.createElement('tr');
+        summaryRow.style.background = 'linear-gradient(135deg, #ede9fe, #ddd6fe)';
+        summaryRow.style.fontWeight = '600';
+        summaryRow.style.borderTop = '3px solid #8b5cf6';
+        summaryRow.style.height = '28px';
+        
+        const labelCell = document.createElement('td');
+        labelCell.textContent = '⚠️ Low Usage Count (≤12.5%)';
+        labelCell.style.background = 'linear-gradient(135deg, var(--primary), var(--primary-light))';
+        labelCell.style.color = 'white';
+        labelCell.style.padding = '4px 8px';
+        labelCell.style.fontSize = '0.85rem';
+        labelCell.style.lineHeight = '1';
+        labelCell.style.height = '28px';
+        labelCell.style.position = 'sticky';
+        labelCell.style.left = '0';
+        labelCell.style.zIndex = '2';
+        summaryRow.appendChild(labelCell);
+        
+        visibleDays.forEach((date, index) => {
+            let lowCount = 0;
+            this.data.sensorStats.forEach(sensor => {
+                const dayData = sensor.dailyData.find(d => d.date === date);
+                if (dayData && dayData.totalIntervals > 0 && dayData.occupancyRate <= 12.5) {
+                    lowCount++;
+                }
+            });
+            
+            const cell = document.createElement('td');
+            cell.colSpan = 2;
+            cell.style.textAlign = 'center';
+            cell.style.fontSize = '0.9rem';
+            cell.style.color = lowCount > 0 ? '#dc2626' : '#10b981';
+            cell.style.fontWeight = 'bold';
+            cell.style.borderLeft = index > 0 ? '2px solid #d1d5db' : 'none';
+            cell.style.borderRight = index < visibleDays.length - 1 ? '2px solid #d1d5db' : 'none';
+            cell.style.padding = '4px';
+            cell.style.lineHeight = '1';
+            cell.style.height = '28px';
+            cell.textContent = lowCount;
+            summaryRow.appendChild(cell);
+        });
+        
+        this.tfoot.innerHTML = '';
+        this.tfoot.appendChild(summaryRow);
     }
     
     renderChart() {
