@@ -152,7 +152,11 @@ startConsoAggregateSse() {
   // Stop ancien SSE si existant
   this.stopConsoAggregateSse();
 
-  const url = `/api/dashboard/conso/live/aggregate/stream?building=${encodeURIComponent(building)}`;
+  const floor = this.getEffectiveFloorParam(); // '' si All Floors
+  const qs = new URLSearchParams({ building });
+  if (floor) qs.set('floor', String(floor));   // ✅ floor conditionnel
+
+  const url = `/api/dashboard/conso/live/aggregate/stream?${qs.toString()}`;
   console.log('[CONSO SSE] starting', url);
 
   const es = new EventSource(url);
@@ -162,7 +166,6 @@ startConsoAggregateSse() {
     try {
       const payload = JSON.parse(ev.data);
 
-      // 1) Current Power: privilégie kW si fourni, sinon convertit W -> kW
       const kw = (payload.powerTotalkW != null)
         ? Number(payload.powerTotalkW)
         : (payload.powerTotalW != null ? Number(payload.powerTotalW) / 1000 : null);
@@ -171,7 +174,6 @@ startConsoAggregateSse() {
         this.updateMetricValue('live-current-power', kw.toFixed(2));
       }
 
-      // 2) Today Energy: privilégie kWh si fourni, sinon convertit Wh -> kWh
       const kwh = (payload.todayEnergykWh != null)
         ? Number(payload.todayEnergykWh)
         : (payload.todayEnergyWh != null ? Number(payload.todayEnergyWh) / 1000 : null);
@@ -179,27 +181,15 @@ startConsoAggregateSse() {
       if (kwh != null && !Number.isNaN(kwh)) {
         this.updateMetricValue('live-daily-energy', kwh.toFixed(2));
       }
-
-      // Optionnel: debug / affichage deviceCount
-      // this.updateMetricValue('live-conso-device-count', String(payload.deviceCount ?? '--'));
-
-      // Si tu veux afficher l'horodatage
-      // this.consoLastUpdatedAt = payload.updatedAtEpochMs;
-
     } catch (e) {
       console.warn('[CONSO SSE] parse error', e);
     }
   });
 
-  es.addEventListener('keepalive', () => {
-    // rien à faire
-  });
-
-  es.onerror = (err) => {
-    console.warn('[CONSO SSE] error', err);
-    // EventSource auto-reconnect. Tu peux ajouter une UI "degraded" si besoin.
-  };
+  es.addEventListener('keepalive', () => {});
+  es.onerror = (err) => console.warn('[CONSO SSE] error', err);
 }
+
 
 stopConsoAggregateSse() {
   if (this.consoSse) {
@@ -356,6 +346,22 @@ stopConsoAggregateSse() {
 	}
 
 
+applyBuildingStatVisibility() {
+  const building = String(this.filters.building || '').toUpperCase();
+  const cards = document.querySelectorAll('.office-stats .stat-card');
+  if (!cards.length) return;
+
+  cards.forEach(card => {
+    const zone = String(card.dataset.zone || '').toUpperCase(); // ✅ zone de la card
+    if (building === 'CHATEAUDUN') {
+      // ✅ Châteaudun: uniquement OPEN_SPACE
+      card.style.display = (zone === 'OPEN_SPACE') ? '' : 'none';
+    } else {
+      // ✅ autres bâtiments: tout visible
+      card.style.display = '';
+    }
+  });
+}
 
 	async loadBuildings() {
 		const select = document.getElementById('filter-building');
@@ -403,67 +409,81 @@ stopConsoAggregateSse() {
 		}
 	}
 
-	async handleFilterChange(filterId, value) {
-		console.log(`=== Filter Change: ${filterId} ===`, value);
+async handleFilterChange(filterId, value) {
+  console.log(`=== Filter Change: ${filterId} ===`, value);
 
-		const filterKey = filterId.replace('filter-', '').replace('-', '');
-		const mappedKey =
-			filterKey === 'sensortype' ? 'sensorType' :
-			filterKey === 'time' ? 'timeSlot' :
-			filterKey;
+  const filterKey = filterId.replace('filter-', '').replace('-', '');
+  const mappedKey =
+    filterKey === 'sensortype' ? 'sensorType' :
+    filterKey === 'time' ? 'timeSlot' :
+    filterKey;
 
-		// Cas spécial BUILDING : normalisation + floors + 3D
-		if (filterId === 'building') {
-			const building = this.buildings.find(
-				b => String(b.id) === String(value) || b.code === value
-			);
+  // =========================
+  // ✅ Cas spécial BUILDING
+  // =========================
+  if (filterId === 'building') {
+    const building = this.buildings.find(
+      b => String(b.id) === String(value) || b.code === value
+    );
 
-			if (!building) {
-				console.warn('Building not found for value:', value);
-				return;
-			}
+    if (!building) {
+      console.warn('Building not found for value:', value);
+      return;
+    }
 
-			// 1) Normaliser la clé building (code si dispo, sinon id)
-			this.filters.building = this.getBuildingKey(building);
+    // 1) Normaliser la clé building (code si dispo, sinon id)
+    this.filters.building = this.getBuildingKey(building);
 
-			// 2) Mettre à jour currentBuilding
-			this.currentBuilding = building;
-			this.startConsoAggregateSse();
+    // 2) Mettre à jour currentBuilding
+    this.currentBuilding = building;
 
+    // 3) Charger les floors (virtuel => code ok, DB => id)
+    const floorsLookupId = building.code ? building.code : building.id;
+    await this.loadBuildingFloors(floorsLookupId);
 
-			// 3) Charger les floors (virtuel => code ok, DB => id)
-			const floorsLookupId = building.code ? building.code : building.id;
-			await this.loadBuildingFloors(floorsLookupId);
+    // 4) Reset floor après reload floors
+    this.filters.floor = '';
+    const floorSelect = document.getElementById('filter-floor');
+    if (floorSelect) floorSelect.value = '';
 
-			// 4) Reset floor après reload floors
-			this.filters.floor = '';
-			const floorSelect = document.getElementById('filter-floor');
-			if (floorSelect) floorSelect.value = '';
+    // 5) UI titles
+    this.updateBuildingTitle();
+    this.updateSensorTypeUI(this.filters.sensorType);
 
-			// 5) UI titles
-			this.updateBuildingTitle();
-			this.updateSensorTypeUI(this.filters.sensorType);
+    // 6) 3D
+    if (window.building3D?.loadBuilding) {
+      console.log('Mise à jour du modèle 3D pour:', building.name);
+      window.building3D.loadBuilding(building);
+    }
 
-			// 6) 3D
-			if (window.building3D?.loadBuilding) {
-				console.log('Mise à jour du modèle 3D pour:', building.name);
-				window.building3D.loadBuilding(building);
-			}
+    // ✅ 7) Restart CONSO SSE (building + floor='')
+    this.startConsoAggregateSse();
 
-			// 7) Reload data
-			await this.loadDashboardData();
-			return;
-		}
+    // 8) Reload data
+    await this.loadDashboardData();
+    this.applyBuildingStatVisibility();
+    return;
+  }
 
-		// Cas général
-		this.filters[mappedKey] = value;
+  // =========================
+  // ✅ Cas général
+  // =========================
+  this.filters[mappedKey] = value;
 
-		if (filterId === 'sensor-type') {
-			this.updateSensorTypeUI(value);
-		}
+  // UI pour sensor-type
+  if (filterId === 'sensor-type') {
+    this.updateSensorTypeUI(value);
+  }
 
-		await this.loadDashboardData();
-	}
+  // ✅ Si on change d'étage : restart SSE (building + floor)
+  if (filterId === 'floor') {
+    this.startConsoAggregateSse();
+  }
+
+  await this.loadDashboardData();
+  this.applyBuildingStatVisibility();
+}
+
 
 	// =========================
 	// ===== UI TITLES =====
@@ -688,6 +708,7 @@ stopConsoAggregateSse() {
 		this.updateOccupationHistory(data?.historicalData);
 		this.updateCostAnalysis(data?.historicalData);
 		this.updateGlobalStatistics(data?.historicalData);
+		  this.applyBuildingStatVisibility();
 		this.hideLoading();
 	}
 
