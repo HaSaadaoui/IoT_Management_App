@@ -582,14 +582,16 @@
                     </div>
                 </div>
                 <!-- 2D Element Parameters -->
-                <!-- <div class="filter-card">
+                <div class="filter-card">
                     <label>Element</label>
                     <select id="filter-type" class="form-select" style="height: 45px;">
-                        <option value="1" selected>Sensor</option>
-                        <option value="2">Rectangle</option>
-                        <option value="3">Triangle</option>
+                        <option value="Sensor" selected>Sensor</option>
+                        <option value="Wall">Wall</option>
+                        <option value="Room">Room</option>
+                        <option value="Door">Door</option>
+                        <option value="Window">Window</option>
                     </select>
-                </div> -->
+                </div>
 
                 <div class="filter-card">
                     <label>Sensor Type</label>
@@ -612,9 +614,9 @@
                 <div class="filter-card">
                     <label>Floor</label>
                     <select id="filter-floor" class="form-select" style="height: 45px;">
-                        <option value="" selected>All Floors</option>
+                        <!-- <option value="" selected>All Floors</option> -->
                         <option value="0" selected>Ground Floor</option>
-                        <option value="1">Floor 2</option>
+                        <option value="1">Floor 1</option>
                     </select>
                 </div>
 
@@ -624,20 +626,12 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label>X</label>
-                    <input type="number" id="sensor_x" min="0" max="1200" step="10" value="0"class="form-control">
-                    <label>Y</label>
-                    <input type="number" id="sensor_y" min="0" max="1200" step="10" value="0" class="form-control">
-                </div>
-
-                <div class="col-md-4">
                     <label>Size</label>
                     <input type="number" id="sensor_size" min="0" max="1000" step="10" value="20" class="form-control">
                 </div>
 
                 <div class="col-md-4" style="margin-top: 20px;">
                     <button class="btn btn-violet" onclick="addElementSVG()">Add Element</button>
-                    <button class="btn btn-violet" onclick="saveElementSVG()">Save Element</button>
                     <button class="btn btn-violet" onclick="removeElementSVG()">Remove Element</button>
                 </div>
             </div>

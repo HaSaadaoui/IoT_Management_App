@@ -17,6 +17,7 @@ class SensorOverlayManager {
 
     constructor(svgContainer) {
         this.svg = svgContainer;
+        this.floorNumber = 0;
         this.isDashboard = true;
         this.currentMode = 'DESK';
         this.sensors = [];
@@ -35,9 +36,10 @@ class SensorOverlayManager {
         return icon;
     }
 
-    setSensorMode(mode, sensors, isDashboard = true) {
+    setSensorMode(mode, sensors, floorNumber, isDashboard = true) {
         this.currentMode = mode;
         this.sensors = sensors;
+        this.floorNumber = floorNumber;
         this.isDashboard = isDashboard;
         this.clearOverlay();
         this.createOverlay(mode);
@@ -46,18 +48,32 @@ class SensorOverlayManager {
     clearOverlay() {
         this.animationFrames.forEach(id => cancelAnimationFrame(id));
         this.animationFrames = [];
-        if (this.overlayGroup) {
-            this.overlayGroup.remove();
-        }
+
+        const floorGroup = this.svg.querySelector(`#floor-${this.floorNumber}`);
+        if (!floorGroup) return;
+
+        // On supprime seulement les capteurs précédents
+        const markers = floorGroup.querySelectorAll(".sensor-marker, circle, radialGradient, defs");
+        markers.forEach(el => el.remove());
     }
 
     createOverlay(mode) {
-        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        g.setAttribute("id", `overlay-${mode}`);
-        this.overlayGroup = g;
+        // On récupère le groupe 'floor-x' existant
+        const floorGroupId = `floor-${this.floorNumber}`;
+        let floorGroup = this.svg.querySelector(`#${CSS.escape(floorGroupId)}`);
 
-        if (this.isDashboard){
-            switch(mode) {
+        // S'il n'existe pas, on le crée
+        if (!floorGroup) {
+            floorGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            floorGroup.setAttribute("id", floorGroupId);
+            this.svg.appendChild(floorGroup);
+        }
+
+        this.overlayGroup = floorGroup;
+
+        // On y dessine directement les capteurs
+        if (this.isDashboard) {
+            switch (mode) {
                 case 'CO2': this.createCO2Heatmap(); break;
                 case 'TEMP': this.createTempThermal(); break;
                 case 'LIGHT': this.createLightMap(); break;
@@ -73,8 +89,6 @@ class SensorOverlayManager {
         } else {
             this.createSensorsConfig();
         }
-        
-        this.svg.appendChild(this.overlayGroup);
     }
 
     createCO2Heatmap() {
@@ -502,6 +516,63 @@ class SensorOverlayManager {
         this.svg.insertBefore(defs, this.svg.firstChild);
     }
 
+    createSensor(g, sensorId, sensorType, floor, x, y, size) {
+        const icon = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        icon.setAttribute("x", x);
+        icon.setAttribute("y", y);
+        icon.setAttribute("text-anchor", "middle");
+        icon.setAttribute("font-size", size);
+        icon.setAttribute("floor-number", floor);
+        icon.setAttribute("sensor-mode", sensorType);
+        icon.setAttribute("id", sensorId);
+        icon.setAttribute("class", "sensor");
+        icon.textContent = this.getIcon(sensorType);
+        g.appendChild(icon);
+
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", x);
+        text.setAttribute("y", parseInt(y) + parseInt(size));
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("font-size", parseInt(size) / 2);
+        text.setAttribute("font-weight", "bold");
+        text.setAttribute("fill", "#374151");
+        text.setAttribute("class","sensor-label");
+        text.setAttribute("id","label-"+sensorId);
+        text.textContent = sensorId;
+        g.appendChild(text);
+    }
+
+    createDesk(g, sensorId, sensorType, floor, x, y, size) {
+        const desk = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        desk.setAttribute("x", x);
+        desk.setAttribute("y", y);
+        desk.setAttribute("width", size);
+        desk.setAttribute("height", size / 2);
+        desk.setAttribute("fill", "#94a3b8");
+        desk.setAttribute("stroke", "#000000");
+        desk.setAttribute("stroke-width", 2);
+        desk.setAttribute("rx", 3);
+        desk.setAttribute("class", "sensor");
+        desk.setAttribute("id", sensorId);
+        desk.setAttribute("floor-number", floor);
+        desk.setAttribute("sensor-mode", sensorType);
+        g.appendChild(desk);
+
+        // Desk ID label
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", parseInt(x) + parseInt(size) / 2);
+        text.setAttribute("y", parseInt(y) + parseInt(size) / 3);
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("font-family", "Arial, sans-serif");
+        text.setAttribute("font-size", parseInt(size) / 3);
+        text.setAttribute("font-weight", "bold");
+        text.setAttribute("fill", "#ffffff");
+        text.setAttribute("class","sensor-label");
+        text.setAttribute("id","label-"+sensorId);
+        text.textContent = sensorId;
+        g.appendChild(text);
+    }
+
     updateSensorValue(sensorId, value, timestamp) {
       const sensor = this.sensors?.find(s => s.id === sensorId);
       console.log('Sensor: ', sensor);
@@ -566,44 +637,30 @@ class SensorOverlayManager {
 
     createSensorsConfig() {
         this.sensors.forEach((sensor) => {
-            if (sensor.type === this.currentMode){
-                this.drawSensorIcon(sensor.id, sensor.type, sensor.floor, sensor.x, sensor.y, sensor.size);
-            }
+            this.drawSensorIcon(sensor.id, sensor.type, sensor.floor, sensor.x, sensor.y, sensor.size);
         });
     }
 
     drawSensorIcon(sensorId, sensorType, floor, x, y, size) {
-
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
         g.setAttribute("class", "sensor-marker");
         g.setAttribute("id", "marker-"+sensorId);
+        g.setAttribute("data-draggable", "true");
+        if (sensorType !== this.currentMode || parseInt(floor) !== parseInt(this.floorNumber)){
+            g.style.display="none";
+        }
+        g.style.cursor = "move";
 
-        const icon = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        icon.setAttribute("x", x);
-        icon.setAttribute("y", y);
-        icon.setAttribute("text-anchor", "middle");
-        icon.setAttribute("font-size", size);
-        icon.setAttribute("floor-number", floor);
-        icon.setAttribute("sensor-mode", sensorType);
-        icon.setAttribute("id", sensorId);
-        icon.setAttribute("class", "sensor");
-        icon.textContent = this.getIcon(sensorType);
-        g.appendChild(icon);
-
-        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        text.setAttribute("x", x);
-        text.setAttribute("y", parseInt(y) + parseInt(size));
-        text.setAttribute("text-anchor", "middle");
-        text.setAttribute("font-size", parseInt(size) / 2);
-        text.setAttribute("font-weight", "bold");
-        text.setAttribute("fill", "#374151");
-        text.textContent = sensorId;
-        g.appendChild(text);
+        if (sensorType === "DESK") {
+            this.createDesk(g, sensorId, sensorType, floor, x, y, size);
+        } else {
+            this.createSensor(g, sensorId, sensorType, floor, x, y, size);
+        }
         
         this.overlayGroup.appendChild(g);
     }
  
-    removeElementById(id) {
+    removeSensorMarkerById(id) {
         if (!this.overlayGroup || !id) return false;
 
         const el = this.overlayGroup.querySelector(`#${CSS.escape("marker-"+id)}`);
@@ -611,6 +668,33 @@ class SensorOverlayManager {
 
         el.remove();
         return true;
+    }
+
+    setSensorSize(sensorId, sensorMode, size){
+        const group = this.svg.querySelector(`#marker-${sensorId}`);
+        const sensorEl = group.querySelector(".sensor");
+        const labelSensorEl = group.querySelector(".sensor-label");
+
+        if (!sensorEl) return;
+
+        if (sensorMode === "DESK"){
+            sensorEl.setAttribute("width", size);
+            sensorEl.setAttribute("height", parseInt(size) / 2);
+            if (labelSensorEl) {
+                const xDesk = parseFloat(sensorEl.getAttribute("x"));
+                const yDesk = parseFloat(sensorEl.getAttribute("y"));
+                labelSensorEl.setAttribute('font-size', parseInt(size) / 3);
+                labelSensorEl.setAttribute("x", xDesk + parseInt(size) / 2);
+                labelSensorEl.setAttribute("y", yDesk + parseInt(size) / 3);
+            }
+        } else {
+            sensorEl.setAttribute('font-size', size);
+            if (labelSensorEl) {
+                const yIcon = parseFloat(sensorEl.getAttribute("y"));
+                labelSensorEl.setAttribute('font-size', parseInt(size) / 2);
+                labelSensorEl.setAttribute("y", yIcon + size);
+            }
+        }
     }
 
 }

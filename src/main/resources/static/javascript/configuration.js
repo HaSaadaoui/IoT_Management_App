@@ -303,14 +303,14 @@ function loadBuildingFloors() {
         return;
     }
 
-    floorSelect.innerHTML = '<option value="">All Floors</option>';
+    // floorSelect.innerHTML = '<option value="">All Floors</option>';
     for (let i = 0; i < floorsEl.value; i++) {
         const opt = document.createElement('option');
         opt.value = String(i);
         if (i === 0) {
             opt.textContent = `Ground Floor`;
         } else {
-            opt.textContent = `Floor ${i+1}`;
+            opt.textContent = `Floor ${i}`;
         }
         floorSelect.appendChild(opt);
     }
@@ -379,21 +379,23 @@ async function loadBuildingConfig() {
 }
 
 async function update3DConfig() {
-
     const selectBuilding = document.getElementById('filter-building');
     const floorsEl = document.getElementById("building-floors");
     const scaleEl  = document.getElementById("building-scale");
 
     const buildingId = selectBuilding.value;
 
-    if(isNaN(buildingId) || buildingId === null || buildingId === "") return;
+    // if(isNaN(buildingId) || buildingId === null || buildingId === "") {
+    //     window.building3D.buildingKey = "0";
+    // } else {
+    //     window.building3D.buildingKey = buildingId;
+    // };
 
     window.building3D.buildingKey = buildingId;
-    window.building3D.dbBuildingConfig.floors = floorsEl.value;
-    window.building3D.dbBuildingConfig.scale = scaleEl.value;
-    window.building3D.config.floors = floorsEl.value;
-    window.building3D.config.scale = scaleEl.value;
+    window.building3D.isDbBuilding = true;
+    window.building3D.dbBuildingConfig = {floors: floorsEl.value, scale: scaleEl.value, svgUrl: null};
     window.building3D.dbShapeCache = null;
+    window.building3D.config = {id:window.building3D.buildingKey};
 
     const svgInput = document.getElementById("building-svg");
     let blobUrl = "";
@@ -467,6 +469,80 @@ async function deleteBuildingConfig() {
     }
 }
 
+async function saveBuildingConfig() {
+    const selectBuilding = document.getElementById('filter-building');
+    const nameEl   = document.getElementById("building-name");
+    const floorsEl = document.getElementById("building-floors");
+    const scaleEl  = document.getElementById("building-scale");
+    const svgInput = document.getElementById("building-svg");
+
+    const name    = (nameEl.value || "").trim();
+    const floors  = parseInt(floorsEl.value, 10) || 1;
+    const scale   = parseFloat(scaleEl.value) || 0.01;
+    svgFile = svgInput.files[0];
+
+    if (!name) {
+        alert("Merci de saisir un nom de bâtiment.");
+        return;
+    }
+
+    if (!svgFile) {
+        // Si création de bâtiment, le SVG est obligatoire
+        if (!isNaN(selectBuilding.value) && selectBuilding.value !== null && selectBuilding.value !== "") {
+            svgFile = new File([], "");
+        } else {
+            alert("Merci de sélectionner un fichier SVG.");
+            return;
+        }
+    }
+
+    // Récupérer le CSRF sur /api/buildings/csrf-token
+    let csrf;
+    try {
+        const csrfResp = await fetch("/api/buildings/csrf-token", {
+            credentials: "same-origin"
+        });
+        if (!csrfResp.ok) {
+            throw new Error("HTTP " + csrfResp.status);
+        }
+        csrf = await csrfResp.json();
+        console.log("CSRF token:", csrf);
+    } catch (e) {
+        console.error("Erreur CSRF:", e);
+        alert("Impossible de récupérer le token CSRF");
+        return;
+    }
+
+    // On récupère le SVG affiché pour le sauvegarder
+    const floorPlan2D   = document.getElementById('floor-plan-2d');
+    if (floorPlan2D && floorPlan2D.style.display === 'block'){
+        const fileName = svgFile.name || defaultSVGFile.split('/').pop() || name;
+        const svgContent = window.building3D.currentArchPlan.exportSVG();
+        if (!svgContent) {
+            alert("Failed to extract SVG content.");
+            return;
+        }
+        // Convert SVG text → Blob (fichier)
+        const blob = new Blob([svgContent], { type: "image/svg+xml" });
+        svgFile = new File([blob], fileName, { type: "image/svg+xml" });
+    } 
+
+    // Construire le FormData
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("floors", floors);
+    formData.append("scale", scale);
+    formData.append("svgFile", svgFile);
+    formData.append(csrf.parameterName, csrf.token);
+
+    // Si aucun bâtiment sélectionné, on appelle la méthode createBuildingConfig sinon updateBuildingConfig
+    if (!isNaN(selectBuilding.value) && selectBuilding.value !== null && selectBuilding.value !== "") {
+        return updateBuildingConfig(formData);
+    } else {
+        return createBuildingConfig(formData);
+    }
+}
+
 async function createBuildingConfig(formData) {
     const selectBuilding = document.getElementById('filter-building');
 
@@ -525,107 +601,53 @@ async function updateBuildingConfig(formData) {
     });
 }
 
-async function saveBuildingConfig() {
-    const selectBuilding = document.getElementById('filter-building');
-    const nameEl   = document.getElementById("building-name");
-    const floorsEl = document.getElementById("building-floors");
-    const scaleEl  = document.getElementById("building-scale");
-    const svgInput = document.getElementById("building-svg");
-
-    const name    = (nameEl.value || "").trim();
-    const floors  = parseInt(floorsEl.value, 10) || 1;
-    const scale   = parseFloat(scaleEl.value) || 0.01;
-    svgFile = svgInput.files[0];
-
-    if (!name) {
-        alert("Merci de saisir un nom de bâtiment.");
-        return;
-    }
-
-    if (!svgFile) {
-        // Si création de bâtiment, le SVG est obligatoire
-        if (!isNaN(selectBuilding.value) && selectBuilding.value !== null && selectBuilding.value !== "") {
-            svgFile = new File([], "");
-        } else {
-            alert("Merci de sélectionner un fichier SVG.");
-            return;
-        }
-    }
-
-    // Récupérer le CSRF sur /api/buildings/csrf-token
-    let csrf;
-    try {
-        const csrfResp = await fetch("/api/buildings/csrf-token", {
-            credentials: "same-origin"
-        });
-        if (!csrfResp.ok) {
-            throw new Error("HTTP " + csrfResp.status);
-        }
-        csrf = await csrfResp.json();
-        console.log("CSRF token:", csrf);
-    } catch (e) {
-        console.error("Erreur CSRF:", e);
-        alert("Impossible de récupérer le token CSRF");
-        return;
-    }
-
-    // Construire le FormData
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("floors", floors);
-    formData.append("scale", scale);
-    formData.append("svgFile", svgFile);
-    formData.append(csrf.parameterName, csrf.token);
-
-    // Si aucun bâtiment sélectionné, on appelle la méthode createBuildingConfig sinon updateBuildingConfig
-    if (!isNaN(selectBuilding.value) && selectBuilding.value !== null && selectBuilding.value !== "") {
-        return updateBuildingConfig(formData);
-    } else {
-        return createBuildingConfig(formData);
-    }
-
-    //TODO si on est en 2D, on sauvegarde les modifications dans le fichier .SVG
-}
-
 function addElementSVG() {
     const sensorType  = document.getElementById("filter-sensor-type");
     const floorNumber = document.getElementById("filter-floor");
     const sensorId  = document.getElementById("sensor_id");
-    const sensorX = document.getElementById("sensor_x");
-    const sensorY = document.getElementById("sensor_y");
     const sensorSize = document.getElementById("sensor_size");
 
-    if (!sensorId) {
-        alert("Merci de saisir un id.");
+    if (!sensorId || sensorId.value.trim() === '') {
+        alert("Merci de saisir un ID.");
         return;
     }
-
-    if (!sensorX || !sensorY) {
-        alert("Merci de saisir les coordonnées de l'élément.");
-        return;
+    if (window.building3D && window.building3D.currentArchPlan) {
+        const elementWithID = Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+sensorId.value));
+        if (elementWithID.length) {
+            alert("Un élément avec cet ID existe déjà.");
+            return;
+        }
     }
 
-    if (!sensorSize) {
+    if (!sensorSize || sensorSize.value.trim() === '') {
         alert("Merci de saisir la taille de l'élément.");
         return;
     }
 
+    const sensorX = sensorSize.value;
+    const sensorY = sensorSize.value;
+
     if (window.building3D && window.building3D.currentArchPlan && window.building3D.currentArchPlan.overlayManager) {
-        window.building3D.currentArchPlan.overlayManager.drawSensorIcon(sensorId.value, sensorType.value, floorNumber.value, sensorX.value, sensorY.value, sensorSize.value);
+        window.building3D.currentArchPlan.overlayManager.drawSensorIcon(sensorId.value, sensorType.value, floorNumber.value, sensorX, sensorY, sensorSize.value);
     }
 }
 
 function removeElementSVG() {
-
     const sensorId  = document.getElementById("sensor_id");
 
-    if (!sensorId) {
-        alert("Merci de saisir un id.");
+    if (!sensorId || !sensorId.value || sensorId.value.trim() === '') {
+        alert("Merci de saisir un ID.");
         return;
     }
-
+    if (window.building3D && window.building3D.currentArchPlan) {
+        const elementWithID =  Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+sensorId.value));
+        if (!elementWithID.length) {
+            alert("Aucun élément avec cet ID n'existe.");
+            return;
+        }
+    }
     if (window.building3D && window.building3D.currentArchPlan && window.building3D.currentArchPlan.overlayManager) {
-        window.building3D.currentArchPlan.overlayManager.removeElementById(sensorId.value);
+        window.building3D.currentArchPlan.overlayManager.removeSensorMarkerById(sensorId.value);
     }
 }
 

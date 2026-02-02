@@ -871,6 +871,11 @@ class Building3D {
             duration: 1.5,
             ease: 'power2.inOut'
         });
+
+        const floorSelect = document.getElementById('filter-floor');
+        if (floorSelect) {
+            floorSelect.value = actualFloor;
+        }
     }
 
     // ===== 2D VIEW =====
@@ -907,6 +912,8 @@ class Building3D {
         deskGrid.style.minHeight = '600px';
 
         const floorData = this.floorData[floorNumber] || {};
+        const floorsCount = this.getFloorsCount();
+
         const currentFloorData = {
             floorNumber: floorNumber,
             name: floorData.name || "",
@@ -915,7 +922,7 @@ class Building3D {
 
         if (window.ArchitecturalFloorPlan) {
             const svgPath = this.getSvgPlanUrl();
-            this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', currentFloorData, this.currentSensorMode, this.config.id, svgPath, this.isDashboard);
+            this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', currentFloorData, this.currentSensorMode, this.config.id, svgPath, this.isDashboard, floorsCount);
             this.loadRealOccupancyData();
         } else {
             console.error('ArchitecturalFloorPlan not loaded');
@@ -936,7 +943,7 @@ class Building3D {
         } else if (floorNumber === 0) {
             name = 'Ground Floor';
         } else {
-            name = `Floor ${floorNumber+1}`;
+            name = `Floor ${floorNumber}`;
         }
         const sensorNames = {
             'DESK': 'Occupancy',
@@ -1022,7 +1029,6 @@ class Building3D {
     }
 
     async loadConfig() {
-
         if (!this.buildingKey || this.buildingKey.trim() === '') return;
         
         const upper = this.buildingKey.toUpperCase();
@@ -1064,7 +1070,7 @@ class Building3D {
                 };
                 for (let i = 1; i < b.floorsCount; i++) {
                     this.config.floorData[i] = {
-                        name: 'Floor '+(i+1),
+                        name: 'Floor '+i,
                         desks: [] //TODO load from DB?
                     };
                 }
@@ -1094,7 +1100,6 @@ class Building3D {
     }
 
     async setBuilding() {
-
         this.closeOccupancySSE();
         this.currentFloorNumber = null;
         this.isIn3DView = true;
@@ -1188,6 +1193,17 @@ class Building3D {
             }
         }
     }
+
+    getFloorsCount() {
+        if (this.isDbBuilding && this.dbBuildingConfig?.floors) {
+            return parseInt(this.dbBuildingConfig.floors, 10) || 1;
+        }
+        if (this.config?.floors) {
+            return parseInt(this.config.floors, 10) || 1;
+        }
+        return 1;
+    }
+
 }
 
 // ================== GLOBAL HELPERS & INIT ==================
@@ -1233,6 +1249,23 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    const sizeInput = document.getElementById('sensor_size');
+    const sensorID = document.getElementById('sensor_id');
+    if (sizeInput && sensorID) {
+        sizeInput.addEventListener('change', () => {
+            if (window.building3D.currentArchPlan) {
+                if (sizeInput.value === ""){
+                    return;
+                }
+                if (!sensorID.value || sensorID.value.trim() === ''){
+                    return;
+                }
+                const size = parseInt(sizeInput.value, 10);
+                window.building3D.currentArchPlan.updateSensorSize(sensorID.value, size);
+            }
+        });
+    }
+
     const buildingSelect = document.getElementById('filter-building');
     if (buildingSelect) {
         buildingSelect.addEventListener('change', async () => {
@@ -1243,7 +1276,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             if (window.building3D && typeof window.building3D.setBuilding === 'function') {
-                 window.building3D.buildingKey = val.toUpperCase();
+                window.building3D.buildingKey = val.toUpperCase();
                 await window.building3D.loadConfig();
                 window.building3D.setBuilding();
             }
