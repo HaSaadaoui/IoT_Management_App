@@ -92,70 +92,110 @@ class SensorOverlayManager {
     }
 
     createCO2Heatmap() {
-        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-        this.sensors.forEach((sensor, i) => {
-            const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
-            gradient.setAttribute("id", `co2-grad-${i}`);
-            const color = this.getCO2Color(sensor.value);
-            gradient.innerHTML = `
-                <stop offset="0%" style="stop-color:${color};stop-opacity:0.7"/>
-                <stop offset="50%" style="stop-color:${color};stop-opacity:0.3"/>
-                <stop offset="100%" style="stop-color:${color};stop-opacity:0"/>
-            `;
-            defs.appendChild(gradient);
-            
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            circle.setAttribute("cx", sensor.x);
-            circle.setAttribute("cy", sensor.y);
-            circle.setAttribute("r", "80");
-            circle.setAttribute("fill", `url(#co2-grad-${i})`);
-            if (sensor.value > 1500) {
-                this.addPulseAnimation(circle);
-            }
-            this.overlayGroup.appendChild(circle);
-            
-            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("CO2"), sensor.value + " ppm", sensor.id);
-        });
-        this.svg.insertBefore(defs, this.svg.firstChild);
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+
+      this.sensors.forEach((sensor) => {
+        const gradId = `co2-grad-${sensor.id}`;
+        const circleId = `co2-circle-${sensor.id}`;
+
+        const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
+        gradient.setAttribute("id", gradId);
+
+        const color = this.getCO2Color(sensor.value);
+
+        gradient.innerHTML = `
+          <stop offset="0%" data-stop="0" style="stop-color:${color};stop-opacity:0.7"/>
+          <stop offset="50%" data-stop="50" style="stop-color:${color};stop-opacity:0.3"/>
+          <stop offset="100%" data-stop="100" style="stop-color:${color};stop-opacity:0"/>
+        `;
+
+        defs.appendChild(gradient);
+
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("id", circleId);
+        circle.setAttribute("cx", sensor.x);
+        circle.setAttribute("cy", sensor.y);
+        circle.setAttribute("r", "80");
+        circle.setAttribute("fill", `url(#${gradId})`);
+
+        this.overlayGroup.appendChild(circle);
+
+        this.addSensorIcon(
+          sensor.x,
+          sensor.y,
+          this.getIcon("CO2"),
+          `${sensor.value} ppm`,
+          sensor.id
+        );
+      });
+
+      this.svg.insertBefore(defs, this.svg.firstChild);
+    }
+
+    updateCO2Visual(sensor) {
+      const grad = document.getElementById(`co2-grad-${sensor.id}`);
+      const circle = document.getElementById(`co2-circle-${sensor.id}`);
+
+      if (!grad || !circle) return;
+
+      const color = this.getCO2Color(sensor.value);
+
+      grad.querySelectorAll("stop").forEach(stop => {
+        stop.style.stopColor = color;
+      });
+
+      // Pulse uniquement en critical (>1000)
+      if (sensor.value > 1000) {
+        this.addPulseAnimation(circle);
+      }
     }
 
     getCO2Color(ppm) {
-        if (ppm < 800) return '#10b981';
-        if (ppm < 1200) return '#fbbf24';
-        if (ppm < 1500) return '#f97316';
-        return '#ef4444';
+        if (ppm > 800 && ppm <= 1000) return '#f59e0b'; //warning
+        if (ppm > 1000) return '#ef4444'; // critical
+        return '#3b82f6'; // info
     }
 
     createTempThermal() {
-        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-        this.sensors.forEach((sensor, i) => {
-            const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
-            gradient.setAttribute("id", `temp-grad-${i}`);
-            const color = this.getTempColor(sensor.value);
-            gradient.innerHTML = `
-                <stop offset="0%" style="stop-color:${color};stop-opacity:0.6"/>
-                <stop offset="70%" style="stop-color:${color};stop-opacity:0.2"/>
-                <stop offset="100%" style="stop-color:${color};stop-opacity:0"/>
-            `;
-            defs.appendChild(gradient);
-            
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            circle.setAttribute("cx", sensor.x);
-            circle.setAttribute("cy", sensor.y);
-            circle.setAttribute("r", "90");
-            circle.setAttribute("fill", `url(#temp-grad-${i})`);
-            this.overlayGroup.appendChild(circle);
-            
-            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("TEMP"), sensor.value + "°C", sensor.id);
-        });
-        this.svg.insertBefore(defs, this.svg.firstChild);
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+
+      this.sensors.forEach(sensor => {
+        const gradId = `temp-grad-${sensor.id}`;
+        const circleId = `temp-circle-${sensor.id}`;
+
+        const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
+        gradient.setAttribute("id", gradId);
+
+        const color = this.getTempColor(sensor.value);
+
+        gradient.innerHTML = `
+          <stop offset="0%" style="stop-color:${color};stop-opacity:0.6"/>
+          <stop offset="70%" style="stop-color:${color};stop-opacity:0.2"/>
+          <stop offset="100%" style="stop-color:${color};stop-opacity:0"/>
+        `;
+
+        defs.appendChild(gradient);
+
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("id", circleId);
+        circle.setAttribute("cx", sensor.x);
+        circle.setAttribute("cy", sensor.y);
+        circle.setAttribute("r", "90");
+        circle.setAttribute("fill", `url(#${gradId})`);
+
+        this.overlayGroup.appendChild(circle);
+
+        this.addSensorIcon(sensor.x, sensor.y, this.getIcon("TEMP"), `${sensor.value} °C`, sensor.id);
+      });
+
+      this.svg.insertBefore(defs, this.svg.firstChild);
     }
 
+
     getTempColor(temp) {
-        if (temp < 19) return '#3b82f6';
-        if (temp <= 23) return '#10b981';
-        if (temp <= 26) return '#f97316';
-        return '#ef4444';
+      if (temp > 30 || temp < 16) return '#ef4444'; // critical
+      if (temp > 26 || temp < 19) return '#f59e0b'; // warning
+      return '#3b82f6'; // info
     }
 
     createLightMap() {
@@ -223,58 +263,75 @@ class SensorOverlayManager {
     }
 
     createNoiseMap() {
-        this.sensors.forEach(sensor => {
-            const color = this.getNoiseColor(sensor.value);
-            for (let i = 0; i < 3; i++) {
-                const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                ring.setAttribute("cx", sensor.x);
-                ring.setAttribute("cy", sensor.y);
-                ring.setAttribute("r", 20 + i * 15);
-                ring.setAttribute("fill", "none");
-                ring.setAttribute("stroke", color);
-                ring.setAttribute("stroke-width", "2");
-                ring.setAttribute("opacity", 0.6 - i * 0.2);
-                this.overlayGroup.appendChild(ring);
-            }
-            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("NOISE"), sensor.value + " dB", sensor.id);
-        });
+      this.sensors.forEach(sensor => {
+        const color = this.getNoiseColor(sensor.value);
+        //const color = this.getLevelColor(level);
+
+        for (let i = 0; i < 3; i++) {
+          const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          ring.setAttribute("id", `noise-ring-${sensor.id}-${i}`);
+          ring.setAttribute("cx", sensor.x);
+          ring.setAttribute("cy", sensor.y);
+          ring.setAttribute("r", 20 + i * 15);
+          ring.setAttribute("fill", "none");
+          ring.setAttribute("stroke", color);
+          ring.setAttribute("stroke-width", "2");
+          ring.setAttribute("opacity", 0.6 - i * 0.2);
+
+          this.overlayGroup.appendChild(ring);
+
+          /*if (color === "critical") {
+            this.addPulseAnimation(ring);
+          }*/
+        }
+
+        this.addSensorIcon(sensor.x, sensor.y, this.getIcon("NOISE"), `${sensor.value} dB`, sensor.id);
+      });
     }
 
+
     getNoiseColor(db) {
-        if (db < 40) return '#10b981';
-        if (db < 60) return '#fbbf24';
-        if (db < 70) return '#f97316';
-        return '#ef4444';
+      if (db > 70) return '#f59e0b'; // warning
+      return '#3b82f6'; // info
     }
 
     createHumidityZones() {
-        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-        this.sensors.forEach((sensor, i) => {
-            const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
-            gradient.setAttribute("id", `humid-grad-${i}`);
-            const color = this.getHumidityColor(sensor.value);
-            gradient.innerHTML = `
-                <stop offset="0%" style="stop-color:${color};stop-opacity:0.5"/>
-                <stop offset="100%" style="stop-color:${color};stop-opacity:0"/>
-            `;
-            defs.appendChild(gradient);
-            
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            circle.setAttribute("cx", sensor.x);
-            circle.setAttribute("cy", sensor.y);
-            circle.setAttribute("r", "75");
-            circle.setAttribute("fill", `url(#humid-grad-${i})`);
-            this.overlayGroup.appendChild(circle);
-            
-            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("HUMIDITY"), sensor.value + "%", sensor.id);
-        });
-        this.svg.insertBefore(defs, this.svg.firstChild);
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+
+      this.sensors.forEach(sensor => {
+        const gradId = `humid-grad-${sensor.id}`;
+        const circleId = `humid-circle-${sensor.id}`;
+
+        const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
+        gradient.setAttribute("id", gradId);
+
+        const color = this.getHumidityColor(sensor.value);
+
+        gradient.innerHTML = `
+          <stop offset="0%" style="stop-color:${color};stop-opacity:0.5"/>
+          <stop offset="100%" style="stop-color:${color};stop-opacity:0"/>
+        `;
+
+        defs.appendChild(gradient);
+
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("id", circleId);
+        circle.setAttribute("cx", sensor.x);
+        circle.setAttribute("cy", sensor.y);
+        circle.setAttribute("r", "75");
+        circle.setAttribute("fill", `url(#${gradId})`);
+
+        this.overlayGroup.appendChild(circle);
+
+        this.addSensorIcon(sensor.x, sensor.y, this.getIcon("HUMIDITY"), `${sensor.value} %`, sensor.id);
+      });
+
+      this.svg.insertBefore(defs, this.svg.firstChild);
     }
 
-    getHumidityColor(humidity) {
-        if (humidity < 30) return '#3b82f6';
-        if (humidity <= 50) return '#10b981';
-        return '#ef4444';
+    getHumidityColor(h) {
+      if (h > 70 || h < 30) return '#f59e0b';
+      return '#3b82f6';
     }
 
     createTempexFlow() {
@@ -584,6 +641,11 @@ class SensorOverlayManager {
 
       this.updateVisual(sensor);
       console.log('Updated visual: ', sensor);
+
+      if (sensor.type === "CO2") this.updateCO2Visual(sensor);
+      if (sensor.type === "TEMP" || sensor.type === "TEMPEX") this.updateTempVisual(sensor);
+      if (sensor.type === "HUMIDITY") this.updateHumidityVisual(sensor);
+      if (sensor.type === "NOISE") this.updateNoiseVisual(sensor);
       return true;
     }
 
@@ -697,6 +759,42 @@ class SensorOverlayManager {
         }
     }
 
+    updateNoiseVisual(sensor) {
+      for (let i = 0; i < 3; i++) {
+        const ring = document.getElementById(`noise-ring-${sensor.id}-${i}`);
+        if (ring) {
+          ring.setAttribute("stroke", this.getNoiseColor(sensor.value));
+        }
+      }
+    }
+
+    updateHumidityVisual(sensor) {
+      const grad = document.getElementById(`humid-grad-${sensor.id}`);
+      const circle = document.getElementById(`humid-circle-${sensor.id}`);
+      if (!grad || !circle) return;
+
+      const color = this.getHumidityColor(sensor.value);
+
+      grad.querySelectorAll("stop").forEach(stop => {
+        stop.style.stopColor = color;
+      });
+    }
+
+    updateTempVisual(sensor) {
+      const grad = document.getElementById(`temp-grad-${sensor.id}`);
+      const circle = document.getElementById(`temp-circle-${sensor.id}`);
+      if (!grad || !circle) return;
+
+      const color = this.getTempColor(sensor.value);
+
+      grad.querySelectorAll("stop").forEach(stop => {
+        stop.style.stopColor = color;
+      });
+
+      if (this.getTempColor(sensor.value) === '#ef4444') {
+        this.addPulseAnimation(circle);
+      }
+    }
 }
 
 window.SensorOverlayManager = SensorOverlayManager;
