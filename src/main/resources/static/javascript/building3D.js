@@ -466,7 +466,6 @@ class Building3D {
         return deskOccupancy;
     }
 
-
     async loadRealOccupancyData() {
         console.log('=== Loading Real Occupancy Data for', this.buildingKey, '===');
 
@@ -1103,10 +1102,16 @@ class Building3D {
         if (floorPlan2D) floorPlan2D.style.display = 'none';
         if (backBtn)     backBtn.style.display     = 'none';
 
-        if (!this.buildingKey || this.buildingKey.trim() === '') {
+        if (!this.buildingKey || this.buildingKey.trim() === ''){
             this.clearBuilding();
             this.showEmptyScene();
             return;
+        }
+        if (!this.isDashboard &&
+            (!this.dbBuildingConfig || !this.dbBuildingConfig.svgUrl || this.dbBuildingConfig.svgUrl.trim() === '')){
+            this.clearBuilding();
+            this.showEmptyScene();
+            return; 
         }
 
         await this.createBuilding();

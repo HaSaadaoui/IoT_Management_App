@@ -13,6 +13,7 @@ let gatewayThresholds = {
 // Ace editor pour le payload
 let editor;
 let defaultSVGFile;
+let blobUrl = "";
 
 // ======================================================
 // ===============  TEMPLATE PAYLOAD ELSYS  =============
@@ -289,7 +290,7 @@ function toggleNotifChannelInput() {
     if (phoneDiv) phoneDiv.style.display = smsChk && smsChk.checked ? "block" : "none";
 }
 
-function loadBuildingFloors() {
+function populateFloorSelect() {
     const floorSelect = document.getElementById('filter-floor');
     const floorsEl = document.getElementById("building-floors");
     if (!floorSelect) {
@@ -316,7 +317,7 @@ function loadBuildingFloors() {
     }
 }
 
-async function loadBuildings() {
+async function populateBuildingSelect() {
     const select = document.getElementById('filter-building');
     if (!select) return;
 
@@ -344,7 +345,7 @@ async function loadBuildings() {
     }
 }
 
-async function loadBuildingConfig() {
+async function initBuildingConfig() {
     const selectBuilding = document.getElementById('filter-building');
     const nameEl   = document.getElementById("building-name");
     const floorsEl = document.getElementById("building-floors");
@@ -373,47 +374,44 @@ async function loadBuildingConfig() {
         scaleEl.value  = 0.01;
         defaultSVGFile = "";
     }
-
     svgInput.value = "";
-    this.loadBuildingFloors();
+    this.refresh3DConfig()
 }
 
-async function update3DConfig() {
+function refresh3DConfig(){
     const selectBuilding = document.getElementById('filter-building');
     const floorsEl = document.getElementById("building-floors");
     const scaleEl  = document.getElementById("building-scale");
 
-    const buildingId = selectBuilding.value;
-
-    // if(isNaN(buildingId) || buildingId === null || buildingId === "") {
-    //     window.building3D.buildingKey = "0";
-    // } else {
-    //     window.building3D.buildingKey = buildingId;
-    // };
+    const buildingId = selectBuilding.value || "tempKeyConfig";
 
     window.building3D.buildingKey = buildingId;
     window.building3D.isDbBuilding = true;
     window.building3D.dbBuildingConfig = {floors: floorsEl.value, scale: scaleEl.value, svgUrl: null};
     window.building3D.dbShapeCache = null;
-    window.building3D.config = {id:window.building3D.buildingKey};
+    window.building3D.config = {id: buildingId};
+    window.building3D.dbBuildingConfig.svgUrl = defaultSVGFile;
+
+    this.populateFloorSelect();
+
+    // On révoque le blob s'il existe lorsque l'on modifie le paramétrage 3D
+    if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);   
+    }
+}
+
+function applyFormUpdate() {
+    this.refresh3DConfig()
 
     const svgInput = document.getElementById("building-svg");
-    let blobUrl = "";
+    
     if (svgInput.value && svgInput.value.trim() !== "") {
         const file = svgInput.files[0];
         blobUrl = URL.createObjectURL(file);
         window.building3D.dbBuildingConfig.svgUrl = blobUrl;
-    } else {
-        window.building3D.dbBuildingConfig.svgUrl = defaultSVGFile;
     }
 
     window.building3D.setBuilding();
-
-    if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);   
-    }
-
-    this.loadBuildingFloors();
 }
 
 async function deleteBuildingConfig() {
@@ -452,7 +450,7 @@ async function deleteBuildingConfig() {
             alert("Failed to delete building: " + error.message);
         }
 
-        loadBuildings();
+        populateBuildingSelect();
 
         const nameEl   = document.getElementById("building-name");
         const floorsEl = document.getElementById("building-floors");
@@ -464,6 +462,9 @@ async function deleteBuildingConfig() {
         floorsEl.value = 3;
         scaleEl.value  = 0.01;
         defaultSVGFile = "";
+
+        this.refresh3DConfig();
+        window.building3D.setBuilding();
     } else {
         alert("Please select a building to delete.");
     }
@@ -559,7 +560,7 @@ async function createBuildingConfig(formData) {
     })
     .then(data => {
         console.log("Building created:", data);
-        loadBuildings().then(() => {
+        populateBuildingSelect().then(() => {
             const values = Array.from(selectBuilding.options)
                 .map(opt => parseFloat(opt.value))
                 .filter(v => !Number.isNaN(v));
@@ -1142,7 +1143,7 @@ function changeEditorLanguage(selectEl) {
 
 window.addElementSVG = addElementSVG;
 window.removeElementSVG = removeElementSVG;
-window.loadBuildingConfig = loadBuildingConfig;
+window.initBuildingConfig = initBuildingConfig;
 window.deleteBuildingConfig = deleteBuildingConfig;
 window.changeEditorLanguage = changeEditorLanguage;
 window.testDecoder = testDecoder;
@@ -1166,7 +1167,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof loadSensors === 'function') loadSensors();
     if (typeof loadNotificationPreferences === 'function') loadNotificationPreferences();
     if (typeof loadAllSensorThresholds === 'function') loadAllSensorThresholds();
-    if (typeof loadBuildings === 'function') loadBuildings();
+    if (typeof populateBuildingSelect === 'function') populateBuildingSelect();
     if (window.building3D) { window.building3D.isDashboard = false};
 
 });
