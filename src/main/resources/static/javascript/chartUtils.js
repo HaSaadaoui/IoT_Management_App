@@ -173,43 +173,57 @@ function updateAllStatCards(zoneStats) {
     });
 }
 
-// Recycler le chart existant au lieu de le recréer
 function updateStatCard(statCard, data) {
-    if (!statCard) return;
+  if (!statCard || !data) return;
 
-    const chartElement = statCard.querySelector(".chart-office");
-    const legendElement = statCard.querySelector(".stat-legend");
-    const titleElement = statCard.querySelector(".stat-card-title");
+  const chartElement  = statCard.querySelector(".chart-office") || statCard.querySelector("canvas");
+  const legendElement = statCard.querySelector(".stat-legend");
+  const titleElement  = statCard.querySelector(".stat-card-title");
 
-    const total = data.free + data.used + data.invalid;
-    if (total === 0) return;
+  // ✅ accepte {free, used, invalid} OU {freeCount, usedCount, invalidCount}
+  const free    = Number(data.free ?? data.freeCount ?? 0);
+  const used    = Number(data.used ?? data.usedCount ?? 0);
+  const invalid = Number(data.invalid ?? data.invalidCount ?? 0);
 
-    const freePercent = ((data.free / total) * 100).toFixed(2);
-    const usedPercent = ((data.used / total) * 100).toFixed(2);
-    const invalidPercent = ((data.invalid / total) * 100).toFixed(2);
+  const counts = [free, used, invalid];
+  const total = free + used + invalid;
+  if (!total) {
+    // Optionnel: afficher quand même une légende “--”
+    if (legendElement) ChartUtils.updateLegend(legendElement, "0.00", "0.00", "0.00");
+    return;
+  }
 
-    // Recycle chart
-    if (chartElement) {
-        if (chartElement._chartInstance) {
-            const chart = chartElement._chartInstance;
-            chart.data.datasets[0].data = [freePercent, usedPercent, invalidPercent];
-            chart.update();
-        } else {
-            chartElement._chartInstance = new Chart(chartElement, ChartUtils.createDoughnutChartConfig([freePercent, usedPercent, invalidPercent]));
-        }
+  const percents = counts.map(c => (c / total) * 100);
+
+  if (chartElement) {
+    let chart = chartElement._chartInstance || Chart.getChart(chartElement);
+
+    if (chart) {
+      chart.$counts = counts;
+      chart.data.datasets[0].data = percents;
+      chart.update();
+      chartElement._chartInstance = chart;
+    } else {
+      const cfg = createDoughnutChartConfig(counts);
+      chart = new Chart(chartElement, cfg);
+      chart.$counts = counts;
+      chartElement._chartInstance = chart;
     }
+  }
 
-    if (legendElement) ChartUtils.updateLegend(legendElement, freePercent, usedPercent, invalidPercent);
-    if (titleElement && data.location) titleElement.textContent = data.location;
+  const freePercent    = ((free / total) * 100).toFixed(2);
+  const usedPercent    = ((used / total) * 100).toFixed(2);
+  const invalidPercent = ((invalid / total) * 100).toFixed(2);
+
+  if (legendElement) ChartUtils.updateLegend(legendElement, freePercent, usedPercent, invalidPercent);
+
+  const loc = data.location ?? data.title ?? data.locationName;
+  if (titleElement && loc) titleElement.textContent = loc;
 }
 
 // ============================================
 // INIT
 // ============================================
-window.addEventListener("DOMContentLoaded", () => {
-    console.log("🟢 DOM fully loaded");
-    openOccupancySSE(DASHBOARD_CTX.building, DASHBOARD_CTX.floor);
-});
 
 // Color constants - read from CSS variables for single source of truth
 const getComputedColor = (varName) => {
@@ -575,75 +589,43 @@ function createOrUpdateChart(canvas, config) {
  * @param {Array<number>} data - Array of data values [free, used, invalid]
  * @returns {Object} Chart.js configuration object
  */
- function createDoughnutChartConfig(dataCounts) {
-     // dataCounts = [freeCount, usedCount, invalidCount]
-     const total = dataCounts.reduce((a, b) => a + b, 0);
-     return {
-         type: "doughnut",
-         data: {
-             labels: ["Free", "Used", "Invalid"],
-             datasets: [
-                 {
-                     data: dataCounts.map(count => total ? (count / total) * 100 : 0),
-                     backgroundColor: [okColor, notOkColor, otherColor],
-                     borderWidth: 0,
-                     hoverOffset: 10,
-                 },
-             ],
-         },
-         options: {
-             responsive: true,
-             maintainAspectRatio: true,
-             cutout: "70%",
-             layout: {
-                padding: {
-                    top: 20,
-                    bottom: 5
-                }
-             },
-             animation: { duration: 0 },
-             plugins: {
-                 legend: {
-                     display: true,
-                     position: "bottom",
-                     labels: {
-                         usePointStyle: true,
-                         pointStyle: "circle",
-                         padding: 12,
-                         font: { family: "'Inter', sans-serif", size: 12 },
-                         generateLabels: (chart) => {
-                             const data = chart.data;
-                             if (data.labels.length && data.datasets.length) {
-                                 const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
-                                 return data.labels.map((label, i) => {
-                                     const value = data.datasets[0].data[i];
-                                     return {
-                                         text: `${label} (${value.toFixed(0)}%)`,
-                                         fillStyle: data.datasets[0].backgroundColor[i],
-                                         hidden: false,
-                                         index: i,
-                                     };
-                                 });
-                             }
-                             return [];
-                         },
-                     },
-                 },
-                 tooltip: {
-                     callbacks: {
-                         label: (context) => {
-                             const idx = context.dataIndex;
-                             const label = context.label;
-                             const percent = Math.round(context.parsed);
-                             const count = dataCounts[idx];
-                             return `${label}: ${percent}% (${count} desks)`;
-                         },
-                     },
-                 },
-             },
-         },
-     };
- }
+function createDoughnutChartConfig(dataCounts) {
+  const total = dataCounts.reduce((a, b) => a + b, 0);
+
+  return {
+    type: "doughnut",
+    data: {
+      labels: ["Free", "Used", "Invalid"],
+      datasets: [{
+        data: dataCounts.map(c => total ? (c / total) * 100 : 0),
+        backgroundColor: [okColor, notOkColor, otherColor],
+        borderWidth: 0,
+        hoverOffset: 10,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      cutout: "70%",
+      animation: { duration: 0 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const idx = context.dataIndex;
+              const label = context.label;
+              const percent = Math.round(context.parsed);
+              const counts = context.chart.$counts || [0,0,0];
+              const count = counts[idx] ?? 0;
+              return `${label}: ${percent}% (${count} desks)`;
+            }
+          }
+        }
+      }
+    }
+  };
+}
 
 /**
  * Creates and renders a doughnut chart on a canvas element
@@ -687,39 +669,6 @@ function updateLegend(legendElement, freePercent, usedPercent, invalidPercent) {
  * @param {number} data.invalidCount - Number of invalid items
  * @param {string} data.location - Location name
  */
-function updateStatCard(statCard, data) {
-    if (!statCard) return;
-
-    const chartElement = statCard.querySelector(".chart-office");
-    const legendElement = statCard.querySelector(".stat-legend");
-    const titleElement = statCard.querySelector(".stat-card-title");
-
-    const counts = [data.free, data.used, data.invalid];
-    const total = counts.reduce((a, b) => a + b, 0);
-    if (total === 0) return;
-
-    // Arrondir pour que la somme des % = 100
-    let rawPercents = counts.map(c => (c / total) * 100);
-    let rounded = rawPercents.map(p => Math.floor(p));
-    let remainder = 100 - rounded.reduce((a, b) => a + b, 0);
-    const remainders = rawPercents.map((p, i) => ({ idx: i, diff: p - Math.floor(p) }))
-                                  .sort((a, b) => b.diff - a.diff);
-    for (let i = 0; i < remainder; i++) {
-        rounded[remainders[i].idx]++;
-    }
-
-    if (chartElement) {
-        createDoughnutChart(chartElement, counts);
-    }
-
-    if (legendElement) {
-        updateLegend(legendElement, rounded[0], rounded[1], rounded[2]);
-    }
-
-    if (titleElement && data.location) {
-        titleElement.textContent = data.location;
-    }
-}
 
 // Export functions for use in other modules
 if (typeof window !== "undefined") {
