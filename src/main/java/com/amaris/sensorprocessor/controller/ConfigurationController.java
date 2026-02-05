@@ -1,10 +1,8 @@
 package com.amaris.sensorprocessor.controller;
 
 import com.amaris.sensorprocessor.config.AlertThresholdConfig;
-import com.amaris.sensorprocessor.entity.NotificationPreference;
-import com.amaris.sensorprocessor.entity.Sensor;
-import com.amaris.sensorprocessor.entity.SensorThreshold;
-import com.amaris.sensorprocessor.entity.User;
+import com.amaris.sensorprocessor.entity.*;
+import com.amaris.sensorprocessor.repository.AlertConfigurationDao;
 import com.amaris.sensorprocessor.repository.SensorDao;
 import com.amaris.sensorprocessor.service.AlertConfigurationService;
 import com.amaris.sensorprocessor.service.NotificationService;
@@ -30,20 +28,23 @@ public class ConfigurationController {
     private final SensorThresholdService sensorThresholdService;
     private final UserService userService;
     private final SensorDao sensorDao;
+    private final AlertConfigurationDao alertConfigurationDao;
+
 
     @Autowired
-    public ConfigurationController(AlertThresholdConfig alertThresholdConfig, 
+    public ConfigurationController(AlertThresholdConfig alertThresholdConfig,
                                    AlertConfigurationService alertConfigurationService,
                                    NotificationService notificationService,
                                    SensorThresholdService sensorThresholdService,
                                    UserService userService,
-                                   SensorDao sensorDao) {
+                                   SensorDao sensorDao, AlertConfigurationDao alertConfigurationDao) {
         this.alertThresholdConfig = alertThresholdConfig;
         this.alertConfigurationService = alertConfigurationService;
         this.notificationService = notificationService;
         this.sensorThresholdService = sensorThresholdService;
         this.userService = userService;
         this.sensorDao = sensorDao;
+        this.alertConfigurationDao = alertConfigurationDao;
     }
 
     @GetMapping("/configuration")
@@ -157,4 +158,12 @@ public class ConfigurationController {
         List<Sensor> sensors = sensorDao.findAllSensors();
         return ResponseEntity.ok(sensors);
     }
+
+    @GetMapping("/api/configuration/alert-config")
+    @ResponseBody
+    public AlertConfigEntity getAlertConfig() {
+        AlertConfigEntity config = alertConfigurationDao.load();
+        return config != null ? config : new AlertConfigEntity(); // fallback si pas en DB
+    }
+
 }
