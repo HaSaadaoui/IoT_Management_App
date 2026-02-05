@@ -273,12 +273,9 @@ class ArchitecturalFloorPlan {
     }
 
     startLiveSensors() {
-      // stop stream existant
       this.stopLiveSensors();
 
       const building = this.buildingKey;
-
-      //capteurs réellement affichés
       const sensors = this.overlayManager?.sensors ?? [];
       const deviceIds = sensors.map(s => s.id);
 
