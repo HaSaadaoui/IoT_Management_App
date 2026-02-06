@@ -293,6 +293,8 @@ function toggleNotifChannelInput() {
 function populateFloorSelect() {
     const floorSelect = document.getElementById('filter-floor');
     const floorsEl = document.getElementById("building-floors");
+    const elementSelect = document.getElementById("filter-element");
+
     if (!floorSelect) {
         console.warn('Floor select not found (#filter-floor). Skipping floors update.');
         return;
@@ -304,7 +306,9 @@ function populateFloorSelect() {
         return;
     }
 
-    // floorSelect.innerHTML = '<option value="">All Floors</option>';
+    if (elementSelect && elementSelect.value && elementSelect.value !== "Sensor") {
+        floorSelect.innerHTML = '<option value="">All Floors</option>';
+    }
     for (let i = 0; i < floorsEl.value; i++) {
         const opt = document.createElement('option');
         opt.value = String(i);
@@ -314,6 +318,51 @@ function populateFloorSelect() {
             opt.textContent = `Floor ${i}`;
         }
         floorSelect.appendChild(opt);
+    }
+}
+
+function toggleFormFields() {
+    const sensorTypeSelect = document.getElementById('filter-sensor-type');
+    const elementSelect = document.getElementById('filter-element');
+    const floorSelect = document.getElementById('filter-floor');
+
+    const sensorTypeContainer = sensorTypeSelect.parentElement;
+
+    floorSelect.value = "0";
+
+    switch (elementSelect.value) {
+        case "Sensor" :
+            sensorTypeSelect.value = "DESK";
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'block';
+            break;
+        case "Wall" :
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            break;
+        case "Room" :
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            break;
+        case "Door" :
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            break;
+        case "Window" :
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            break;
+        default:
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            break;
+    }
+}
+
+function onChangeElement() {
+    this.populateFloorSelect();
+    this.toggleFormFields();
+
+    const floorSelect = document.getElementById('filter-floor');
+    const sensorTypeSelect = document.getElementById('filter-sensor-type');
+    if (window.building3D) {
+        const floorNumber = parseInt(floorSelect.value, 10);
+        window.building3D.currentFloorNumber = floorNumber;
+        window.building3D.setSensorMode(sensorTypeSelect.value);
     }
 }
 
@@ -605,50 +654,50 @@ async function updateBuildingConfig(formData) {
 function addElementSVG() {
     const sensorType  = document.getElementById("filter-sensor-type");
     const floorNumber = document.getElementById("filter-floor");
-    const sensorId  = document.getElementById("sensor_id");
-    const sensorSize = document.getElementById("sensor_size");
+    const elementId  = document.getElementById("input_id");
+    const elementSize = document.getElementById("input_size");
 
-    if (!sensorId || sensorId.value.trim() === '') {
+    if (!elementId || elementId.value.trim() === '') {
         alert("Merci de saisir un ID.");
         return;
     }
     if (window.building3D && window.building3D.currentArchPlan) {
-        const elementWithID = Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+sensorId.value));
+        const elementWithID = Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+elementId.value));
         if (elementWithID.length) {
             alert("Un élément avec cet ID existe déjà.");
             return;
         }
     }
 
-    if (!sensorSize || sensorSize.value.trim() === '') {
+    if (!elementSize || elementSize.value.trim() === '') {
         alert("Merci de saisir la taille de l'élément.");
         return;
     }
 
-    const sensorX = sensorSize.value;
-    const sensorY = sensorSize.value;
+    const sensorX = elementSize.value;
+    const sensorY = elementSize.value;
 
     if (window.building3D && window.building3D.currentArchPlan && window.building3D.currentArchPlan.overlayManager) {
-        window.building3D.currentArchPlan.overlayManager.drawSensorIcon(sensorId.value, sensorType.value, floorNumber.value, sensorX, sensorY, sensorSize.value);
+        window.building3D.currentArchPlan.overlayManager.drawSensorIcon(elementId.value, sensorType.value, floorNumber.value, sensorX, sensorY, elementSize.value);
     }
 }
 
 function removeElementSVG() {
-    const sensorId  = document.getElementById("sensor_id");
+    const elementId  = document.getElementById("input_id");
 
-    if (!sensorId || !sensorId.value || sensorId.value.trim() === '') {
+    if (!elementId || !elementId.value || elementId.value.trim() === '') {
         alert("Merci de saisir un ID.");
         return;
     }
     if (window.building3D && window.building3D.currentArchPlan) {
-        const elementWithID =  Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+sensorId.value));
+        const elementWithID =  Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+elementId.value));
         if (!elementWithID.length) {
             alert("Aucun élément avec cet ID n'existe.");
             return;
         }
     }
     if (window.building3D && window.building3D.currentArchPlan && window.building3D.currentArchPlan.overlayManager) {
-        window.building3D.currentArchPlan.overlayManager.removeSensorMarkerById(sensorId.value);
+        window.building3D.currentArchPlan.overlayManager.removeSensorMarkerById(elementId.value);
     }
 }
 

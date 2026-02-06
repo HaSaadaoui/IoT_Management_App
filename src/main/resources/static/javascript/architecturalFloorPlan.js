@@ -8,20 +8,16 @@ class ArchitecturalFloorPlan {
         buildingKey = "CHATEAUDUN",
         svgPath,
         isDashboard = true,
-        floorsCount = 1,
+        floorsCount = 1
     ) {
         this.container = document.getElementById(containerId);
         this.floorData = floorData;
         this.sensorMode = sensorMode;
         this.svg = null;
-        this.scale = 40; // pixels per meter
-        this.strokeWidth = 2;
-        this.wallThickness = 0.2; // meters
         this.overlayManager = null;
         this.buildingKey = buildingKey;
         this.svgPath = svgPath;
         this.isDashboard = isDashboard;
-        this._drag = { active: false, el: null, start: {x:0,y:0}, elStart: {x:0,y:0}, type: null };
         this._positionsDirty = new Map();
         this.floorsCount = floorsCount;
 
@@ -69,7 +65,7 @@ class ArchitecturalFloorPlan {
             case "CHATEAUDUN":
                 switch (this.floorData.floorNumber) {
                     case 0:
-                        this.drawGroundFloorChateaudun(deskOccupancy);
+                        this.drawGroundFloorChateaudun();
                         break;
                     case 1:
                         this.drawFloor1(deskOccupancy);
@@ -99,16 +95,17 @@ class ArchitecturalFloorPlan {
                 }
                 break;
             default:
-                await this.drawFloorSVG(deskOccupancy);
+                await this.drawFloorSVG();
                 break;
         }
 
+        // Gestion des capteurs
         if (window.SensorOverlayManager) {
             let sensors = [];
             if (this.isDashboard){
                 sensors = this.generateSensorData(this.sensorMode, this.floorData.floorNumber);
             } else {
-                sensors = await this.loadSensorsFromSvgForFloor();
+                sensors = await this.populateSensorsFromSvg();
             }
 
             this.overlayManager = new SensorOverlayManager(this.svg);
@@ -383,7 +380,7 @@ class ArchitecturalFloorPlan {
       }
     }
 
-    async drawFloorSVG(deskOccupancy = {}) {
+    async drawFloorSVG() {
         if (!this.svgPath) {
             console.warn('Aucun svgPath fourni');
             return;
@@ -422,29 +419,26 @@ class ArchitecturalFloorPlan {
             return;
         }
 
+        const allFloorsGroup = this.createGroup("all-floors");
+        elements.filter(el => {
+                const attr = el.getAttribute('floor-number');
+                return attr === null;
+            })
+            .forEach(el => {
+                const importedEl = document.importNode(el, true);
+                importedEl.setAttribute('fill', 'none');
+                importedEl.setAttribute('stroke', this.colors.wallStroke);
+                importedEl.setAttribute('stroke-width', 4);
+                importedEl.setAttribute('stroke-linecap', 'square');
+                importedEl.setAttribute('stroke-linejoin', 'miter');
+                importedEl.setAttribute('vector-effect', 'non-scaling-stroke');
+                allFloorsGroup.appendChild(importedEl);
+            });
+        this.svg.appendChild(allFloorsGroup);
+
         if (this.isDashboard){
-            const allFloorsGroup = this.createGroup("all-floors");
-
-            elements
-                .filter(el => {
-                    const attr = el.getAttribute('floor-number');
-                    return attr === null;
-                })
-                .forEach(el => {
-                    const importedEl = document.importNode(el, true);
-                    importedEl.setAttribute('fill', 'none');
-                    importedEl.setAttribute('stroke', this.colors.wallStroke);
-                    importedEl.setAttribute('stroke-width', 4);
-                    importedEl.setAttribute('stroke-linecap', 'square');
-                    importedEl.setAttribute('stroke-linejoin', 'miter');
-                    importedEl.setAttribute('vector-effect', 'non-scaling-stroke');
-                    allFloorsGroup.appendChild(importedEl);
-                });
-
             const g = this.createGroup("floor-"+this.floorData.floorNumber);
-
-            elements
-                .filter(el => {
+            elements.filter(el => {
                     const attr = el.getAttribute('floor-number');
                     return attr === this.floorData.floorNumber;
                 })
@@ -463,11 +457,9 @@ class ArchitecturalFloorPlan {
         } else {
             for (let i = 0; i < this.floorsCount; i++) {
                 const g = this.createGroup("floor-"+i);
-
-                elements
-                    .filter(el => {
+                elements.filter(el => {
                         const attr = el.getAttribute('floor-number');
-                        return attr === null || attr === i;
+                        return attr === i;
                     })
                     .filter(el => {
                         const attr = el.getAttribute('id');
@@ -492,7 +484,7 @@ class ArchitecturalFloorPlan {
         }
     }
 
-    async loadSensorsFromSvgForFloor() {
+    async populateSensorsFromSvg() {
         if (!this.svgPath) return [];
 
         let raw;
@@ -788,7 +780,7 @@ class ArchitecturalFloorPlan {
         this.svg.appendChild(g);
     }
 
-    drawGroundFloorChateaudun(deskOccupancy = {}) {
+    drawGroundFloorChateaudun() {
         const g = this.createGroup("floor-0");
 
         // Main building outline
@@ -1526,19 +1518,7 @@ class ArchitecturalFloorPlan {
         parent.appendChild(path);
     }
 
-    drawCircle(
-        parent,
-        xStart,
-        yStart,
-        xRadii,
-        yRadii,
-        xAxisRotation,
-        largeArcFlag,
-        sweepFlag,
-        xEnd,
-        yEnd,
-        isOutline,
-    ) {
+    drawCircle(parent, xStart, yStart, xRadii, yRadii, xAxisRotation, largeArcFlag, sweepFlag, xEnd, yEnd, isOutline) {
         const path = document.createElementNS(
             "http://www.w3.org/2000/svg",
             "path",
@@ -1699,7 +1679,7 @@ class ArchitecturalFloorPlan {
         desk.setAttribute("stroke-width", 2);
         desk.setAttribute("rx", 3);
         desk.setAttribute("class", "sensor");
-        desk.setAttribute("id",id);
+        desk.setAttribute("id", id);
 
         // Add rotation if specified
         if (rotation) {
@@ -2019,8 +1999,8 @@ class ArchitecturalFloorPlan {
                     const id = sensor.getAttribute("id");
                     const size = sensor.getAttribute("font-size") || sensor.getAttribute("width");
 
-                    const inputId = document.getElementById("sensor_id");
-                    const inputSize = document.getElementById("sensor_size");
+                    const inputId = document.getElementById("input_id");
+                    const inputSize = document.getElementById("input_size");
 
                     if (inputId) inputId.value = id;
                     if (inputSize) inputSize.value = size;
@@ -2177,8 +2157,6 @@ class ArchitecturalFloorPlan {
                 }
                 this._positionsDirty.set(id, pos);
             }
-
-            
 
             // reset
             drag.active = false;

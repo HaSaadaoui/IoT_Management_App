@@ -584,7 +584,7 @@
                 <!-- 2D Element Parameters -->
                 <div class="filter-card">
                     <label>Element</label>
-                    <select id="filter-type" class="form-select" style="height: 45px;">
+                    <select id="filter-element" class="form-select" style="height: 45px;" onchange="onChangeElement()">
                         <option value="Sensor" selected>Sensor</option>
                         <option value="Wall">Wall</option>
                         <option value="Room">Room</option>
@@ -614,20 +614,19 @@
                 <div class="filter-card">
                     <label>Floor</label>
                     <select id="filter-floor" class="form-select" style="height: 45px;">
-                        <!-- <option value="" selected>All Floors</option> -->
                         <option value="0" selected>Ground Floor</option>
                         <option value="1">Floor 1</option>
                     </select>
                 </div>
 
                 <div class="col-md-4">
-                    <label>Sensor ID</label>
-                    <input type="text" id="sensor_id" class="form-control">
+                    <label>ID</label>
+                    <input type="text" id="input_id" class="form-control">
                 </div>
 
                 <div class="col-md-4">
                     <label>Size</label>
-                    <input type="number" id="sensor_size" min="0" max="1000" step="10" value="20" class="form-control">
+                    <input type="number" id="input_size" min="0" max="1000" step="10" value="20" class="form-control">
                 </div>
 
                 <div class="col-md-4" style="margin-top: 20px;">

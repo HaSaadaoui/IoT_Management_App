@@ -17,7 +17,7 @@ class DashboardManager {
 				id: 'CHATEAUDUN',
 				code: 'CHATEAUDUN',
 				name: 'Châteaudun',
-				floors: 6
+				floors: 7
 			},
 			LEVALLOIS: {
 				id: 'LEVALLOIS',
@@ -1978,41 +1978,30 @@ async calculateTodaysEnergy() {
 			floorsCount = this.virtualBuildings[idUpper].floors;
 		} else {
 			try {
-				const resp = await fetch(`/api/buildings/${buildingId}/floors`);
-				floorsCount = resp.ok ? await resp.json() : 1;
+				const resp = await fetch(`/api/buildings/${buildingId}`);
+				if (!resp.ok) {
+                	throw new Error(`HTTP ${resp.status}`);
+            	}
+				const b = await resp.json();
+            	floorsCount = b.floorsCount || 1;
 			} catch (e) {
 				floorsCount = 1;
 			}
 		}
 
 		floorSelect.innerHTML = '<option value="">All Floors</option>';
-		for (let i = 1; i <= floorsCount; i++) {
+		for (let i = 0; i < floorsCount; i++) {
 			const opt = document.createElement('option');
 			opt.value = String(i);
-			opt.textContent = `Floor ${i}`;
+			if (i === 0){
+				opt.textContent = `Ground Floor`;
+			} else {
+				opt.textContent = `Floor ${i}`;
+			}
 			floorSelect.appendChild(opt);
 		}
 
 		this.filters.floor = '';
-	}
-
-	async getFloorsCountForCurrentBuilding() {
-		const building = this.currentBuilding;
-		if (!building) return 1;
-
-		const key = String(building.code || building.id || '').toUpperCase();
-
-		// Virtual override
-		if (this.virtualBuildings[key]) return this.virtualBuildings[key].floors;
-
-		// Fallback API
-		try {
-			const lookupId = building.code ? building.code : building.id;
-			const resp = await fetch(`/api/buildings/${lookupId}/floors`);
-			return resp.ok ? await resp.json() : 1;
-		} catch {
-			return 1;
-		}
 	}
 
 	getEffectiveFloorParam() {

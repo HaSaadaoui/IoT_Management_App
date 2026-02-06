@@ -1234,7 +1234,6 @@ document.addEventListener('DOMContentLoaded', function () {
         floorSelect.addEventListener('change', () => {
             if (window.building3D) {
                 if (floorSelect.value === ""){
-                    //window.building3D.return3DView();
                     return;
                 }
                 const floorNumber = parseInt(floorSelect.value, 10);
@@ -1244,19 +1243,19 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    const sizeInput = document.getElementById('sensor_size');
-    const sensorID = document.getElementById('sensor_id');
-    if (sizeInput && sensorID) {
+    const sizeInput = document.getElementById('input_size');
+    const elementID = document.getElementById('input_id');
+    if (sizeInput && elementID) {
         sizeInput.addEventListener('change', () => {
             if (window.building3D.currentArchPlan) {
                 if (sizeInput.value === ""){
                     return;
                 }
-                if (!sensorID.value || sensorID.value.trim() === ''){
+                if (!elementID.value || elementID.value.trim() === ''){
                     return;
                 }
                 const size = parseInt(sizeInput.value, 10);
-                window.building3D.currentArchPlan.updateSensorSize(sensorID.value, size);
+                window.building3D.currentArchPlan.updateSensorSize(elementID.value, size);
             }
         });
     }

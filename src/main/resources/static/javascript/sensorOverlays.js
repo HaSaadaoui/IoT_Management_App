@@ -13,11 +13,11 @@ class SensorOverlayManager {
         SECURITY: { alert: "🚨", ok: "🔒" },
         COUNT:    "🧑‍🤝‍🧑",
         ENERGY:   "⚡"
-    };
+    }
 
     constructor(svgContainer) {
         this.svg = svgContainer;
-        this.floorNumber = 0;
+        this.currentFloor = 0;
         this.isDashboard = true;
         this.currentMode = 'DESK';
         this.sensors = [];
@@ -39,7 +39,7 @@ class SensorOverlayManager {
     setSensorMode(mode, sensors, floorNumber, isDashboard = true) {
         this.currentMode = mode;
         this.sensors = sensors;
-        this.floorNumber = floorNumber;
+        this.currentFloor = floorNumber;
         this.isDashboard = isDashboard;
         this.clearOverlay();
         this.createOverlay(mode);
@@ -49,7 +49,7 @@ class SensorOverlayManager {
         this.animationFrames.forEach(id => cancelAnimationFrame(id));
         this.animationFrames = [];
 
-        const floorGroup = this.svg.querySelector(`#floor-${this.floorNumber}`);
+        const floorGroup = this.svg.querySelector(`#floor-${this.currentFloor}`);
         if (!floorGroup) return;
 
         // On supprime seulement les capteurs précédents
@@ -59,7 +59,7 @@ class SensorOverlayManager {
 
     createOverlay(mode) {
         // On récupère le groupe 'floor-x' existant
-        const floorGroupId = `floor-${this.floorNumber}`;
+        const floorGroupId = `floor-${this.currentFloor}`;
         let floorGroup = this.svg.querySelector(`#${CSS.escape(floorGroupId)}`);
 
         // S'il n'existe pas, on le crée
@@ -191,7 +191,6 @@ class SensorOverlayManager {
       this.svg.insertBefore(defs, this.svg.firstChild);
     }
 
-
     getTempColor(temp) {
       if (temp > 30 || temp < 16) return '#ef4444'; // critical
       if (temp > 26 || temp < 19) return '#f59e0b'; // warning
@@ -288,7 +287,6 @@ class SensorOverlayManager {
         this.addSensorIcon(sensor.x, sensor.y, this.getIcon("NOISE"), `${sensor.value} dB`, sensor.id);
       });
     }
-
 
     getNoiseColor(db) {
       if (db > 70) return '#f59e0b'; // warning
@@ -682,7 +680,7 @@ class SensorOverlayManager {
           }
           break;
         case "ENERGY":
-          // On garde la valeur valeur affichée dans les statistique
+          // On garde la valeur affichée dans les statistiques
           const elt = document.getElementById("live-current-power");
           if (elt) {
             const energyConsumption = elt.textContent.trim();
@@ -708,7 +706,7 @@ class SensorOverlayManager {
         g.setAttribute("class", "sensor-marker");
         g.setAttribute("id", "marker-"+sensorId);
         g.setAttribute("data-draggable", "true");
-        if (sensorType !== this.currentMode || parseInt(floor) !== parseInt(this.floorNumber)){
+        if (sensorType !== this.currentMode || parseInt(floor) !== parseInt(this.currentFloor)){
             g.style.display="none";
         }
         g.style.cursor = "move";
