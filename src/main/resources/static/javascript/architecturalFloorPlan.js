@@ -508,27 +508,28 @@ class ArchitecturalFloorPlan {
 
         const sensors = nodes
             .map((el) => {
-                const type = el.getAttribute('sensor-mode') || 'UNKNOWN';
-                const id = el.getAttribute('id');
-                const x = parseInt(el.getAttribute('x'))
-                const y = parseInt(el.getAttribute('y'));
-                const floorNumber = el.getAttribute('floor-number');
 
-                // taille dérivée du font-size si présent ou width (sinon 20 par défaut)
-                const sizeAttr = el.getAttribute('font-size') || el.getAttribute('width');
-                const size = sizeAttr ? parseFloat(sizeAttr) : 20;
+                function extractRotation(transform) {
+                    if (!transform) return 0;
+                    const match = transform.match(/rotate\(([-\d.]+)/);
+                    return match ? parseFloat(match[1]) : 0;
+                }
 
-                return { id : id,
-                    type : type,
-                    floor : floorNumber,
-                    x : x,
-                    y : y,
-                    size : size,
+                return { id : el.getAttribute('id'),
+                    mode : el.getAttribute('sensor-mode') || 'UNKNOWN',
+                    floor : el.getAttribute('floor-number'),
+                    x : parseFloat(el.getAttribute('x')),
+                    y : parseFloat(el.getAttribute('y')),
+                    size : parseInt(parseFloat(el.getAttribute('size') || el.getAttribute('font-size'))),
+                    width : parseInt(parseFloat(el.getAttribute('width'))),
+                    height : parseInt(parseFloat(el.getAttribute('height'))),
+                    rotation : extractRotation(el.getAttribute('transform')),
+                    chair : el.getAttribute('chair')
                 };
             });
 
         return sensors;
-    }   
+    }
 
     drawFloorLevallois(deskOccupancy = {}) {
         const g = this.createGroup('floor-3');
@@ -1848,6 +1849,12 @@ class ArchitecturalFloorPlan {
     _initDragAndDrop() {
         if (!this.svg) return;
 
+        function extractRotation(transform) {
+            if (!transform) return 0;
+            const match = transform.match(/rotate\(([-\d.]+)/);
+            return match ? parseFloat(match[1]) : 0;
+        }
+
         const svgPoint = (evt) => {
             const pt = this.svg.createSVGPoint();
             pt.x = evt.clientX;
@@ -2000,14 +2007,19 @@ class ArchitecturalFloorPlan {
             if (marker) {
                 const sensor = marker.querySelector(".sensor");
                 if (sensor) {
-                    const id = sensor.getAttribute("id");
-                    const size = sensor.getAttribute("font-size") || sensor.getAttribute("width");
-
                     const inputId = document.getElementById("input_id");
                     const inputSize = document.getElementById("input_size");
+                    const inputWidth = document.getElementById("input_width");
+                    const inputHeight = document.getElementById("input_height");
+                    const inputRotation = document.getElementById("input_rotation");
+                    const chairSelect = document.getElementById("chair_select");
 
-                    if (inputId) inputId.value = id;
-                    if (inputSize) inputSize.value = size;
+                    if (inputId) inputId.value = sensor.getAttribute("id");
+                    if (inputSize) inputSize.value = sensor.getAttribute("size") || sensor.getAttribute("font-size");
+                    if (inputWidth) inputWidth.value = sensor.getAttribute("width");
+                    if (inputHeight) inputHeight.value = sensor.getAttribute("height");
+                    if (inputRotation) inputRotation.value = extractRotation(sensor.getAttribute('transform'));
+                    if (chairSelect) chairSelect.value = sensor.getAttribute("chair");
                 }
             }
 
@@ -2176,8 +2188,8 @@ class ArchitecturalFloorPlan {
     exportSVG() {
         if (!this.svg) return null;
 
-        // Récupérer les éléments à exclure (labels)
-        const nodesToRemove = this.svg.querySelectorAll('.sensor-label');
+        // Récupérer les éléments à exclure (temp)
+        const nodesToRemove = this.svg.querySelectorAll('.sensor-temp');
 
         // Retirer temporairement les nodes (en les stockant pour les restaurer ensuite)
         const removedNodes = [];
@@ -2194,12 +2206,6 @@ class ArchitecturalFloorPlan {
         removedNodes.forEach(({ node, parent }) => parent.appendChild(node));
 
         return svgString;
-    }
-
-    updateSensorSize(sensorId, sensorSize){
-        if (this.overlayManager){
-            this.overlayManager.setSensorSize(sensorId, this.sensorMode, sensorSize);
-        }
     }
 
 }

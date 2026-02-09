@@ -595,7 +595,7 @@
 
                 <div class="filter-card">
                     <label>Sensor Type</label>
-                    <select id="filter-sensor-type" class="form-select" style="height: 45px;">
+                    <select id="filter-sensor-type" class="form-select" style="height: 45px;" onchange="onChangeSensor()">
                         <option value="DESK" selected>Desk Occupancy</option>
                         <option value="LIGHT">Light Levels</option>
                         <option value="CO2">CO₂ Air Quality</option>
@@ -626,7 +626,38 @@
 
                 <div class="col-md-4">
                     <label>Size</label>
-                    <input type="number" id="input_size" min="0" max="1000" step="10" value="20" class="form-control">
+                    <input type="number" id="input_size" min="0" max="1000" step="10" value="20" class="form-control" onchange="updateElementSVG()">
+                </div>
+
+                <div class="col-md-4">
+                    <label>Radius</label>
+                    <input type="number" id="input_radius" min="0" max="1000" step="10" value="20" class="form-control" onchange="updateElementSVG()">
+                </div>
+
+                <div class="col-md-4">
+                <label>Width</label>
+                    <input type="number" id="input_width" min="0" max="1000" step="10" value="20" class="form-control" onchange="updateElementSVG()">
+                </div>
+
+                <div class="col-md-4">
+                <label>Height</label>
+                    <input type="number" id="input_height" min="0" max="1000" step="10" value="20" class="form-control" onchange="updateElementSVG()">
+                </div>
+
+                <div class="col-md-4">
+                <label>Rotation (degrees)</label>
+                    <input type="number" id="input_rotation" min="0" max="360" step="5" value="0" class="form-control" onchange="updateElementSVG()">
+                </div>
+
+                <div class="filter-card">
+                    <label>Desk Chair</label>
+                    <select id="chair_select" class="form-select" style="height: 45px;" onchange="updateElementSVG()">
+                        <option value="none" selected>None</option>
+                        <option value="top">Top</option>
+                        <option value="bottom">Bottom</option>
+                        <option value="left">Left</option>
+                        <option value="right">Right</option>
+                    </select>
                 </div>
 
                 <div class="col-md-4" style="margin-top: 20px;">

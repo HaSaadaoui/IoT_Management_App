@@ -68,7 +68,7 @@ function createLevalloisShape(scale = 1) {
 // ================== HELPER SVG (bâtiments DB) ==================
 
 // Charge un SVG via URL et renvoie { shape, centerX, centerZ }
-async function loadSVGShapeFromUrl(url, scale = 1) {
+async function loadSVGShapeFromUrl(url) {
     return new Promise((resolve, reject) => {
         const loader = new THREE.SVGLoader();
         loader.load(
@@ -1239,23 +1239,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 const floorNumber = parseInt(floorSelect.value, 10);
                 window.building3D.currentFloorNumber = floorNumber;
                 window.building3D.switch2DFloorView(floorNumber);
-            }
-        });
-    }
-
-    const sizeInput = document.getElementById('input_size');
-    const elementID = document.getElementById('input_id');
-    if (sizeInput && elementID) {
-        sizeInput.addEventListener('change', () => {
-            if (window.building3D.currentArchPlan) {
-                if (sizeInput.value === ""){
-                    return;
-                }
-                if (!elementID.value || elementID.value.trim() === ''){
-                    return;
-                }
-                const size = parseInt(sizeInput.value, 10);
-                window.building3D.currentArchPlan.updateSensorSize(elementID.value, size);
             }
         });
     }

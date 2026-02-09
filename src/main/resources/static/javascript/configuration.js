@@ -322,11 +322,30 @@ function populateFloorSelect() {
 }
 
 function toggleFormFields() {
-    const sensorTypeSelect = document.getElementById('filter-sensor-type');
+    
     const elementSelect = document.getElementById('filter-element');
     const floorSelect = document.getElementById('filter-floor');
 
+    const sensorTypeSelect = document.getElementById('filter-sensor-type');
     const sensorTypeContainer = sensorTypeSelect.parentElement;
+
+    const inputSizeEl = document.getElementById('input_size');
+    const inputSizeContainer = inputSizeEl.parentElement;
+
+    const inputRadiusEl = document.getElementById('input_radius');
+    const inputRadiusContainer = inputRadiusEl.parentElement;
+
+    const inputWidthEl = document.getElementById('input_width');
+    const inputWidthContainer = inputWidthEl.parentElement;
+
+    const inputHeightEl = document.getElementById('input_height');
+    const inputHeightContainer = inputHeightEl.parentElement;
+
+    const inputRotationEl = document.getElementById('input_rotation');
+    const inputRotationContainer = inputRotationEl.parentElement;
+
+    const selectChairPosition = document.getElementById('chair_select');
+    const selectChairContainer = selectChairPosition.parentElement;
 
     floorSelect.value = "0";
 
@@ -334,22 +353,85 @@ function toggleFormFields() {
         case "Sensor" :
             sensorTypeSelect.value = "DESK";
             if (sensorTypeContainer) sensorTypeContainer.style.display = 'block';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'none';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
+            if (inputWidthContainer) inputWidthContainer.style.display = 'block';
+            if (inputHeightContainer) inputHeightContainer.style.display = 'block';
+            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+            if (selectChairContainer) selectChairContainer.style.display = 'block';
             break;
         case "Wall" :
             if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'block';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
+            if (inputWidthContainer) inputWidthContainer.style.display = 'none';
+            if (inputHeightContainer) inputHeightContainer.style.display = 'none';
+            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+            if (selectChairContainer) selectChairContainer.style.display = 'none';
             break;
         case "Room" :
             if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'none';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
+            if (inputWidthContainer) inputWidthContainer.style.display = 'block';
+            if (inputHeightContainer) inputHeightContainer.style.display = 'block';
+            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+            if (selectChairContainer) selectChairContainer.style.display = 'none';
             break;
         case "Door" :
             if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'none';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
+            if (inputWidthContainer) inputWidthContainer.style.display = 'block';
+            if (inputHeightContainer) inputHeightContainer.style.display = 'block';
+            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+            if (selectChairContainer) selectChairContainer.style.display = 'none';
             break;
         case "Window" :
             if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'none';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
+            if (inputWidthContainer) inputWidthContainer.style.display = 'block';
+            if (inputHeightContainer) inputHeightContainer.style.display = 'block';
+            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+            if (selectChairContainer) selectChairContainer.style.display = 'none';
             break;
         default:
             if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
             break;
+    }
+}
+
+function onChangeSensor() {
+    const sensorTypeSelect = document.getElementById('filter-sensor-type');
+
+    const inputSizeEl = document.getElementById('input_size');
+    const inputSizeContainer = inputSizeEl.parentElement;
+
+    const inputWidthEl = document.getElementById('input_width');
+    const inputWidthContainer = inputWidthEl.parentElement;
+
+    const inputHeightEl = document.getElementById('input_height');
+    const inputHeightContainer = inputHeightEl.parentElement;
+
+    const inputRotationEl = document.getElementById('input_rotation');
+    const inputRotationContainer = inputRotationEl.parentElement;
+
+    const selectChairPosition = document.getElementById('chair_select');
+    const selectChairContainer = selectChairPosition.parentElement;
+
+    if (sensorTypeSelect.value === "DESK") {
+        if (inputSizeContainer) inputSizeContainer.style.display = 'none';
+        if (inputWidthContainer) inputWidthContainer.style.display = 'block';
+        if (inputHeightContainer) inputHeightContainer.style.display = 'block';
+        if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+        if (selectChairContainer) selectChairContainer.style.display = 'block';
+    } else {
+        if (inputSizeContainer) inputSizeContainer.style.display = 'block';
+        if (inputWidthContainer) inputWidthContainer.style.display = 'none';
+        if (inputHeightContainer) inputHeightContainer.style.display = 'none';
+        if (inputRotationContainer) inputRotationContainer.style.display = 'none';
+        if (selectChairContainer) selectChairContainer.style.display = 'none';
     }
 }
 
@@ -654,31 +736,41 @@ async function updateBuildingConfig(formData) {
 function addElementSVG() {
     const sensorType  = document.getElementById("filter-sensor-type");
     const floorNumber = document.getElementById("filter-floor");
-    const elementId  = document.getElementById("input_id");
-    const elementSize = document.getElementById("input_size");
+    const inputIdEl  = document.getElementById("input_id");
+    const inputSizeEl = document.getElementById("input_size");
+    const inputWidthEl = document.getElementById('input_width');
+    const inputHeightEl = document.getElementById('input_height');
+    const inputRotationEl = document.getElementById('input_rotation');
+    const selectChairPosition = document.getElementById('chair_select');
 
-    if (!elementId || elementId.value.trim() === '') {
+    if (!inputIdEl || inputIdEl.value.trim() === '') {
         alert("Merci de saisir un ID.");
         return;
     }
     if (window.building3D && window.building3D.currentArchPlan) {
-        const elementWithID = Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+elementId.value));
+        const elementWithID = Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+inputIdEl.value));
         if (elementWithID.length) {
             alert("Un élément avec cet ID existe déjà.");
             return;
         }
     }
 
-    if (!elementSize || elementSize.value.trim() === '') {
-        alert("Merci de saisir la taille de l'élément.");
-        return;
-    }
-
-    const sensorX = elementSize.value;
-    const sensorY = elementSize.value;
+    // Contrôle sur la présence de size / width / height -> dépendra du type d'élément
 
     if (window.building3D && window.building3D.currentArchPlan && window.building3D.currentArchPlan.overlayManager) {
-        window.building3D.currentArchPlan.overlayManager.drawSensorIcon(elementId.value, sensorType.value, floorNumber.value, sensorX, sensorY, elementSize.value);
+        const sensor = {
+            id : inputIdEl.value,
+            mode : sensorType.value,
+            floor : floorNumber.value,
+            x : parseInt(inputSizeEl.value) || parseInt(inputWidthEl.value),
+            y : parseInt(inputSizeEl.value) || parseInt(inputHeightEl.value),
+            size : parseInt(inputSizeEl.value),
+            width : parseInt(inputWidthEl.value),
+            height : parseInt(inputHeightEl.value),
+            rotation : parseInt(inputRotationEl.value),
+            chair : selectChairPosition.value
+        }
+        window.building3D.currentArchPlan.overlayManager.drawSensor(sensor);
     }
 }
 
@@ -698,6 +790,65 @@ function removeElementSVG() {
     }
     if (window.building3D && window.building3D.currentArchPlan && window.building3D.currentArchPlan.overlayManager) {
         window.building3D.currentArchPlan.overlayManager.removeSensorMarkerById(elementId.value);
+    }
+}
+
+function updateElementSVG() {
+    const sensorTypeSelect = document.getElementById('filter-sensor-type');
+    const floorNumberSelect = document.getElementById("filter-floor");
+    const elementSelect = document.getElementById('filter-element');
+
+    const inputIdEl = document.getElementById('input_id');
+    const elementId = inputIdEl.value;
+    if (!elementId || elementId.trim() === '') return;
+
+    const inputSizeEl = document.getElementById('input_size');
+    const inputWidthEl = document.getElementById('input_width');
+    const inputHeightEl = document.getElementById('input_height');
+    const inputRotationEl = document.getElementById('input_rotation');
+    const selectChairPosition = document.getElementById('chair_select');
+    // const inputRadiusEl = document.getElementById('input_radius');
+
+    let rotation = 0;
+    if (inputRotationEl && inputRotationEl.value.trim() !== '' ){
+        rotation = parseInt(inputRotationEl.value, 10);
+    }
+
+    switch (elementSelect.value) {
+        case "Sensor" :
+            const sensor = {
+                id : inputIdEl.value,
+                mode : sensorTypeSelect.value,
+                floor : floorNumberSelect.value,
+                x : parseInt(inputSizeEl.value),
+                y : parseInt(inputSizeEl.value),
+                size : parseInt(inputSizeEl.value),
+                width : parseInt(inputWidthEl.value),
+                height : parseInt(inputHeightEl.value),
+                rotation : parseInt(inputRotationEl.value),
+                chair : selectChairPosition.value
+            }
+            window.building3D.currentArchPlan.overlayManager.updateSensorGeometry(sensor);
+            break;
+        case "Wall" :
+            // size / rotation
+            console.log("updateElementSVG Wall");
+            break;
+        case "Room" :
+            // width / height / rotation
+            console.log("updateElementSVG Room");
+            break;
+        case "Door" :
+            // width / height / rotation
+            console.log("updateElementSVG Door");
+            break;
+        case "Window" :
+            // width / height / rotation
+            console.log("updateElementSVG Window");
+            break;
+        default:
+            console.log("updateElementSVG default");
+            break;
     }
 }
 
@@ -1217,6 +1368,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof loadNotificationPreferences === 'function') loadNotificationPreferences();
     if (typeof loadAllSensorThresholds === 'function') loadAllSensorThresholds();
     if (typeof populateBuildingSelect === 'function') populateBuildingSelect();
+    if (typeof toggleFormFields === 'function') toggleFormFields();
     if (window.building3D) { window.building3D.isDashboard = false};
 
 });
