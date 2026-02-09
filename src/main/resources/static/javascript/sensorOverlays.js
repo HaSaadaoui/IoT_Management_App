@@ -17,6 +17,7 @@ class SensorOverlayManager {
 
     constructor(svgContainer) {
         this.svg = svgContainer;
+        this.thresholds = null; // stocke ici les seuils dynamiques
         this.currentFloor = 0;
         this.isDashboard = true;
         this.currentMode = 'DESK';
@@ -91,6 +92,17 @@ class SensorOverlayManager {
         }
     }
 
+    async loadThresholds() {
+        try {
+            const res = await fetch('/api/configuration/alert-config');
+            if (!res.ok) throw new Error("Impossible de charger les seuils");
+            this.thresholds = await res.json();
+        } catch (err) {
+            console.error("Erreur lors du chargement des seuils :", err);
+        }
+    }
+
+
     createCO2Heatmap() {
       const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
 
@@ -151,9 +163,13 @@ class SensorOverlayManager {
     }
 
     getCO2Color(ppm) {
-        if (ppm > 800 && ppm <= 1000) return '#f59e0b'; //warning
-        if (ppm > 1000) return '#ef4444'; // critical
-        return '#3b82f6'; // info
+        if (!this.thresholds) return '#3b82f6';
+
+        const warning = this.thresholds.co2Warning;
+        const critical = this.thresholds.co2Critical;
+        if (ppm >= warning && ppm < critical) return '#f59e0b';
+        if (ppm >= critical) return '#ef4444';
+        return '#3b82f6';
     }
 
     createTempThermal() {
@@ -192,9 +208,16 @@ class SensorOverlayManager {
     }
 
     getTempColor(temp) {
-      if (temp > 30 || temp < 16) return '#ef4444'; // critical
-      if (temp > 26 || temp < 19) return '#f59e0b'; // warning
-      return '#3b82f6'; // info
+        if (!this.thresholds) return '#3b82f6'; // fallback bleu
+
+        const highCritical = this.thresholds.tempCriticalHigh;
+        const lowCritical = this.thresholds.tempCriticalLow;
+        const highWarning = this.thresholds.tempWarningHigh;
+        const lowWarning = this.thresholds.tempWarningLow;
+
+        if (temp >= highCritical || temp <= lowCritical) return '#ef4444'; // critical
+        if (temp >= highWarning || temp <= lowWarning) return '#f59e0b'; // warning
+        return '#3b82f6'; // info
     }
 
     createLightMap() {
@@ -289,8 +312,10 @@ class SensorOverlayManager {
     }
 
     getNoiseColor(db) {
-      if (db > 70) return '#f59e0b'; // warning
-      return '#3b82f6'; // info
+        if (!this.thresholds) return '#3b82f6';
+
+        const warning = this.thresholds.noiseWarning;
+        return db > warning ? '#f59e0b' : '#3b82f6';
     }
 
     createHumidityZones() {
@@ -328,8 +353,13 @@ class SensorOverlayManager {
     }
 
     getHumidityColor(h) {
-      if (h > 70 || h < 30) return '#f59e0b';
-      return '#3b82f6';
+        if (!this.thresholds) return '#3b82f6';
+
+        const highWarning = this.thresholds.humidityWarningHigh;
+        const lowWarning = this.thresholds.humidityWarningLow;
+
+        if (h >= highWarning || h <= lowWarning) return '#f59e0b';
+        return '#3b82f6';
     }
 
     createTempexFlow() {

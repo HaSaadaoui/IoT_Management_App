@@ -109,6 +109,10 @@ class ArchitecturalFloorPlan {
             }
 
             this.overlayManager = new SensorOverlayManager(this.svg);
+
+            // Ici on charge les seuils depuis la BDD
+            await this.overlayManager.loadThresholds();
+
             this.overlayManager.setSensorMode(this.sensorMode, sensors, this.floorData.floorNumber, this.isDashboard);
 
             if (this.isDashboard && this.sensorMode !== "DESK"){
@@ -348,7 +352,7 @@ class ArchitecturalFloorPlan {
         case "HUMIDITY":
           return payload["humidity"] ?? payload["humidity (%)"];
         case "NOISE":
-          return payload["humidity"] ?? payload["LAeq (dB)"];
+          return payload["LAeq"] ?? payload["LAeq (dB)"];
         case "LIGHT":
           return payload["light"];
         case "COUNT":
