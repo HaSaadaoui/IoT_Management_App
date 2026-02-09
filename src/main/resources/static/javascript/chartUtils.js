@@ -1,5 +1,215 @@
-// ===== CHART UTILITIES =====
-// Shared chart creation utilities for dashboard, alerts, and prediction pages
+// ===== CHART UTILITIES + LIVE OCCUPANCY =====
+// ============================================
+// OCCUPANCY ZONES
+// ============================================
+const OCCUPANCY_ZONES = {
+    LEVALLOIS: {
+        3: {
+            OPEN_SPACE: { title: "Open_03_01", match: (id) => /^desk-03-(0[1-9]|[1-7][0-9]|8[0-2])$/.test(id) },
+            VALUEMENT: { title: "Valuement", match: (id) => /^desk-03-(8[3-9]|9[0-2])$/.test(id) },
+            MEETING_ROOM: { title: "Meeting Room", match: (id) => /^occup-vs70-03-0[1-2]$/.test(id) || id === "count-03-01" },
+            INTERVIEW_ROOM: { title: "Interview Room", match: (id) => /^desk-vs41-03-0[1-2]$/.test(id) },
+            PHONE_BOOTH: { title: "Phone Booth", match: (id) => [
+                "desk-vs41-03-03",
+                "desk-vs41-03-04",
+                "occup-vs30-03-01",
+                "occup-vs30-03-02",
+                "desk-vs40-03-01",
+                "occup-vs70-03-03",
+                "occup-vs70-03-04"
+            ].includes(id) }
+        }
+    },
+    CHATEAUDUN: {
+        2: { OPEN_SPACE: { title: "Open Space", match: (id) => /^desk-01-0[1-9]|desk-01-1[0-5]$/.test(id) } },
+        4: { OPEN_SPACE: { title: "Open Space", match: (id) => /^desk-01-0[1-8]$/.test(id) } },
+        5: { OPEN_SPACE: { title: "Open Space", match: (id) => /^desk-01-(0[1-9]|1[0-9]|2[0-4])$/.test(id) } },
+        6: { OPEN_SPACE: { title: "Open Space", match: (id) => /^desk-01-(0[1-9]|1[0-6])$/.test(id) } }
+    }
+};
+// ============================================
+// DASHBOARD CONTEXT
+// ============================================
+const DASHBOARD_CTX = { building: "LEVALLOIS", floor: 3 };
+
+// ============================================
+// GLOBAL STATE
+// ============================================
+let occupancySource = null;
+const occupancyState = {}; // clé = deskId, valeur = status
+
+// ============================================
+// SSE / LIVE OCCUPANCY
+// ============================================
+function openOccupancySSE(building, floor) {
+    console.log("🔄 openOccupancySSE called with:", building, floor);
+    if (occupancySource) {
+        console.log("🔁 Closing previous SSE");
+        occupancySource.close();
+        occupancySource = null;
+    }
+
+    const url = `/api/dashboard/occupancy/stream?building=${encodeURIComponent(building)}`;
+    occupancySource = new EventSource(url);
+
+    occupancySource.addEventListener("uplink", (e) => {
+        try {
+            const raw = JSON.parse(e.data);
+            const msg = raw?.result ?? raw;
+
+            const deviceId = msg?.end_device_ids?.device_id || msg?.deviceId || msg?.device_id;
+            const decoded = msg?.uplink_message?.decoded_payload ?? msg?.decoded_payload ?? msg?.payload ?? {};
+            const occRaw = decoded?.occupancy;
+
+            if (!deviceId) return;
+
+            const status = normalizeDeskStatus(occRaw);
+            occupancyState[deviceId] = status;
+
+            // Créer snapshot complet
+            const snapshot = Object.entries(occupancyState).map(([id, s]) => ({ id, status: s }));
+
+            const zoneStats = aggregateByZone(snapshot, building, floor);
+            updateAllStatCards(zoneStats);
+
+        } catch (err) {
+            console.warn("[SSE] parse error", err, e?.data);
+        }
+    });
+
+    occupancySource.addEventListener("keepalive", () => {});
+    occupancySource.onopen = () => console.log("✅ SSE connection opened");
+    occupancySource.onerror = (e) => {
+        console.warn("❌ SSE error", e);
+        occupancySource.close();
+        occupancySource = null;
+    };
+}
+
+function closeOccupancySSE() {
+    if (occupancySource) {
+        console.log("🔒 Closing SSE manually");
+        occupancySource.close();
+        occupancySource = null;
+    }
+}
+
+// ============================================
+// HELPERS
+// ============================================
+function normalizeDeskStatus(v) {
+    if (v == null) return "invalid";
+    if (typeof v === "string") {
+        const s = v.toLowerCase();
+        if (s === "occupied" || s === "used" || s === "true" || s === "1") return "used";
+        if (s === "vacant" || s === "free" || s === "false" || s === "0") return "free";
+        return "invalid";
+    }
+    if (typeof v === "boolean") return v ? "used" : "free";
+    if (typeof v === "number") return v > 0 ? "used" : "free";
+    return "invalid";
+}
+
+// ============================================
+// AGGREGATION
+// ============================================
+function aggregateByZone(rawData, building, floor) {
+    const zones = OCCUPANCY_ZONES?.[building]?.[floor];
+    if (!zones) return {};
+
+    const result = {};
+    Object.entries(zones).forEach(([zoneKey, zone]) => {
+        result[zoneKey] = { location: zone.title, free: 0, used: 0, invalid: 0 };
+    });
+
+    rawData.forEach(({ id, status }) => {
+        Object.entries(zones).forEach(([zoneKey, zone]) => {
+            if (zone.match(id)) {
+                if (status === "free") result[zoneKey].free++;
+                else if (status === "used") result[zoneKey].used++;
+                else result[zoneKey].invalid++;
+            }
+        });
+    });
+
+    // ===== INTEGRITY CHECK =====
+    //Si le sensor n'est pas renvoyé ou a un statut inconu, alors ==> invalid
+    Object.entries(zones).forEach(([zoneKey, zone]) => {
+        const expectedDesks = [];
+        for (let i = 1; i <= 92; i++) {
+            const id = `desk-03-${i.toString().padStart(2,'0')}`;
+            if (zone.match(id)) expectedDesks.push(id);
+        }
+
+        const actualDesks = rawData
+            .filter(d => zone.match(d.id))
+            .map(d => d.id);
+
+        const missing = expectedDesks.filter(d => !actualDesks.includes(d));
+        const extra   = actualDesks.filter(d => !expectedDesks.includes(d));
+
+        //Missing desks = INVALID
+        if (missing.length > 0) {
+            result[zoneKey].invalid += missing.length;
+        }
+
+        // Logs
+        //if (missing.length > 0) console.log(`❌ Missing desks:`, missing);
+        //if (extra.length > 0) console.log(`⚠️ Extra desks:`, extra);
+    });
+    //console.log("Result from alert js", JSON.stringify(result, null, 2));
+    return result;
+}
+
+// ============================================
+// STAT CARD UPDATE
+// ============================================
+function updateAllStatCards(zoneStats) {
+    document.querySelectorAll(".stat-card[data-zone]").forEach(card => {
+        const zoneKey = card.dataset.zone;
+        const data = zoneStats[zoneKey];
+        if (!data) return;
+        updateStatCard(card, data);
+    });
+}
+
+// Recycler le chart existant au lieu de le recréer
+function updateStatCard(statCard, data) {
+    if (!statCard) return;
+
+    const chartElement = statCard.querySelector(".chart-office");
+    const legendElement = statCard.querySelector(".stat-legend");
+    const titleElement = statCard.querySelector(".stat-card-title");
+
+    const total = data.free + data.used + data.invalid;
+    if (total === 0) return;
+
+    const freePercent = ((data.free / total) * 100).toFixed(2);
+    const usedPercent = ((data.used / total) * 100).toFixed(2);
+    const invalidPercent = ((data.invalid / total) * 100).toFixed(2);
+
+    // Recycle chart
+    if (chartElement) {
+        if (chartElement._chartInstance) {
+            const chart = chartElement._chartInstance;
+            chart.data.datasets[0].data = [freePercent, usedPercent, invalidPercent];
+            chart.update();
+        } else {
+            chartElement._chartInstance = new Chart(chartElement, ChartUtils.createDoughnutChartConfig([freePercent, usedPercent, invalidPercent]));
+        }
+    }
+
+    if (legendElement) ChartUtils.updateLegend(legendElement, freePercent, usedPercent, invalidPercent);
+    if (titleElement && data.location) titleElement.textContent = data.location;
+}
+
+// ============================================
+// INIT
+// ============================================
+window.addEventListener("DOMContentLoaded", () => {
+    console.log("🟢 DOM fully loaded");
+    openOccupancySSE(DASHBOARD_CTX.building, DASHBOARD_CTX.floor);
+});
 
 // Color constants - read from CSS variables for single source of truth
 const getComputedColor = (varName) => {
@@ -365,67 +575,75 @@ function createOrUpdateChart(canvas, config) {
  * @param {Array<number>} data - Array of data values [free, used, invalid]
  * @returns {Object} Chart.js configuration object
  */
-function createDoughnutChartConfig(data) {
-    return {
-        type: "doughnut",
-        data: {
-            labels: ["Free", "Used", "Invalid"],
-            datasets: [
-                {
-                    data: data,
-                    backgroundColor: [okColor, notOkColor, otherColor],
-                    borderWidth: 0,
-                    hoverOffset: 10,
-                },
-            ],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            cutout: "70%",
-            animation: {
-                duration: 0,
-            },
-            plugins: {
-                legend: {
-                    display: true,
-                    position: "bottom",
-                    labels: {
-                        usePointStyle: true,
-                        pointStyle: "circle",
-                        padding: 20,
-                        font: {
-                            family: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-                            size: 12,
-                        },
-                        generateLabels: (chart) => {
-                            const data = chart.data;
-                            if (data.labels.length && data.datasets.length) {
-                                return data.labels.map((label, i) => {
-                                    const value = data.datasets[0].data[i];
-                                    return {
-                                        text: `${label} (${value}%)`,
-                                        fillStyle:
-                                            data.datasets[0].backgroundColor[i],
-                                        hidden: false,
-                                        index: i,
-                                    };
-                                });
-                            }
-                            return [];
-                        },
-                    },
-                },
-                tooltip: {
-                    callbacks: {
-                        label: (context) =>
-                            context.label + ": " + context.parsed + "%",
-                    },
-                },
-            },
-        },
-    };
-}
+ function createDoughnutChartConfig(dataCounts) {
+     // dataCounts = [freeCount, usedCount, invalidCount]
+     const total = dataCounts.reduce((a, b) => a + b, 0);
+     return {
+         type: "doughnut",
+         data: {
+             labels: ["Free", "Used", "Invalid"],
+             datasets: [
+                 {
+                     data: dataCounts.map(count => total ? (count / total) * 100 : 0),
+                     backgroundColor: [okColor, notOkColor, otherColor],
+                     borderWidth: 0,
+                     hoverOffset: 10,
+                 },
+             ],
+         },
+         options: {
+             responsive: true,
+             maintainAspectRatio: true,
+             cutout: "70%",
+             layout: {
+                padding: {
+                    top: 20,
+                    bottom: 5
+                }
+             },
+             animation: { duration: 0 },
+             plugins: {
+                 legend: {
+                     display: true,
+                     position: "bottom",
+                     labels: {
+                         usePointStyle: true,
+                         pointStyle: "circle",
+                         padding: 12,
+                         font: { family: "'Inter', sans-serif", size: 12 },
+                         generateLabels: (chart) => {
+                             const data = chart.data;
+                             if (data.labels.length && data.datasets.length) {
+                                 const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                 return data.labels.map((label, i) => {
+                                     const value = data.datasets[0].data[i];
+                                     return {
+                                         text: `${label} (${value.toFixed(0)}%)`,
+                                         fillStyle: data.datasets[0].backgroundColor[i],
+                                         hidden: false,
+                                         index: i,
+                                     };
+                                 });
+                             }
+                             return [];
+                         },
+                     },
+                 },
+                 tooltip: {
+                     callbacks: {
+                         label: (context) => {
+                             const idx = context.dataIndex;
+                             const label = context.label;
+                             const percent = Math.round(context.parsed);
+                             const count = dataCounts[idx];
+                             return `${label}: ${percent}% (${count} desks)`;
+                         },
+                     },
+                 },
+             },
+         },
+     };
+ }
 
 /**
  * Creates and renders a doughnut chart on a canvas element
@@ -476,28 +694,28 @@ function updateStatCard(statCard, data) {
     const legendElement = statCard.querySelector(".stat-legend");
     const titleElement = statCard.querySelector(".stat-card-title");
 
-    const total = data.freeCount + data.usedCount + data.invalidCount;
+    const counts = [data.free, data.used, data.invalid];
+    const total = counts.reduce((a, b) => a + b, 0);
     if (total === 0) return;
 
-    const freePercent = ((data.freeCount / total) * 100).toFixed(2);
-    const usedPercent = ((data.usedCount / total) * 100).toFixed(2);
-    const invalidPercent = ((data.invalidCount / total) * 100).toFixed(2);
+    // Arrondir pour que la somme des % = 100
+    let rawPercents = counts.map(c => (c / total) * 100);
+    let rounded = rawPercents.map(p => Math.floor(p));
+    let remainder = 100 - rounded.reduce((a, b) => a + b, 0);
+    const remainders = rawPercents.map((p, i) => ({ idx: i, diff: p - Math.floor(p) }))
+                                  .sort((a, b) => b.diff - a.diff);
+    for (let i = 0; i < remainder; i++) {
+        rounded[remainders[i].idx]++;
+    }
 
-    // Update chart
     if (chartElement) {
-        createDoughnutChart(chartElement, [
-            freePercent,
-            usedPercent,
-            invalidPercent,
-        ]);
+        createDoughnutChart(chartElement, counts);
     }
 
-    // Update legend
     if (legendElement) {
-        updateLegend(legendElement, freePercent, usedPercent, invalidPercent);
+        updateLegend(legendElement, rounded[0], rounded[1], rounded[2]);
     }
 
-    // Update title
     if (titleElement && data.location) {
         titleElement.textContent = data.location;
     }

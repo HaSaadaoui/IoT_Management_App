@@ -564,6 +564,8 @@ main {
 .legend-dot {
     width: 16px;
     height: 16px;
+    min-width: 16px;
+    min-height: 16px;
     border-radius: 4px;
 }
 
@@ -609,6 +611,12 @@ main {
     position: relative;
     overflow: hidden;
     margin: 0rem;
+}
+.stat-card .stat-chart-container {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 16px;
+    padding:15px;
 }
 
 .stat-card::before {
@@ -769,6 +777,41 @@ main {
 .chart-card.large canvas {
     /* height: auto; */
 }
+
+.filter-item-building {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-item-building label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.filter-item-building select {
+    padding: 0.75rem;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-item-building select:hover {
+    border-color: var(--primary);
+}
+
+.filter-item-building select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(102, 33, 121, 0.1);
+}
+
 
 .chart-card h4 {
     font-size: 1.1rem;
@@ -1045,4 +1088,102 @@ main {
     .desk {
         font-size: 0.85rem;
     }
+}
+
+
+/* MEDIA QUERY pour petits écrans */
+
+@media (max-width: 480px) {
+    .doughnut-labels {
+        flex: 0 0 auto;   /* Ne pas grandir ou rétrécir */
+        min-width: 100%;  /* Toujours visible */
+        gap: 0.25rem;
+        font-size: 0.8rem;
+        align-items: center;
+}
+
+@media (max-width: 480px) {
+    .doughnut-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .doughnut-chart {
+        flex: 0 0 auto;  /* taille auto selon le canvas */
+        max-width: 180px;
+    }
+}
+
+
+
+@media (max-width: 768px) {
+    .stat-card {
+        padding: 0.75rem;
+    }
+
+    .stat-card h4 {
+        font-size: 0.95rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .chart-office {
+        max-width: 140px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stat-card {
+        padding: 0.5rem;
+    }
+}
+
+/* Dashboard / Stats only */
+.stat-chart-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+
+    width: 100%;
+    height: 100%;
+    padding: 1rem;
+
+    box-sizing: border-box;
+
+    padding: 0.5rem;   /* 🔥 clé : pas de padding massif */
+    width: 100%;
+
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(102, 33, 121, 0.15);
+    border: 1px solid #e5e7eb;
+}
+
+/* Canvas du chart */
+.stat-card .chart-office {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.doughnut-labels {
+    min-width: 110px;
+    flex-shrink: 0;
+}
+
+.custom-label,
+.stat-legend div {
+    white-space: nowrap;
+}
+
+.stat-card .chart-office {
+    min-height: 260px; /* ou la taille souhaitée */
+    flex-shrink: 0;    /* empêche le donut d'écraser la légende */
+}
+
+.doughnut-labels div {
+    flex-shrink: 0;
 }

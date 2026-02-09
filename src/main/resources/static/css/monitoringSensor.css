@@ -249,6 +249,22 @@ main {
     transition: all 0.3s;
 }
 
+.channel-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.channel-left {
+  font-size: 0.9rem;
+  color: #111;
+}
+
+.channel-right {
+  font-weight: 700;
+  color: #6b21a8; /* violet */
+}
+
 .badge--ok {
     background: linear-gradient(135deg, #10b981, #059669);
     color: white;
@@ -991,6 +1007,24 @@ main {
     gap: 0.5rem;
 }
 
+.history-filters select,
+.history-filters select.form-select,
+#filter-building {
+    width: 100% !important;
+    max-width: 220px !important;
+    min-width: 220px;
+    padding: 0.6rem 0.8rem;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: white;
+    box-sizing: border-box;
+    cursor: pointer;
+    height: auto;
+}
+
 .history-filters input[type="datetime-local"] {
     width: 100%;
     max-width: 220px;
@@ -1001,6 +1035,7 @@ main {
     font-family: inherit;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     background: white;
+    box-sizing: border-box;
 }
 
 .history-filters input[type="datetime-local"]:hover {
@@ -1008,6 +1043,21 @@ main {
 }
 
 .history-filters input[type="datetime-local"]:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(102, 33, 121, 0.1);
+    transform: translateY(-1px);
+}
+
+.history-filters select:hover,
+.history-filters select.form-select:hover,
+#filter-building:hover {
+    border-color: var(--primary-light);
+}
+
+.history-filters select:focus,
+.history-filters select.form-select:focus,
+#filter-building:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 4px rgba(102, 33, 121, 0.1);

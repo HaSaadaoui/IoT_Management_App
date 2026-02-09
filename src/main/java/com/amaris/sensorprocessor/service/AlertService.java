@@ -43,23 +43,23 @@ public class AlertService {
      * 
      * @return List of active alerts
      */
-    public List<Alert> getCurrentAlerts() {
+    public List<Alert> getCurrentAlerts(String building) {
         List<Alert> alerts = new ArrayList<>();
 
         // Check for CO2 alerts
-        alerts.addAll(checkCO2Alerts());
+        alerts.addAll(checkCO2Alerts(building));
 
         // Check for temperature alerts
-        alerts.addAll(checkTemperatureAlerts());
+        alerts.addAll(checkTemperatureAlerts(building));
 
         // Check for sensor offline alerts
-        alerts.addAll(checkSensorOfflineAlerts());
+        alerts.addAll(checkSensorOfflineAlerts(building));
 
         // Check for humidity alerts
-        alerts.addAll(checkHumidityAlerts());
+        alerts.addAll(checkHumidityAlerts(building));
 
         // Check for noise alerts
-        alerts.addAll(checkNoiseAlerts());
+        alerts.addAll(checkNoiseAlerts(building));
 
         // Check for gateway offline alerts - DISABLED due to connection leak
         // alerts.addAll(checkGatewayOfflineAlerts());
@@ -67,16 +67,24 @@ public class AlertService {
         return alerts;
     }
 
+    private boolean hasSensorType(String building, String sensorType) {
+        if (building == null || building.isBlank()) {
+            return true; // pas de filtre → dashboard global
+        }
+        return sensorDao.existsByBuildingAndType(building, sensorType);
+    }
+
+
     /**
      * Check for CO2 level alerts
      * Critical: > configured critical threshold ppm
      * Warning: > configured warning threshold ppm
      */
-    private List<Alert> checkCO2Alerts() {
+    private List<Alert> checkCO2Alerts(String building) {
         List<Alert> alerts = new ArrayList<>();
 
         // Get all CO2 sensors from the database
-        List<Sensor> co2Sensors = sensorDao.findAllByDeviceType(DEVICE_TYPE_CO2);
+        List<Sensor> co2Sensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_CO2, building);
 
         for (Sensor sensor : co2Sensors) {
             Optional<SensorData> latestCO2 = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(),
@@ -123,13 +131,13 @@ public class AlertService {
      * Critical: > configured critical high or < configured critical low
      * Warning: > configured warning high or < configured warning low
      */
-    private List<Alert> checkTemperatureAlerts() {
+    private List<Alert> checkTemperatureAlerts(String building) {
         List<Alert> alerts = new ArrayList<>();
 
         // Get all CO2 sensors that also have temperature data (multi-sensor devices)
-        List<Sensor> co2Sensors = sensorDao.findAllByDeviceType(DEVICE_TYPE_CO2);
+        List<Sensor> co2Sensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_CO2, building);
         // Also get dedicated temperature sensors
-        List<Sensor> tempSensors = sensorDao.findAllByDeviceType(DEVICE_TYPE_TEMP);
+        List<Sensor> tempSensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_TEMP, building);
         
         // Combine both lists
         List<Sensor> allTempSensors = new ArrayList<>();
@@ -185,20 +193,28 @@ public class AlertService {
     /**
      * Check for sensor offline alerts
      * Alert if no data received within the configured time threshold
+     * Uses different thresholds for event-based sensors (DESK, OCCUP) vs continuous sensors
      */
-    private List<Alert> checkSensorOfflineAlerts() {
+    private List<Alert> checkSensorOfflineAlerts(String building) {
         List<Alert> alerts = new ArrayList<>();
 
         // Get all sensors from the database
-        List<Sensor> allSensors = sensorDao.findAllSensors();
-        LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes());
+        List<Sensor> allSensors = sensorDao.findAllByBuilding(building);
 
-        log.debug("Checking sensor offline alerts with threshold: {} minutes (cutoff time: {})",
-                thresholdConfig.getDataMaxAgeMinutes(), cutoffTime);
+        log.info("🔍 Checking {} sensors for offline alerts. DESK threshold: {}h, default: {}min",
+                allSensors.size(), 
+                thresholdConfig.getDeskOfflineThresholdHours(),
+                thresholdConfig.getDataMaxAgeMinutes());
+
+        int deskCount = 0, otherCount = 0;
 
         for (Sensor sensor : allSensors) {
             String sensorId = sensor.getIdSensor();
             String deviceType = sensor.getDeviceType();
+
+            // Get device-specific offline threshold
+            int thresholdMinutes = getOfflineThresholdForDeviceType(deviceType);
+            LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(thresholdMinutes);
 
             // Get the most recent data from this sensor (any type)
             Optional<SensorData> latestData = sensorDataDao.findLatestBySensor(sensorId);
@@ -209,8 +225,14 @@ public class AlertService {
 
                 // Check if the most recent data is older than the threshold
                 if (data.getReceivedAt().isBefore(cutoffTime) || data.getReceivedAt().isEqual(cutoffTime)) {
-                    log.debug("Sensor {} is offline: last data at {} ({} minutes ago, threshold: {} minutes)",
-                            sensorId, data.getReceivedAt(), minutesAgo, thresholdConfig.getDataMaxAgeMinutes());
+                    log.info("⚠️ OFFLINE: {} ({}) - last: {} min ago, threshold: {} min",
+                            sensorId, deviceType, minutesAgo, thresholdMinutes);
+
+                    if ("DESK".equalsIgnoreCase(deviceType)) {
+                        deskCount++;
+                    } else {
+                        otherCount++;
+                    }
 
                     alerts.add(new Alert(
                             "info",
@@ -218,39 +240,55 @@ public class AlertService {
                             "Sensor Offline",
                             String.format("%s (%s) not responding", sensorId, deviceType),
                             formatTimeAgo(data.getReceivedAt())));
-                } else {
-                    log.trace("Sensor {} is online: last data at {} ({} minutes ago)",
-                            sensorId, data.getReceivedAt(), minutesAgo);
                 }
             } else {
-                // No data found at all for this sensor
-                log.debug("Sensor {} has no data in database", sensorId);
-
-                alerts.add(new Alert(
-                        "info",
-                        "ℹ️",
-                        "Sensor Offline",
-                        String.format("%s (%s) not responding", sensorId, deviceType),
-                        "Never reported"));
+                // No data found at all for this sensor - only alert if threshold exceeded
+                log.debug("Sensor {} ({}) has no data in database", sensorId, deviceType);
             }
         }
 
-        log.info("Found {} offline sensors (threshold: {} minutes)", alerts.size(),
-                thresholdConfig.getDataMaxAgeMinutes());
+        log.info("✅ Found {} offline sensors (DESK: {}, Other: {}) using device-specific thresholds", 
+                alerts.size(), deskCount, otherCount);
         return alerts;
+    }
+
+    /**
+     * Get offline threshold in minutes based on device type
+     * Event-based sensors (DESK, OCCUP) have longer thresholds
+     */
+    private int getOfflineThresholdForDeviceType(String deviceType) {
+        if (deviceType == null) {
+            return thresholdConfig.getDataMaxAgeMinutes();
+        }
+
+        // Event-based sensors: only send data on state change
+        switch (deviceType.toUpperCase()) {
+            case "DESK":
+                return thresholdConfig.getDeskOfflineThresholdHours() * 60;
+            case "OCCUP":
+                return thresholdConfig.getOccupOfflineThresholdHours() * 60;
+            case "PIR_LIGHT":
+                return thresholdConfig.getPirLightOfflineThresholdHours() * 60;
+            case "COUNT":
+                return thresholdConfig.getCountOfflineThresholdHours() * 60;
+            
+            // Continuous sensors: send data regularly
+            default:
+                return thresholdConfig.getDataMaxAgeMinutes();
+        }
     }
 
     /**
      * Check for humidity alerts
      * Warning: > configured warning high or < configured warning low
      */
-    private List<Alert> checkHumidityAlerts() {
+    private List<Alert> checkHumidityAlerts(String building) {
         List<Alert> alerts = new ArrayList<>();
 
         // Get all CO2 sensors that also have humidity data (multi-sensor devices)
-        List<Sensor> co2Sensors = sensorDao.findAllByDeviceType(DEVICE_TYPE_CO2);
+        List<Sensor> co2Sensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_CO2, building);
         // Also get dedicated humidity sensors
-        List<Sensor> humiditySensors = sensorDao.findAllByDeviceType(DEVICE_TYPE_HUMIDITY);
+        List<Sensor> humiditySensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_HUMIDITY, building);
         
         // Combine both lists
         List<Sensor> allHumiditySensors = new ArrayList<>();
@@ -296,11 +334,11 @@ public class AlertService {
      * Check for noise level alerts
      * Warning: > configured warning threshold dB
      */
-    private List<Alert> checkNoiseAlerts() {
+    private List<Alert> checkNoiseAlerts(String building) {
         List<Alert> alerts = new ArrayList<>();
 
         // Get all noise sensors from the database
-        List<Sensor> noiseSensors = sensorDao.findAllByDeviceType(DEVICE_TYPE_NOISE);
+        List<Sensor> noiseSensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_NOISE, building);
 
         for (Sensor sensor : noiseSensors) {
             Optional<SensorData> latestNoise = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(),

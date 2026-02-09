@@ -28,6 +28,15 @@ public class SensorDao {
         );
     }
 
+    /** Récupère tous les capteurs. */
+    public List<Sensor> findAllByBuilding(String building) {
+        return jdbcTemplate.query(
+                "SELECT * FROM sensors WHERE building_name = ?",
+                new BeanPropertyRowMapper<>(Sensor.class),
+                building
+        );
+    }
+
     public List<String> findAllGateways() {
         return jdbcTemplate.queryForList(
                 "SELECT DISTINCT id_gateway FROM sensors WHERE id_gateway IS NOT NULL",
@@ -80,6 +89,27 @@ public class SensorDao {
                 deviceType
         );
     }
+
+    public List<Sensor> findAllByDeviceTypeAndBuilding(String deviceType, String building) {
+        return jdbcTemplate.query(
+                "SELECT * FROM sensors WHERE DEVICE_TYPE = ? AND BUILDING_NAME = ?",
+                new BeanPropertyRowMapper<>(Sensor.class),
+                deviceType,
+                building
+        );
+    }
+
+    public boolean existsByBuildingAndType(String building, String deviceType){
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM sensors WHERE DEVICE_TYPE = ? IS NULL OR BUILDING_NAME = ?",
+                Integer.class,
+                deviceType,
+                building
+        );
+
+        return count != null && count > 0;
+    }
+
 
     public List<Sensor> findAllByLocation(String location) {
         return jdbcTemplate.query(

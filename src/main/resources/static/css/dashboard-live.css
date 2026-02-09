@@ -1,0 +1,215 @@
+/* ===== LIVE DATA SECTION STYLING ===== */
+
+/* Override main width for dashboard - full width layout */
+main {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 17rem;
+}
+
+.live-data-section {
+    margin: 2rem 0;
+}
+
+.live-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.metric-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.metric-split {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-split-values {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.metric-scope {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 52px;
+}
+
+.scope-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.metric-divider {
+  width: 1px;
+  height: 26px;
+  background-color: #e5e7eb;
+  margin: 0 10px;
+}
+
+.metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #662179, #8b2fa3);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(102, 33, 121, 0.15);
+}
+
+.metric-card:hover::before {
+    opacity: 1;
+}
+
+.metric-card--highlight {
+    background: linear-gradient(135deg, rgba(102, 33, 121, 0.05), rgba(139, 47, 163, 0.05));
+    border: 2px solid rgba(102, 33, 121, 0.2);
+}
+
+.metric-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.metric-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.metric-label {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1;
+}
+
+.metric-unit {
+    font-size: 0.875rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+/* Analytics Grid for Occupation Tables */
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+    margin: 1.5rem 0 2rem;
+}
+
+/* Charts Section Grids */
+.charts-section {
+    margin: 2rem 0;
+}
+
+.charts-grid {
+    display: grid;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.charts-grid--3col {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+/* Historical Grid */
+.historical-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+    margin: 1.5rem 0;
+}
+
+.chart-card.full-width {
+    grid-column: 1 / -1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1400px) {
+    .live-metrics-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .charts-grid--3col {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 1024px) {
+    .live-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .charts-grid--3col {
+        grid-template-columns: 1fr;
+    }
+    
+    .historical-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .live-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .metric-card {
+        padding: 1.25rem;
+    }
+    
+    .metric-icon {
+        width: 56px;
+        height: 56px;
+        font-size: 1.75rem;
+    }
+    
+    .metric-value {
+        font-size: 1.75rem;
+    }
+}

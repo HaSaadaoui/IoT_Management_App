@@ -12,7 +12,7 @@ import java.util.Optional;
 
 public interface DashboardService {
     DashboardData getDashboardData(String year, String month, String building, String floor, String sensorType, String timeSlot);
-    List<Desk> getDesksByFloor(String floor, Optional<String> deskId);
+    List<Desk> getDesks(String building, String floor, Optional<String> deskId);
     List<SensorInfo> getSensorsList(String building, String floor, String sensorType);
     List<OccupationHistoryEntry> getOccupationHistory(List<String> sensorIds, int days);
     HistogramResponse getHistogramData(HistogramRequest request);

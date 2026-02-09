@@ -7,6 +7,8 @@ import com.amaris.sensorprocessor.entity.SensorData;
 import com.amaris.sensorprocessor.repository.SensorDao;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.channel.ChannelOption;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,13 +59,16 @@ public class SensorService {
      * GET /api/monitoring/sensor/{appId}/{deviceId}?threadId=...
      * Retourne un Flux<String> (JSON brut) pour le pousser tel quel au navigateur via SseEmitter.
      */
-    public Flux<String> getMonitoringData(String appId, String deviceId, String threadId) {
-        return webClient.get()
+    public Flux<String> getMonitoringData(String appId, String deviceId) {
+        List<String> deviceIds = List.of(deviceId);
+
+        return webClientSse.post()
                 .uri(uriBuilder -> uriBuilder
-                        .path("/api/monitoring/sensor/{appId}/{deviceId}")
-                        .queryParam("threadId", threadId)
-                        .build(appId, deviceId))
+                        .path("/api/monitoring/app/{appId}/stream")
+                        .build(appId))
+                .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.TEXT_EVENT_STREAM)
+                .bodyValue(deviceIds)
                 .retrieve()
                 .bodyToFlux(String.class)
                 .doOnError(err -> log.error(
@@ -72,49 +77,51 @@ public class SensorService {
     }
 
     public Flux<String> getGatewayDevices(String appId, Instant after) {
-        // Use the pre-configured SSE WebClient bean
         return webClientSse.get()
                 .uri(uriBuilder -> {
-                    uriBuilder.path("/api/monitoring/sensor/{appId}");
-                    if (after != null) {
-                        uriBuilder.queryParam("after", after.toString());
-                    }
+                    uriBuilder.path("/api/monitoring/app/{appId}/uplinks");
+                    if (after != null) uriBuilder.queryParam("after", after.toString());
+                    uriBuilder.queryParam("limit", 200);
+                    uriBuilder.queryParam("order", "-received_at"); // si ton gateway-supporte ce param
                     return uriBuilder.build(appId);
                 })
-                .accept(MediaType.TEXT_EVENT_STREAM)
+                .accept(MediaType.valueOf("application/x-ndjson"))
                 .retrieve()
                 .bodyToFlux(String.class)
-                .timeout(java.time.Duration.ofSeconds(120))
-                .onErrorResume(java.util.concurrent.TimeoutException.class, e -> {
-                    log.warn("[Sensor] SSE timeout for appId={}: {}", appId, e.getMessage());
-                    return Flux.empty(); // Return an empty Flux to quietly ignore the timeout
-                })
-                .doOnError(err -> {
-                    log.error("[Sensor] SSE error appId={}: {}", appId, err.getMessage(), err);
+                .flatMap(chunk -> {
+                    if (chunk == null || chunk.isBlank()) return Flux.empty();
+
+                    // 1) split par lignes si jamais il y en a
+                    List<String> parts = new ArrayList<>(Arrays.asList(chunk.split("\\R")));
+
+                    // 2) fallback : split entre deux JSON collés : ...}{...
+                    // regex = "après un }" suivi immédiatement d'un "{"
+                    List<String> expanded = new ArrayList<>();
+                    for (String p : parts) {
+                        if (p != null && p.contains("}{")) {
+                            expanded.addAll(Arrays.asList(p.split("(?<=\\})(?=\\{)")));
+                        } else {
+                            expanded.add(p);
+                        }
+                    }
+
+                    return Flux.fromIterable(expanded)
+                            .map(String::trim)
+                            .filter(s -> !s.isBlank());
                 });
     }
 
-    /**
-     * Demande l'arrêt du monitoring côté microservice 8081.
-     * GET /api/monitoring/sensor/stop/{deviceId}?threadId=...
-     */
-    public void stopMonitoring(String deviceId, String threadId) {
-        webClient.get()
+    public Flux<String> getMonitoringMany(String appId, List<String> deviceIds) {
+        return webClientSse.post()
                 .uri(uriBuilder -> uriBuilder
-                        .path("/api/monitoring/sensor/stop/{deviceId}")
-                        .queryParam("threadId", threadId)
-                        .build(deviceId))
+                        .path("/api/monitoring/app/{appId}/stream")
+                        .build(appId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .bodyValue(deviceIds == null ? List.of() : deviceIds)
                 .retrieve()
-                .toBodilessEntity()
-                .doOnSuccess(ok -> log.info(
-                        "[Sensor] Monitoring stopped for deviceId={}, threadId={}",
-                        deviceId, threadId
-                ))
-                .doOnError(err -> log.error(
-                        "[Sensor] Stop monitoring error for deviceId={}, threadId={}: {}",
-                        deviceId, threadId, err.getMessage(), err
-                ))
-                .subscribe();
+                .bodyToFlux(String.class)
+                .doOnError(err -> log.error("[Sensor] SSE multi error appId={}: {}", appId, err.getMessage(), err));
     }
 
     /* ===================== READ ===================== */
@@ -126,6 +133,7 @@ public class SensorService {
     public Optional<Sensor> findByIdSensor(String idSensor) {
         return sensorDao.findByIdOfSensor(idSensor);
     }
+
 
     public Sensor getOrThrow(String idSensor) {
         return findByIdSensor(idSensor)
@@ -213,13 +221,15 @@ public class SensorService {
     // TODO: refactor
     public Map<Date, Double> getConsumptionByChannels(String idSensor, Date startDate, Date endDate, List<String> channels) {
         // Convert channel strings to a Set of PayloadValueType enums for efficient lookup.
-        Set<PayloadValueType> consumptionChannels = channels.stream()
-                .map(PayloadValueType::valueOf).collect(Collectors.toSet());
+        Set<PayloadValueType> energyChannels = channels.stream()
+                .map(ch -> PayloadValueType.valueOf("ENERGY_CHANNEL_" + ch))
+                .collect(Collectors.toSet());
+
 
         // Fetch all sensor data for the period in a single query.
         Instant adjustedStartInstant = startDate.toInstant().minus(1, ChronoUnit.HOURS);
         Date adjustedStartDate = Date.from(adjustedStartInstant);
-        List<SensorData> allSensorData = sensorDataDao.findSensorDataByPeriodAndTypes2(idSensor, adjustedStartDate, endDate, consumptionChannels);
+        List<SensorData> allSensorData = sensorDataDao.findSensorDataByPeriodAndTypes2(idSensor, adjustedStartDate, endDate, energyChannels);
 
         // Create hourly time series and resample data efficiently.
         Instant startInstant = adjustedStartInstant.truncatedTo(ChronoUnit.HOURS);
@@ -230,7 +240,7 @@ public class SensorService {
 
         // Get initial values at the start of the period for each channel
         Map<PayloadValueType, Double> lastKnownValues = new HashMap<>();
-        for (PayloadValueType channel : consumptionChannels) {
+        for (PayloadValueType channel : energyChannels) {
             Optional<SensorData> lastData = sensorDataDao.findLastValueBefore(idSensor, channel, startInstant);
             lastKnownValues.put(channel, lastData.map(SensorData::getValueAsDouble).orElse(0.0));
         }
@@ -243,8 +253,7 @@ public class SensorService {
             // Advance data pointer to catch up to the current hour
             while (dataIndex < allSensorData.size()) {
                 SensorData dataPoint = allSensorData.get(dataIndex);
-                Instant dataTimestamp = dataPoint.getReceivedAt().atZone(ZoneId.systemDefault()).toInstant();
-
+                Instant dataTimestamp = dataPoint.getReceivedAt().atZone(java.time.ZoneOffset.UTC).toInstant();
                 if (dataTimestamp.isAfter(currentHour)) {
                     break; // This data point is for a future hour
                 }
@@ -277,7 +286,7 @@ public class SensorService {
             double totalConsumption = 0.0;
 
             // Calculate consumption per channel with reset detection
-            for (PayloadValueType channel : consumptionChannels) {
+            for (PayloadValueType channel : energyChannels) {
                 double currentValue = currentValues.getOrDefault(channel, 0.0);
                 double previousValue = previousValues.getOrDefault(channel, 0.0);
                 double channelConsumption;
@@ -318,29 +327,34 @@ public class SensorService {
         }
 
         // Convert channel numbers to PayloadValueType enums
-        Set<PayloadValueType> consumptionChannels = channels.stream()
-            .map(ch -> PayloadValueType.valueOf("CONSUMPTION_CHANNEL_" + ch))
+        Set<PayloadValueType> energyChannels = channels.stream()
+            .map(ch -> PayloadValueType.valueOf("ENERGY_CHANNEL_" + ch))
             .collect(Collectors.toSet());
 
-        if (consumptionChannels.isEmpty()) {
+        if (energyChannels.isEmpty()) {
             return 0.0;
         }
 
         // Get the latest data points within the last N minutes for all consumption channels
-        List<SensorData> recentData = sensorDataDao.findSensorDataByPeriodAndTypes2(idSensor, Date.from(timeAgo), Date.from(now), consumptionChannels);
+        List<SensorData> recentData = sensorDataDao.findSensorDataByPeriodAndTypes2(idSensor, Date.from(timeAgo), Date.from(now), energyChannels);
 
         // Group data by channel and find the latest and earliest value in the timeframe for each
         Map<PayloadValueType, List<SensorData>> dataByChannel = recentData.stream().collect(Collectors.groupingBy(SensorData::getValueType));
 
         double totalConsumption = 0;
 
-        for (PayloadValueType channel : consumptionChannels) {
+        for (PayloadValueType channel : energyChannels) {
             List<SensorData> channelData = dataByChannel.get(channel);
             if (channelData != null && channelData.size() > 1) {
                 // Assuming data is sorted by time, get first and last
-                double latestValue = channelData.get(channelData.size() - 1).getValueAsDouble();
+                channelData.sort(java.util.Comparator.comparing(SensorData::getReceivedAt));
                 double oldestValue = channelData.get(0).getValueAsDouble();
-                totalConsumption += (latestValue - oldestValue);
+                double latestValue = channelData.get(channelData.size() - 1).getValueAsDouble();
+                double delta = latestValue - oldestValue;
+                if (delta < 0) {
+                    delta = latestValue;
+                }
+                totalConsumption += delta;
             }
         }
 

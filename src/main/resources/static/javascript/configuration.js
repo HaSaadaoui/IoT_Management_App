@@ -2,22 +2,18 @@
 // ===============  GLOBAL VARIABLES  ===================
 // ======================================================
 
-// --- 3D / SVG ---
-let scene, camera, renderer, controls;
-let svgShape = null;
-let buildingGroup = null; // groupe du bâtiment extrudé
-
-// Palette identique au viewer 3D
-const COLORS = {
-    primary: 0x662179,
-    primaryLight: 0x8b2fa3,
-    floorBase: 0xe2e8f0,
-    roof: 0x94a3b8,
-    walls: 0xf8fafc
+// Gateway Configuration Management
+let gatewayThresholds = {
+    cpu: { warning: 70.0, critical: 85.0 },
+    ram: { warning: 70.0, critical: 85.0 },
+    disk: { warning: 80.0, critical: 90.0 },
+    temperature: { warning: 70.0, critical: 80.0 }
 };
 
 // Ace editor pour le payload
 let editor;
+let defaultSVGFile;
+let blobUrl = "";
 
 // ======================================================
 // ===============  TEMPLATE PAYLOAD ELSYS  =============
@@ -68,358 +64,178 @@ function decodePayload(bytes){
 `;
 
 // ======================================================
-// ==================  SVG → SHAPE LOADER  ===============
+// ===============  GATEWAY CONFIGURATION  =============
 // ======================================================
 
-function loadSVGShape(file, callback) {
-    const reader = new FileReader();
-
-    reader.onload = (event) => {
-        const svgText = event.target.result;
-
-        if (!THREE || !THREE.SVGLoader) {
-            console.error("THREE.SVGLoader not available");
-            alert("SVGLoader not available. Check SVGLoader.js script.");
-            return;
+/**
+ * Load current gateway thresholds from server
+ */
+async function loadGatewayThresholds() {
+    try {
+        const response = await fetch('/api/gateway-config/thresholds');
+        if (response.ok) {
+            gatewayThresholds = await response.json();
+            updateGatewayThresholdInputs();
+        } else {
+            console.error('Failed to load gateway thresholds');
         }
+    } catch (error) {
+        console.error('Error loading gateway thresholds:', error);
+    }
+}
 
-        const loader = new THREE.SVGLoader();
-        const data = loader.parse(svgText);
+/**
+ * Update gateway threshold input fields with current values
+ */
+function updateGatewayThresholdInputs() {
+    // CPU thresholds
+    const cpuCritical = document.getElementById('gateway-cpu-critical');
+    const cpuWarning = document.getElementById('gateway-cpu-warning');
+    if (cpuCritical) cpuCritical.value = gatewayThresholds.cpu.critical;
+    if (cpuWarning) cpuWarning.value = gatewayThresholds.cpu.warning;
+    
+    // RAM thresholds
+    const ramCritical = document.getElementById('gateway-ram-critical');
+    const ramWarning = document.getElementById('gateway-ram-warning');
+    if (ramCritical) ramCritical.value = gatewayThresholds.ram.critical;
+    if (ramWarning) ramWarning.value = gatewayThresholds.ram.warning;
+    
+    // Disk thresholds
+    const diskCritical = document.getElementById('gateway-disk-critical');
+    const diskWarning = document.getElementById('gateway-disk-warning');
+    if (diskCritical) diskCritical.value = gatewayThresholds.disk.critical;
+    if (diskWarning) diskWarning.value = gatewayThresholds.disk.warning;
+    
+    // Temperature thresholds
+    const tempCritical = document.getElementById('gateway-temp-critical');
+    const tempWarning = document.getElementById('gateway-temp-warning');
+    if (tempCritical) tempCritical.value = gatewayThresholds.temperature.critical;
+    if (tempWarning) tempWarning.value = gatewayThresholds.temperature.warning;
+}
 
-        if (!data.paths.length) {
-            alert("No <path> found in SVG!");
-            return;
-        }
-
-        // Collect ALL shapes from ALL paths
-        const shapes = [];
-        data.paths.forEach(path => {
-            const pathShapes = path.toShapes(true);
-            pathShapes.forEach(s => shapes.push(s));
-        });
-
-        if (!shapes.length) {
-            alert("SVG contains no convertible shapes.");
-            return;
-        }
-
-        console.log(`Found ${shapes.length} shapes from SVG paths`);
-        
-        // Use only the LARGEST shape to avoid artifacts
-        // Often SVG files have small artifacts or background shapes
-        let largestShape = shapes[0];
-        let largestArea = 0;
-        
-        shapes.forEach(shape => {
-            // Calculate approximate area by counting curves
-            const area = shape.curves.length;
-            if (area > largestArea) {
-                largestArea = area;
-                largestShape = shape;
+/**
+ * Save gateway thresholds to server
+ */
+async function saveGatewayThresholds() {
+    try {
+        // Collect values from form inputs
+        const newThresholds = {
+            cpu: {
+                warning: parseFloat(document.getElementById('gateway-cpu-warning').value),
+                critical: parseFloat(document.getElementById('gateway-cpu-critical').value)
+            },
+            ram: {
+                warning: parseFloat(document.getElementById('gateway-ram-warning').value),
+                critical: parseFloat(document.getElementById('gateway-ram-critical').value)
+            },
+            disk: {
+                warning: parseFloat(document.getElementById('gateway-disk-warning').value),
+                critical: parseFloat(document.getElementById('gateway-disk-critical').value)
+            },
+            temperature: {
+                warning: parseFloat(document.getElementById('gateway-temp-warning').value),
+                critical: parseFloat(document.getElementById('gateway-temp-critical').value)
             }
+        };
+        
+        // Validate thresholds
+        if (!validateGatewayThresholds(newThresholds)) {
+            return;
+        }
+        
+        // Send to server
+        const response = await fetch('/api/gateway-config/thresholds', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(newThresholds)
         });
         
-        svgShape = largestShape;
-        console.log("Using largest shape with", svgShape.curves.length, "curves");
-        callback(svgShape);
-    };
-
-    reader.readAsText(file);
-}
-
-// ======================================================
-// ======================  3D SCENE  =====================
-// ======================================================
-
-function initScene() {
-    const wrapper   = document.getElementById("three-wrapper");
-    const container = document.getElementById("three-container");
-
-    if (!wrapper || !container) {
-        console.error("three-wrapper or three-container not found");
-        return;
-    }
-
-    // Affiche le wrapper 3D et nettoie l'ancien canvas
-    wrapper.style.display = "block";
-    container.innerHTML = "";
-
-    const width  = wrapper.clientWidth;
-    const height = wrapper.clientHeight;
-
-    // Même fond + fog que dans Building3D
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0f172a);
-    scene.fog = new THREE.Fog(0x0f172a, 20, 50);
-
-    camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 1000);
-    camera.position.set(20, 18, 20);
-    camera.lookAt(0, 10, 0);
-
-    // Renderer avec alpha pour voir le gradient CSS derrière
-    renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: true
-    });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(width, height);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-    container.appendChild(renderer.domElement);
-
-    // Lumières proches du dashboard
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
-
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(10, 20, 10);
-    dirLight.castShadow = true;
-    dirLight.shadow.camera.left = -15;
-    dirLight.shadow.camera.right = 15;
-    dirLight.shadow.camera.top = 15;
-    dirLight.shadow.camera.bottom = -15;
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
-    scene.add(dirLight);
-
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
-    hemiLight.position.set(0, 20, 0);
-    scene.add(hemiLight);
-
-    const pointLight1 = new THREE.PointLight(COLORS.primary, 0.5, 30);
-    pointLight1.position.set(-10, 10, -10);
-    scene.add(pointLight1);
-
-    const pointLight2 = new THREE.PointLight(COLORS.primaryLight, 0.5, 30);
-    pointLight2.position.set(10, 10, 10);
-    scene.add(pointLight2);
-
-    // Sol foncé + grille
-    const groundGeometry = new THREE.PlaneGeometry(50, 50);
-    const groundMaterial = new THREE.MeshStandardMaterial({
-        color: 0x1e293b,
-        metalness: 0.1,
-        roughness: 0.9
-    });
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.5;
-    ground.receiveShadow = true;
-    scene.add(ground);
-
-    const grid = new THREE.GridHelper(50, 50, COLORS.primary, 0x334155);
-    grid.position.y = -0.4;
-    scene.add(grid);
-
-    // Contrôles
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 5, 0);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.minDistance = 8;
-    controls.maxDistance = 40;
-    controls.maxPolarAngle = Math.PI / 2.1;
-    controls.update();
-
-    window.addEventListener("resize", onWindowResize);
-
-    animate();
-}
-
-function onWindowResize() {
-    const wrapper = document.getElementById("three-wrapper");
-    if (!wrapper || !renderer || !camera) return;
-
-    const width  = wrapper.clientWidth;
-    const height = wrapper.clientHeight;
-
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-    renderer.setSize(width, height);
-}
-
-function animate() {
-    requestAnimationFrame(animate);
-    if (controls) controls.update();
-
-    // Légère rotation du bâtiment
-    if (buildingGroup) {
-        buildingGroup.rotation.y += 0.0005;
-    }
-
-    if (renderer && scene && camera) {
-        renderer.render(scene, camera);
+        const result = await response.json();
+        
+        if (result.success) {
+            gatewayThresholds = newThresholds;
+            showNotification('✅ Gateway thresholds saved successfully!', 'success');
+        } else {
+            showNotification('❌ Failed to save gateway thresholds: ' + result.message, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error saving gateway thresholds:', error);
+        showNotification('❌ Error saving gateway thresholds: ' + error.message, 'error');
     }
 }
 
-// ======================================================
-// ==================  BUILDING EXTRUDE  =================
-// ======================================================
-
-function extrudeBuilding(originalShape, floors, scale) {
-    if (buildingGroup && scene) {
-        scene.remove(buildingGroup);
+/**
+ * Validate gateway threshold values
+ */
+function validateGatewayThresholds(thresholds) {
+    // Check CPU thresholds
+    if (thresholds.cpu.warning >= thresholds.cpu.critical) {
+        showNotification('❌ CPU Warning threshold must be less than Critical threshold', 'error');
+        return false;
     }
-
-    const group = new THREE.Group();
-    const floorHeight = 3;
-
-    // Clone the shape for manipulation
-    const shape = originalShape.clone();
     
-    console.log("Extruding building with shape:", shape);
-    console.log("Shape curves:", shape.curves.length);
-
-    // ---------- GÉOMÉTRIE DE BASE (DALLE) ----------
-    const baseExtrudeSettings = { 
-        depth: 0.3, 
-        bevelEnabled: true,
-        bevelThickness: 0.05,
-        bevelSize: 0.05,
-        bevelSegments: 2
-    };
-    const baseFloorGeom = new THREE.ExtrudeGeometry(shape, baseExtrudeSettings);
-    
-    // Apply scale uniformly
-    baseFloorGeom.scale(scale, scale, scale);
-
-    // Centre approximatif
-    baseFloorGeom.computeBoundingBox();
-    const bbox = baseFloorGeom.boundingBox;
-    const centerX = (bbox.min.x + bbox.max.x) / 2;
-    const centerZ = (bbox.min.y + bbox.max.y) / 2; // l'axe Y devient Z après rotation
-    
-    console.log("Bounding box:", bbox);
-    console.log("Center:", centerX, centerZ);
-
-    // ---------- MATÉRIAUX ----------
-    const floorMaterial = new THREE.MeshStandardMaterial({
-        color: COLORS.floorBase,
-        metalness: 0.1,
-        roughness: 0.8
-    });
-
-    const roofMaterial = new THREE.MeshStandardMaterial({
-        color: COLORS.roof,
-        metalness: 0.3,
-        roughness: 0.7
-    });
-
-    const wallMaterial = new THREE.MeshStandardMaterial({
-        color: COLORS.walls,
-        transparent: true,
-        opacity: 0.35,
-        metalness: 0.1,
-        roughness: 0.9,
-        side: THREE.DoubleSide
-    });
-
-    // ---------- GÉOMÉTRIE DES MURS ----------
-    const baseWallGeom = new THREE.ExtrudeGeometry(
-        shape,
-        { depth: floorHeight, bevelEnabled: false }
-    );
-    baseWallGeom.scale(scale, scale, 1); // on ne touche pas à la hauteur
-
-    for (let i = 0; i < floors; i++) {
-        const yBase = i * floorHeight;
-
-        // ===== FLOOR =====
-        const floorMesh = new THREE.Mesh(baseFloorGeom, floorMaterial);
-        floorMesh.rotation.x = -Math.PI / 2;
-        floorMesh.position.set(-centerX, yBase, -centerZ);
-        floorMesh.castShadow = true;
-        floorMesh.receiveShadow = true;
-        group.add(floorMesh);
-
-        // ===== MURS =====
-        const walls = new THREE.Mesh(baseWallGeom, wallMaterial);
-        walls.rotation.x = -Math.PI / 2;
-        walls.position.set(-centerX, yBase, -centerZ);
-        walls.castShadow = true;
-        group.add(walls);
-
-        // ===== TOIT =====
-        const roofMesh = new THREE.Mesh(baseFloorGeom, roofMaterial);
-        roofMesh.rotation.x = -Math.PI / 2;
-        roofMesh.position.set(-centerX, yBase + floorHeight, -centerZ);
-        roofMesh.castShadow = true;
-        group.add(roofMesh);
-
-        // ===== EDGES VIOLETS =====
-        const edgeGeometry = new THREE.EdgesGeometry(baseFloorGeom);
-        const edgeMaterial = new THREE.LineBasicMaterial({
-            color: COLORS.primary,
-            linewidth: 2
-        });
-        const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
-        edges.position.copy(floorMesh.position);
-        edges.rotation.copy(floorMesh.rotation);
-        group.add(edges);
+    // Check RAM thresholds
+    if (thresholds.ram.warning >= thresholds.ram.critical) {
+        showNotification('❌ RAM Warning threshold must be less than Critical threshold', 'error');
+        return false;
     }
+    
+    // Check Disk thresholds
+    if (thresholds.disk.warning >= thresholds.disk.critical) {
+        showNotification('❌ Disk Warning threshold must be less than Critical threshold', 'error');
+        return false;
+    }
+    
+    // Check Temperature thresholds
+    if (thresholds.temperature.warning >= thresholds.temperature.critical) {
+        showNotification('❌ Temperature Warning threshold must be less than Critical threshold', 'error');
+        return false;
+    }
+    
+    // Check reasonable ranges
+    if (thresholds.cpu.critical > 100 || thresholds.ram.critical > 100 || thresholds.disk.critical > 100) {
+        showNotification('❌ CPU, RAM, and Disk thresholds cannot exceed 100%', 'error');
+        return false;
+    }
+    
+    if (thresholds.temperature.critical > 120) {
+        showNotification('❌ Temperature threshold seems too high (>120°C)', 'error');
+        return false;
+    }
+    
+    return true;
+}
 
-    buildingGroup = group;
-    scene.add(group);
-    console.log("Floors requested:", floors, "meshes in group:", group.children.length);
-    return group;
+/**
+ * Show notification message
+ */
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 5000);
 }
 
 // ======================================================
 // =====================  MAIN ACTION  ===================
 // ======================================================
-
-function generate3DFromForm() {
-    if (typeof THREE === "undefined") {
-        alert("THREE is not loaded. Check three.min.js script tag.");
-        return;
-    }
-
-    const floorsEl = document.getElementById("building-floors");
-    const scaleEl  = document.getElementById("building-scale");
-    const svgInput = document.getElementById("building-svg");
-
-    const floors  = parseInt(floorsEl.value, 10) || 1;
-    const scale   = parseFloat(scaleEl.value) || 0.01;
-    const svgFile = svgInput.files[0];
-
-    if (!svgFile) {
-        alert("Please upload a building SVG first.");
-        return;
-    }
-
-    loadSVGShape(svgFile, (shape) => {
-        initScene();
-        extrudeBuilding(shape, floors, scale);
-    });
-}
-
-// ======================================================
-// =================  PAYLOAD EDITOR  ====================
-// ======================================================
-
-document.addEventListener("DOMContentLoaded", function () {
-    const payloadEl = document.getElementById("payload-editor");
-    if (payloadEl && window.ace) {
-        editor = ace.edit("payload-editor");
-        editor.setTheme("ace/theme/monokai");
-        editor.session.setMode("ace/mode/javascript");
-        editor.setValue(defaultPayloadCode, -1);   // <-- payload Elsys par défaut
-    }
-});
-
-// changement de langage (juste le mode Ace)
-function changeEditorLanguage(selectEl) {
-    if (!editor) return;
-    const value = (selectEl.value || "").toLowerCase();
-    let mode = "ace/mode/javascript";
-
-    if (value.includes("python")) mode = "ace/mode/python";
-    else if (value.includes("java")) mode = "ace/mode/java";
-    else if (value.includes("c++")) mode = "ace/mode/c_cpp";
-
-    editor.session.setMode(mode);
-}
 
 // Utilitaire hex → bytes
 function hexToBytes(hex) {
@@ -474,7 +290,319 @@ function toggleNotifChannelInput() {
     if (phoneDiv) phoneDiv.style.display = smsChk && smsChk.checked ? "block" : "none";
 }
 
+function populateFloorSelect() {
+    const floorSelect = document.getElementById('filter-floor');
+    const floorsEl = document.getElementById("building-floors");
+    const elementSelect = document.getElementById("filter-element");
+
+    if (!floorSelect) {
+        console.warn('Floor select not found (#filter-floor). Skipping floors update.');
+        return;
+    }
+
+    floorSelect.innerHTML = '';
+    if(!floorsEl || isNaN(floorsEl.value)) {
+        console.warn('Building floors input not found or invalid (#building-floors). Skipping floors update.');
+        return;
+    }
+
+    if (elementSelect && elementSelect.value && elementSelect.value !== "Sensor") {
+        floorSelect.innerHTML = '<option value="">All Floors</option>';
+    }
+    for (let i = 0; i < floorsEl.value; i++) {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        if (i === 0) {
+            opt.textContent = `Ground Floor`;
+        } else {
+            opt.textContent = `Floor ${i}`;
+        }
+        floorSelect.appendChild(opt);
+    }
+}
+
+function toggleFormFields() {
+    
+    const elementSelect = document.getElementById('filter-element');
+    const floorSelect = document.getElementById('filter-floor');
+
+    const sensorTypeSelect = document.getElementById('filter-sensor-type');
+    const sensorTypeContainer = sensorTypeSelect.parentElement;
+
+    const inputSizeEl = document.getElementById('input_size');
+    const inputSizeContainer = inputSizeEl.parentElement;
+
+    const inputRadiusEl = document.getElementById('input_radius');
+    const inputRadiusContainer = inputRadiusEl.parentElement;
+
+    const inputWidthEl = document.getElementById('input_width');
+    const inputWidthContainer = inputWidthEl.parentElement;
+
+    const inputHeightEl = document.getElementById('input_height');
+    const inputHeightContainer = inputHeightEl.parentElement;
+
+    const inputRotationEl = document.getElementById('input_rotation');
+    const inputRotationContainer = inputRotationEl.parentElement;
+
+    const selectChairPosition = document.getElementById('chair_select');
+    const selectChairContainer = selectChairPosition.parentElement;
+
+    floorSelect.value = "0";
+
+    switch (elementSelect.value) {
+        case "Sensor" :
+            sensorTypeSelect.value = "DESK";
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'block';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'none';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
+            if (inputWidthContainer) inputWidthContainer.style.display = 'block';
+            if (inputHeightContainer) inputHeightContainer.style.display = 'block';
+            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+            if (selectChairContainer) selectChairContainer.style.display = 'block';
+            break;
+        case "Wall" :
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'block';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
+            if (inputWidthContainer) inputWidthContainer.style.display = 'none';
+            if (inputHeightContainer) inputHeightContainer.style.display = 'none';
+            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+            if (selectChairContainer) selectChairContainer.style.display = 'none';
+            break;
+        case "Room" :
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'none';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
+            if (inputWidthContainer) inputWidthContainer.style.display = 'block';
+            if (inputHeightContainer) inputHeightContainer.style.display = 'block';
+            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+            if (selectChairContainer) selectChairContainer.style.display = 'none';
+            break;
+        case "Door" :
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'none';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
+            if (inputWidthContainer) inputWidthContainer.style.display = 'block';
+            if (inputHeightContainer) inputHeightContainer.style.display = 'block';
+            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+            if (selectChairContainer) selectChairContainer.style.display = 'none';
+            break;
+        case "Window" :
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'none';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
+            if (inputWidthContainer) inputWidthContainer.style.display = 'block';
+            if (inputHeightContainer) inputHeightContainer.style.display = 'block';
+            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+            if (selectChairContainer) selectChairContainer.style.display = 'none';
+            break;
+        default:
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            break;
+    }
+}
+
+function onChangeSensor() {
+    const sensorTypeSelect = document.getElementById('filter-sensor-type');
+
+    const inputSizeEl = document.getElementById('input_size');
+    const inputSizeContainer = inputSizeEl.parentElement;
+
+    const inputWidthEl = document.getElementById('input_width');
+    const inputWidthContainer = inputWidthEl.parentElement;
+
+    const inputHeightEl = document.getElementById('input_height');
+    const inputHeightContainer = inputHeightEl.parentElement;
+
+    const inputRotationEl = document.getElementById('input_rotation');
+    const inputRotationContainer = inputRotationEl.parentElement;
+
+    const selectChairPosition = document.getElementById('chair_select');
+    const selectChairContainer = selectChairPosition.parentElement;
+
+    if (sensorTypeSelect.value === "DESK") {
+        if (inputSizeContainer) inputSizeContainer.style.display = 'none';
+        if (inputWidthContainer) inputWidthContainer.style.display = 'block';
+        if (inputHeightContainer) inputHeightContainer.style.display = 'block';
+        if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+        if (selectChairContainer) selectChairContainer.style.display = 'block';
+    } else {
+        if (inputSizeContainer) inputSizeContainer.style.display = 'block';
+        if (inputWidthContainer) inputWidthContainer.style.display = 'none';
+        if (inputHeightContainer) inputHeightContainer.style.display = 'none';
+        if (inputRotationContainer) inputRotationContainer.style.display = 'none';
+        if (selectChairContainer) selectChairContainer.style.display = 'none';
+    }
+}
+
+function onChangeElement() {
+    this.populateFloorSelect();
+    this.toggleFormFields();
+
+    const floorSelect = document.getElementById('filter-floor');
+    const sensorTypeSelect = document.getElementById('filter-sensor-type');
+    if (window.building3D) {
+        const floorNumber = parseInt(floorSelect.value, 10);
+        window.building3D.currentFloorNumber = floorNumber;
+        window.building3D.setSensorMode(sensorTypeSelect.value);
+    }
+}
+
+async function populateBuildingSelect() {
+    const select = document.getElementById('filter-building');
+    if (!select) return;
+
+    try {
+        const resp = await fetch('/api/buildings');
+        let buildings = resp.ok ? await resp.json() : [];
+
+        // Remplissage du select
+        select.innerHTML = '';
+
+        const noneOption = document.createElement('option');
+        noneOption.value = '';
+        noneOption.textContent = 'New Building';
+        select.appendChild(noneOption);
+
+        buildings.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b.id;
+            opt.textContent = b.name;
+            select.appendChild(opt);
+        });
+
+    } catch (e) {
+        console.error('Error loading buildings', e);
+    }
+}
+
+async function initBuildingConfig() {
+    const selectBuilding = document.getElementById('filter-building');
+    const nameEl   = document.getElementById("building-name");
+    const floorsEl = document.getElementById("building-floors");
+    const scaleEl  = document.getElementById("building-scale");
+    const svgInput = document.getElementById("building-svg");
+
+    const buildingId = selectBuilding.value;
+
+    if (!isNaN(buildingId) && buildingId !== null && buildingId !== "") {
+        try {
+            const resp = await fetch(`/api/buildings/${buildingId}`);
+            if (!resp.ok) {
+                throw new Error(`HTTP ${resp.status}`);
+            }
+            const b = await resp.json();
+            nameEl.value   = b.name || "";
+            floorsEl.value = b.floorsCount || 1;
+            scaleEl.value  = b.scale || 0.01;
+            defaultSVGFile = b.svgPlan || "";
+        } catch (e) {
+            console.error("Erreur lors du chargement du bâtiment :", e);
+        }
+    } else {
+        nameEl.value   = "";
+        floorsEl.value = 3;
+        scaleEl.value  = 0.01;
+        defaultSVGFile = "";
+    }
+    svgInput.value = "";
+    this.refresh3DConfig()
+}
+
+function refresh3DConfig(){
+    const selectBuilding = document.getElementById('filter-building');
+    const floorsEl = document.getElementById("building-floors");
+    const scaleEl  = document.getElementById("building-scale");
+
+    const buildingId = selectBuilding.value || "tempKeyConfig";
+
+    window.building3D.buildingKey = buildingId;
+    window.building3D.isDbBuilding = true;
+    window.building3D.dbBuildingConfig = {floors: floorsEl.value, scale: scaleEl.value, svgUrl: null};
+    window.building3D.dbShapeCache = null;
+    window.building3D.config = {id: buildingId};
+    window.building3D.dbBuildingConfig.svgUrl = defaultSVGFile;
+
+    this.populateFloorSelect();
+
+    // On révoque le blob s'il existe lorsque l'on modifie le paramétrage 3D
+    if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);   
+    }
+}
+
+function applyFormUpdate() {
+    this.refresh3DConfig()
+
+    const svgInput = document.getElementById("building-svg");
+    
+    if (svgInput.value && svgInput.value.trim() !== "") {
+        const file = svgInput.files[0];
+        blobUrl = URL.createObjectURL(file);
+        window.building3D.dbBuildingConfig.svgUrl = blobUrl;
+    }
+
+    window.building3D.setBuilding();
+}
+
+async function deleteBuildingConfig() {
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    
+    if (!csrfMeta || !csrfHeaderMeta) {
+        alert("CSRF token not found. Please refresh the page.");
+        return;
+    }
+    
+    const csrfToken = csrfMeta.getAttribute("content");
+    const csrfHeader = csrfHeaderMeta.getAttribute("content");
+
+    const selectBuilding = document.getElementById('filter-building');
+    const buildingId = selectBuilding.value;
+    if (!isNaN(buildingId) && buildingId !== null && buildingId !== "") {
+
+        try {
+            const response = await fetch("/api/buildings/" + buildingId, {
+                method: "DELETE",
+                headers: {
+                    [csrfHeader]: csrfToken
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            } else {
+                console.log("Building deleted:" + buildingId);
+                alert("Building deleted successfully");
+            }
+            
+        } catch (error) {
+            console.error("Error deleting building:", error);
+            alert("Failed to delete building: " + error.message);
+        }
+
+        populateBuildingSelect();
+
+        const nameEl   = document.getElementById("building-name");
+        const floorsEl = document.getElementById("building-floors");
+        const scaleEl  = document.getElementById("building-scale");
+
+        // Set default values after deletion
+        selectBuilding.value = "";
+        nameEl.value   = "";
+        floorsEl.value = 3;
+        scaleEl.value  = 0.01;
+        defaultSVGFile = "";
+
+        this.refresh3DConfig();
+        window.building3D.setBuilding();
+    } else {
+        alert("Please select a building to delete.");
+    }
+}
+
 async function saveBuildingConfig() {
+    const selectBuilding = document.getElementById('filter-building');
     const nameEl   = document.getElementById("building-name");
     const floorsEl = document.getElementById("building-floors");
     const scaleEl  = document.getElementById("building-scale");
@@ -483,18 +611,24 @@ async function saveBuildingConfig() {
     const name    = (nameEl.value || "").trim();
     const floors  = parseInt(floorsEl.value, 10) || 1;
     const scale   = parseFloat(scaleEl.value) || 0.01;
-    const svgFile = svgInput.files[0];
+    svgFile = svgInput.files[0];
 
     if (!name) {
         alert("Merci de saisir un nom de bâtiment.");
         return;
     }
+
     if (!svgFile) {
-        alert("Merci de sélectionner un fichier SVG.");
-        return;
+        // Si création de bâtiment, le SVG est obligatoire
+        if (!isNaN(selectBuilding.value) && selectBuilding.value !== null && selectBuilding.value !== "") {
+            svgFile = new File([], "");
+        } else {
+            alert("Merci de sélectionner un fichier SVG.");
+            return;
+        }
     }
 
-    // 1) récupérer le CSRF sur /api/buildings/csrf-token
+    // Récupérer le CSRF sur /api/buildings/csrf-token
     let csrf;
     try {
         const csrfResp = await fetch("/api/buildings/csrf-token", {
@@ -511,18 +645,39 @@ async function saveBuildingConfig() {
         return;
     }
 
-    // 2) Construire le FormData
+    // On récupère le SVG affiché pour le sauvegarder
+    const floorPlan2D   = document.getElementById('floor-plan-2d');
+    if (floorPlan2D && floorPlan2D.style.display === 'block'){
+        const fileName = svgFile.name || defaultSVGFile.split('/').pop() || name;
+        const svgContent = window.building3D.currentArchPlan.exportSVG();
+        if (!svgContent) {
+            alert("Failed to extract SVG content.");
+            return;
+        }
+        // Convert SVG text → Blob (fichier)
+        const blob = new Blob([svgContent], { type: "image/svg+xml" });
+        svgFile = new File([blob], fileName, { type: "image/svg+xml" });
+    } 
+
+    // Construire le FormData
     const formData = new FormData();
     formData.append("name", name);
     formData.append("floors", floors);
     formData.append("scale", scale);
     formData.append("svgFile", svgFile);
-
-    // ⚠️ IMPORTANT : ajouter le token CSRF comme champ de formulaire
-    // csrf.parameterName est typiquement "_csrf"
     formData.append(csrf.parameterName, csrf.token);
 
-    // 3) POST sur /api/buildings
+    // Si aucun bâtiment sélectionné, on appelle la méthode createBuildingConfig sinon updateBuildingConfig
+    if (!isNaN(selectBuilding.value) && selectBuilding.value !== null && selectBuilding.value !== "") {
+        return updateBuildingConfig(formData);
+    } else {
+        return createBuildingConfig(formData);
+    }
+}
+
+async function createBuildingConfig(formData) {
+    const selectBuilding = document.getElementById('filter-building');
+
     fetch("/api/buildings", {
         method: "POST",
         body: formData,
@@ -535,13 +690,166 @@ async function saveBuildingConfig() {
         return resp.json();
     })
     .then(data => {
-        console.log("Building saved:", data);
-        alert("Building enregistré avec succès (id=" + (data.id ?? "?") + ")");
+        console.log("Building created:", data);
+        populateBuildingSelect().then(() => {
+            const values = Array.from(selectBuilding.options)
+                .map(opt => parseFloat(opt.value))
+                .filter(v => !Number.isNaN(v));
+
+            const maxValue = Math.max(...values);
+            selectBuilding.value = isNaN(maxValue) ? "" : maxValue;
+            alert("Building créé avec succès (id=" + (maxValue ?? "?") + ")");
+        });
+
     })
     .catch(err => {
         console.error(err);
-        alert("Erreur lors de l'enregistrement du building.");
+        alert("Erreur lors de la création du building.");
     });
+}
+
+async function updateBuildingConfig(formData) {
+    const selectBuilding = document.getElementById('filter-building');
+    const buildingId = selectBuilding.value;
+
+    fetch("/api/buildings/" + buildingId, {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin"
+    })
+    .then(resp => {
+        if (!resp.ok) {
+            throw new Error("HTTP error " + resp.status);
+        }
+        return resp.json();
+    })
+    .then(data => {
+        console.log("Building updated :", data);
+        alert("Building modifié avec succès (id=" + (data.id ?? "?") + ")");
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Erreur lors de la modification du building.");
+    });
+}
+
+function addElementSVG() {
+    const sensorType  = document.getElementById("filter-sensor-type");
+    const floorNumber = document.getElementById("filter-floor");
+    const inputIdEl  = document.getElementById("input_id");
+    const inputSizeEl = document.getElementById("input_size");
+    const inputWidthEl = document.getElementById('input_width');
+    const inputHeightEl = document.getElementById('input_height');
+    const inputRotationEl = document.getElementById('input_rotation');
+    const selectChairPosition = document.getElementById('chair_select');
+
+    if (!inputIdEl || inputIdEl.value.trim() === '') {
+        alert("Merci de saisir un ID.");
+        return;
+    }
+    if (window.building3D && window.building3D.currentArchPlan) {
+        const elementWithID = Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+inputIdEl.value));
+        if (elementWithID.length) {
+            alert("Un élément avec cet ID existe déjà.");
+            return;
+        }
+    }
+
+    // Contrôle sur la présence de size / width / height -> dépendra du type d'élément
+
+    if (window.building3D && window.building3D.currentArchPlan && window.building3D.currentArchPlan.overlayManager) {
+        const sensor = {
+            id : inputIdEl.value,
+            mode : sensorType.value,
+            floor : floorNumber.value,
+            x : parseInt(inputSizeEl.value) || parseInt(inputWidthEl.value),
+            y : parseInt(inputSizeEl.value) || parseInt(inputHeightEl.value),
+            size : parseInt(inputSizeEl.value),
+            width : parseInt(inputWidthEl.value),
+            height : parseInt(inputHeightEl.value),
+            rotation : parseInt(inputRotationEl.value),
+            chair : selectChairPosition.value
+        }
+        window.building3D.currentArchPlan.overlayManager.drawSensor(sensor);
+    }
+}
+
+function removeElementSVG() {
+    const elementId  = document.getElementById("input_id");
+
+    if (!elementId || !elementId.value || elementId.value.trim() === '') {
+        alert("Merci de saisir un ID.");
+        return;
+    }
+    if (window.building3D && window.building3D.currentArchPlan) {
+        const elementWithID =  Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+elementId.value));
+        if (!elementWithID.length) {
+            alert("Aucun élément avec cet ID n'existe.");
+            return;
+        }
+    }
+    if (window.building3D && window.building3D.currentArchPlan && window.building3D.currentArchPlan.overlayManager) {
+        window.building3D.currentArchPlan.overlayManager.removeSensorMarkerById(elementId.value);
+    }
+}
+
+function updateElementSVG() {
+    const sensorTypeSelect = document.getElementById('filter-sensor-type');
+    const floorNumberSelect = document.getElementById("filter-floor");
+    const elementSelect = document.getElementById('filter-element');
+
+    const inputIdEl = document.getElementById('input_id');
+    const elementId = inputIdEl.value;
+    if (!elementId || elementId.trim() === '') return;
+
+    const inputSizeEl = document.getElementById('input_size');
+    const inputWidthEl = document.getElementById('input_width');
+    const inputHeightEl = document.getElementById('input_height');
+    const inputRotationEl = document.getElementById('input_rotation');
+    const selectChairPosition = document.getElementById('chair_select');
+    // const inputRadiusEl = document.getElementById('input_radius');
+
+    let rotation = 0;
+    if (inputRotationEl && inputRotationEl.value.trim() !== '' ){
+        rotation = parseInt(inputRotationEl.value, 10);
+    }
+
+    switch (elementSelect.value) {
+        case "Sensor" :
+            const sensor = {
+                id : inputIdEl.value,
+                mode : sensorTypeSelect.value,
+                floor : floorNumberSelect.value,
+                x : parseInt(inputSizeEl.value),
+                y : parseInt(inputSizeEl.value),
+                size : parseInt(inputSizeEl.value),
+                width : parseInt(inputWidthEl.value),
+                height : parseInt(inputHeightEl.value),
+                rotation : parseInt(inputRotationEl.value),
+                chair : selectChairPosition.value
+            }
+            window.building3D.currentArchPlan.overlayManager.updateSensorGeometry(sensor);
+            break;
+        case "Wall" :
+            // size / rotation
+            console.log("updateElementSVG Wall");
+            break;
+        case "Room" :
+            // width / height / rotation
+            console.log("updateElementSVG Room");
+            break;
+        case "Door" :
+            // width / height / rotation
+            console.log("updateElementSVG Door");
+            break;
+        case "Window" :
+            // width / height / rotation
+            console.log("updateElementSVG Window");
+            break;
+        default:
+            console.log("updateElementSVG default");
+            break;
+    }
 }
 
 // ======================================================
@@ -1016,22 +1324,27 @@ async function deleteSensorThreshold(thresholdId) {
     }
 }
 
+function changeEditorLanguage(selectEl) {
+    if (!editor || !selectEl) return;
+
+    const value = (selectEl.value || "").toLowerCase();
+    let mode = "ace/mode/javascript";
+
+    if (value.includes("python")) mode = "ace/mode/python";
+    else if (value.includes("java")) mode = "ace/mode/java";
+    else if (value.includes("c++")) mode = "ace/mode/c_cpp";
+
+    editor.session.setMode(mode);
+}
+
 // ======================================================
 // ================== GLOBAL EXPORTS =====================
 // ======================================================
 
-window.generate3DFromForm = generate3DFromForm;
-window.show2D = function show2D() {
-    const wrapper = document.getElementById("three-wrapper");
-    const plan    = document.getElementById("plan2D");
-
-    if (wrapper) wrapper.style.display = "none";
-    if (plan) {
-        plan.style.display = "block";
-        plan.innerHTML = "<h3 style='text-align:center;padding-top:120px;'>2D View Placeholder</h3>";
-    }
-};
-
+window.addElementSVG = addElementSVG;
+window.removeElementSVG = removeElementSVG;
+window.initBuildingConfig = initBuildingConfig;
+window.deleteBuildingConfig = deleteBuildingConfig;
 window.changeEditorLanguage = changeEditorLanguage;
 window.testDecoder = testDecoder;
 window.toggleNotifChannelInput = toggleNotifChannelInput;
@@ -1054,4 +1367,8 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof loadSensors === 'function') loadSensors();
     if (typeof loadNotificationPreferences === 'function') loadNotificationPreferences();
     if (typeof loadAllSensorThresholds === 'function') loadAllSensorThresholds();
+    if (typeof populateBuildingSelect === 'function') populateBuildingSelect();
+    if (typeof toggleFormFields === 'function') toggleFormFields();
+    if (window.building3D) { window.building3D.isDashboard = false};
+
 });
