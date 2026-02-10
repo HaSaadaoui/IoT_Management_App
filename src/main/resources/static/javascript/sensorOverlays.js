@@ -60,17 +60,7 @@ class SensorOverlayManager {
 
     createOverlay(mode) {
         // On récupère le groupe 'floor-x' existant
-        const floorGroupId = `floor-${this.currentFloor}`;
-        let floorGroup = this.svg.querySelector(`#${CSS.escape(floorGroupId)}`);
-
-        // S'il n'existe pas, on le crée
-        if (!floorGroup) {
-            floorGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            floorGroup.setAttribute("id", floorGroupId);
-            this.svg.appendChild(floorGroup);
-        }
-
-        this.overlayGroup = floorGroup;
+        this.overlayGroup = this.svg.querySelector(`#${CSS.escape(`floor-${this.currentFloor}`)}`);;
 
         // On y dessine directement les capteurs
         if (this.isDashboard) {

@@ -40,6 +40,17 @@ class ArchitecturalFloorPlan {
         this.createSVG();
     }
 
+    updateConfig(floorData, sensorMode, svgPath) {
+        this.floorData = floorData;
+        this.sensorMode = sensorMode;
+        this.svgPath = svgPath;
+
+        const existingSvg = this.container.querySelector("svg");
+        if (!existingSvg) {
+            this.container.appendChild(this.svg);
+        }
+    }
+
     createSVG() {
         // Clear container
         this.container.innerHTML = "";
@@ -56,9 +67,38 @@ class ArchitecturalFloorPlan {
         this.container.appendChild(this.svg);
     }
 
+    setContentRoot() {
+        let root = this.svg.querySelector("#content-root");
+        if (!root) {
+            root = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            root.setAttribute("id", "content-root");
+            const children = Array.from(this.svg.childNodes);
+            children.forEach(n => { if (n.nodeType === 1 && n.tagName !== "defs") root.appendChild(n); });
+            this.svg.appendChild(root);
+        } else {
+            return;
+        }
+    }
+
     async drawFloorPlan(deskOccupancy = {}) {
-        // Clear any existing floor plan before drawing a new one
-        this.createSVG();
+
+        // Use content root group to center and fit
+        this.setContentRoot();
+
+        // Clear every floor before redrawing
+        if (this.isDashboard){
+            const floorGroup = this.svg.querySelector(`#floor-${this.floorData.floorNumber}`);
+            if (floorGroup) {
+                floorGroup.remove();
+            }
+        } else {
+            for (let i = 0; i < this.floorsCount; i++) {
+                const floorGroup = this.svg.querySelector(`#floor-${i}`);
+                if (floorGroup) {
+                    floorGroup.remove();
+                }
+            }
+        }
 
         // Draw based on floor number
         switch (this.buildingKey) {
@@ -438,7 +478,8 @@ class ArchitecturalFloorPlan {
                 importedEl.setAttribute('vector-effect', 'non-scaling-stroke');
                 allFloorsGroup.appendChild(importedEl);
             });
-        this.svg.appendChild(allFloorsGroup);
+        let root = this.svg.querySelector("#content-root");
+        root.appendChild(allFloorsGroup);
 
         if (this.isDashboard){
             const g = this.createGroup("floor-"+this.floorData.floorNumber);
@@ -457,7 +498,8 @@ class ArchitecturalFloorPlan {
                     g.appendChild(importedEl);
                 });
 
-            this.svg.appendChild(g);
+            let root = this.svg.querySelector("#content-root");
+            root.appendChild(g);
         } else {
             for (let i = 0; i < this.floorsCount; i++) {
                 const g = this.createGroup("floor-"+i);
@@ -483,7 +525,8 @@ class ArchitecturalFloorPlan {
                 if (this.floorData.floorNumber !== i){
                     g.style.display="none";
                 }
-                this.svg.appendChild(g);
+                let root = this.svg.querySelector("#content-root");
+                root.appendChild(g);
             }
         }
     }
@@ -782,7 +825,8 @@ class ArchitecturalFloorPlan {
 
         }
         
-        this.svg.appendChild(g);
+        let root = this.svg.querySelector("#content-root");
+        root.appendChild(g);
     }
 
     drawGroundFloorChateaudun() {
@@ -818,7 +862,8 @@ class ArchitecturalFloorPlan {
         this.drawWindow(g, 820, 50, 80, "horizontal");
         this.drawWindow(g, 980, 50, 80, "horizontal");
 
-        this.svg.appendChild(g);
+        let root = this.svg.querySelector("#content-root");
+        root.appendChild(g);
     }
 
     drawFloor1(deskOccupancy = {}) {
@@ -866,10 +911,7 @@ class ArchitecturalFloorPlan {
         this.drawLabel(g, 900, 140, "Geneva", 16, "bold");
 
         // Geneva Door
-        const genevaDoor = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const genevaDoor = document.createElementNS("http://www.w3.org/2000/svg","rect");
         genevaDoor.setAttribute("x", 780);
         genevaDoor.setAttribute("y", 195);
         genevaDoor.setAttribute("width", 40);
@@ -887,10 +929,7 @@ class ArchitecturalFloorPlan {
         this.drawLine( g, [ { x: 600, y: 50 }, { x: 600, y: 170 }, ], this.colors.wallStroke, 2, );
 
         // Doors for separation lines
-        const door1 = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const door1 = document.createElementNS("http://www.w3.org/2000/svg","rect");
         door1.setAttribute("x", 200);
         door1.setAttribute("y", 200);
         door1.setAttribute("width", 4);
@@ -900,10 +939,7 @@ class ArchitecturalFloorPlan {
         door1.setAttribute("stroke-width", 2);
         g.appendChild(door1);
 
-        const door2 = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const door2 = document.createElementNS("http://www.w3.org/2000/svg","rect");
         door2.setAttribute("x", 500);
         door2.setAttribute("y", 250);
         door2.setAttribute("width", 4);
@@ -913,10 +949,7 @@ class ArchitecturalFloorPlan {
         door2.setAttribute("stroke-width", 2);
         g.appendChild(door2);
 
-        const door3 = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const door3 = document.createElementNS("http://www.w3.org/2000/svg","rect");
         door3.setAttribute("x", 660);
         door3.setAttribute("y", 170);
         door3.setAttribute("width", 40);
@@ -926,10 +959,7 @@ class ArchitecturalFloorPlan {
         door3.setAttribute("stroke-width", 2);
         g.appendChild(door3);
 
-        const door4 = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const door4 = document.createElementNS("http://www.w3.org/2000/svg","rect");
         door4.setAttribute("x", 500);
         door4.setAttribute("y", 70);
         door4.setAttribute("width", 4);
@@ -945,7 +975,8 @@ class ArchitecturalFloorPlan {
             this.drawWorkstation( g, 650, 200, deskOccupancy["D01"] || "invalid", "D01", 60, 30, "top", null, 680, 190, 680, 215, );
         }
 
-        this.svg.appendChild(g);
+        let root = this.svg.querySelector("#content-root");
+        root.appendChild(g);
     }
 
     drawFloor2(deskOccupancy = {}) {
@@ -984,10 +1015,7 @@ class ArchitecturalFloorPlan {
         this.drawLabel(g, 430, 140, "Atlantic", 16, "bold");
 
         // Atlantic Door (rotated)
-        const atlanticDoor = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const atlanticDoor = document.createElementNS("http://www.w3.org/2000/svg","rect");
         atlanticDoor.setAttribute("x", 395);
         atlanticDoor.setAttribute("y", 230);
         atlanticDoor.setAttribute("width", 40);
@@ -1010,10 +1038,7 @@ class ArchitecturalFloorPlan {
         this.drawLabel(g, 600, 140, "Pacific", 16, "bold");
 
         // Pacific Door
-        const pacificDoor = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const pacificDoor = document.createElementNS("http://www.w3.org/2000/svg","rect");
         pacificDoor.setAttribute("x", 520);
         pacificDoor.setAttribute("y", 215);
         pacificDoor.setAttribute("width", 40);
@@ -1066,7 +1091,8 @@ class ArchitecturalFloorPlan {
             this.drawWorkstation( g, 980, 110, deskOccupancy["D15"] || "invalid", "D15", 30, 50, "right", null, 1020, 135, 995, 135, );
         }
 
-        this.svg.appendChild(g);
+        let root = this.svg.querySelector("#content-root");
+        root.appendChild(g);
     }
 
     drawFloor3(deskOccupancy = {}) {
@@ -1120,10 +1146,7 @@ class ArchitecturalFloorPlan {
         this.drawLabel(g, 650, 180, "Santa", 16, "bold");
 
         // Sequoia Door (rotated)
-        const sequoiaDoor = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const sequoiaDoor = document.createElementNS("http://www.w3.org/2000/svg","rect");
         sequoiaDoor.setAttribute("x", 395);
         sequoiaDoor.setAttribute("y", 230);
         sequoiaDoor.setAttribute("width", 40);
@@ -1135,10 +1158,7 @@ class ArchitecturalFloorPlan {
         g.appendChild(sequoiaDoor);
 
         // Santa Door
-        const santaDoor = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const santaDoor = document.createElementNS("http://www.w3.org/2000/svg","rect");
         santaDoor.setAttribute("x", 635);
         santaDoor.setAttribute("y", 215);
         santaDoor.setAttribute("width", 40);
@@ -1149,10 +1169,7 @@ class ArchitecturalFloorPlan {
         g.appendChild(santaDoor);
 
         // Sequoia side door
-        const sequoiaSideDoor = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const sequoiaSideDoor = document.createElementNS("http://www.w3.org/2000/svg","rect");
         sequoiaSideDoor.setAttribute("x", 705);
         sequoiaSideDoor.setAttribute("y", 60);
         sequoiaSideDoor.setAttribute("width", 4);
@@ -1196,7 +1213,8 @@ class ArchitecturalFloorPlan {
             this.drawWorkstation( g, 980, 110, deskOccupancy["D15"] || "invalid", "D15", 30, 50, "right", null, 1020, 135, 995, 140, );
         }
 
-        this.svg.appendChild(g);
+        let root = this.svg.querySelector("#content-root");
+        root.appendChild(g);
     }
 
     drawFloor4(deskOccupancy = {}) {
@@ -1244,10 +1262,7 @@ class ArchitecturalFloorPlan {
         this.drawLabel(g, 550, 140, "Miami", 16, "bold");
 
         // Miami Door (rotated)
-        const miamiDoor = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const miamiDoor = document.createElementNS("http://www.w3.org/2000/svg","rect");
         miamiDoor.setAttribute("x", 395);
         miamiDoor.setAttribute("y", 230);
         miamiDoor.setAttribute("width", 40);
@@ -1270,10 +1285,7 @@ class ArchitecturalFloorPlan {
         this.drawLabel(g, 290, 110, "Oregan", 16, "bold");
 
         // Oregan Door
-        const oreganDoor = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const oreganDoor = document.createElementNS("http://www.w3.org/2000/svg","rect");
         oreganDoor.setAttribute("x", 320);
         oreganDoor.setAttribute("y", 147);
         oreganDoor.setAttribute("width", 40);
@@ -1287,10 +1299,7 @@ class ArchitecturalFloorPlan {
         this.drawLine( g, [ { x: 200, y: 150 }, { x: 200, y: 280 }, ], this.colors.wallStroke, 2, );
 
         // New York Door
-        const newYorkDoor = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const newYorkDoor = document.createElementNS("http://www.w3.org/2000/svg","rect");
         newYorkDoor.setAttribute("x", 200);
         newYorkDoor.setAttribute("y", 160);
         newYorkDoor.setAttribute("width", 4);
@@ -1301,10 +1310,7 @@ class ArchitecturalFloorPlan {
         g.appendChild(newYorkDoor);
 
         // New York Label (rotated)
-        const newYorkLabel = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "text",
-        );
+        const newYorkLabel = document.createElementNS("http://www.w3.org/2000/svg","text");
         newYorkLabel.setAttribute("x", 260);
         newYorkLabel.setAttribute("y", -50);
         newYorkLabel.setAttribute("text-anchor", "middle");
@@ -1336,7 +1342,8 @@ class ArchitecturalFloorPlan {
             this.drawWorkstation( g, 980, 110, deskOccupancy["D08"] || "invalid", "D08", 30, 50, "right", null, 1020, 135, 995, 140, );
         }
 
-        this.svg.appendChild(g);
+        let root = this.svg.querySelector("#content-root");
+        root.appendChild(g);
     }
 
     drawFloor5(deskOccupancy = {}) {
@@ -1406,7 +1413,8 @@ class ArchitecturalFloorPlan {
             this.drawWorkstation( g, 650, 160, deskOccupancy["D16"] || "invalid", "D16", 30, 50, "right", );
         }
 
-        this.svg.appendChild(g);
+        let root = this.svg.querySelector("#content-root");
+        root.appendChild(g);
     }
 
     drawFloor6(deskOccupancy = {}) {
@@ -1454,10 +1462,7 @@ class ArchitecturalFloorPlan {
         this.drawLabel(g, 590, 140, "Paris", 16, "bold");
 
         // Paris Door
-        const parisDoor = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const parisDoor = document.createElementNS("http://www.w3.org/2000/svg","rect");
         parisDoor.setAttribute("x", 500);
         parisDoor.setAttribute("y", 215);
         parisDoor.setAttribute("width", 40);
@@ -1492,7 +1497,8 @@ class ArchitecturalFloorPlan {
             this.drawWorkstation( g, 980, 110, deskOccupancy["D16"] || "invalid", "D16", 30, 50, "right", null, 1020, 135, 995, 140, );
         }
 
-        this.svg.appendChild(g);
+        let root = this.svg.querySelector("#content-root");
+        root.appendChild(g);
     }
 
     // ===== DRAWING UTILITIES =====
@@ -1504,10 +1510,7 @@ class ArchitecturalFloorPlan {
     }
 
     drawWall(parent, points, isOutline) {
-        const path = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "path",
-        );
+        const path = document.createElementNS("http://www.w3.org/2000/svg","path");
         let d = `M ${points[0].x} ${points[0].y}`;
         for (let i = 1; i < points.length; i++) {
             d += ` L ${points[i].x} ${points[i].y}`;
@@ -1524,10 +1527,7 @@ class ArchitecturalFloorPlan {
     }
 
     drawCircle(parent, xStart, yStart, xRadii, yRadii, xAxisRotation, largeArcFlag, sweepFlag, xEnd, yEnd, isOutline) {
-        const path = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "path",
-        );
+        const path = document.createElementNS("http://www.w3.org/2000/svg","path");
 
         let d = `M ${xStart} ${yStart} A ${xRadii} ${yRadii} ${xAxisRotation} ${largeArcFlag} ${sweepFlag} ${xEnd} ${yEnd}`;
 
@@ -1542,10 +1542,7 @@ class ArchitecturalFloorPlan {
     }
 
     drawLine(parent, points, color, width) {
-        const line = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "line",
-        );
+        const line = document.createElementNS("http://www.w3.org/2000/svg","line");
         line.setAttribute("x1", points[0].x);
         line.setAttribute("y1", points[0].y);
         line.setAttribute("x2", points[1].x);
@@ -1561,10 +1558,7 @@ class ArchitecturalFloorPlan {
         const doorWidth = orientation === "horizontal" ? width : height;
         const doorHeight = orientation === "horizontal" ? height : width;
 
-        const door = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const door = document.createElementNS("http://www.w3.org/2000/svg","rect");
         door.setAttribute("x", x - doorWidth / 2);
         door.setAttribute("y", y - doorHeight / 2);
         door.setAttribute("width", doorWidth);
@@ -1576,20 +1570,11 @@ class ArchitecturalFloorPlan {
         parent.appendChild(door);
         // Door arc
         if (arc) {
-            const arc = document.createElementNS(
-                "http://www.w3.org/2000/svg",
-                "path",
-            );
+            const arc = document.createElementNS("http://www.w3.org/2000/svg","path");
             if (orientation === "horizontal") {
-                arc.setAttribute(
-                    "d",
-                    `M ${x - 20} ${y} Q ${x} ${y - 20} ${x + 20} ${y}`,
-                );
+                arc.setAttribute("d",`M ${x - 20} ${y} Q ${x} ${y - 20} ${x + 20} ${y}`);
             } else {
-                arc.setAttribute(
-                    "d",
-                    `M ${x} ${y - 20} Q ${x + 20} ${y} ${x} ${y + 20}`,
-                );
+                arc.setAttribute("d",`M ${x} ${y - 20} Q ${x + 20} ${y} ${x} ${y + 20}`);
             }
             arc.setAttribute("fill", "none");
             arc.setAttribute("stroke", this.colors.interiorLine);
@@ -1597,17 +1582,13 @@ class ArchitecturalFloorPlan {
             arc.setAttribute("stroke-dasharray", "2,2");
             parent.appendChild(arc);
         }
-        
     }
 
     drawWindow(parent, x, y, length, orientation) {
         const windowWidth = orientation === "horizontal" ? length : 6;
         const windowHeight = orientation === "horizontal" ? 6 : length;
 
-        const window = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const window = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         window.setAttribute("x", x - windowWidth / 2);
         window.setAttribute("y", y - windowHeight / 2);
         window.setAttribute("width", windowWidth);
@@ -1618,10 +1599,7 @@ class ArchitecturalFloorPlan {
 
         // Window panes
         if (orientation === "horizontal") {
-            const divider = document.createElementNS(
-                "http://www.w3.org/2000/svg",
-                "line",
-            );
+            const divider = document.createElementNS("http://www.w3.org/2000/svg","line");
             divider.setAttribute("x1", x);
             divider.setAttribute("y1", y - 3);
             divider.setAttribute("x2", x);
@@ -1630,10 +1608,7 @@ class ArchitecturalFloorPlan {
             divider.setAttribute("stroke-width", 1);
             parent.appendChild(divider);
         } else {
-            const divider = document.createElementNS(
-                "http://www.w3.org/2000/svg",
-                "line",
-            );
+            const divider = document.createElementNS("http://www.w3.org/2000/svg", "line");
             divider.setAttribute("x1", x - 3);
             divider.setAttribute("y1", y);
             divider.setAttribute("x2", x + 3);
@@ -1647,10 +1622,7 @@ class ArchitecturalFloorPlan {
     }
 
     drawLabel(parent, x, y, text, fontSize = 12, fontWeight = "normal") {
-        const label = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "text",
-        );
+        const label = document.createElementNS("http://www.w3.org/2000/svg","text");
         label.setAttribute("x", x);
         label.setAttribute("y", y);
         label.setAttribute("text-anchor", "middle");
@@ -1671,10 +1643,7 @@ class ArchitecturalFloorPlan {
         g.setAttribute("data-draggable", "true");
 
         // Main desk rectangle (x, y is top-left corner, NOT center)
-        const desk = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-        );
+        const desk = document.createElementNS("http://www.w3.org/2000/svg","rect");
         desk.setAttribute("x", x);
         desk.setAttribute("y", y);
         desk.setAttribute("width", width);
@@ -1696,10 +1665,7 @@ class ArchitecturalFloorPlan {
         const centerY = textY !== null ? textY : y + height / 2;
 
         // Desk ID label
-        const text = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "text",
-        );
+        const text = document.createElementNS("http://www.w3.org/2000/svg","text");
         text.setAttribute("x", centerX);
         text.setAttribute("y", centerY + 5);
         text.setAttribute("text-anchor", "middle");
@@ -1753,10 +1719,7 @@ class ArchitecturalFloorPlan {
 
     drawChair(parent, x, y) {
         // Chair indicator (small circle)
-        const chair = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "circle",
-        );
+        const chair = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         chair.setAttribute("cx", x);
         chair.setAttribute("cy", y);
         chair.setAttribute("r", 4);
@@ -1807,16 +1770,7 @@ class ArchitecturalFloorPlan {
      *                                si false, ne fait que centrer sans changer l'échelle
      */
     centerSVGContent({targetWidth = 1200, targetHeight = 1200, padding = 20, fit = true} = {}) {
-        if (!this.svg) return;
-
-        let root = this.svg.querySelector("content-root");
-        if (!root) {
-            root = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            root.setAttribute("id", "content-root");
-            const children = Array.from(this.svg.childNodes);
-            children.forEach(n => { if (n.nodeType === 1 && n.tagName !== "defs") root.appendChild(n); });
-            this.svg.appendChild(root);
-        }
+        let root = this.svg.querySelector("#content-root");
         root.removeAttribute("transform");
 
         // Bounding box du contenu

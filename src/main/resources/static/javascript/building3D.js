@@ -469,11 +469,8 @@ class Building3D {
     async loadRealOccupancyData() {
         console.log('=== Loading Real Occupancy Data for', this.buildingKey, '===');
 
-        // Only load data for the current floor if in 2D view
         if (!this.isIn3DView && this.currentFloorNumber !== null) {
             const deskOccupancy = await this.loadOccupancyDataForFloor(this.currentFloorNumber);
-
-            // Only draw floor plan if this is still the current floor (prevent overwrites from race conditions)
             if (this.currentArchPlan) {
                 this.currentArchPlan.drawFloorPlan(deskOccupancy || {});
             }
@@ -911,11 +908,14 @@ class Building3D {
 
         if (window.ArchitecturalFloorPlan) {
             const svgPath = this.getSvgPlanUrl();
-            this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', currentFloorData, this.currentSensorMode, this.config.id, svgPath, this.isDashboard, floorsCount);
-            this.loadRealOccupancyData();
+            if (!this.currentArchPlan) {
+                this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', currentFloorData, this.currentSensorMode, this.config.id, svgPath, this.isDashboard, floorsCount);
+            } else {
+                this.currentArchPlan.updateConfig(currentFloorData, this.currentSensorMode, svgPath);
+            }
+           this.loadRealOccupancyData();
         } else {
             console.error('ArchitecturalFloorPlan not loaded');
-            this.load2DDesks(floorNumber);
         }
 
         this.updateFloorTitle(floorNumber);
@@ -962,30 +962,6 @@ class Building3D {
         if (this.currentArchPlan && this.currentSensorMode === 'DESK') {
             this.currentArchPlan.loadDeskOccupancy();
         }
-    }
-
-    load2DDesks(floorNumber) {
-        const deskGrid = document.getElementById('desk-grid');
-        if (!deskGrid) return;
-
-        const data = this.floorData[floorNumber];
-
-        deskGrid.style.display = 'grid';
-        deskGrid.style.gridTemplateColumns = 'repeat(4, 1fr)';
-        deskGrid.style.padding = '1.5rem';
-        deskGrid.style.background = 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)';
-
-        deskGrid.innerHTML = '';
-        data.desks.forEach(desk => {
-            const deskElement = document.createElement('div');
-            deskElement.className = `desk ${desk.status}`;
-            deskElement.setAttribute('data-desk', desk.id);
-            deskElement.textContent = desk.id;
-            deskElement.addEventListener('click', function() {
-                alert(`Desk ${desk.id}\nStatus: ${desk.status}\n\nClick to view detailed information.`);
-            });
-            deskGrid.appendChild(deskElement);
-        });
     }
 
     return3DView() {
@@ -1178,15 +1154,6 @@ class Building3D {
             this.building.rotation.y += 0.0005;
         }
         this.renderer.render(this.scene, this.camera);
-    }
-
-    updateDeskData(floorNumber, desks) {
-        if (this.floorData[floorNumber]) {
-            this.floorData[floorNumber].desks = desks;
-            if (!this.isIn3DView && this.currentFloorNumber === floorNumber) {
-                this.load2DDesks(floorNumber);
-            }
-        }
     }
 
     getFloorsCount() {
