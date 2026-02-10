@@ -8,6 +8,14 @@
     margin: 0;
 }
 
+        .disabled {
+            opacity: 0.4;
+            filter: grayscale(100%);
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        button.disabled { pointer-events: none; }
+
 table {
     width: 95%;
     border-collapse: collapse;
