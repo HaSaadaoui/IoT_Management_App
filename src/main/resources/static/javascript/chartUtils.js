@@ -35,65 +35,75 @@ const DASHBOARD_CTX = { building: "LEVALLOIS", floor: 3 };
 // ============================================
 // GLOBAL STATE
 // ============================================
-let occupancySource = null;
-const occupancyState = {}; // clé = deskId, valeur = status
-
+let occupancyUnsub = null;          // <-- à la place de occupancySource
+const occupancyState = {};
 // ============================================
 // SSE / LIVE OCCUPANCY
 // ============================================
 function openOccupancySSE(building, floor) {
-    console.log("🔄 openOccupancySSE called with:", building, floor);
-    if (occupancySource) {
-        console.log("🔁 Closing previous SSE");
-        occupancySource.close();
-        occupancySource = null;
+  console.log("🔄 openOccupancySSE (SSEManager) called with:", building, floor);
+
+  // coupe l'ancienne souscription si on re-switch building/floor
+  if (occupancyUnsub) {
+    console.log("🔁 Unsub previous SSE");
+    occupancyUnsub();
+    occupancyUnsub = null;
+  }
+
+  if (!window.SSEManager?.subscribeOccupancy) {
+    console.warn("❌ SSEManager not available (script not loaded yet?)");
+    return;
+  }
+
+  // Souscription au hub (1 seul EventSource partagé)
+  occupancyUnsub = window.SSEManager.subscribeOccupancy(building, (msg) => {
+    try {
+      const deviceId =
+        msg?.end_device_ids?.device_id ||
+        msg?.deviceId ||
+        msg?.device_id;
+
+      const decoded =
+        msg?.uplink_message?.decoded_payload ??
+        msg?.decoded_payload ??
+        msg?.payload ??
+        {};
+
+      const occRaw = decoded?.occupancy;
+      if (!deviceId) return;
+
+      const status = normalizeDeskStatus(occRaw);
+
+      // (perf) si status inchangé -> ne rerender pas
+      if (occupancyState[deviceId] === status) return;
+
+      occupancyState[deviceId] = status;
+
+      // Snapshot complet
+      const snapshot = Object.entries(occupancyState).map(([id, s]) => ({ id, status: s }));
+
+      const zoneStats = aggregateByZone(snapshot, building, floor);
+      updateAllStatCards(zoneStats);
+
+    } catch (err) {
+      console.warn("[SSEManager][occupancy] handler error", err);
     }
-
-    const url = `/api/dashboard/occupancy/stream?building=${encodeURIComponent(building)}`;
-    occupancySource = new EventSource(url);
-
-    occupancySource.addEventListener("uplink", (e) => {
-        try {
-            const raw = JSON.parse(e.data);
-            const msg = raw?.result ?? raw;
-
-            const deviceId = msg?.end_device_ids?.device_id || msg?.deviceId || msg?.device_id;
-            const decoded = msg?.uplink_message?.decoded_payload ?? msg?.decoded_payload ?? msg?.payload ?? {};
-            const occRaw = decoded?.occupancy;
-
-            if (!deviceId) return;
-
-            const status = normalizeDeskStatus(occRaw);
-            occupancyState[deviceId] = status;
-
-            // Créer snapshot complet
-            const snapshot = Object.entries(occupancyState).map(([id, s]) => ({ id, status: s }));
-
-            const zoneStats = aggregateByZone(snapshot, building, floor);
-            updateAllStatCards(zoneStats);
-
-        } catch (err) {
-            console.warn("[SSE] parse error", err, e?.data);
-        }
-    });
-
-    occupancySource.addEventListener("keepalive", () => {});
-    occupancySource.onopen = () => console.log("✅ SSE connection opened");
-    occupancySource.onerror = (e) => {
-        console.warn("❌ SSE error", e);
-        occupancySource.close();
-        occupancySource = null;
-    };
+  });
 }
+
 
 function closeOccupancySSE() {
-    if (occupancySource) {
-        console.log("🔒 Closing SSE manually");
-        occupancySource.close();
-        occupancySource = null;
-    }
+  if (occupancyUnsub) {
+    console.log("🔒 Unsubscribe SSE (SSEManager)");
+    occupancyUnsub();
+    occupancyUnsub = null;
+  }
 }
 
+// Bonus: auto-clean si tu veux (recommandé)
+window.addEventListener("beforeunload", () => {
+  closeOccupancySSE();
+});
 // ============================================
 // HELPERS
 // ============================================

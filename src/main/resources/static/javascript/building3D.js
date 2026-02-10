@@ -253,6 +253,9 @@ class Building3D {
             invalid: 0x94a3b8
         };
 
+        // SSE
+        this.occupancyUnsub = null;
+
         this.init();
     }
 
@@ -283,6 +286,53 @@ class Building3D {
         }
         return null;
     }
+
+    startOccupancySSE() {
+        this.stopOccupancySSE();
+
+const building = this.getSseBuildingKey();
+        if (!building || !window.SSEManager?.subscribeOccupancy) return;
+
+        this.occupancyUnsub = window.SSEManager.subscribeOccupancy(building, (msg) => {
+            try {
+                const deviceId =
+                    msg?.end_device_ids?.device_id ||
+                    msg?.deviceId ||
+                    msg?.device_id;
+
+                const decoded =
+                    msg?.uplink_message?.decoded_payload ||
+                    msg?.decoded_payload ||
+                    msg?.payload ||
+                    {};
+
+                const occRaw = decoded?.occupancy;
+                if (!deviceId) return;
+
+                const status = this.normalizeDeskStatus(occRaw);
+                this.applyDeviceStatus(deviceId, status);
+            } catch (e) {
+                console.warn('[Building3D][SSE] error', e);
+            }
+        });
+    }
+
+
+getSseBuildingKey() {
+  // si DB:4 -> envoie "4" (ou l’ID attendu par le backend)
+  const b = String(this.buildingKey || '');
+  if (b.toUpperCase().startsWith('DB:')) return b.split(':')[1];
+  return b;
+}
+
+
+stopOccupancySSE() {
+    if (this.occupancyUnsub) {
+        try { this.occupancyUnsub(); } catch {}
+        this.occupancyUnsub = null;
+    }
+}
+
 
     computeDynamicViewForBuilding() {
         if (!this.building || !this.camera || !this.controls || !THREE) {
@@ -319,54 +369,6 @@ class Building3D {
         const maxD = THREE.MathUtils.clamp(radius * 5.0, 15, 120);
 
         return { target, camPos, minD, maxD };
-    }
-
-    openOccupancySSE() {
-        this.closeOccupancySSE();
-
-        const b = this.buildingKey;
-        const url = `/api/dashboard/occupancy/stream?building=${encodeURIComponent(b)}`;
-
-        this._occEs = new EventSource(url);
-
-        this._occEs.addEventListener("uplink", (e) => {
-            try {
-                const raw = JSON.parse(e.data);
-
-                // ✅ ton SSE (d'après ton curl) : { result: { end_device_ids..., uplink_message... } }
-                const msg = raw?.result ?? raw;
-
-                const deviceId =
-                    msg?.end_device_ids?.device_id ||
-                    msg?.deviceId ||
-                    msg?.device_id;
-
-                const decoded =
-                    msg?.uplink_message?.decoded_payload ||
-                    msg?.decoded_payload ||
-                    msg?.payload ||
-                    {};
-
-                const occRaw = decoded?.occupancy;
-
-                if (!deviceId) return;
-
-                const status = this.normalizeDeskStatus(occRaw);
-                this.applyDeviceStatus(deviceId, status);
-            } catch (err) {
-                console.warn("[SSE] parse error", err, e?.data);
-            }
-        });
-
-        this._occEs.addEventListener("keepalive", () => {});
-        this._occEs.onerror = (e) => console.warn("[SSE] error", e);
-    }
-
-    closeOccupancySSE() {
-        if (this._occEs) {
-            this._occEs.close();
-            this._occEs = null;
-        }
     }
 
     // Convertit ce que tu reçois (bool/int/string) en free/used/invalid
@@ -707,6 +709,8 @@ class Building3D {
         this.canvas.addEventListener('mousemove', (event) => this.onMouseMove(event));
         this.canvas.addEventListener('click',    (event) => this.onMouseClick(event));
         window.addEventListener('resize', () => this.onWindowResize());
+        window.addEventListener('beforeunload', () => this.stopOccupancySSE());
+
     }
 
     onMouseMove(event) {
@@ -1065,7 +1069,7 @@ class Building3D {
     }
 
     async setBuilding() {
-        this.closeOccupancySSE();
+        this.stopOccupancySSE();
         this.currentFloorNumber = null;
         this.isIn3DView = true;
         this.currentArchPlan = null;
@@ -1093,7 +1097,8 @@ class Building3D {
         await this.createBuilding();
         this.resetCameraForBuilding();
         this.loadRealOccupancyData();
-        this.openOccupancySSE();
+        this.startOccupancySSE();
+
     }
 
     clearBuilding() {
