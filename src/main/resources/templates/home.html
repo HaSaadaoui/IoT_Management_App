@@ -1,61 +1,82 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-    <head>
-        <meta charset="UTF-8" />
-        <title>Home page</title>
-        <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}" />
-        <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
-        <link
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8" />
+    <title>Home page</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}" />
+    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
+    <link
             rel="stylesheet"
             type="text/css"
             th:href="@{/css/login-home.css}"
-        />
-    </head>
-    <body>
-        <div
-            th:replace="fragments/header :: appHeader(pageTitle='Manage Users', homeUrl=@{/})"
-        ></div>
-        <div class="main-container">
-            <div class="dashboard-container">
-                <h1>Smart Building<br /><span>IoT Application</span></h1>
+    />
+</head>
+<body>
+<div
+        th:replace="fragments/header :: appHeader(pageTitle='Manage Users', homeUrl=@{/})"
+></div>
+<div class="main-container">
+    <div class="dashboard-container">
+        <h1>Smart Building<br /><span>IoT Application</span></h1>
 
-                <div class="dashboard-grid">
-                    <a href="/dashboard" class="dashboard-card">
-                        <img src="/image/dashboard_icon.svg" alt="Dashboard" />
-                        <span>Dashboard</span>
-                    </a>
+        <div class="dashboard-grid">
+            <a href="/dashboard" class="dashboard-card">
+                <img src="/image/dashboard_icon.svg" alt="Dashboard" />
+                <span>Dashboard</span>
+            </a>
 
-                    <a href="/manage-sensors" class="dashboard-card">
-                        <img src="/image/sensor-icon.svg" alt="Supervision" />
-                        <span>Sensors</span>
-                    </a>
+            <a href="/manage-sensors" class="dashboard-card">
+                <img src="/image/sensor-icon.svg" alt="Supervision" />
+                <span>Sensors</span>
+            </a>
 
-                    <a href="/manage-gateways" class="dashboard-card">
-                        <img src="/image/gateway-icon.svg" alt="Gateways" />
-                        <span>Gateways</span>
-                    </a>
+            <a href="/manage-gateways" class="dashboard-card">
+                <img src="/image/gateway-icon.svg" alt="Gateways" />
+                <span>Gateways</span>
+            </a>
 
-                    <a href="/prediction" class="dashboard-card">
-                        <img src="/image/predictive.svg" alt="Prediction" />
-                        <span>Prediction</span>
-                    </a>
+            <a href="/prediction" class="dashboard-card">
+                <img src="/image/predictive.svg" alt="Prediction" />
+                <span>Prediction</span>
+            </a>
 
-                    <a href="/manage-users" class="dashboard-card">
-                        <img src="/image/user-icon.svg" alt="Manage Users" />
-                        <span>Manage Users</span>
-                    </a>
+            <!-- ADMIN + SUPERUSER : actif -->
+            <a sec:authorize="hasAnyRole('ADMIN','SUPERUSER')"
+               href="/manage-users"
+               class="dashboard-card">
+                <img src="/image/user-icon.svg" alt="Manage Users" />
+                <span>Manage Users</span>
+            </a>
 
-                    <a href="/configuration" class="dashboard-card">
-                        <img src="/image/config-icon.svg" alt="Configuration" />
-                        <span>Configuration</span>
-                    </a>
-                </div>
+            <!-- USER : grisé -->
+            <div sec:authorize="hasRole('USER')"
+                 class="dashboard-card disabled">
+                <img src="/image/user-icon.svg" alt="Manage Users" />
+                <span>Manage Users</span>
+            </div>
+
+            <!-- ADMIN + SUPERUSER -->
+            <a sec:authorize="hasAnyRole('ADMIN','SUPERUSER')"
+               href="/configuration"
+               class="dashboard-card">
+                <img src="/image/config-icon.svg" alt="Configuration" />
+                <span>Configuration</span>
+            </a>
+
+            <!-- USER -->
+            <div sec:authorize="hasRole('USER')"
+                 class="dashboard-card disabled">
+                <img src="/image/config-icon.svg" alt="Configuration" />
+                <span>Configuration</span>
             </div>
         </div>
+    </div>
+</div>
 
-        <!-- Footer bar -->
-        <div class="footer-bar">
-            <!-- Empty footer for styling purposes -->
-        </div>
-    </body>
+<!-- Footer bar -->
+<div class="footer-bar">
+    <!-- Empty footer for styling purposes -->
+</div>
+</body>
 </html>

@@ -2,6 +2,16 @@
 // Manage Sensors (JS)
 // =======================
 
+const CAN_EDIT_SENSORS = !!window.CAN_EDIT_SENSORS;
+
+function disableLink(a) {
+  if (!a) return;
+  a.classList.add('disabled');
+  a.setAttribute('aria-disabled', 'true');
+  a.setAttribute('tabindex', '-1');
+  // On laisse pointer-events:none gérer le blocage clic
+}
+
 // Références globales (certains éléments peuvent ne pas exister selon la page)
 const modalCreate = document.getElementById("createSensorPopup");
 const modalDelete = document.getElementById("deleteSensorPopup");
@@ -123,65 +133,76 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ----- Table rendering -----
-  function renderRows(rows) {
-    if (!tableBody) return;
-    tableBody.innerHTML = '';
+function renderRows(rows) {
+  if (!tableBody) return;
+  tableBody.innerHTML = '';
 
-    rows.forEach((s) => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${s.idSensor ?? ''}</td>
-        <td>${s.devEui ?? ''}</td>
-        <td>${s.commissioningDate ?? ''}</td>
-        <td>
-          <span class="${s.status ? 'badge badge--ok' : 'badge badge--off'}">
-            ${s.status ? 'Active' : 'Inactive'}
-          </span>
-        </td>
-        <td>${s.buildingName ?? ''}</td>
-        <td>${s.location ?? ''}</td>
-        <td>${s.idGateway ?? ''}</td>
-        <td>
-          <div class="button-container">
-            <a href="/manage-sensors/monitoring/${s.idSensor}">
-              <img src="/image/monitoring-data.svg" alt="Monitor">
-            </a>
-            <a href="/manage-sensors/edit/${s.idSensor}">
-              <img src="/image/edit-icon.svg" alt="Edit">
-            </a>
-            <a href="#" class="openDeletePopup" data-id="${s.idSensor}">
-              <img src="/image/delete-icon.svg" alt="Delete">
-            </a>
-          </div>
-        </td>
-      `;
-      tableBody.appendChild(row);
-    });
+  rows.forEach((s) => {
+    const row = document.createElement('tr');
 
-    if (rows.length === 0) {
-      const emptyRow = document.createElement('tr');
-      emptyRow.innerHTML = `
-        <td colspan="8" style="text-align:center; font-style:italic; padding:16px;">
-          No sensors found.
-        </td>
-      `;
-      tableBody.appendChild(emptyRow);
-    }
+    const editClass = CAN_EDIT_SENSORS ? '' : 'disabled';
+    const delClass  = CAN_EDIT_SENSORS ? '' : 'disabled';
 
-    // Re-bind delete buttons
+    row.innerHTML = `
+      <td>${s.idSensor ?? ''}</td>
+      <td>${s.devEui ?? ''}</td>
+      <td>${s.commissioningDate ?? ''}</td>
+      <td>
+        <span class="${s.status ? 'badge badge--ok' : 'badge badge--off'}">
+          ${s.status ? 'Active' : 'Inactive'}
+        </span>
+      </td>
+      <td>${s.buildingName ?? ''}</td>
+      <td>${s.location ?? ''}</td>
+      <td>${s.idGateway ?? ''}</td>
+      <td>
+        <div class="button-container">
+          <!-- Monitoring reste toujours actif -->
+          <a href="/manage-sensors/monitoring/${s.idSensor}">
+            <img src="/image/monitoring-data.svg" alt="Monitor">
+          </a>
+
+          <!-- Edit visible mais grisé si USER -->
+          <a href="/manage-sensors/edit/${s.idSensor}" class="${editClass}" aria-disabled="${!CAN_EDIT_SENSORS}">
+            <img src="/image/edit-icon.svg" alt="Edit">
+          </a>
+
+          <!-- Delete visible mais grisé si USER -->
+          <a href="#" class="openDeletePopup ${delClass}" data-id="${s.idSensor}" aria-disabled="${!CAN_EDIT_SENSORS}">
+            <img src="/image/delete-icon.svg" alt="Delete">
+          </a>
+        </div>
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
+
+  if (rows.length === 0) {
+    const emptyRow = document.createElement('tr');
+    emptyRow.innerHTML = `
+      <td colspan="8" style="text-align:center; font-style:italic; padding:16px;">
+        No sensors found.
+      </td>
+    `;
+    tableBody.appendChild(emptyRow);
+  }
+
+  // ✅ Re-bind delete buttons SEULEMENT si autorisé
+  if (CAN_EDIT_SENSORS) {
     tableBody.querySelectorAll('.openDeletePopup').forEach(btn => {
       btn.addEventListener('click', e => {
         e.preventDefault();
         const id = btn.getAttribute('data-id');
         const form = document.getElementById('deleteForm');
-        if (form) {
-          form.action = `/manage-sensors/delete/${id}`;
-        }
+        if (form) form.action = `/manage-sensors/delete/${id}`;
         if (modalDelete) modalDelete.style.display = 'block';
       });
     });
+  } else {
+    // optionnel: s'assurer que les liens edit/delete ne prennent pas le focus
+    tableBody.querySelectorAll('a.disabled').forEach(disableLink);
   }
-
+}
   // ----- Pagination -----
   function renderPagination(totalCount) {
     if (!paginationEl) return;
