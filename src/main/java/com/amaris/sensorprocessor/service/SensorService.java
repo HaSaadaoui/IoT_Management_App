@@ -7,6 +7,8 @@ import com.amaris.sensorprocessor.entity.SensorData;
 import com.amaris.sensorprocessor.repository.SensorDao;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
 
+import org.springframework.http.codec.ServerSentEvent;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.channel.ChannelOption;
@@ -59,8 +61,10 @@ public class SensorService {
      * GET /api/monitoring/sensor/{appId}/{deviceId}?threadId=...
      * Retourne un Flux<String> (JSON brut) pour le pousser tel quel au navigateur via SseEmitter.
      */
+
     public Flux<String> getMonitoringData(String appId, String deviceId) {
         List<String> deviceIds = List.of(deviceId);
+        ObjectMapper om = new ObjectMapper();
 
         return webClientSse.post()
                 .uri(uriBuilder -> uriBuilder
@@ -70,10 +74,30 @@ public class SensorService {
                 .accept(MediaType.TEXT_EVENT_STREAM)
                 .bodyValue(deviceIds)
                 .retrieve()
-                .bodyToFlux(String.class)
-                .doOnError(err -> log.error(
-                        "[Sensor] SSE error appId={}, deviceId={}: {}",
-                        appId, deviceId, err.getMessage(), err));
+                .bodyToFlux(new org.springframework.core.ParameterizedTypeReference<ServerSentEvent<String>>() {})
+                .map(ServerSentEvent::data)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                // ✅ ne laisse passer que ce qui ressemble à un uplink TTN OU wrapper avec raw
+                .filter(json -> {
+                    try {
+                        JsonNode root = om.readTree(json);
+
+                        // wrapper 8081: { type, raw:{...} }
+                        if (root.has("raw") && root.get("raw").isObject()) root = root.get("raw");
+
+                        // TTN storage/event : root.result.uplink_message OU root.uplink_message
+                        JsonNode result = root.has("result") ? root.get("result") : root;
+                        JsonNode up = result.path("uplink_message");
+                        JsonNode dp = up.path("decoded_payload");
+                        return !dp.isMissingNode() && !dp.isNull();
+                    } catch (Exception e) {
+                        return false;
+                    }
+                })
+                .doOnNext(s -> log.info("[Sensor] SSE DATA -> {}", s.substring(0, Math.min(120, s.length()))))
+                .doOnError(err -> log.error("[Sensor] SSE error appId={}, deviceId={}", appId, deviceId, err));
     }
 
     public Flux<String> getGatewayDevices(String appId, Instant after) {

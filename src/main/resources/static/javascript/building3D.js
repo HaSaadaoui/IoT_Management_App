@@ -1,6 +1,5 @@
 // ================== SHAPES ==================
 
-// Shape Châteaudun (basé sur ton SVG 1100x500)
 function createChateaudunShape(scale = 0.01) {
     const shape = new THREE.Shape();
 
@@ -290,7 +289,7 @@ class Building3D {
     startOccupancySSE() {
         this.stopOccupancySSE();
 
-const building = this.getSseBuildingKey();
+        const building = this.getSseBuildingKey();
         if (!building || !window.SSEManager?.subscribeOccupancy) return;
 
         this.occupancyUnsub = window.SSEManager.subscribeOccupancy(building, (msg) => {
@@ -317,22 +316,19 @@ const building = this.getSseBuildingKey();
         });
     }
 
-
-getSseBuildingKey() {
-  // si DB:4 -> envoie "4" (ou l’ID attendu par le backend)
-  const b = String(this.buildingKey || '');
-  if (b.toUpperCase().startsWith('DB:')) return b.split(':')[1];
-  return b;
-}
-
-
-stopOccupancySSE() {
-    if (this.occupancyUnsub) {
-        try { this.occupancyUnsub(); } catch {}
-        this.occupancyUnsub = null;
+    getSseBuildingKey() {
+        // si DB:4 -> envoie "4" (ou l’ID attendu par le backend)
+        const b = String(this.buildingKey || '');
+        if (b.toUpperCase().startsWith('DB:')) return b.split(':')[1];
+        return b;
     }
-}
 
+    stopOccupancySSE() {
+        if (this.occupancyUnsub) {
+            try { this.occupancyUnsub(); } catch {}
+            this.occupancyUnsub = null;
+        }
+    }
 
     computeDynamicViewForBuilding() {
         if (!this.building || !this.camera || !this.controls || !THREE) {

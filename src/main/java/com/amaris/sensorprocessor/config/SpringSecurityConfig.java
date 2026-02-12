@@ -22,16 +22,6 @@ public class SpringSecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-//        return http.authorizeHttpRequests(auth -> {
-//            auth.requestMatchers("/login").permitAll();
-//            auth.requestMatchers("/home").authenticated();
-//            auth.requestMatchers("/css/**").permitAll();
-//            auth.requestMatchers("/image/**").permitAll();
-//            auth.requestMatchers("/admin/**").hasRole("ADMIN");
-//            auth.requestMatchers("/superuser").hasRole("SUPERUSER");
-//            auth.requestMatchers("/user").hasRole("USER");
-            //auth.anyRequest().hasRole("ADMIN"); // aussi mettre USER et SUPERUSER
-//            auth.anyRequest
         return http
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/api/sensors/**") // Désactive CSRF pour les API REST
@@ -42,6 +32,8 @@ public class SpringSecurityConfig {
                         .requestMatchers("/api/sensors/**").permitAll() // API REST publique
                         .requestMatchers("/api/test-alerts", "/api/dashboard/**", "/api/analytics/**").permitAll() // Allow alerts, dashboard, and analytics APIs for development
                         .requestMatchers("/home").authenticated()
+                        .requestMatchers("/manage-users", "/manage-users/**").hasRole("ADMIN")
+                        .requestMatchers("/configuration", "/configuration/**").hasRole("ADMIN")
                         .anyRequest().hasAnyRole("ADMIN", "USER", "SUPERUSER")
                 )
                 .formLogin(form -> form

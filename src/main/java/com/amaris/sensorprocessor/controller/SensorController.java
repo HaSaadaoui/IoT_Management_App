@@ -488,13 +488,15 @@
             return s == null || s.trim().isEmpty();
         }
 
-        // --- Normalizer simple & lisible (profil = deviceType) ---
         static class SensorEventNormalizer {
             private final com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
 
             public String normalizeToMonitoringSensorDataJson(String json, String appId, Sensor sensor) {
                 try {
                     var root   = om.readTree(json);
+                    if (root.has("raw") && root.get("raw").isObject()) {
+                        root = root.get("raw");
+                    }
                     var result = root.has("result") ? root.get("result") : root;  // events vs storage
                     var up     = result.path("uplink_message");
                     var endIds = result.path("end_device_ids");
@@ -503,6 +505,9 @@
                     var lora   = up.path("settings").path("data_rate").path("lora");
                     var netIds = up.path("network_ids");
                     var dp     = up.path("decoded_payload");
+                    if (dp.isMissingNode() || dp.isNull() || !dp.isObject()) {
+                        return om.writeValueAsString(root);
+                    }
 
                     String deviceId = textOr(endIds.path("device_id"), sensor.getIdSensor());
                     String profile  = sensor.getDeviceType() != null ? sensor.getDeviceType().toUpperCase() : "GENERIC";
