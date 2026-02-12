@@ -7,15 +7,21 @@ import com.amaris.sensorprocessor.entity.SensorData;
 import com.amaris.sensorprocessor.model.dashboard.Alert;
 import com.amaris.sensorprocessor.repository.SensorDao;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -23,19 +29,27 @@ public class AlertService {
 
     // Device type constants
     private static final String DEVICE_TYPE_CO2 = "CO2";
-    private static final String DEVICE_TYPE_TEMP = "TEMP";
+    private static final String DEVICE_TYPE_TEMP = "TEMPEX";
     private static final String DEVICE_TYPE_HUMIDITY = "HUMIDITY";
     private static final String DEVICE_TYPE_NOISE = "NOISE";
 
     private final SensorDataDao sensorDataDao;
     private final SensorDao sensorDao;
     private final AlertThresholdConfig thresholdConfig;
+    private final WebClient webClientSse;              // SSE-specific WebClient
+    @Autowired
+    private LiveSensorCache liveSensorCache;
+    @Autowired
+    private ObjectMapper objectMapper;
+    private Disposable currentSubscription;
+    private final Map<String, Disposable> subscriptions = new ConcurrentHashMap<>();
 
     @Autowired
-    public AlertService(SensorDataDao sensorDataDao, SensorDao sensorDao, AlertThresholdConfig thresholdConfig) {
+    public AlertService(SensorDataDao sensorDataDao, SensorDao sensorDao, AlertThresholdConfig thresholdConfig, WebClient webClientSse) {
         this.sensorDataDao = sensorDataDao;
         this.sensorDao = sensorDao;
         this.thresholdConfig = thresholdConfig;
+        this.webClientSse = webClientSse;
     }
 
     /**
@@ -87,12 +101,11 @@ public class AlertService {
         List<Sensor> co2Sensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_CO2, building);
 
         for (Sensor sensor : co2Sensors) {
-            Optional<SensorData> latestCO2 = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(),
-                    PayloadValueType.CO2);
+            Optional<SensorData> latestCO2 =
+                   liveSensorCache.getLatest(sensor.getIdSensor(), PayloadValueType.CO2);
 
             if (latestCO2.isPresent()) {
                 SensorData data = latestCO2.get();
-
                 // Only consider recent readings (within configured time threshold)
                 if (data.getReceivedAt()
                         .isAfter(LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes()))) {
@@ -145,8 +158,8 @@ public class AlertService {
         allTempSensors.addAll(tempSensors);
 
         for (Sensor sensor : allTempSensors) {
-            Optional<SensorData> latestTemp = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(),
-                    PayloadValueType.TEMPERATURE);
+            Optional<SensorData> latestTemp =
+                    liveSensorCache.getLatest(sensor.getIdSensor(), PayloadValueType.TEMPERATURE);
 
             if (latestTemp.isPresent()) {
                 SensorData data = latestTemp.get();
@@ -296,8 +309,8 @@ public class AlertService {
         allHumiditySensors.addAll(humiditySensors);
 
         for (Sensor sensor : allHumiditySensors) {
-            Optional<SensorData> latestHumidity = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(),
-                    PayloadValueType.HUMIDITY);
+            Optional<SensorData> latestHumidity =
+                    liveSensorCache.getLatest(sensor.getIdSensor(), PayloadValueType.HUMIDITY);
 
             if (latestHumidity.isPresent()) {
                 SensorData data = latestHumidity.get();
@@ -341,8 +354,8 @@ public class AlertService {
         List<Sensor> noiseSensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_NOISE, building);
 
         for (Sensor sensor : noiseSensors) {
-            Optional<SensorData> latestNoise = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(),
-                    PayloadValueType.LAEQ);
+            Optional<SensorData> latestNoise =
+                    liveSensorCache.getLatest(sensor.getIdSensor(), PayloadValueType.LAEQ);
 
             if (latestNoise.isPresent()) {
                 SensorData data = latestNoise.get();
@@ -472,56 +485,156 @@ public class AlertService {
         return sensorId;
     }
 
-    /**
-     * Determine the expected data type for a sensor based on its device type
-     */
-    private PayloadValueType getDataTypeForDeviceType(String deviceType) {
-        if (deviceType == null)
-            return null;
 
-        switch (deviceType.toUpperCase()) {
-            case "CO2":
-                return PayloadValueType.CO2;
-            case "TEMP":
-            case "TEMPERATURE":
-                return PayloadValueType.TEMPERATURE;
-            case "HUMIDITY":
-                return PayloadValueType.HUMIDITY;
-            case "NOISE":
-                return PayloadValueType.LAEQ;
-            case "LIGHT":
-            case "ILLUMINANCE":
-                return PayloadValueType.ILLUMINANCE;
-            case "MOTION":
-                return PayloadValueType.MOTION;
-            case "DESK":
-            case "OCCUPANCY":
-                return PayloadValueType.OCCUPANCY;
-            default:
-                return null;
+    public Flux<String> getMonitoringMany(String appId, List<String> deviceIds) {
+        return webClientSse.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/monitoring/app/{appId}/stream")
+                        .build(appId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .bodyValue(deviceIds == null ? List.of() : deviceIds)
+                .retrieve()
+                .bodyToFlux(String.class)
+                // logs
+                .doOnSubscribe(sub ->
+                        log.info("[Sensor] SSE SUBSCRIBED appId={} devices={}", appId, deviceIds))
+
+                .doOnNext(raw ->
+                        log.info("[Sensor] SSE RAW EVENT appId={} => {}", appId, raw))
+
+                .doOnCancel(() ->
+                        log.warn("[Sensor] SSE CANCELLED appId={}", appId))
+
+                .doOnComplete(() ->
+                        log.warn("[Sensor] SSE COMPLETED appId={}", appId))
+
+                .doOnError(err ->
+                        log.error("[Sensor] SSE multi error appId={}: {}",
+                                appId, err.getMessage(), err))
+                .doOnNext(this::parseAndUpdateCache);
+    }
+
+
+    private void parseAndUpdateCache(String payload) {
+        log.error("🔥 PARSE CALLED 🔥");
+        log.warn("SSE RAW PAYLOAD RECEIVED: {}", payload);
+        try {
+            log.info("SSE PAYLOAD RECEIVED");
+            JsonNode root = objectMapper.readTree(payload);
+            log.info("SSE Playload: ", root);
+            JsonNode result = root.path("raw").path("result");
+            if (result.isMissingNode()) {
+                log.warn("No result node in payload");
+                return;
+            }
+
+            String devEui = result
+                    .path("end_device_ids")
+                    .path("dev_eui")
+                    .asText();
+
+            if (devEui == null || devEui.isBlank()) {
+                return;
+            }
+
+            String idSensor = sensorDao.findByDevEui(devEui)
+                    .map(Sensor::getIdSensor)
+                    .orElse(null);
+
+            if (idSensor == null) {
+                log.warn("No sensor found for devEui={}", devEui);
+                return;
+            }
+
+            String receivedAtStr = result.path("received_at").asText();
+
+            LocalDateTime receivedAt = OffsetDateTime
+                    .parse(receivedAtStr)
+                    .toLocalDateTime();
+
+            JsonNode decoded = result
+                    .path("uplink_message")
+                    .path("decoded_payload");
+
+            if (decoded.isMissingNode()) {
+                return;
+            }
+
+            // Map pour lier payload → PayloadValueType
+            Map<String, PayloadValueType> typeMapping = Map.of(
+                    "co2", PayloadValueType.CO2,
+                    "temperature", PayloadValueType.TEMPERATURE,
+                    "humidity", PayloadValueType.HUMIDITY,
+                    "laeq", PayloadValueType.LAEQ
+            );
+
+            // Parcourir toutes les clés connues
+            for (Map.Entry<String, PayloadValueType> entry : typeMapping.entrySet()) {
+                String key = entry.getKey();
+                PayloadValueType valueType = entry.getValue();
+
+                if (decoded.has(key)) {
+                    String valueStr = decoded.path(key).asText();
+                    try {
+                        SensorData data = new SensorData(idSensor, receivedAt, valueStr, valueType.name());
+                        liveSensorCache.updateSensorValue(idSensor, valueType, data);
+                        log.info("CACHE UPDATE {} → {} = {}", valueType, idSensor, valueStr);
+                    } catch (Exception e) {
+                        log.warn("Failed to update cache for sensor {} type {} with value {}", idSensor, valueType, valueStr, e);
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("Error parsing SSE payload", e);
         }
     }
 
-    /**
-     * Determine the expected data type for a sensor based on its ID (legacy method)
-     */
-    private PayloadValueType getSensorDataType(String sensorId) {
-        if (sensorId == null)
-            return null;
+    public void startMonitoringForBuilding(String building, String sensorType, String dbBuildingName) {
+        // Stop ancien stream si existe
+        if (currentSubscription != null && !currentSubscription.isDisposed()) {
+            currentSubscription.dispose();
+        }
 
-        String upperSensorId = sensorId.toUpperCase();
-        if (upperSensorId.startsWith("CO2"))
-            return PayloadValueType.CO2;
-        if (upperSensorId.startsWith("TEMP"))
-            return PayloadValueType.TEMPERATURE;
-        if (upperSensorId.startsWith("HUMID"))
-            return PayloadValueType.HUMIDITY;
-        if (upperSensorId.startsWith("NOISE"))
-            return PayloadValueType.LAEQ;
-        if (upperSensorId.startsWith("LIGHT"))
-            return PayloadValueType.ILLUMINANCE;
-        if (upperSensorId.startsWith("MOTION"))
-            return PayloadValueType.MOTION;
-        return null;
+        String appId = mapBuildingToAppId(building);
+        List<Sensor> sensors = sensorDao.findAllByDeviceTypeAndBuilding(sensorType, dbBuildingName);
+        List<String> deviceIds  = sensors.stream()
+                .map(Sensor::getIdSensor)
+                .toList();
+
+        currentSubscription = getMonitoringMany(appId, deviceIds )
+                .subscribe();
+    }
+
+
+    private String mapBuildingToAppId(String building) {
+        if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
+            return "rpi-mantu-appli";
+        }
+        return switch (building.trim().toUpperCase()) {
+            case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
+            case "LEVALLOIS" -> "lorawan-network-mantu";
+            case "LILLE" -> "lil-rpi-mantu-appli";
+            default -> building;
+        };
+    }
+
+
+    public List<Alert> getCurrentAlertsWithWait(String building, int maxWaitMs) {
+        int intervalMs = 100;
+        int waited = 0;
+
+        while (liveSensorCache.isEmpty(building) && waited < maxWaitMs) {
+            try {
+                Thread.sleep(intervalMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+            waited += intervalMs;
+        }
+
+        return getCurrentAlerts(building);
     }
 }
