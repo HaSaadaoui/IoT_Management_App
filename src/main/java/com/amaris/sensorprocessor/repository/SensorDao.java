@@ -165,4 +165,12 @@ public class SensorDao {
         );
     }
 
+    public Optional<Sensor> findByDevEui(String devEui) {
+        List<Sensor> sensors = jdbcTemplate.query(
+                "SELECT * FROM sensors WHERE DEV_EUI = ?",
+                new BeanPropertyRowMapper<>(Sensor.class),
+                devEui
+        );
+        return sensors.isEmpty() ? Optional.empty() : Optional.of(sensors.get(0));
+    }
 }

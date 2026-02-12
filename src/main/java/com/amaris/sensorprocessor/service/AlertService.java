@@ -1,21 +1,29 @@
 package com.amaris.sensorprocessor.service;
 
 import com.amaris.sensorprocessor.config.AlertThresholdConfig;
+import com.amaris.sensorprocessor.entity.BuildingMapping;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.Sensor;
 import com.amaris.sensorprocessor.entity.SensorData;
 import com.amaris.sensorprocessor.model.dashboard.Alert;
 import com.amaris.sensorprocessor.repository.SensorDao;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -23,19 +31,27 @@ public class AlertService {
 
     // Device type constants
     private static final String DEVICE_TYPE_CO2 = "CO2";
-    private static final String DEVICE_TYPE_TEMP = "TEMP";
+    private static final String DEVICE_TYPE_TEMP = "TEMPEX";
     private static final String DEVICE_TYPE_HUMIDITY = "HUMIDITY";
     private static final String DEVICE_TYPE_NOISE = "NOISE";
 
     private final SensorDataDao sensorDataDao;
     private final SensorDao sensorDao;
     private final AlertThresholdConfig thresholdConfig;
+    private final WebClient webClientSse;              // SSE-specific WebClient
+    @Autowired
+    private LiveSensorCache liveSensorCache;
+    @Autowired
+    private ObjectMapper objectMapper;
+    private Disposable currentSubscription;
+    private final Map<String, Disposable> subscriptions = new ConcurrentHashMap<>();
 
     @Autowired
-    public AlertService(SensorDataDao sensorDataDao, SensorDao sensorDao, AlertThresholdConfig thresholdConfig) {
+    public AlertService(SensorDataDao sensorDataDao, SensorDao sensorDao, AlertThresholdConfig thresholdConfig, WebClient webClientSse) {
         this.sensorDataDao = sensorDataDao;
         this.sensorDao = sensorDao;
         this.thresholdConfig = thresholdConfig;
+        this.webClientSse = webClientSse;
     }
 
     /**
@@ -50,16 +66,16 @@ public class AlertService {
         alerts.addAll(checkCO2Alerts(building));
 
         // Check for temperature alerts
-        alerts.addAll(checkTemperatureAlerts(building));
+        //alerts.addAll(checkTemperatureAlerts(building));
 
         // Check for sensor offline alerts
-        alerts.addAll(checkSensorOfflineAlerts(building));
+        //alerts.addAll(checkSensorOfflineAlerts(building));
 
         // Check for humidity alerts
-        alerts.addAll(checkHumidityAlerts(building));
+        //alerts.addAll(checkHumidityAlerts(building));
 
         // Check for noise alerts
-        alerts.addAll(checkNoiseAlerts(building));
+        //alerts.addAll(checkNoiseAlerts(building));
 
         // Check for gateway offline alerts - DISABLED due to connection leak
         // alerts.addAll(checkGatewayOfflineAlerts());
@@ -87,12 +103,11 @@ public class AlertService {
         List<Sensor> co2Sensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_CO2, building);
 
         for (Sensor sensor : co2Sensors) {
-            Optional<SensorData> latestCO2 = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(),
-                    PayloadValueType.CO2);
+            Optional<SensorData> latestCO2 =
+                   liveSensorCache.getLatest(sensor.getIdSensor(), PayloadValueType.CO2);
 
             if (latestCO2.isPresent()) {
                 SensorData data = latestCO2.get();
-
                 // Only consider recent readings (within configured time threshold)
                 if (data.getReceivedAt()
                         .isAfter(LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes()))) {
@@ -523,5 +538,133 @@ public class AlertService {
         if (upperSensorId.startsWith("MOTION"))
             return PayloadValueType.MOTION;
         return null;
+    }
+
+
+    public Flux<String> getMonitoringMany(String appId, List<String> deviceIds) {
+        return webClientSse.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/monitoring/app/{appId}/stream")
+                        .build(appId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .bodyValue(deviceIds == null ? List.of() : deviceIds)
+                .retrieve()
+                .bodyToFlux(String.class)
+                // logs
+                .doOnSubscribe(sub ->
+                        log.info("[Sensor] SSE SUBSCRIBED appId={} devices={}", appId, deviceIds))
+
+                .doOnNext(raw ->
+                        log.info("[Sensor] SSE RAW EVENT appId={} => {}", appId, raw))
+
+                .doOnCancel(() ->
+                        log.warn("[Sensor] SSE CANCELLED appId={}", appId))
+
+                .doOnComplete(() ->
+                        log.warn("[Sensor] SSE COMPLETED appId={}", appId))
+
+                .doOnError(err ->
+                        log.error("[Sensor] SSE multi error appId={}: {}",
+                                appId, err.getMessage(), err))
+                .doOnNext(this::parseAndUpdateCache);
+    }
+
+
+    private void parseAndUpdateCache(String payload) {
+        log.warn("SSE RAW PAYLOAD RECEIVED: {}", payload);
+        try {
+            log.info("SSE PAYLOAD RECEIVED");
+            JsonNode root = objectMapper.readTree(payload);
+            log.info("SSE Playload: ", root);
+            JsonNode result = root.path("raw").path("result");
+            if (result.isMissingNode()) {
+                log.warn("No result node in payload");
+                return;
+            }
+
+            String devEui = result
+                    .path("end_device_ids")
+                    .path("dev_eui")
+                    .asText();
+
+            if (devEui == null || devEui.isBlank()) {
+                return;
+            }
+
+            String idSensor = sensorDao.findByDevEui(devEui)
+                    .map(Sensor::getIdSensor)
+                    .orElse(null);
+
+            if (idSensor == null) {
+                log.warn("No sensor found for devEui={}", devEui);
+                return;
+            }
+
+            String receivedAtStr = result.path("received_at").asText();
+
+            LocalDateTime receivedAt = OffsetDateTime
+                    .parse(receivedAtStr)
+                    .toLocalDateTime();
+
+            JsonNode decoded = result
+                    .path("uplink_message")
+                    .path("decoded_payload");
+
+            if (decoded.isMissingNode()) {
+                return;
+            }
+
+            if (decoded.has("co2")) {
+                String value = decoded.path("co2").asText();
+
+                SensorData data = new SensorData(
+                        idSensor,
+                        receivedAt,
+                        value,
+                        PayloadValueType.CO2.name()
+                );
+                log.info("Updating cache → key={} type=CO2 value={}", idSensor, value);
+                liveSensorCache.updateSensorValue(
+                        idSensor,
+                        PayloadValueType.CO2,
+                        data
+                );
+
+                log.info("CACHE UPDATE CO2 → {} = {}", idSensor, value);
+            }
+
+        } catch (Exception e) {
+            log.error("Error parsing SSE payload", e);
+        }
+    }
+
+    public void startMonitoringForBuilding(String building, String sensorType, String dbBuildingName) {
+        // Stop ancien stream si existe
+        if (currentSubscription != null && !currentSubscription.isDisposed()) {
+            currentSubscription.dispose();
+        }
+
+        String appId = mapBuildingToAppId(building);
+        List<Sensor> sensors = sensorDao.findAllByDeviceTypeAndBuilding(sensorType, dbBuildingName);
+        List<String> deviceIds  = sensors.stream()
+                .map(Sensor::getIdSensor)
+                .toList();
+
+        currentSubscription = getMonitoringMany(appId, deviceIds )
+                .subscribe();
+    }
+
+
+    private String mapBuildingToAppId(String building) {
+        if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
+            return "rpi-mantu-appli";
+        }
+        return switch (building.trim().toUpperCase()) {
+            case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
+            case "LEVALLOIS" -> "lorawan-network-mantu";
+            case "LILLE" -> "lil-rpi-mantu-appli";
+            default -> building;
+        };
     }
 }

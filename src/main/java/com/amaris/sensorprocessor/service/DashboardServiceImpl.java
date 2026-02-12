@@ -68,10 +68,9 @@ public class DashboardServiceImpl implements DashboardService {
         // avoir le vrai nom du bulding de la BDD
         String buildingName = BuildingMapping.toDbName(building);
 
+        alertService.startMonitoringForBuilding(building, sensorType, buildingName);
         // Get alerts
-        //List<Alert> alerts = getAlerts();
-        List<Alert> alerts = getAlerts(buildingName);
-
+        List<Alert> alerts = alertService.getCurrentAlerts(buildingName);
 
         // Get live sensor data with filters
         List<LiveSensorData> liveSensorData = getLiveSensorData(building, floor, sensorType);
