@@ -618,7 +618,7 @@ async handleFilterChange(filterId, value) {
 			this.currentData = data;
 
 			console.log('Updating dashboard visualizations...');
-await this.updateDashboard(data);   // ✅ important
+            await this.updateDashboard(data);   // ✅ important
 			this.updateRefreshTime();
 		} catch (error) {
 			console.error('Error Loading Dashboard Data', error);

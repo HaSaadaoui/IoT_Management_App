@@ -470,16 +470,4 @@ public class DashboardController {
                                 .map(t -> ServerSentEvent.builder("ping").event("keepalive").build())
                 );
     }
-
-
-    @PostMapping("/monitoring/start")
-    public ResponseEntity<String> startMonitoring(
-            @RequestParam String building,
-            @RequestParam String sensorType) {
-
-        String dbBuildingName = BuildingMapping.toDbName(building);
-        alertService.startMonitoringForBuilding(building, sensorType, dbBuildingName);
-        return ResponseEntity.ok("Monitoring started for " + building + " / " + sensorType);
-    }
-
 }

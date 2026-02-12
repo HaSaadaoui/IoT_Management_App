@@ -1,7 +1,6 @@
 package com.amaris.sensorprocessor.service;
 
 import com.amaris.sensorprocessor.config.AlertThresholdConfig;
-import com.amaris.sensorprocessor.entity.BuildingMapping;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.Sensor;
 import com.amaris.sensorprocessor.entity.SensorData;
@@ -10,7 +9,6 @@ import com.amaris.sensorprocessor.repository.SensorDao;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -66,16 +64,16 @@ public class AlertService {
         alerts.addAll(checkCO2Alerts(building));
 
         // Check for temperature alerts
-        //alerts.addAll(checkTemperatureAlerts(building));
+        alerts.addAll(checkTemperatureAlerts(building));
 
         // Check for sensor offline alerts
-        //alerts.addAll(checkSensorOfflineAlerts(building));
+        alerts.addAll(checkSensorOfflineAlerts(building));
 
         // Check for humidity alerts
-        //alerts.addAll(checkHumidityAlerts(building));
+        alerts.addAll(checkHumidityAlerts(building));
 
         // Check for noise alerts
-        //alerts.addAll(checkNoiseAlerts(building));
+        alerts.addAll(checkNoiseAlerts(building));
 
         // Check for gateway offline alerts - DISABLED due to connection leak
         // alerts.addAll(checkGatewayOfflineAlerts());
@@ -160,8 +158,8 @@ public class AlertService {
         allTempSensors.addAll(tempSensors);
 
         for (Sensor sensor : allTempSensors) {
-            Optional<SensorData> latestTemp = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(),
-                    PayloadValueType.TEMPERATURE);
+            Optional<SensorData> latestTemp =
+                    liveSensorCache.getLatest(sensor.getIdSensor(), PayloadValueType.TEMPERATURE);
 
             if (latestTemp.isPresent()) {
                 SensorData data = latestTemp.get();
@@ -311,8 +309,8 @@ public class AlertService {
         allHumiditySensors.addAll(humiditySensors);
 
         for (Sensor sensor : allHumiditySensors) {
-            Optional<SensorData> latestHumidity = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(),
-                    PayloadValueType.HUMIDITY);
+            Optional<SensorData> latestHumidity =
+                    liveSensorCache.getLatest(sensor.getIdSensor(), PayloadValueType.HUMIDITY);
 
             if (latestHumidity.isPresent()) {
                 SensorData data = latestHumidity.get();
@@ -356,8 +354,8 @@ public class AlertService {
         List<Sensor> noiseSensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_NOISE, building);
 
         for (Sensor sensor : noiseSensors) {
-            Optional<SensorData> latestNoise = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(),
-                    PayloadValueType.LAEQ);
+            Optional<SensorData> latestNoise =
+                    liveSensorCache.getLatest(sensor.getIdSensor(), PayloadValueType.LAEQ);
 
             if (latestNoise.isPresent()) {
                 SensorData data = latestNoise.get();
@@ -487,59 +485,6 @@ public class AlertService {
         return sensorId;
     }
 
-    /**
-     * Determine the expected data type for a sensor based on its device type
-     */
-    private PayloadValueType getDataTypeForDeviceType(String deviceType) {
-        if (deviceType == null)
-            return null;
-
-        switch (deviceType.toUpperCase()) {
-            case "CO2":
-                return PayloadValueType.CO2;
-            case "TEMP":
-            case "TEMPERATURE":
-                return PayloadValueType.TEMPERATURE;
-            case "HUMIDITY":
-                return PayloadValueType.HUMIDITY;
-            case "NOISE":
-                return PayloadValueType.LAEQ;
-            case "LIGHT":
-            case "ILLUMINANCE":
-                return PayloadValueType.ILLUMINANCE;
-            case "MOTION":
-                return PayloadValueType.MOTION;
-            case "DESK":
-            case "OCCUPANCY":
-                return PayloadValueType.OCCUPANCY;
-            default:
-                return null;
-        }
-    }
-
-    /**
-     * Determine the expected data type for a sensor based on its ID (legacy method)
-     */
-    private PayloadValueType getSensorDataType(String sensorId) {
-        if (sensorId == null)
-            return null;
-
-        String upperSensorId = sensorId.toUpperCase();
-        if (upperSensorId.startsWith("CO2"))
-            return PayloadValueType.CO2;
-        if (upperSensorId.startsWith("TEMP"))
-            return PayloadValueType.TEMPERATURE;
-        if (upperSensorId.startsWith("HUMID"))
-            return PayloadValueType.HUMIDITY;
-        if (upperSensorId.startsWith("NOISE"))
-            return PayloadValueType.LAEQ;
-        if (upperSensorId.startsWith("LIGHT"))
-            return PayloadValueType.ILLUMINANCE;
-        if (upperSensorId.startsWith("MOTION"))
-            return PayloadValueType.MOTION;
-        return null;
-    }
-
 
     public Flux<String> getMonitoringMany(String appId, List<String> deviceIds) {
         return webClientSse.post()
@@ -572,6 +517,7 @@ public class AlertService {
 
 
     private void parseAndUpdateCache(String payload) {
+        log.error("🔥 PARSE CALLED 🔥");
         log.warn("SSE RAW PAYLOAD RECEIVED: {}", payload);
         try {
             log.info("SSE PAYLOAD RECEIVED");
@@ -615,23 +561,29 @@ public class AlertService {
                 return;
             }
 
-            if (decoded.has("co2")) {
-                String value = decoded.path("co2").asText();
+            // Map pour lier payload → PayloadValueType
+            Map<String, PayloadValueType> typeMapping = Map.of(
+                    "co2", PayloadValueType.CO2,
+                    "temperature", PayloadValueType.TEMPERATURE,
+                    "humidity", PayloadValueType.HUMIDITY,
+                    "laeq", PayloadValueType.LAEQ
+            );
 
-                SensorData data = new SensorData(
-                        idSensor,
-                        receivedAt,
-                        value,
-                        PayloadValueType.CO2.name()
-                );
-                log.info("Updating cache → key={} type=CO2 value={}", idSensor, value);
-                liveSensorCache.updateSensorValue(
-                        idSensor,
-                        PayloadValueType.CO2,
-                        data
-                );
+            // Parcourir toutes les clés connues
+            for (Map.Entry<String, PayloadValueType> entry : typeMapping.entrySet()) {
+                String key = entry.getKey();
+                PayloadValueType valueType = entry.getValue();
 
-                log.info("CACHE UPDATE CO2 → {} = {}", idSensor, value);
+                if (decoded.has(key)) {
+                    String valueStr = decoded.path(key).asText();
+                    try {
+                        SensorData data = new SensorData(idSensor, receivedAt, valueStr, valueType.name());
+                        liveSensorCache.updateSensorValue(idSensor, valueType, data);
+                        log.info("CACHE UPDATE {} → {} = {}", valueType, idSensor, valueStr);
+                    } catch (Exception e) {
+                        log.warn("Failed to update cache for sensor {} type {} with value {}", idSensor, valueType, valueStr, e);
+                    }
+                }
             }
 
         } catch (Exception e) {
@@ -666,5 +618,23 @@ public class AlertService {
             case "LILLE" -> "lil-rpi-mantu-appli";
             default -> building;
         };
+    }
+
+
+    public List<Alert> getCurrentAlertsWithWait(String building, int maxWaitMs) {
+        int intervalMs = 100;
+        int waited = 0;
+
+        while (liveSensorCache.isEmpty(building) && waited < maxWaitMs) {
+            try {
+                Thread.sleep(intervalMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+            waited += intervalMs;
+        }
+
+        return getCurrentAlerts(building);
     }
 }

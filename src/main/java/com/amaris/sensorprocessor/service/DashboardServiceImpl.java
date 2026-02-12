@@ -70,7 +70,9 @@ public class DashboardServiceImpl implements DashboardService {
 
         alertService.startMonitoringForBuilding(building, sensorType, buildingName);
         // Get alerts
-        List<Alert> alerts = alertService.getCurrentAlerts(buildingName);
+        //List<Alert> alerts = alertService.getCurrentAlerts(buildingName);
+        // Attend que le cache contienne des données, max 500ms
+        List<Alert> alerts = alertService.getCurrentAlertsWithWait(buildingName, 500);
 
         // Get live sensor data with filters
         List<LiveSensorData> liveSensorData = getLiveSensorData(building, floor, sensorType);
