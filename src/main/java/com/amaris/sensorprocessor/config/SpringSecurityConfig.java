@@ -32,7 +32,8 @@ public class SpringSecurityConfig {
                         .requestMatchers("/api/sensors/**").permitAll() // API REST publique
                         .requestMatchers("/api/test-alerts", "/api/dashboard/**", "/api/analytics/**").permitAll() // Allow alerts, dashboard, and analytics APIs for development
                         .requestMatchers("/home").authenticated()
-                        .requestMatchers("/manage-users", "/manage-users/**").hasRole("ADMIN")
+                        .requestMatchers("/manage-users", "/manage-users/**")
+                        .hasAnyRole("ADMIN", "SUPERUSER")
                         .requestMatchers("/configuration", "/configuration/**").hasRole("ADMIN")
                         .anyRequest().hasAnyRole("ADMIN", "USER", "SUPERUSER")
                 )

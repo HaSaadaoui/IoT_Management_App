@@ -9,11 +9,15 @@
     <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
     <link rel="stylesheet" type="text/css" th:href="@{/css/manageUsers.css}" />
 </head>
-<body>
+
+<!-- expose logged role for JS (optional) -->
+<body th:attr="data-logged-role=${loggedRole}">
 <div th:replace="fragments/header :: appHeader(pageTitle='Manage Users', homeUrl=@{/})"></div>
+
 <div class="manageUsers-container">
     <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
-    <!-- Add filters container -->
+
+    <!-- Filters container -->
     <div class="filters-container"
          style="width: 95%; margin: 20px auto 15px auto; padding: 12px 15px; background-color: white; border: 2px solid #662179; border-radius: 8px; display: flex; gap: 15px; align-items: center; box-sizing: border-box; overflow-x: auto">
 
@@ -84,10 +88,11 @@
             </select>
             <span id="clearRole"
                   style="position: absolute; right: 25px; cursor: pointer; font-size: 16px; color: #000; user-select: none; display: none;">
-                    &#10005;
-                </span>
+                &#10005;
+            </span>
         </div>
     </div>
+
     <table>
         <thead>
         <tr>
@@ -106,11 +111,11 @@
             <td th:text="${user.lastname}"></td>
             <td th:text="${user.email}"></td>
             <td th:text="${user.role}"></td>
-            <!--                <td style="white-space: nowrap; overflow: visible;">-->
+
             <td>
                 <div th:if="${user.username != loggedUsername}" class="button-container">
                     <a th:href="@{/manage-users/edit/{username}(username=${user.username})}" class="openEditModalBtn">
-                        <img src="/image/edit-icon.svg" alt="Modify" width="20" >
+                        <img src="/image/edit-icon.svg" alt="Modify" width="20">
                     </a>
                     <form th:action="@{/manage-users/delete/{username}(username=${user.username})}"
                           method="post" class="deleteForm" style="display:inline;">
@@ -119,14 +124,15 @@
                         </button>
                     </form>
                 </div>
+
                 <div th:if="${user.username == loggedUsername}" class="button-container">
-                    <!-- Bouton désactivé pour l'utilisateur connecté -->
+                    <!-- edit allowed -->
                     <a th:href="@{/manage-users/edit/{username}(username=${user.username})}" class="openEditModalBtn">
-                        <img src="/image/edit-icon.svg" alt="Modify" width="20" >
+                        <img src="/image/edit-icon.svg" alt="Modify" width="20">
                     </a>
-                    <!-- Bouton désactivé pour l'utilisateur connecté -->
+                    <!-- delete disabled for connected user -->
                     <form class="disabledBtn" style="display:inline;">
-                        <button th:if="${user.username == loggedUsername}" type="button" style="background:none; border:none; pointer-events: none;" disabled>
+                        <button type="button" style="background:none; border:none; pointer-events: none;" disabled>
                             <img src="/image/delete-icon.svg" alt="Delete" width="20">
                         </button>
                     </form>
@@ -138,7 +144,7 @@
 
     <div id="pagination" class="pagination"></div>
 
-    <!-- Popup de confirmation -->
+    <!-- Delete confirmation popup -->
     <div id="deleteUserPopup" class="modal">
         <div class="modal-content-delete">
             <h2>Confirm delete?</h2>
@@ -149,7 +155,7 @@
         </div>
     </div>
 
-    <!-- Formulaire pour modifier un utilisateur -->
+    <!-- Edit user popup -->
     <div id="editUserPopup" class="modal" th:if="${editUser != null}">
         <div class="modal-content">
             <h2>Edit User</h2>
@@ -158,11 +164,29 @@
                 <input id="firstname" th:field="*{firstname}" placeholder="Firstname" required />
                 <input id="lastname" th:field="*{lastname}" placeholder="Lastname" required />
                 <input id="email" type="email" th:field="*{email}" placeholder="E-mail" required />
-                <select id="role" th:field="*{role}" >
-                    <option value="USER" th:selected="${editUser.role == 'USER'}">User</option>
-                    <option value="SUPERUSER" th:selected="${editUser.role == 'SUPERUSER'}">Superuser</option>
-                    <option value="ADMIN" th:selected="${editUser.role == 'ADMIN'}">Admin</option>
+
+                <!-- SUPERUSER: role not editable -->
+                <select name="role" required>
+                    <option value="USER"
+                            th:selected="${loggedRole == 'SUPERUSER'}">
+                        User
+                    </option>
+
+                    <option value="SUPERUSER"
+                            th:if="${loggedRole != 'SUPERUSER'}">
+                        Superuser
+                    </option>
+
+                    <option value="ADMIN"
+                            th:if="${loggedRole != 'SUPERUSER'}">
+                        Admin
+                    </option>
                 </select>
+
+                <!-- If disabled, send value anyway -->
+                <input type="hidden" th:field="*{role}"
+                       th:if="${loggedRole == 'SUPERUSER'}"/>
+
                 <div class="form-buttons">
                     <button type="submit">Update</button>
                     <button type="button" id="closeEdit">Cancel</button>
@@ -171,27 +195,44 @@
         </div>
     </div>
 
-    <!-- Bouton pour ouvrir la popup Create -->
+    <!-- Open create popup -->
     <button id="openCreateBtn">Add User</button>
 
-    <!-- Formulaire pour ajouter un utilisateur -->
+    <!-- Create user popup -->
     <div id="createUserPopup" class="modal modalCreate">
         <div class="modal-content">
             <h2>Add User</h2>
+
             <div th:if="${error}" class="alert alert-danger">
                 <p th:text="${error}"></p>
             </div>
+
             <form th:action="@{/manage-users/add}" method="post">
                 <input type="text" name="username" placeholder="Username" required />
                 <input type="text" name="firstname" placeholder="Firstname" required />
                 <input type="text" name="lastname" placeholder="Lastname" required />
                 <input type="password" name="password" placeholder="Password" required />
                 <input type="email" name="email" placeholder="E-mail" required />
-                <select name="role" required>
-                    <option value="USER">User</option>
-                    <option value="SUPERUSER">Superuser</option>
-                    <option value="ADMIN">Admin</option>
+
+                <!-- SUPERUSER: can only create USER -->
+                <select name="role" required
+                        th:disabled="${loggedRole == 'SUPERUSER'}">
+                    <!-- if SUPERUSER => only USER -->
+                    <option value="USER"
+                            th:if="${loggedRole == 'SUPERUSER'}"
+                            selected>User</option>
+
+                    <!-- else => full choices -->
+                    <option value="USER" th:if="${loggedRole != 'SUPERUSER'}">User</option>
+                    <option value="SUPERUSER" th:if="${loggedRole != 'SUPERUSER'}">Superuser</option>
+                    <option value="ADMIN" th:if="${loggedRole != 'SUPERUSER'}">Admin</option>
                 </select>
+
+                <!-- If disabled, send value anyway -->
+                <input type="hidden" name="role"
+                       th:if="${loggedRole == 'SUPERUSER'}"
+                       value="USER"/>
+
                 <div class="form-buttons">
                     <button type="submit">Add</button>
                     <button type="button" id="closeCreate">Cancel</button>
