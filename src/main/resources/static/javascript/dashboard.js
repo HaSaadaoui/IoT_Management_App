@@ -97,10 +97,39 @@ DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' }
 		console.log('=== Dashboard Manager Initialized ===');
 		this.initializeFilters();
 		this.initializeHistogramControls();
+		
+		// Initialize alert cache for instant filtering
+		this.initAlertCache();
 
 		this.loadBuildings();
 		this.loadDashboardData();
 		this.scheduleNextRefresh();
+	}
+	
+	async initAlertCache() {
+		if (!window.AlertCacheManager) {
+			console.warn('AlertCacheManager not loaded');
+			return;
+		}
+		
+		try {
+			// Initialize cache with current building
+			await window.AlertCacheManager.init({
+				building: this.filters.building,
+				useSSE: true,
+				backgroundRefresh: true
+			});
+			
+			// Subscribe to real-time alert updates
+			this.alertUnsubscribe = window.AlertCacheManager.subscribe((alerts) => {
+				console.log('🔔 [Dashboard] Alert update received:', alerts.length, 'alerts');
+				this.updateAlerts(alerts);
+			});
+			
+			console.log('✅ [Dashboard] AlertCacheManager initialized');
+		} catch (e) {
+			console.error('Failed to init AlertCacheManager:', e);
+		}
 	}
 
 	// =========================
@@ -457,33 +486,49 @@ async handleFilterChange(filterId, value) {
     }
 
     // ✅ 7) Restart CONSO SSE (building + floor='')
-    this.startConsoAggregateSse();
+			this.startConsoAggregateSse();
 
-    // 8) Reload data
-    await this.loadDashboardData();
-    this.applyBuildingStatVisibility();
-    return;
-  }
+			// ✅ 8) Update alert filters locally (instant, no API call)
+			this.updateAlertFilters();
 
-  // =========================
-  // ✅ Cas général
-  // =========================
-  this.filters[mappedKey] = value;
+			// 9) Reload data
+			await this.loadDashboardData();
+			this.applyBuildingStatVisibility();
+			return;
+		}
 
-  // UI pour sensor-type
-  if (filterId === 'sensor-type') {
-    this.updateSensorTypeUI(value);
-  }
+		// =========================
+		// ✅ Cas général (floor, sensor-type)
+		// =========================
+		this.filters[mappedKey] = value;
 
-  // ✅ Si on change d'étage : restart SSE (building + floor)
-  if (filterId === 'floor') {
-    this.startConsoAggregateSse();
-  }
+		// UI pour sensor-type
+		if (filterId === 'sensor-type') {
+			this.updateSensorTypeUI(value);
+		}
 
-  await this.loadDashboardData();
-  this.applyBuildingStatVisibility();
-}
+		// ✅ Si on change d'étage : restart SSE (building + floor)
+		if (filterId === 'floor') {
+			this.startConsoAggregateSse();
+		}
 
+		// ✅ INSTANT ALERT FILTERING - no API call, uses cached data
+		this.updateAlertFilters();
+
+		await this.loadDashboardData();
+		this.applyBuildingStatVisibility();
+	}
+
+	updateAlertFilters() {
+		if (window.AlertCacheManager?.setFilters) {
+			window.AlertCacheManager.setFilters({
+				building: this.filters.building,
+				floor: this.filters.floor,
+				sensorType: this.filters.sensorType
+			});
+			console.log('⚡ [Dashboard] Alert filters updated locally');
+		}
+	}
 
 	// =========================
 	// ===== UI TITLES =====

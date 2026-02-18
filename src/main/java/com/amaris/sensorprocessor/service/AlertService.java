@@ -32,6 +32,24 @@ public class AlertService {
     private static final String DEVICE_TYPE_TEMP = "TEMPEX";
     private static final String DEVICE_TYPE_HUMIDITY = "HUMIDITY";
     private static final String DEVICE_TYPE_NOISE = "NOISE";
+    
+    // ============ ALERT CACHE (30-second TTL) ============
+    private static final long CACHE_TTL_MS = 30_000; // 30 seconds
+    private final Map<String, CachedAlerts> alertCache = new ConcurrentHashMap<>();
+    
+    private static class CachedAlerts {
+        final List<Alert> alerts;
+        final long timestamp;
+        
+        CachedAlerts(List<Alert> alerts) {
+            this.alerts = alerts;
+            this.timestamp = System.currentTimeMillis();
+        }
+        
+        boolean isExpired() {
+            return System.currentTimeMillis() - timestamp > CACHE_TTL_MS;
+        }
+    }
 
     private final SensorDataDao sensorDataDao;
     private final SensorDao sensorDao;
@@ -54,13 +72,25 @@ public class AlertService {
 
     /**
      * Generate alerts based on current sensor data
+     * Uses caching to avoid repeated expensive DB queries (30-second TTL)
      * 
      * @return List of active alerts
      */
     public List<Alert> getCurrentAlerts(String building) {
+        String cacheKey = building == null || building.isBlank() ? "_ALL_" : building;
+        
+        // Check cache first
+        CachedAlerts cached = alertCache.get(cacheKey);
+        if (cached != null && !cached.isExpired()) {
+            log.debug("⚡ Alert cache HIT for building: {}", cacheKey);
+            return new ArrayList<>(cached.alerts); // Return copy to prevent modification
+        }
+        
+        log.debug("🔄 Alert cache MISS - computing alerts for: {}", cacheKey);
+        
         List<Alert> alerts = new ArrayList<>();
 
-        // Check for CO2 alerts
+        // Check for CO2 alerts (includes temperature from CO2 sensors)
         alerts.addAll(checkCO2Alerts(building));
 
         // Check for temperature alerts
@@ -75,10 +105,20 @@ public class AlertService {
         // Check for noise alerts
         alerts.addAll(checkNoiseAlerts(building));
 
-        // Check for gateway offline alerts - DISABLED due to connection leak
-        // alerts.addAll(checkGatewayOfflineAlerts());
+        // Cache the results
+        alertCache.put(cacheKey, new CachedAlerts(alerts));
+        log.debug("✅ Cached {} alerts for building: {}", alerts.size(), cacheKey);
 
         return alerts;
+    }
+    
+    /**
+     * Force refresh the alert cache for a specific building
+     */
+    public void invalidateCache(String building) {
+        String cacheKey = building == null || building.isBlank() ? "_ALL_" : building;
+        alertCache.remove(cacheKey);
+        log.debug("🗑️ Alert cache invalidated for: {}", cacheKey);
     }
 
     private boolean hasSensorType(String building, String sensorType) {
@@ -101,8 +141,13 @@ public class AlertService {
         List<Sensor> co2Sensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_CO2, building);
 
         for (Sensor sensor : co2Sensors) {
-            Optional<SensorData> latestCO2 =
-                   liveSensorCache.getLatest(sensor.getIdSensor(), PayloadValueType.CO2);
+            // First try LiveSensorCache, then fall back to database
+            Optional<SensorData> latestCO2 = liveSensorCache.getLatest(sensor.getIdSensor(), PayloadValueType.CO2);
+            
+            // FALLBACK: If cache is empty, query database directly
+            if (latestCO2.isEmpty()) {
+                latestCO2 = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(), PayloadValueType.CO2);
+            }
 
             if (latestCO2.isPresent()) {
                 SensorData data = latestCO2.get();
@@ -160,6 +205,11 @@ public class AlertService {
         for (Sensor sensor : allTempSensors) {
             Optional<SensorData> latestTemp =
                     liveSensorCache.getLatest(sensor.getIdSensor(), PayloadValueType.TEMPERATURE);
+            
+            // FALLBACK: If cache is empty, query database directly
+            if (latestTemp.isEmpty()) {
+                latestTemp = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(), PayloadValueType.TEMPERATURE);
+            }
 
             if (latestTemp.isPresent()) {
                 SensorData data = latestTemp.get();
@@ -214,10 +264,7 @@ public class AlertService {
         // Get all sensors from the database
         List<Sensor> allSensors = sensorDao.findAllByBuilding(building);
 
-        log.info("🔍 Checking {} sensors for offline alerts. DESK threshold: {}h, default: {}min",
-                allSensors.size(), 
-                thresholdConfig.getDeskOfflineThresholdHours(),
-                thresholdConfig.getDataMaxAgeMinutes());
+        log.debug("Checking {} sensors for offline status", allSensors.size());
 
         int deskCount = 0, otherCount = 0;
 
@@ -238,9 +285,6 @@ public class AlertService {
 
                 // Check if the most recent data is older than the threshold
                 if (data.getReceivedAt().isBefore(cutoffTime) || data.getReceivedAt().isEqual(cutoffTime)) {
-                    log.info("⚠️ OFFLINE: {} ({}) - last: {} min ago, threshold: {} min",
-                            sensorId, deviceType, minutesAgo, thresholdMinutes);
-
                     if ("DESK".equalsIgnoreCase(deviceType)) {
                         deskCount++;
                     } else {
@@ -260,8 +304,7 @@ public class AlertService {
             }
         }
 
-        log.info("✅ Found {} offline sensors (DESK: {}, Other: {}) using device-specific thresholds", 
-                alerts.size(), deskCount, otherCount);
+        log.debug("Found {} offline sensors (DESK: {}, Other: {})", alerts.size(), deskCount, otherCount);
         return alerts;
     }
 
@@ -311,6 +354,11 @@ public class AlertService {
         for (Sensor sensor : allHumiditySensors) {
             Optional<SensorData> latestHumidity =
                     liveSensorCache.getLatest(sensor.getIdSensor(), PayloadValueType.HUMIDITY);
+            
+            // FALLBACK: If cache is empty, query database directly
+            if (latestHumidity.isEmpty()) {
+                latestHumidity = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(), PayloadValueType.HUMIDITY);
+            }
 
             if (latestHumidity.isPresent()) {
                 SensorData data = latestHumidity.get();
@@ -356,6 +404,11 @@ public class AlertService {
         for (Sensor sensor : noiseSensors) {
             Optional<SensorData> latestNoise =
                     liveSensorCache.getLatest(sensor.getIdSensor(), PayloadValueType.LAEQ);
+            
+            // FALLBACK: If cache is empty, query database directly
+            if (latestNoise.isEmpty()) {
+                latestNoise = sensorDataDao.findLatestBySensorAndType(sensor.getIdSensor(), PayloadValueType.LAEQ);
+            }
 
             if (latestNoise.isPresent()) {
                 SensorData data = latestNoise.get();

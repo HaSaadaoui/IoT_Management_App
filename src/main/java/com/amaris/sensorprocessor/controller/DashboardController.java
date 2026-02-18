@@ -80,8 +80,70 @@ public class DashboardController {
 
     @GetMapping("/api/alerts")
     @ResponseBody
-    public List<Alert> getAlerts() {
-        return alertService.getCurrentAlerts("");
+    public List<Alert> getAlerts(@RequestParam(required = false) String building) {
+        String dbBuilding = building != null ? mapBuildingToDbName(building) : "";
+        return alertService.getCurrentAlerts(dbBuilding);
+    }
+
+    @GetMapping(value = "/api/alerts/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @ResponseBody
+    public Flux<ServerSentEvent<String>> streamAlerts(
+            @RequestParam(required = false) String building
+    ) {
+        final String dbBuilding = building != null ? mapBuildingToDbName(building) : "";
+        
+        // Periodic alert refresh (every 2 minutes - sensors update on value change or every 10min)
+        Flux<ServerSentEvent<String>> alertStream = Flux.interval(Duration.ofMinutes(2))
+                .publishOn(Schedulers.boundedElastic())
+                .map(tick -> {
+                    try {
+                        List<Alert> alerts = alertService.getCurrentAlerts(dbBuilding);
+                        String json = om.writeValueAsString(alerts);
+                        return ServerSentEvent.<String>builder(json)
+                                .event("alert_update")
+                                .build();
+                    } catch (Exception e) {
+                        log.error("Error streaming alerts: {}", e.getMessage());
+                        return ServerSentEvent.<String>builder("[]")
+                                .event("alert_update")
+                                .build();
+                    }
+                });
+        
+        // Keepalive every 60 seconds
+        Flux<ServerSentEvent<String>> keepAlive = Flux.interval(Duration.ofSeconds(60))
+                .map(t -> ServerSentEvent.<String>builder("ping")
+                        .event("keepalive")
+                        .build());
+        
+        // Initial alerts on connect
+        Flux<ServerSentEvent<String>> initialAlerts = Mono.fromCallable(() -> {
+            try {
+                List<Alert> alerts = alertService.getCurrentAlerts(dbBuilding);
+                String json = om.writeValueAsString(alerts);
+                return ServerSentEvent.<String>builder(json)
+                        .event("alert_update")
+                        .build();
+            } catch (Exception e) {
+                return ServerSentEvent.<String>builder("[]")
+                        .event("alert_update")
+                        .build();
+            }
+        }).subscribeOn(Schedulers.boundedElastic()).flux();
+        
+        return initialAlerts.concatWith(alertStream.mergeWith(keepAlive));
+    }
+    
+    private String mapBuildingToDbName(String building) {
+        if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
+            return "";
+        }
+        return switch (building.trim().toUpperCase()) {
+            case "CHATEAUDUN", "CHÂTEAUDUN" -> "Châteaudun-Building";
+            case "LEVALLOIS" -> "Levallois-Building";
+            case "LILLE" -> "Lille";
+            default -> building;
+        };
     }
 
     @GetMapping("/api/dashboard")

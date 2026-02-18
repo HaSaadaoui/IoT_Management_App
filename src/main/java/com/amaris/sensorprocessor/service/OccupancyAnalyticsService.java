@@ -181,10 +181,10 @@ public class OccupancyAnalyticsService {
                 .collect(Collectors.joining(","));
         
         String query = String.format("""
-            SELECT id_sensor, received_at, value 
+            SELECT id_sensor, received_at, value, value_type 
             FROM sensor_data 
             WHERE id_sensor IN (%s)
-            AND value_type = 'OCCUPANCY'
+            AND value_type IN ('OCCUPANCY', 'PERIOD_IN', 'PERIOD_OUT')
             AND received_at >= ? 
             AND received_at < ?
             ORDER BY id_sensor, received_at
@@ -722,10 +722,10 @@ public class OccupancyAnalyticsService {
                 .collect(Collectors.joining(","));
         
         String query = String.format("""
-            SELECT id_sensor, received_at, value 
+            SELECT id_sensor, received_at, value, value_type 
             FROM sensor_data 
             WHERE id_sensor IN (%s)
-            AND value_type = 'OCCUPANCY'
+            AND value_type IN ('OCCUPANCY', 'PERIOD_IN', 'PERIOD_OUT')
             AND received_at >= ? 
             AND received_at < ?
             ORDER BY id_sensor, received_at
