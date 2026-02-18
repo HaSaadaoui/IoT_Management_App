@@ -165,25 +165,12 @@
                 <input id="lastname" th:field="*{lastname}" placeholder="Lastname" required />
                 <input id="email" type="email" th:field="*{email}" placeholder="E-mail" required />
 
-                <!-- SUPERUSER: role not editable -->
-                <select name="role" required>
-                    <option value="USER"
-                            th:selected="${loggedRole == 'SUPERUSER'}">
-                        User
-                    </option>
-
-                    <option value="SUPERUSER"
-                            th:if="${loggedRole != 'SUPERUSER'}">
-                        Superuser
-                    </option>
-
-                    <option value="ADMIN"
-                            th:if="${loggedRole != 'SUPERUSER'}">
-                        Admin
-                    </option>
+                <select id="role" th:field="*{role}"
+                        th:disabled="${loggedRole == 'SUPERUSER'}">
+                    <option value="USER">User</option>
+                    <option value="SUPERUSER">Superuser</option>
+                    <option value="ADMIN">Admin</option>
                 </select>
-
-                <!-- If disabled, send value anyway -->
                 <input type="hidden" th:field="*{role}"
                        th:if="${loggedRole == 'SUPERUSER'}"/>
 
