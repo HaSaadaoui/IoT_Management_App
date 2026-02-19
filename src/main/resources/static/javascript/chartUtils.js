@@ -1,7 +1,36 @@
+// =============== BUILDING CHART INSTANCES ================
+const chartsByBuilding = {
+    CHATEAUDUN: {},
+    LEVALLOIS: {}
+};
+
+function renderOpenEspace(building, data) {
+
+    if (!chartsByBuilding[building]) {
+        chartsByBuilding[building] = {};
+    }
+
+    if (chartsByBuilding[building].openEspace) {
+        chartsByBuilding[building].openEspace.destroy();
+    }
+
+    const canvas = document.querySelector(`#${building}_OPEN_ESPACE`);
+    if (!canvas) {
+        console.warn("Canvas not found for building:", building);
+        return;
+    }
+
+    const ctx = canvas.getContext("2d");
+
+    chartsByBuilding[building].openEspace = new Chart(ctx, {
+        type: 'doughnut',
+        data: data,
+        options: { responsive: true }
+    });
+}
+
 // ===== CHART UTILITIES + LIVE OCCUPANCY =====
-// ============================================
-// OCCUPANCY ZONES
-// ============================================
+// =============  OCCUPANCY ZONES ===================
 const OCCUPANCY_ZONES = {
     LEVALLOIS: {
         3: {
@@ -21,25 +50,58 @@ const OCCUPANCY_ZONES = {
         }
     },
     CHATEAUDUN: {
-        2: { OPEN_SPACE: { title: "Open Space", match: (id) => /^desk-01-0[1-9]|desk-01-1[0-5]$/.test(id) } },
-        4: { OPEN_SPACE: { title: "Open Space", match: (id) => /^desk-01-0[1-8]$/.test(id) } },
-        5: { OPEN_SPACE: { title: "Open Space", match: (id) => /^desk-01-(0[1-9]|1[0-9]|2[0-4])$/.test(id) } },
-        6: { OPEN_SPACE: { title: "Open Space", match: (id) => /^desk-01-(0[1-9]|1[0-6])$/.test(id) } }
+        2: {
+            OPEN_SPACE: {
+                title: "Open Space",
+                prefix: "desk-01-",
+                start: 1,
+                end: 15,
+                match: (id) => /^desk-01-(0[1-9]|1[0-5])$/.test(id)
+            }
+        },
+        3: {
+            OPEN_SPACE: {
+                title: "Open Space",
+                prefix: "desk-03-",
+                start: 1,
+                end: 15,
+                match: (id) => /^desk-03-(0[1-9]|1[0-5])$/.test(id)
+            }
+        },
+        4: {
+            OPEN_SPACE: {
+                title: "Open Space",
+                prefix: "desk-04-",
+                start: 1,
+                end: 8,
+                match: (id) => /^desk-04-0[1-8]$/.test(id)
+            }
+        },
+        5: {
+            OPEN_SPACE: {
+                title: "Open Space",
+                prefix: "desk-05-",
+                start: 1,
+                end: 24,
+                match: (id) => /^desk-05-(0[1-9]|1[0-9]|2[0-4])$/.test(id)
+            }
+        },
+        6: {
+            OPEN_SPACE: {
+                title: "Open Space",
+                prefix: "desk-06-",
+                start: 1,
+                end: 16,
+                match: (id) => /^desk-06-(0[1-9]|1[0-6])$/.test(id)
+            }
+        }
     }
 };
-// ============================================
-// DASHBOARD CONTEXT
-// ============================================
-const DASHBOARD_CTX = { building: "LEVALLOIS", floor: 3 };
 
-// ============================================
-// GLOBAL STATE
-// ============================================
-let occupancyUnsub = null;          // <-- à la place de occupancySource
+let occupancyUnsub = null;
 const occupancyState = {};
-// ============================================
-// SSE / LIVE OCCUPANCY
-// ============================================
+
+// =============== SSE / LIVE OCCUPANCY ================
 function openOccupancySSE(building, floor) {
   console.log("🔄 openOccupancySSE (SSEManager) called with:", building, floor);
 
@@ -83,7 +145,12 @@ function openOccupancySSE(building, floor) {
       const snapshot = Object.entries(occupancyState).map(([id, s]) => ({ id, status: s }));
 
       const zoneStats = aggregateByZone(snapshot, building, floor);
-      updateAllStatCards(zoneStats);
+
+      if (building === "CHATEAUDUN") {
+          renderChateaudunCards(zoneStats);
+      } else {
+          updateAllStatCards(zoneStats);
+      }
 
     } catch (err) {
       console.warn("[SSEManager][occupancy] handler error", err);
@@ -100,13 +167,12 @@ function closeOccupancySSE() {
   }
 }
 
-// Bonus: auto-clean si tu veux (recommandé)
+// Auto-clean
 window.addEventListener("beforeunload", () => {
   closeOccupancySSE();
 });
-// ============================================
-// HELPERS
-// ============================================
+
+// ============== HELPERS =================
 function normalizeDeskStatus(v) {
     if (v == null) return "invalid";
     if (typeof v === "string") {
@@ -120,60 +186,192 @@ function normalizeDeskStatus(v) {
     return "invalid";
 }
 
-// ============================================
-// AGGREGATION
-// ============================================
+// =============== AGGREGATION ===================
 function aggregateByZone(rawData, building, floor) {
+    if (building === "CHATEAUDUN" && (!floor || floor === "")) {
+        return aggregateChateaudunAllFloors(rawData);
+    }
+
+    if (building === "LEVALLOIS" && (!floor || floor === "" || floor === "all")) {
+        return aggregateLevalloisAllFloors(rawData);
+    }
+
+    // sinon → floor normal
+    return aggregateByZonesForFloor(rawData, building, floor);
+}
+
+// =============== LEVALLOIS ALL FLOORS =================
+function aggregateLevalloisAllFloors(rawData) {
+
+    const floors = OCCUPANCY_ZONES.LEVALLOIS;
+    const result = {};
+
+    Object.entries(floors).forEach(([floorNumber, zones]) => {
+
+        Object.entries(zones).forEach(([zoneKey, zone]) => {
+
+            if (!result[zoneKey]) {
+                result[zoneKey] = {
+                    location: zone.title,
+                    free: 0,
+                    used: 0,
+                    invalid: 0
+                };
+            }
+
+            rawData.forEach(({ id, status }) => {
+                if (zone.match(id)) {
+                    if (status === "free") result[zoneKey].free++;
+                    else if (status === "used") result[zoneKey].used++;
+                    else result[zoneKey].invalid++;
+                }
+            });
+
+            // ===== INTEGRITY CHECK =====
+            if (zone.prefix && zone.start && zone.end) {
+
+                const expected = [];
+
+                for (let i = zone.start; i <= zone.end; i++) {
+                    expected.push(zone.prefix + i.toString().padStart(2,'0'));
+                }
+
+                const actual = rawData
+                    .filter(d => zone.match(d.id))
+                    .map(d => d.id);
+
+                const missing = expected.filter(d => !actual.includes(d));
+                result[zoneKey].invalid += missing.length;
+            }
+        });
+
+    });
+
+    console.log("Result from alert js", JSON.stringify(result, null, 2));
+    return result;
+}
+
+// ===== MODE ALL FLOORS (Châteaudun uniquement) =====
+function aggregateChateaudunAllFloors(rawData){
+    const floors = OCCUPANCY_ZONES.CHATEAUDUN;
+    const result = {};
+
+    Object.entries(floors).forEach(([floorNumber, zones]) => {
+        result[`FLOOR_${floorNumber}`] = {
+            location: `FLOOR_${floorNumber}`,
+            free: 0,
+            used: 0,
+            invalid: 0
+        };
+
+        Object.values(zones).forEach(zone => {
+            const expectedDesks = [];
+            // Génération desks attendus
+            for (let i = zone.start; i <= zone.end; i++) {
+                expectedDesks.push(
+                    zone.prefix + i.toString().padStart(2,'0')
+                );
+            }
+
+            const actualDesks = rawData
+                .filter(d => zone.match(d.id))
+                .map(d => d.id);
+
+            // Comptage réel
+            rawData.forEach(({ id, status }) => {
+                if (zone.match(id)) {
+                    if (status === "free") result[`FLOOR_${floorNumber}`].free++;
+                    else if (status === "used") result[`FLOOR_${floorNumber}`].used++;
+                    else result[`FLOOR_${floorNumber}`].invalid++;
+                }
+            });
+
+            // Missing desks
+            const missing = expectedDesks.filter(d => !actualDesks.includes(d));
+            result[`FLOOR_${floorNumber}`].invalid += missing.length;
+        });
+
+    });
+
+    console.log("Result from alert js", JSON.stringify(result, null, 2));
+    return result;
+}
+
+// sinon → floor normal
+function aggregateByZonesForFloor(rawData, building, floor){
     const zones = OCCUPANCY_ZONES?.[building]?.[floor];
     if (!zones) return {};
 
     const result = {};
-    Object.entries(zones).forEach(([zoneKey, zone]) => {
-        result[zoneKey] = { location: zone.title, free: 0, used: 0, invalid: 0 };
-    });
 
-    rawData.forEach(({ id, status }) => {
-        Object.entries(zones).forEach(([zoneKey, zone]) => {
+    Object.entries(zones).forEach(([zoneKey, zone]) => {
+
+        result[zoneKey] = {
+            location: zone.title,
+            free: 0,
+            used: 0,
+            invalid: 0
+        };
+
+        rawData.forEach(({ id, status }) => {
             if (zone.match(id)) {
                 if (status === "free") result[zoneKey].free++;
                 else if (status === "used") result[zoneKey].used++;
                 else result[zoneKey].invalid++;
             }
         });
-    });
 
-    // ===== INTEGRITY CHECK =====
-    //Si le sensor n'est pas renvoyé ou a un statut inconu, alors ==> invalid
-    Object.entries(zones).forEach(([zoneKey, zone]) => {
-        const expectedDesks = [];
-        for (let i = 1; i <= 92; i++) {
-            const id = `desk-03-${i.toString().padStart(2,'0')}`;
-            if (zone.match(id)) expectedDesks.push(id);
-        }
+        // ===== INTEGRITY CHECK =====
+        if (zone.prefix && zone.start && zone.end) {
 
-        const actualDesks = rawData
-            .filter(d => zone.match(d.id))
-            .map(d => d.id);
+            const expected = [];
 
-        const missing = expectedDesks.filter(d => !actualDesks.includes(d));
-        const extra   = actualDesks.filter(d => !expectedDesks.includes(d));
+            for (let i = zone.start; i <= zone.end; i++) {
+                expected.push(zone.prefix + i.toString().padStart(2,'0'));
+            }
 
-        //Missing desks = INVALID
-        if (missing.length > 0) {
+            const actual = rawData
+                .filter(d => zone.match(d.id))
+                .map(d => d.id);
+
+            const missing = expected.filter(d => !actual.includes(d));
             result[zoneKey].invalid += missing.length;
         }
 
-        // Logs
-        //if (missing.length > 0) console.log(`❌ Missing desks:`, missing);
-        //if (extra.length > 0) console.log(`⚠️ Extra desks:`, extra);
     });
-    //console.log("Result from alert js", JSON.stringify(result, null, 2));
+
+    console.log("Result from alert js", JSON.stringify(result, null, 2));
     return result;
 }
 
-// ============================================
-// STAT CARD UPDATE
-// ============================================
+
+function renderChateaudunCards(zoneStats) {
+    console.log("Chateaudun zoneStats: ", zoneStats);
+    const container = document.getElementById("stats-chateaudun");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    Object.keys(zoneStats).forEach(zoneKey => {
+
+        const card = document.createElement("div");
+        card.className = "stat-card";
+        card.dataset.zone = zoneKey;
+
+        card.innerHTML = `
+            <h4 class="stat-card-title">${zoneStats[zoneKey].location}</h4>
+            <div class="stat-chart-container">
+                <canvas class="chart-office"></canvas>
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+
+    updateAllStatCards(zoneStats);
+}
+
+// =========== STAT CARD UPDATE ==============
 function updateAllStatCards(zoneStats) {
     document.querySelectorAll(".stat-card[data-zone]").forEach(card => {
         const zoneKey = card.dataset.zone;
@@ -213,12 +411,48 @@ function updateStatCard(statCard, data) {
     if (titleElement && data.location) titleElement.textContent = data.location;
 }
 
-// ============================================
-// INIT
-// ============================================
+// ============== INITIALISATION =================
+const DASHBOARD_CTX = {
+    building: null,
+    floor: null
+};
+
+function normalizeFloor(value) {
+    if (!value || value === "all") return "";
+    return parseInt(value, 10);
+}
+
+
 window.addEventListener("DOMContentLoaded", () => {
-    console.log("🟢 DOM fully loaded");
+    const buildingSelect = document.getElementById("filter-building");
+    const floorSelect = document.getElementById("filter-floor");
+
+    if (!buildingSelect || !floorSelect) {
+        console.warn("Filters not found in DOM");
+        return;
+    }
+
+    // Initialisation contexte
+    DASHBOARD_CTX.building = buildingSelect.value;
+    DASHBOARD_CTX.floor = normalizeFloor(floorSelect.value);
+    console.log("DASHBOARD_CTX.building ===>", DASHBOARD_CTX.building );
+    console.log("DASHBOARD_CTX.floor ===>", DASHBOARD_CTX.floor );
+
     openOccupancySSE(DASHBOARD_CTX.building, DASHBOARD_CTX.floor);
+
+    // ===== EVENT LISTENERS =====
+    buildingSelect.addEventListener("change", () => {
+        DASHBOARD_CTX.building = buildingSelect.value;
+        DASHBOARD_CTX.floor = normalizeFloor(floorSelect.value);
+
+        openOccupancySSE(DASHBOARD_CTX.building, DASHBOARD_CTX.floor);
+    });
+
+    floorSelect.addEventListener("change", () => {
+        DASHBOARD_CTX.floor = normalizeFloor(floorSelect.value);
+
+        openOccupancySSE(DASHBOARD_CTX.building, DASHBOARD_CTX.floor);
+    });
 });
 
 // Color constants - read from CSS variables for single source of truth
