@@ -11,6 +11,76 @@ class FloorElementsManager {
         return g;
     }
 
+    // Config drawing methods
+    drawRect(parent, x, y, width, height, rotation = null, fill = false){
+        const el = document.createElementNS(this.ns, "rect");
+        el.setAttribute("x", x);
+        el.setAttribute("y", y);
+        el.setAttribute("width", width);
+        el.setAttribute("height", height);
+        el.setAttribute("fill", fill ? "#ffffff" : "none");
+        el.setAttribute("stroke", this.colors.wallStroke);
+        el.setAttribute("stroke-width", 2);
+        if (rotation) {
+            const cx = x + width / 2;
+            const cy = y + height / 2;
+            el.setAttribute("transform",`rotate(${rotation} ${cx} ${cy})`);
+        }
+        parent.appendChild(el);
+    }
+
+    drawCircle(parent, cx, cy, radius) {
+        const path = document.createElementNS(this.ns, "circle");
+
+        path.setAttribute("r", radius);
+        path.setAttribute("cx", cx);
+        path.setAttribute("cy", cy);
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", this.colors.wallStroke);
+        path.setAttribute("stroke-width", 2);
+
+        parent.appendChild(path);
+        return path;
+    }
+    
+    drawLine(parent, points, color, width, rotation = null) {
+        const line = document.createElementNS(this.ns, "line");
+        line.setAttribute("x1", points[0].x);
+        line.setAttribute("y1", points[0].y);
+        line.setAttribute("x2", points[1].x);
+        line.setAttribute("y2", points[1].y);
+        line.setAttribute("stroke", color);
+        line.setAttribute("stroke-width", width);
+        line.setAttribute("stroke-linecap", "square");
+        if (rotation) {
+            const cx = (points[0].x + points[1].x) / 2;
+            const cy = (points[0].y + points[1].y) / 2;
+            line.setAttribute("transform",`rotate(${rotation} ${cx} ${cy})`);
+        }
+        parent.appendChild(line);
+        return line;
+    }
+
+    drawLabel(parent, x, y, text, fontSize = 12, fontWeight = "normal", rotation = null) {
+        const label = document.createElementNS(this.ns, "text");
+        label.setAttribute("x", x);
+        label.setAttribute("y", y);
+        label.setAttribute("text-anchor", "middle");
+        label.setAttribute("font-family", "Arial, sans-serif");
+        label.setAttribute("font-size", fontSize);
+        label.setAttribute("font-weight", fontWeight);
+        label.setAttribute("fill", this.colors.text);
+        label.textContent = text;
+        if (rotation) {
+            const cx = x;
+            const cy = y;
+            label.setAttribute("transform",`rotate(${rotation} ${cx} ${cy})`);
+        }
+        parent.appendChild(label);
+        return label;
+    }
+
+    // Old Dashboard methods (to be refactored)
     drawWall(parent, points, isOutline = false) {
         const path = document.createElementNS(this.ns, "path");
         let d = `M ${points[0].x} ${points[0].y}`;
@@ -42,7 +112,7 @@ class FloorElementsManager {
 
         // Window panes
         if (orientation === "horizontal") {
-            const divider = document.createElementNS("http://www.w3.org/2000/svg","line");
+            const divider = document.createElementNS(this.ns, "line");
             divider.setAttribute("x1", x);
             divider.setAttribute("y1", y - 3);
             divider.setAttribute("x2", x);
@@ -51,7 +121,7 @@ class FloorElementsManager {
             divider.setAttribute("stroke-width", 1);
             parent.appendChild(divider);
         } else {
-            const divider = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            const divider = document.createElementNS(this.ns, "line");
             divider.setAttribute("x1", x - 3);
             divider.setAttribute("y1", y);
             divider.setAttribute("x2", x + 3);
@@ -65,7 +135,7 @@ class FloorElementsManager {
         return el;
     }
 
-    drawDoor(parent, x, y, width, height, orientation = "horizontal", arc = false, rotation = null) {
+    drawDoor(parent, x, y, width, height, orientation = "horizontal", arc = false) {
         const w = orientation === "horizontal" ? width : height;
         const h = orientation === "horizontal" ? height : width;
 
@@ -77,9 +147,6 @@ class FloorElementsManager {
         el.setAttribute("fill", "#ffffff");
         el.setAttribute("stroke", this.colors.wallStroke);
         el.setAttribute("stroke-width", 2);
-        if (rotation) {
-            el.setAttribute("transform", rotation);
-        }
         parent.appendChild(el);
 
         // Door arc
@@ -100,7 +167,7 @@ class FloorElementsManager {
         return el;
     }
 
-    drawCircle(parent, xStart, yStart, xRadii, yRadii, xAxisRotation, largeArcFlag, sweepFlag, xEnd, yEnd, isOutline) {
+    drawCircleArc(parent, xStart, yStart, xRadii, yRadii, xAxisRotation, largeArcFlag, sweepFlag, xEnd, yEnd, isOutline) {
         const path = document.createElementNS(this.ns, "path");
 
         let d = `M ${xStart} ${yStart} A ${xRadii} ${yRadii} ${xAxisRotation} ${largeArcFlag} ${sweepFlag} ${xEnd} ${yEnd}`;
@@ -114,39 +181,6 @@ class FloorElementsManager {
 
         parent.appendChild(path);
         return path;
-    }
-
-    drawLine(parent, points, color, width) {
-        const line = document.createElementNS(this.ns, "line");
-        line.setAttribute("x1", points[0].x);
-        line.setAttribute("y1", points[0].y);
-        line.setAttribute("x2", points[1].x);
-        line.setAttribute("y2", points[1].y);
-        line.setAttribute("stroke", color);
-        line.setAttribute("stroke-width", width);
-        line.setAttribute("stroke-linecap", "square");
-
-        parent.appendChild(line);
-        return line;
-    }
-
-    drawLabel(parent, x, y, text, fontSize = 12, fontWeight = "normal", rotation = null) {
-        const label = document.createElementNS(this.ns, "text");
-        label.setAttribute("x", x);
-        label.setAttribute("y", y);
-        label.setAttribute("text-anchor", "middle");
-        label.setAttribute("font-family", "Arial, sans-serif");
-        label.setAttribute("font-size", fontSize);
-        label.setAttribute("font-weight", fontWeight);
-        label.setAttribute("fill", this.colors.text);
-        label.textContent = text;
-
-        if (rotation){
-            label.setAttribute("transform", rotation);
-        }
-
-        parent.appendChild(label);
-        return label;
     }
 
     drawChair(parent, x, y) {
@@ -163,7 +197,6 @@ class FloorElementsManager {
     } 
     
     drawWorkstation(parent, x, y, status, id, width = 45, height = 35, chairPosition = "top", rotation = null, chairX = null, chairY = null, textX = null, textY = null) {
-        console.log({ id, status });
         const g = document.createElementNS(this.ns, "g");
         g.setAttribute("class", "workstation");
         g.setAttribute("data-desk-id", id);
@@ -199,7 +232,7 @@ class FloorElementsManager {
         text.setAttribute("font-family", "Arial, sans-serif");
         text.setAttribute("font-size", "12");
         text.setAttribute("font-weight", "bold");
-        text.setAttribute("fill", "#ffffff");
+        text.setAttribute("fill", this.colors.wallFill);
         text.textContent = id.replace("D", "");
 
         // Chair position
@@ -244,4 +277,137 @@ class FloorElementsManager {
         parent.appendChild(g);
         return g;
     }
+
+    // Main methods (add/update/remove)
+    addElement(el) {
+        const parent = (el.floor === "" || el.floor == null)
+            ? this.svg.querySelector("#all-floors")
+            : this.svg.querySelector(`#floor-${parseInt(el.floor, 10)}`);
+
+        const g = this.createGroup(el.id);
+        // === META CANONIQUES ===
+        g.setAttribute("data-type", el.type);
+        g.setAttribute("floor-number", el.floor ?? "");
+        g.setAttribute("data-draggable", "true");
+        g.style.cursor = "move";
+        if (el.x != null) g.setAttribute("data-x", el.x);
+        if (el.y != null) g.setAttribute("data-y", el.y);
+        if (el.width != null) g.setAttribute("data-width", el.width);
+        if (el.height != null) g.setAttribute("data-height", el.height);
+        if (el.size != null) g.setAttribute("data-size", el.size);
+        if (el.radius != null) g.setAttribute("data-radius", el.radius);
+        if (el.label != null) g.setAttribute("data-label", el.label);
+        if (el.rotation != null) g.setAttribute("data-rotation", el.rotation);
+
+        switch(el.type) {
+            case "Wall":
+                const points = [{x: el.x, y: el.y}, {x: el.x + el.size, y: el.y}];
+                this.drawLine(g, points, this.colors.wallStroke, el.width, el.rotation || null);
+                break;
+            case "Room":
+                this.drawRect(g, el.x, el.y, el.width, el.height, el.rotation || null, false);
+                break;
+            case "Window":
+                this.drawRect(g, el.x, el.y, el.width, el.height, el.rotation || null, true);
+                break;
+            case "Door":
+                this.drawRect(g, el.x, el.y, el.width, el.height, el.rotation || null, true);
+                break;
+            case "Circle":
+                this.drawCircle(g, el.x, el.y, el.radius);
+                break;
+            case "Label":
+                this.drawLabel(g, el.x, el.y, el.label, el.size, "normal", el.rotation || null);
+                break;
+        }
+        parent.appendChild(g);
+    }
+
+    updateElement(el) {
+        const g = this.svg.querySelector(`#${el.id}`);
+        if(!g) return;
+        const child = g.firstElementChild;
+        if(!child) return;
+
+        if (g.getAttribute("data-type") !== el.type) {
+            console.warn(`Type mismatch for element ${el.id}: expected ${g.getAttribute("data-type")}, got ${el.type}`);
+            return;
+        }
+
+        el.x = parseFloat(child.getAttribute("x")) || parseFloat(child.getAttribute("x1")) || parseFloat(child.getAttribute("cx"));
+        el.y = parseFloat(child.getAttribute("y")) || parseFloat(child.getAttribute("y1")) || parseFloat(child.getAttribute("cy"));
+
+        // MAJ META
+        if (el.type) g.setAttribute("data-type", el.type);
+        if (el.floor != null) g.setAttribute("floor-number", el.floor);
+        if (el.x != null) g.setAttribute("data-x", el.x);
+        if (el.y != null) g.setAttribute("data-y", el.y);
+        if (el.size != null) g.setAttribute("data-size", el.size);
+        if (el.width != null) g.setAttribute("data-width", el.width);
+        if (el.height != null) g.setAttribute("data-height", el.height);
+        if (el.radius != null) g.setAttribute("data-radius", el.radius);
+        if (el.label != null) g.setAttribute("data-label", el.label);
+        if (el.rotation != null) g.setAttribute("data-rotation", el.rotation);
+
+        // MAJ enfant
+        switch(el.type) {
+            case "Wall": {
+                child.setAttribute("x1", el.x);
+                child.setAttribute("y1", el.y);
+                child.setAttribute("x2", el.x + el.size);
+                child.setAttribute("y2", el.y);
+                child.setAttribute("stroke-width", el.width);
+                if (el.rotation != null) {
+                    const cx = (el.x + (el.x + el.size)) / 2;
+                    const cy = el.y;
+                    child.setAttribute("transform", `rotate(${el.rotation} ${cx} ${cy})`);
+                } else {
+                    child.removeAttribute("transform");
+                }
+                break;
+            }
+            case "Room":
+            case "Window":
+            case "Door": {
+                child.setAttribute("x", el.x);
+                child.setAttribute("y", el.y);
+                child.setAttribute("width", el.width);
+                child.setAttribute("height", el.height);
+                if (el.rotation != null) {
+                    const cx = el.x + el.width / 2;
+                    const cy = el.y + el.height / 2;
+                    child.setAttribute("transform", `rotate(${el.rotation} ${cx} ${cy})`);
+                } else {
+                    child.removeAttribute("transform");
+                }
+                break;
+            }
+            case "Circle": {
+                child.setAttribute("cx", el.x);
+                child.setAttribute("cy", el.y);
+                child.setAttribute("r", el.radius);
+                break;
+            }
+            case "Label": {
+                child.setAttribute("x", el.x);
+                child.setAttribute("y", el.y);
+                if (typeof el.size === "number") child.setAttribute("font-size", el.size);
+                if (typeof el.label === "string") child.textContent = el.label;
+                if (el.rotation != null) {
+                    child.setAttribute("transform", `rotate(${el.rotation} ${el.x} ${el.y})`);
+                } else {
+                    child.removeAttribute("transform");
+                }
+                break;
+            }
+        }
+    }
+
+    removeElement(id) {
+        const group = this.svg.querySelector(`#${id}`);
+        if(!group) return false;
+        group.remove();
+        return true;
+    }
+
 }
