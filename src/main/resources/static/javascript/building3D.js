@@ -89,7 +89,21 @@ async function loadSVGShapeFromUrl(url) {
                     return;
                 }
 
-                const baseShape = shapes[0].clone();
+                // Trouver la shape ayant la plus grande surface
+                let bestShape = null;
+                let maxArea = -Infinity;
+
+                shapes.forEach(shape => {
+                    const area = THREE.ShapeUtils.area(shape.getPoints());
+                    const absArea = Math.abs(area);
+                    if (absArea > maxArea) {
+                        maxArea = absArea;
+                        bestShape = shape;
+                    }
+                });
+
+                if (!bestShape) bestShape = shapes[0];
+                const baseShape = bestShape.clone();
 
                 const geom = new THREE.ShapeGeometry(baseShape);
                 geom.computeBoundingBox();
