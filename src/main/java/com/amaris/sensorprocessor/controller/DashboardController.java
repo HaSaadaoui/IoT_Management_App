@@ -532,4 +532,83 @@ public class DashboardController {
                                 .map(t -> ServerSentEvent.builder("ping").event("keepalive").build())
                 );
     }
+
+    /**
+     * API endpoint for environment history data (temperature, humidity, CO2, sound)
+     * Returns aggregated hourly data for charts
+     */
+    @GetMapping("/api/dashboard/environment/debug")
+    @ResponseBody
+    public Map<String, Object> debugEnvironmentData(@RequestParam(required = false) String building) {
+        Map<String, Object> result = new HashMap<>();
+        String dbBuilding = mapBuildingToDbName(building);
+        result.put("queryBuilding", building);
+        result.put("dbBuilding", dbBuilding);
+        
+        List<String> co2SensorIds = sensorService.getSensorIdsByTypeAndBuilding("CO2", dbBuilding);
+        result.put("co2SensorIds", co2SensorIds);
+        
+        // Check what data exists for each sensor
+        List<Map<String, Object>> sensorDataInfo = new java.util.ArrayList<>();
+        for (String sensorId : co2SensorIds) {
+            Map<String, Object> info = new HashMap<>();
+            info.put("sensorId", sensorId);
+            
+            var tempData = sensorDataDao.findLatestBySensorAndType(sensorId, PayloadValueType.TEMPERATURE);
+            var co2Data = sensorDataDao.findLatestBySensorAndType(sensorId, PayloadValueType.CO2);
+            var humData = sensorDataDao.findLatestBySensorAndType(sensorId, PayloadValueType.HUMIDITY);
+            
+            info.put("latestTemp", tempData.map(d -> d.getReceivedAt().toString() + " = " + d.getValueAsString()).orElse("NONE"));
+            info.put("latestCO2", co2Data.map(d -> d.getReceivedAt().toString() + " = " + d.getValueAsString()).orElse("NONE"));
+            info.put("latestHumidity", humData.map(d -> d.getReceivedAt().toString() + " = " + d.getValueAsString()).orElse("NONE"));
+            
+            sensorDataInfo.add(info);
+        }
+        result.put("sensorData", sensorDataInfo);
+        
+        return result;
+    }
+
+    @GetMapping("/api/dashboard/environment/history")
+    @ResponseBody
+    public Map<String, Object> getEnvironmentHistory(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String building
+    ) {
+        Map<String, Object> result = new HashMap<>();
+        
+        // Use LocalDateTime directly to match database storage format
+        java.time.LocalDateTime startDateTime = from.atStartOfDay();
+        java.time.LocalDateTime endDateTime = to.plusDays(1).atStartOfDay();
+        
+        // Get sensor IDs by type for the building
+        String dbBuilding = mapBuildingToDbName(building);
+        log.info("🌡️ Environment history request: from={}, to={}, building={}, dbBuilding={}", from, to, building, dbBuilding);
+        
+        List<String> tempSensorIds = new java.util.ArrayList<>(sensorService.getSensorIdsByTypeAndBuilding("CO2", dbBuilding));
+        tempSensorIds.addAll(sensorService.getSensorIdsByTypeAndBuilding("TEMPEX", dbBuilding));
+        
+        List<String> humiditySensorIds = new java.util.ArrayList<>(sensorService.getSensorIdsByTypeAndBuilding("CO2", dbBuilding));
+        humiditySensorIds.addAll(sensorService.getSensorIdsByTypeAndBuilding("HUMIDITY", dbBuilding));
+        
+        List<String> co2SensorIds = sensorService.getSensorIdsByTypeAndBuilding("CO2", dbBuilding);
+        
+        List<String> noiseSensorIds = sensorService.getSensorIdsByTypeAndBuilding("SON", dbBuilding);
+        
+        // Get aggregated data for each type using LocalDateTime
+        result.put("temperature", sensorDataDao.findAggregatedDataByPeriodAndType(
+                tempSensorIds, startDateTime, endDateTime, PayloadValueType.TEMPERATURE, "AVG"));
+        
+        result.put("humidity", sensorDataDao.findAggregatedDataByPeriodAndType(
+                humiditySensorIds, startDateTime, endDateTime, PayloadValueType.HUMIDITY, "AVG"));
+        
+        result.put("co2", sensorDataDao.findAggregatedDataByPeriodAndType(
+                co2SensorIds, startDateTime, endDateTime, PayloadValueType.CO2, "AVG"));
+        
+        result.put("sound", sensorDataDao.findAggregatedDataByPeriodAndType(
+                noiseSensorIds, startDateTime, endDateTime, PayloadValueType.LAEQ, "AVG"));
+        
+        return result;
+    }
 }

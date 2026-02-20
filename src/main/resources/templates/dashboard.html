@@ -575,8 +575,8 @@
                     <input type="datetime-local" id="hist-to" step="3600">
                 </div>
                 <div class="filter-item">
-                    <label for="filter-building">📍 Building</label>
-                    <select id="filter-building" class="form-select">
+                    <label for="hist-filter-building">📍 Building</label>
+                    <select id="hist-filter-building" class="form-select">
                         <option value="LEVALLOIS" selected>Levallois</option>
                         <option value="CHATEAUDUN">Châteaudun</option>
                     </select>   
@@ -1063,50 +1063,118 @@
 
             <div class="charts-section">
                 <div class="charts-grid charts-grid--2col">
+                    <!-- Temperature Chart -->
                     <div class="chart-card">
-                        <div class="chart-header">
-                            <div class="chart-title">
-                                <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🌡️</span>
-                                <span>Temperature History</span>
+                        <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div class="chart-title">
+                                    <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🌡️</span>
+                                    <span>Temperature History</span>
+                                </div>
+                                <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                    Avg: <span class="kpi-value" id="env-temp-avg" style="font-weight: 600; color: #ef4444;">--</span> °C
+                                </div>
+                            </div>
+                            <div class="env-chart-toggle" data-chart="temperature" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+                                <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    📈 Line
+                                </button>
+                                <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    📊 Bar
+                                </button>
+                                <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    🍩 Donut
+                                </button>
                             </div>
                         </div>
-                        <div class="chart-container">
+                        <div class="chart-container" style="height: 280px; position: relative;">
                             <canvas id="hist-temperature-chart"></canvas>
                         </div>
                     </div>
 
+                    <!-- Humidity Chart -->
                     <div class="chart-card">
-                        <div class="chart-header">
-                            <div class="chart-title">
-                                <span class="chart-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">💧</span>
-                                <span>Humidity History</span>
+                        <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div class="chart-title">
+                                    <span class="chart-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">💧</span>
+                                    <span>Humidity History</span>
+                                </div>
+                                <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                    Avg: <span class="kpi-value" id="env-humidity-avg" style="font-weight: 600; color: #3b82f6;">--</span> %
+                                </div>
+                            </div>
+                            <div class="env-chart-toggle" data-chart="humidity" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+                                <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    📈 Line
+                                </button>
+                                <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    📊 Bar
+                                </button>
+                                <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    🍩 Donut
+                                </button>
                             </div>
                         </div>
-                        <div class="chart-container">
+                        <div class="chart-container" style="height: 280px; position: relative;">
                             <canvas id="hist-humidity-chart"></canvas>
                         </div>
                     </div>
 
+                    <!-- CO2 Chart -->
                     <div class="chart-card">
-                        <div class="chart-header">
-                            <div class="chart-title">
-                                <span class="chart-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💨</span>
-                                <span>CO₂ History</span>
+                        <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div class="chart-title">
+                                    <span class="chart-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💨</span>
+                                    <span>CO₂ History</span>
+                                </div>
+                                <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                    Avg: <span class="kpi-value" id="env-co2-avg" style="font-weight: 600; color: #10b981;">--</span> ppm
+                                </div>
+                            </div>
+                            <div class="env-chart-toggle" data-chart="co2" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+                                <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    📈 Line
+                                </button>
+                                <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    📊 Bar
+                                </button>
+                                <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    🍩 Donut
+                                </button>
                             </div>
                         </div>
-                        <div class="chart-container">
+                        <div class="chart-container" style="height: 280px; position: relative;">
                             <canvas id="hist-co2-chart"></canvas>
                         </div>
                     </div>
 
+                    <!-- Sound Level Chart -->
                     <div class="chart-card">
-                        <div class="chart-header">
-                            <div class="chart-title">
-                                <span class="chart-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</span>
-                                <span>Sound Level History</span>
+                        <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div class="chart-title">
+                                    <span class="chart-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</span>
+                                    <span>Sound Level History</span>
+                                </div>
+                                <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                    Avg: <span class="kpi-value" id="env-sound-avg" style="font-weight: 600; color: #f59e0b;">--</span> dB
+                                </div>
+                            </div>
+                            <div class="env-chart-toggle" data-chart="sound" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+                                <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    📈 Line
+                                </button>
+                                <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    📊 Bar
+                                </button>
+                                <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    🍩 Donut
+                                </button>
                             </div>
                         </div>
-                        <div class="chart-container">
+                        <div class="chart-container" style="height: 280px; position: relative;">
                             <canvas id="hist-sound-chart"></canvas>
                         </div>
                     </div>
@@ -1404,10 +1472,13 @@
         // Initialize Energy Consumption Chart
         initializeEnergyConsumptionChart();
 
-        // Load energy data when hist-load button is clicked
+        // Load all history data when hist-load button is clicked
         const histLoadBtn = document.getElementById('hist-load');
         if (histLoadBtn) {
-            histLoadBtn.addEventListener('click', loadHistoricalEnergyData);
+            histLoadBtn.addEventListener('click', function() {
+                loadHistoricalEnergyData();
+                loadEnvironmentData();
+            });
         }
     });
 
@@ -1954,6 +2025,338 @@
             });
         }
     }
+
+    // =====================================================
+    // ENVIRONMENT CHARTS - Temperature, Humidity, CO2, Sound
+    // =====================================================
+    
+    const envCharts = {
+        temperature: null,
+        humidity: null,
+        co2: null,
+        sound: null
+    };
+    
+    const envChartData = {
+        temperature: { labels: [], data: [] },
+        humidity: { labels: [], data: [] },
+        co2: { labels: [], data: [] },
+        sound: { labels: [], data: [] }
+    };
+    
+    const envChartTypes = {
+        temperature: 'line',
+        humidity: 'line',
+        co2: 'line',
+        sound: 'line'
+    };
+    
+    const envChartColors = {
+        temperature: { bg: 'rgba(239, 68, 68, 0.2)', border: 'rgb(239, 68, 68)' },
+        humidity: { bg: 'rgba(59, 130, 246, 0.2)', border: 'rgb(59, 130, 246)' },
+        co2: { bg: 'rgba(16, 185, 129, 0.2)', border: 'rgb(16, 185, 129)' },
+        sound: { bg: 'rgba(245, 158, 11, 0.2)', border: 'rgb(245, 158, 11)' }
+    };
+    
+    const envChartUnits = {
+        temperature: '°C',
+        humidity: '%',
+        co2: 'ppm',
+        sound: 'dB'
+    };
+    
+    function initializeEnvironmentCharts() {
+        ['temperature', 'humidity', 'co2', 'sound'].forEach(type => {
+            const canvasId = type === 'temperature' ? 'hist-temperature-chart' :
+                            type === 'humidity' ? 'hist-humidity-chart' :
+                            type === 'co2' ? 'hist-co2-chart' : 'hist-sound-chart';
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            envCharts[type] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: type.charAt(0).toUpperCase() + type.slice(1),
+                        data: [],
+                        backgroundColor: envChartColors[type].bg,
+                        borderColor: envChartColors[type].border,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.parsed.y.toFixed(1)} ${envChartUnits[type]}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 12 }
+                        },
+                        y: {
+                            beginAtZero: type !== 'temperature',
+                            title: { display: true, text: envChartUnits[type] }
+                        }
+                    }
+                }
+            });
+        });
+    }
+    
+    async function loadEnvironmentData() {
+        const fromDateRaw = document.getElementById('hist-from')?.value;
+        const toDateRaw = document.getElementById('hist-to')?.value;
+        const building = document.getElementById('hist-filter-building')?.value || '';
+        
+        if (!fromDateRaw || !toDateRaw) {
+            console.warn('⚠️ Environment: Please select date range');
+            return;
+        }
+        
+        // Convert datetime-local format (2026-02-01T10:47) to ISO date (2026-02-01)
+        const fromDate = fromDateRaw.split('T')[0];
+        const toDate = toDateRaw.split('T')[0];
+        
+        console.log('🌡️ Environment params:', { fromDate, toDate, building });
+        
+        try {
+            const params = new URLSearchParams({ from: fromDate, to: toDate });
+            if (building && building !== 'all') params.set('building', building);
+            
+            console.log('🌡️ Loading environment data...');
+            const response = await fetch(`/api/dashboard/environment/history?${params}`);
+            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const data = await response.json();
+            console.log('✅ Environment data received:', data);
+            
+            updateEnvironmentCharts(data);
+        } catch (error) {
+            console.error('❌ Environment data loading failed:', error);
+        }
+    }
+    
+    function updateEnvironmentCharts(data) {
+        ['temperature', 'humidity', 'co2', 'sound'].forEach(type => {
+            const chartData = data[type] || [];
+            
+            // Store original data
+            envChartData[type].labels = chartData.map(d => formatEnvTimeBucket(d.timeBucket));
+            envChartData[type].data = chartData.map(d => d.aggregatedValue);
+            
+            // Calculate and display average
+            const avg = envChartData[type].data.length > 0 
+                ? envChartData[type].data.reduce((a, b) => a + b, 0) / envChartData[type].data.length 
+                : 0;
+            
+            const avgElement = document.getElementById(`env-${type === 'temperature' ? 'temp' : type}-avg`);
+            if (avgElement) avgElement.textContent = avg.toFixed(1);
+            
+            // Update chart
+            renderEnvChart(type, envChartTypes[type]);
+        });
+    }
+    
+    function formatEnvTimeBucket(timeBucket) {
+        if (!timeBucket) return '';
+        // Format: "2026-02-19 08" (YYYY-MM-DD HH) -> "19/02 08h"
+        const parts = timeBucket.split(' ');
+        if (parts.length >= 2) {
+            const dateParts = parts[0].split('-');
+            const hour = parts[1].padStart(2, '0');
+            return `${dateParts[2]}/${dateParts[1]} ${hour}h`;
+        }
+        return timeBucket;
+    }
+    
+    function renderEnvChart(type, chartType) {
+        const chart = envCharts[type];
+        if (!chart) return;
+        
+        const canvasId = type === 'temperature' ? 'hist-temperature-chart' :
+                        type === 'humidity' ? 'hist-humidity-chart' :
+                        type === 'co2' ? 'hist-co2-chart' : 'hist-sound-chart';
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        
+        // Destroy existing chart
+        chart.destroy();
+        
+        const ctx = canvas.getContext('2d');
+        const labels = envChartData[type].labels;
+        const data = envChartData[type].data;
+        
+        if (chartType === 'doughnut') {
+            // For doughnut, group data by ranges
+            const ranges = getDataRanges(type, data);
+            envCharts[type] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ranges.labels,
+                    datasets: [{
+                        data: ranges.values,
+                        backgroundColor: ranges.colors,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' },
+                        title: { display: true, text: `Distribution (${envChartUnits[type]})` },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.label}: ${ctx.parsed} readings`
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            // Line or Bar
+            envCharts[type] = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: type.charAt(0).toUpperCase() + type.slice(1),
+                        data: data,
+                        backgroundColor: envChartColors[type].bg,
+                        borderColor: envChartColors[type].border,
+                        borderWidth: 2,
+                        fill: chartType === 'line',
+                        tension: chartType === 'line' ? 0.4 : 0,
+                        borderRadius: chartType === 'bar' ? 4 : 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.parsed.y.toFixed(1)} ${envChartUnits[type]}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 12 }
+                        },
+                        y: {
+                            beginAtZero: type !== 'temperature',
+                            title: { display: true, text: envChartUnits[type] }
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    function getDataRanges(type, data) {
+        // Define ranges based on type
+        const ranges = {
+            temperature: [
+                { min: -Infinity, max: 18, label: '< 18°C (Cold)', color: 'rgba(59, 130, 246, 0.8)' },
+                { min: 18, max: 22, label: '18-22°C (Cool)', color: 'rgba(16, 185, 129, 0.8)' },
+                { min: 22, max: 26, label: '22-26°C (Optimal)', color: 'rgba(34, 197, 94, 0.8)' },
+                { min: 26, max: 30, label: '26-30°C (Warm)', color: 'rgba(245, 158, 11, 0.8)' },
+                { min: 30, max: Infinity, label: '> 30°C (Hot)', color: 'rgba(239, 68, 68, 0.8)' }
+            ],
+            humidity: [
+                { min: -Infinity, max: 30, label: '< 30% (Dry)', color: 'rgba(245, 158, 11, 0.8)' },
+                { min: 30, max: 50, label: '30-50% (Optimal)', color: 'rgba(34, 197, 94, 0.8)' },
+                { min: 50, max: 70, label: '50-70% (Humid)', color: 'rgba(59, 130, 246, 0.8)' },
+                { min: 70, max: Infinity, label: '> 70% (Very Humid)', color: 'rgba(239, 68, 68, 0.8)' }
+            ],
+            co2: [
+                { min: -Infinity, max: 600, label: '< 600 ppm (Excellent)', color: 'rgba(34, 197, 94, 0.8)' },
+                { min: 600, max: 800, label: '600-800 ppm (Good)', color: 'rgba(16, 185, 129, 0.8)' },
+                { min: 800, max: 1000, label: '800-1000 ppm (Fair)', color: 'rgba(245, 158, 11, 0.8)' },
+                { min: 1000, max: Infinity, label: '> 1000 ppm (Poor)', color: 'rgba(239, 68, 68, 0.8)' }
+            ],
+            sound: [
+                { min: -Infinity, max: 40, label: '< 40 dB (Quiet)', color: 'rgba(34, 197, 94, 0.8)' },
+                { min: 40, max: 55, label: '40-55 dB (Moderate)', color: 'rgba(16, 185, 129, 0.8)' },
+                { min: 55, max: 70, label: '55-70 dB (Loud)', color: 'rgba(245, 158, 11, 0.8)' },
+                { min: 70, max: Infinity, label: '> 70 dB (Very Loud)', color: 'rgba(239, 68, 68, 0.8)' }
+            ]
+        };
+        
+        const typeRanges = ranges[type] || [];
+        const counts = typeRanges.map(() => 0);
+        
+        data.forEach(value => {
+            for (let i = 0; i < typeRanges.length; i++) {
+                if (value >= typeRanges[i].min && value < typeRanges[i].max) {
+                    counts[i]++;
+                    break;
+                }
+            }
+        });
+        
+        // Filter out empty ranges
+        const filteredLabels = [];
+        const filteredValues = [];
+        const filteredColors = [];
+        
+        counts.forEach((count, i) => {
+            if (count > 0) {
+                filteredLabels.push(typeRanges[i].label);
+                filteredValues.push(count);
+                filteredColors.push(typeRanges[i].color);
+            }
+        });
+        
+        return { labels: filteredLabels, values: filteredValues, colors: filteredColors };
+    }
+    
+    // Environment chart toggle handlers
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeEnvironmentCharts();
+        
+        // Add click handlers for environment chart toggle buttons
+        document.querySelectorAll('.env-chart-toggle').forEach(toggle => {
+            const chartType = toggle.getAttribute('data-chart');
+            
+            toggle.querySelectorAll('.env-chart-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const newType = this.getAttribute('data-type');
+                    envChartTypes[chartType] = newType;
+                    
+                    // Update button styles
+                    toggle.querySelectorAll('.env-chart-btn').forEach(b => {
+                        b.style.background = 'transparent';
+                        b.style.color = '#6b7280';
+                        b.classList.remove('active');
+                    });
+                    this.style.background = 'linear-gradient(135deg, var(--primary), var(--primary-light))';
+                    this.style.color = 'white';
+                    this.classList.add('active');
+                    
+                    // Re-render chart
+                    if (envChartData[chartType].data.length > 0) {
+                        renderEnvChart(chartType, newType);
+                    }
+                });
+            });
+        });
+        
+        // Environment charts are loaded via the unified hist-load handler above
+    });
 
     function toggleMenu() {
         document
