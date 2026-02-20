@@ -50,52 +50,117 @@ const OCCUPANCY_ZONES = {
         }
     },
     CHATEAUDUN: {
-        2: {
-            OPEN_SPACE: {
-                title: "Open Space",
-                prefix: "desk-01-",
-                start: 1,
-                end: 15,
-                match: (id) => /^desk-01-(0[1-9]|1[0-5])$/.test(id)
-            }
-        },
-        3: {
-            OPEN_SPACE: {
-                title: "Open Space",
-                prefix: "desk-03-",
-                start: 1,
-                end: 15,
-                match: (id) => /^desk-03-(0[1-9]|1[0-5])$/.test(id)
-            }
-        },
-        4: {
-            OPEN_SPACE: {
-                title: "Open Space",
-                prefix: "desk-04-",
-                start: 1,
-                end: 8,
-                match: (id) => /^desk-04-0[1-8]$/.test(id)
-            }
-        },
-        5: {
-            OPEN_SPACE: {
-                title: "Open Space",
-                prefix: "desk-05-",
-                start: 1,
-                end: 24,
-                match: (id) => /^desk-05-(0[1-9]|1[0-9]|2[0-4])$/.test(id)
-            }
-        },
-        6: {
-            OPEN_SPACE: {
-                title: "Open Space",
-                prefix: "desk-06-",
-                start: 1,
-                end: 16,
-                match: (id) => /^desk-06-(0[1-9]|1[0-6])$/.test(id)
+            0: {
+    			OPEN_SPACE: {
+    				title: "Open Space"
+    			}
+    		},
+            1: {
+                OPEN_SPACE: { title: "Phone Booth"/*, match: (id) =>
+                    ["desk-01-01"].includes(id)*/
+                },
+                MEETING_ROOM_GENEVA: {
+    				title: "Meeting Room Pacific"
+    			}
+            },
+            2: {
+    			OPEN_SPACE_1: {
+    				title: "Open Space 1",
+    				prefix: "desk-01-",
+    				start: 1,
+    				end: 7,
+    				match: (id) => /^desk-01-(0[1-7])$/.test(id)
+    			},
+    			OPEN_SPACE_2: {
+    				title: "Open Space 2",
+    				prefix: "desk-01-",
+    				start: 8,
+    				end: 15,
+    				match: (id) => /^desk-01-(0[8-9]|1[0-5])$/.test(id)
+    			},
+    			MEETING_ROOM_ATLANTIC: {
+    				title: "Meeting Room Atlantic"
+    			},
+    			MEETING_ROOM_PACIFIC: {
+    				title: "Meeting Room Pacific"
+    			}
+    		},
+            3: {
+    			OPEN_SPACE_1: {
+    				title: "Open Space 1",
+    				prefix: "desk-03-",
+    				start: 1,
+    				end: 7,
+    				match: (id) => /^desk-03-(0[1-7])$/.test(id)
+    			},
+    			OPEN_SPACE_2: {
+    				title: "Open Space 2",
+    				prefix: "desk-03-",
+    				start: 8,
+    				end: 15,
+    				match: (id) => /^desk-03-(0[8-9]|1[0-5])$/.test(id)
+    			},
+    			MEETING_ROOM_SEQUOLA: {
+    				title: "Meeting Room Sequola"
+    			},
+    			MEETING_ROOM_SANTA: {
+    				title: "Meeting Room Santa"
+    			}
+            },
+            4: {
+                OPEN_SPACE: {
+                    title: "Open Space",
+                    prefix: "desk-04-",
+                    start: 1,
+                    end: 8,
+                    match: (id) => /^desk-04-0[1-8]$/.test(id)
+                },
+    			MEETING_ROOM_NEWYORK: {
+    				title: "Meeting Room New York"
+    			},
+    			MEETING_ROOM_OREGAN: {
+    				title: "Meeting Room Oregan"
+    			},
+    			MEETING_ROOM_MIAMI: {
+    				title: "Meeting Room Miami"
+    			}
+            },
+            5: {
+                OPEN_SPACE_1: {
+                    title: "Open Space",
+                    prefix: "desk-05-",
+                    start: 1,
+                    end: 16,
+                    match: (id) => /^desk-05-(0[1-9]|1[0-6])$/.test(id)
+                },
+    			OPEN_SPACE_2: {
+                    title: "Open Space",
+                    prefix: "desk-05-",
+                    start: 17,
+                    end: 24,
+                    match: (id) => /^desk-05-(1[7-9]|2[0-4])$/.test(id)
+                }
+            },
+            6: {
+                OPEN_SPACE: {
+                    title: "Open Space",
+                    prefix: "desk-06-",
+                    start: 1,
+                    end: 8,
+                    match: (id) => /^desk-06-(0[1-8])$/.test(id)
+                },
+    			OPEN_SPACE_2: {
+                    title: "Open Space",
+                    prefix: "desk-06-",
+                    start: 9,
+                    end: 16,
+                    match: (id) => /^desk-06-(0[9]|1[0-6])$/.test(id)
+                },
+    			MEETING_ROOM_PARIS: {
+    				title: "Meeting Room Paris"
+    			}
             }
         }
-    }
 };
 
 let occupancyUnsub = null;
@@ -143,11 +208,14 @@ function openOccupancySSE(building, floor) {
 
       // Snapshot complet
       const snapshot = Object.entries(occupancyState).map(([id, s]) => ({ id, status: s }));
-
       const zoneStats = aggregateByZone(snapshot, building, floor);
 
       if (building === "CHATEAUDUN") {
-          renderChateaudunCards(zoneStats);
+        if (!floor || floor === "all") {
+            renderChateaudunCards(zoneStats);
+        } /*else {
+            renderChateaudunFloorDetails(zoneStats);
+        }*/
       } else {
           updateAllStatCards(zoneStats);
       }
@@ -274,12 +342,13 @@ function aggregateChateaudunAllFloors(rawData){
             }
 
             const actualDesks = rawData
-                .filter(d => zone.match(d.id))
+                .filter(d => zone.match?.(d.id))
                 .map(d => d.id);
 
             // Comptage réel
             rawData.forEach(({ id, status }) => {
-                if (zone.match(id)) {
+                const isMatch = zone.match?.(id) ?? false;
+                if (isMatch) {
                     if (status === "free") result[`FLOOR_${floorNumber}`].free++;
                     else if (status === "used") result[`FLOOR_${floorNumber}`].used++;
                     else result[`FLOOR_${floorNumber}`].invalid++;
@@ -347,7 +416,7 @@ function aggregateByZonesForFloor(rawData, building, floor){
 
 function renderChateaudunCards(zoneStats) {
     console.log("Chateaudun zoneStats: ", zoneStats);
-    const container = document.getElementById("stats-chateaudun");
+    const container = document.getElementById("stats-chateaudun-global");
     if (!container) return;
 
     container.innerHTML = "";
@@ -379,36 +448,6 @@ function updateAllStatCards(zoneStats) {
         if (!data) return;
         updateStatCard(card, data);
     });
-}
-
-// Recycler le chart existant au lieu de le recréer
-function updateStatCard(statCard, data) {
-    if (!statCard) return;
-
-    const chartElement = statCard.querySelector(".chart-office");
-    const legendElement = statCard.querySelector(".stat-legend");
-    const titleElement = statCard.querySelector(".stat-card-title");
-
-    const total = data.free + data.used + data.invalid;
-    if (total === 0) return;
-
-    const freePercent = ((data.free / total) * 100).toFixed(2);
-    const usedPercent = ((data.used / total) * 100).toFixed(2);
-    const invalidPercent = ((data.invalid / total) * 100).toFixed(2);
-
-    // Recycle chart
-    if (chartElement) {
-        if (chartElement._chartInstance) {
-            const chart = chartElement._chartInstance;
-            chart.data.datasets[0].data = [freePercent, usedPercent, invalidPercent];
-            chart.update();
-        } else {
-            chartElement._chartInstance = new Chart(chartElement, ChartUtils.createDoughnutChartConfig([freePercent, usedPercent, invalidPercent]));
-        }
-    }
-
-    if (legendElement) ChartUtils.updateLegend(legendElement, freePercent, usedPercent, invalidPercent);
-    if (titleElement && data.location) titleElement.textContent = data.location;
 }
 
 // ============== INITIALISATION =================
@@ -926,10 +965,6 @@ function updateLegend(legendElement, freePercent, usedPercent, invalidPercent) {
  * Updates a complete stat card (chart, legend, and title)
  * @param {HTMLElement} statCard - The stat card container
  * @param {Object} data - Data object containing counts and location name
- * @param {number} data.freeCount - Number of free items
- * @param {number} data.usedCount - Number of used items
- * @param {number} data.invalidCount - Number of invalid items
- * @param {string} data.location - Location name
  */
 function updateStatCard(statCard, data) {
     if (!statCard) return;
@@ -938,18 +973,28 @@ function updateStatCard(statCard, data) {
     const legendElement = statCard.querySelector(".stat-legend");
     const titleElement = statCard.querySelector(".stat-card-title");
 
-    const counts = [data.free, data.used, data.invalid];
-    const total = counts.reduce((a, b) => a + b, 0);
-    if (total === 0) return;
+    let counts = [data.free, data.used, data.invalid];
+    let total = counts.reduce((a, b) => a + b, 0);
 
-    // Arrondir pour que la somme des % = 100
-    let rawPercents = counts.map(c => (c / total) * 100);
-    let rounded = rawPercents.map(p => Math.floor(p));
-    let remainder = 100 - rounded.reduce((a, b) => a + b, 0);
-    const remainders = rawPercents.map((p, i) => ({ idx: i, diff: p - Math.floor(p) }))
-                                  .sort((a, b) => b.diff - a.diff);
-    for (let i = 0; i < remainder; i++) {
-        rounded[remainders[i].idx]++;
+    //Si aucune donnée → 100% invalid
+    if (total === 0) {
+        counts = [0, 0, 1];
+        total = 1;
+    }
+
+    let rounded = [0, 0, 0];
+
+    if (total > 0) {
+        let rawPercents = counts.map(c => (c / total) * 100);
+        rounded = rawPercents.map(p => Math.floor(p));
+        let remainder = 100 - rounded.reduce((a, b) => a + b, 0);
+        const remainders = rawPercents
+            .map((p, i) => ({ idx: i, diff: p - Math.floor(p) }))
+            .sort((a, b) => b.diff - a.diff);
+
+        for (let i = 0; i < remainder; i++) {
+            rounded[remainders[i].idx]++;
+        }
     }
 
     if (chartElement) {

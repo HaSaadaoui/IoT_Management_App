@@ -378,7 +378,7 @@ stopConsoAggregateSse() {
         const building = String(this.filters.building || '').toUpperCase();
 
         const lev = document.getElementById("stats-levallois");
-        const cha = document.getElementById("stats-chateaudun");
+        const cha = document.getElementById("stats-chateaudun-global");
 
         if (!lev || !cha) return;
 
