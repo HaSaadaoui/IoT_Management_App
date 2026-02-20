@@ -374,23 +374,24 @@ stopConsoAggregateSse() {
       `;
 	}
 
+    applyBuildingStatVisibility() {
+        const building = String(this.filters.building || '').toUpperCase();
 
-applyBuildingStatVisibility() {
-  const building = String(this.filters.building || '').toUpperCase();
-  const cards = document.querySelectorAll('.office-stats .stat-card');
-  if (!cards.length) return;
+        const lev = document.getElementById("stats-levallois");
+        const cha = document.getElementById("stats-chateaudun-global");
 
-  cards.forEach(card => {
-    const zone = String(card.dataset.zone || '').toUpperCase(); // ✅ zone de la card
-    if (building === 'CHATEAUDUN') {
-      // ✅ Châteaudun: uniquement OPEN_SPACE
-      card.style.display = (zone === 'OPEN_SPACE') ? '' : 'none';
-    } else {
-      // ✅ autres bâtiments: tout visible
-      card.style.display = '';
+        if (!lev || !cha) return;
+
+        if (building === "CHATEAUDUN") {
+            // Châteaudun = affichage du bloc unique
+            lev.style.display = "none";
+            cha.style.display = "";
+        } else {
+            // Levallois ou autre = affichage normal
+            lev.style.display = "";
+            cha.style.display = "none";
+        }
     }
-  });
-}
 
 	async loadBuildings() {
 		const select = document.getElementById('filter-building');
@@ -744,23 +745,17 @@ async handleFilterChange(filterId, value) {
 	// =========================
 	// ===== DASHBOARD UPDATE =====
 	// =========================
-
-// updateDashboard(data)
-async updateDashboard(data) {
-  this.updateAlerts(data?.alerts);
-  this.updateLiveData(data?.liveSensorData);
-  this.updateLiveBuildingMetrics();
-  this.updateHistoricalData(data?.historicalData);
-  this.updateOccupationHistory(data?.historicalData);
-  this.updateCostAnalysis(data?.historicalData);
-  this.updateGlobalStatistics(data?.historicalData);
-  this.applyBuildingStatVisibility();
-
-  // ✅ Attendre que le DOM + charts aient eu le temps de se créer
-  await this.updateOpenSpaceDonutForSelectedFloor();
-
-  this.hideLoading();
-}
+    async updateDashboard(data) {
+      this.updateAlerts(data?.alerts);
+      this.updateLiveData(data?.liveSensorData);
+      this.updateLiveBuildingMetrics();
+      this.updateHistoricalData(data?.historicalData);
+      this.updateOccupationHistory(data?.historicalData);
+      this.updateCostAnalysis(data?.historicalData);
+      this.updateGlobalStatistics(data?.historicalData);
+      this.applyBuildingStatVisibility();
+      this.hideLoading();
+    }
 
 
 	updateAlerts(alerts) {
@@ -953,86 +948,6 @@ async updateLiveBuildingMetrics() {
     console.error('Error updating live building metrics:', e);
   }
 }
-
-
-async computeOpenSpaceStatsFromConfig() {
-  const building = String(this.filters.building || '').toUpperCase();
-  const floor = this.getEffectiveFloorParam();
-
-  // 1) Récupère les statuts live (free/used/invalid) depuis le backend
-  const occItems = await this.fetchOccupancy(floor); // ✅ floor déjà géré
-  const occMap = new Map(
-    (occItems || []).map(x => [String(x?.id || ''), String(x?.status || '').toLowerCase()])
-  );
-
-  // 2) Floors à prendre en compte depuis la config
-  const floors = floor
-    ? [Number(floor)]
-    : Object.keys(DeskSensorConfig.mappings[building] || {}).map(Number);
-
-  let used = 0, free = 0, invalid = 0;
-
-  floors.forEach(f => {
-    const desks = DeskSensorConfig.getFloorDesks(f, 'invalid', building);
-
-    desks.forEach(desk => {
-      if (!desk.sensor) { invalid++; return; }
-
-      const st = occMap.get(String(desk.sensor)); // ex: 'free' / 'used'
-      if (st === 'used') used++;
-      else if (st === 'free') free++;
-      else invalid++; // pas remonté / inconnu
-    });
-  });
-
-  const total = used + free + invalid;
-
-  return {
-    used, free, invalid, total,
-    usedPct: total ? (used / total) * 100 : 0,
-    freePct: total ? (free / total) * 100 : 0,
-    invalidPct: total ? (invalid / total) * 100 : 0
-  };
-}
-
-async updateOpenSpaceDonutForSelectedFloor() {
-  const stats = await this.computeOpenSpaceStatsFromConfig();
-
-  const card = document.querySelector('.office-stats .stat-card[data-zone="OPEN_SPACE"]');
-  if (!card) return;
-
-  const canvas = card.querySelector('canvas');
-  if (!canvas) return;
-
-  let chart = Chart.getChart(canvas);
-
-  // ✅ si pas encore instancié : on l'initialise
-  if (!chart) {
-    chart = new Chart(canvas, {
-      type: 'doughnut',
-      data: {
-        labels: ['Free', 'Used', 'Invalid'],
-        datasets: [{ data: [0, 0, 0], borderWidth: 0 }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '75%',
-        plugins: { legend: { display: false } }
-      }
-    });
-  }
-
-  chart.data.labels = [
-    `Free (${stats.freePct.toFixed(1)}%)`,
-    `Used (${stats.usedPct.toFixed(1)}%)`,
-    `Invalid (${stats.invalidPct.toFixed(1)}%)`
-  ];
-
-  chart.data.datasets[0].data = [stats.freePct, stats.usedPct, stats.invalidPct];
-  chart.update('none');
-}
-
 
 async calculateTodaysEnergy() {
   try {
