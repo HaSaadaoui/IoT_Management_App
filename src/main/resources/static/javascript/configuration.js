@@ -873,6 +873,9 @@ function addElementSVG() {
         return;
     }
 
+    // Récupère le centre du plan (dans le bon repère)
+    const { x: centerX, y: centerY } = getPlanCenterXY();
+
     if (elementSelect.value === "Sensor"){
         if (sensorType.value === "DESK") {
             if (!inputWidthEl || inputWidthEl.value.trim() === '') {
@@ -893,8 +896,8 @@ function addElementSVG() {
             id : inputIdEl.value,
             mode : sensorType.value,
             floor : floorNumber.value,
-            x : parseInt(inputSizeEl.value) || parseInt(inputWidthEl.value), //Default Value
-            y : parseInt(inputSizeEl.value) || parseInt(inputHeightEl.value), //Default Value
+            x : centerX,
+            y : centerY,
             size : parseInt(inputSizeEl.value),
             width : parseInt(inputWidthEl.value),
             height : parseInt(inputHeightEl.value),
@@ -957,8 +960,8 @@ function addElementSVG() {
             id : inputIdEl.value,
             type : elementSelect.value,
             floor : floorNumber.value,
-            x : parseInt(inputSizeEl.value) || parseInt(inputWidthEl.value) || parseInt(inputRadiusEl.value),
-            y : parseInt(inputSizeEl.value) || parseInt(inputHeightEl.value) || parseInt(inputRadiusEl.value),
+            x : centerX,
+            y : centerY,
             size : parseInt(inputSizeEl.value),
             width : parseInt(inputWidthEl.value),
             height : parseInt(inputHeightEl.value),
@@ -1045,6 +1048,42 @@ function updateElementSVG() {
         };
         window.building3D.currentArchPlan.elementsManager.updateElement(element);
     }
+}
+
+function getPlanCenterXY() {
+    const arch = window.building3D?.currentArchPlan;
+    if (!arch || !arch.svg) {
+        return { x: 600, y: 600 };
+    }
+
+    const svg = arch.svg;
+    const root = svg.querySelector('#content-root') || svg;
+
+    try {
+        // Centre de l'élément SVG à l'écran (pixels)
+        const rect = svg.getBoundingClientRect();
+        const pt = svg.createSVGPoint();
+        pt.x = rect.left + rect.width / 2;
+        pt.y = rect.top + rect.height / 2;
+
+        const ctm = root.getScreenCTM();
+        if (ctm) {
+            const p = pt.matrixTransform(ctm.inverse());
+            return { x: Math.round(p.x), y: Math.round(p.y) };
+        }
+    } catch (e) {
+        // no-op: on tombera sur le fallback viewBox ci-dessous
+    }
+
+    // Fallback: centre du viewBox si disponible
+    const vb = svg.viewBox?.baseVal;
+    if (vb) {
+        return {
+            x: Math.round(vb.x + vb.width / 2),
+            y: Math.round(vb.y + vb.height / 2)
+        };
+    }
+    return { x: 600, y: 600 };
 }
 
 // ======================================================
