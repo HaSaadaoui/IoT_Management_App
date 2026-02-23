@@ -158,6 +158,24 @@ public class SensorService {
         return sensorDao.findByIdOfSensor(idSensor);
     }
 
+    /**
+     * Get sensor IDs by device type and building
+     * @param deviceType Device type (CO2, TEMPEX, HUMIDITY, NOISE, etc.)
+     * @param building Building name (empty string for all buildings)
+     * @return List of sensor IDs
+     */
+    public List<String> getSensorIdsByTypeAndBuilding(String deviceType, String building) {
+        List<Sensor> sensors;
+        if (building == null || building.isBlank()) {
+            sensors = sensorDao.findAllByDeviceType(deviceType);
+        } else {
+            sensors = sensorDao.findAllByDeviceTypeAndBuilding(deviceType, building);
+        }
+        return sensors.stream()
+                .map(Sensor::getIdSensor)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
 
     public Sensor getOrThrow(String idSensor) {
         return findByIdSensor(idSensor)
