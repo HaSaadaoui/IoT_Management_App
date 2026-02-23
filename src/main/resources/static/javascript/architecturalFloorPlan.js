@@ -538,7 +538,7 @@ class ArchitecturalFloorPlan {
                     width : parseInt(parseFloat(el.getAttribute('width'))),
                     height : parseInt(parseFloat(el.getAttribute('height'))),
                     rotation : extractRotation(el.getAttribute('transform')),
-                    chair : el.getAttribute('chair')
+                    chairs : JSON.parse(el.getAttribute("chairs") || "{}")
                 };
             });
 
@@ -1377,10 +1377,14 @@ class ArchitecturalFloorPlan {
                     const inputWidth = document.getElementById("input_width");
                     const inputHeight = document.getElementById("input_height");
                     const inputRotation = document.getElementById("input_rotation");
-                    const chairSelect = document.getElementById("chair_select");
+                    const chairTop = document.getElementById("chair_top");
+                    const chairBottom = document.getElementById("chair_bottom");
+                    const chairLeft = document.getElementById("chair_left");
+                    const chairRight = document.getElementById("chair_right");
                     const filterEl = document.getElementById('filter-element');
                     const sensorTypeSelect = document.getElementById('filter-sensor-type');
                     const mode = sensor.getAttribute("sensor-mode") || "DESK";
+                    const chairs = JSON.parse(sensor.getAttribute("chairs") || "{}");
 
                     if (window.applyFormVisibility) {
                         window.applyFormVisibility("Sensor", mode);
@@ -1393,7 +1397,17 @@ class ArchitecturalFloorPlan {
                     if (inputWidth) inputWidth.value = sensor.getAttribute("width");
                     if (inputHeight) inputHeight.value = sensor.getAttribute("height");
                     if (inputRotation) inputRotation.value = extractRotation(sensor.getAttribute('transform'));
-                    if (chairSelect) chairSelect.value = sensor.getAttribute("chair");
+                    if (chairs && Object.keys(chairs).length > 0) {
+                        if (chairTop) chairTop.value = chairs?.["top"];
+                        if (chairBottom) chairBottom.value = chairs?.["bottom"];
+                        if (chairLeft) chairLeft.value = chairs?.["left"];
+                        if (chairRight) chairRight.value = chairs?.["right"];
+                    } else {
+                        if (chairTop) chairTop.value = "0";
+                        if (chairBottom) chairBottom.value = "0";
+                        if (chairLeft) chairLeft.value = "0";
+                        if (chairRight) chairRight.value = "0";   
+                    }
                 }
             }
 

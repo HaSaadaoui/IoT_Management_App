@@ -642,7 +642,7 @@ class SensorOverlayManager {
         desk.setAttribute("id", sensor.id);
         desk.setAttribute("floor-number", sensor.floor);
         desk.setAttribute("sensor-mode", sensor.mode);
-        desk.setAttribute("chair", sensor.chair);
+        desk.setAttribute("chairs", JSON.stringify(sensor.chairs));
         if (sensor.rotation) {
             const cx = sensor.x + sensor.width / 2;
             const cy = sensor.y + sensor.height / 2;
@@ -651,7 +651,7 @@ class SensorOverlayManager {
         g.appendChild(desk);
 
         this.addDeskLabel(g, sensor);
-        if (sensor.chair && sensor.chair !== 'none'){
+        if (sensor.chairs){
             this.addDeskChair(g, sensor);
         }
     }
@@ -682,47 +682,53 @@ class SensorOverlayManager {
     }
 
     addDeskChair(g, sensor){
-        let cx = 0;
-        let cy = 0;
-        let rad = 0;
-        switch(sensor.chair){
-            case "bottom" :
-                rad = sensor.width / 10;
-                cx = sensor.x + sensor.width / 2;
-                cy = sensor.y + sensor.height + 2 * rad;
-                break;
-            case "top" :
-                rad = sensor.width / 10;
-                cx = sensor.x + sensor.width / 2;
-                cy = sensor.y - 2 * rad;
-                break;
-            case "right" :
-                rad = sensor.height / 10;
-                cx = sensor.x + sensor.width + 2 * rad;
-                cy = sensor.y + sensor.height / 2;
-                break;
-            case "left" :
-                rad = sensor.height / 10;
-                cx = sensor.x - 2 * rad;
-                cy = sensor.y + sensor.height / 2;
-                break;
-        }
-        const chair = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        chair.setAttribute("cx", cx);
-        chair.setAttribute("cy", cy);
-        chair.setAttribute("r", rad);
-        chair.setAttribute("fill", "#94a3b8");
-        chair.setAttribute("stroke", "#000000");
-        chair.setAttribute("stroke-width", 1);
-        chair.setAttribute("class","sensor-temp");
+        const sides = ["top", "bottom", "left", "right"];
+        sides.forEach(side => {
+            const count = sensor.chairs?.[side] || 0;
+            if (count <= 0) return;
 
-        if (sensor.rotation) {
-            const cx_rotate = sensor.x + sensor.width / 2;
-            const cy_rotate = sensor.y + sensor.height / 2;
-            chair.setAttribute("transform",`rotate(${sensor.rotation} ${cx_rotate} ${cy_rotate})`);
-        }
+            for (let i = 0; i < count; i++) {
+                let cx = 0, cy = 0, rad = 0;
+                switch (side) {
+                    case "top":
+                        rad = sensor.width / 10;
+                        cx = sensor.x + sensor.width * (i + 1) / (count + 1);
+                        cy = sensor.y - 2 * rad;
+                        break;
+                    case "bottom":
+                        rad = sensor.width / 10;
+                        cx = sensor.x + sensor.width * (i + 1) / (count + 1);
+                        cy = sensor.y + sensor.height + 2 * rad;
+                        break;
+                    case "left":
+                        rad = sensor.height / 10;
+                        cx = sensor.x - 2 * rad;
+                        cy = sensor.y + sensor.height * (i + 1) / (count + 1);
+                        break;
+                    case "right":
+                        rad = sensor.height / 10;
+                        cx = sensor.x + sensor.width + 2 * rad;
+                        cy = sensor.y + sensor.height * (i + 1) / (count + 1);
+                        break;
+                }
 
-        g.appendChild(chair);
+                const chair = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                chair.setAttribute("cx", cx);
+                chair.setAttribute("cy", cy);
+                chair.setAttribute("r", rad);
+                chair.setAttribute("fill", "#94a3b8");
+                chair.setAttribute("stroke", "#000000");
+                chair.setAttribute("stroke-width", 1);
+                chair.setAttribute("class", "sensor-temp");
+
+                if (sensor.rotation) {
+                    const cx_rotate = sensor.x + sensor.width / 2;
+                    const cy_rotate = sensor.y + sensor.height / 2;
+                    chair.setAttribute("transform",`rotate(${sensor.rotation} ${cx_rotate} ${cy_rotate})`);
+                }
+                g.appendChild(chair);
+            }
+        });
     }
 
     updateSensorValue(sensorId, value, timestamp) {

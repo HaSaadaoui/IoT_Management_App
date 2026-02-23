@@ -353,7 +353,7 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
     const inputHeightContainer = inputHeightEl?.parentElement;
     const inputRotationEl = document.getElementById('input_rotation');
     const inputRotationContainer = inputRotationEl?.parentElement;
-    const selectChairPosition = document.getElementById('chair_select');
+    const selectChairPosition = document.getElementById('chair_top');
     const selectChairContainer = selectChairPosition?.parentElement;
 
     const sensorMode = (sensorTypeValue ?? sensorTypeSelect?.value ?? 'DESK');
@@ -439,10 +439,17 @@ function initializeInputs() {
     const radiusInput = document.getElementById("input_radius");
     const rotationInput = document.getElementById("input_rotation");
     const labelInput = document.getElementById("input_label");
-    const chairSelect = document.getElementById("chair_select");
+    const chairTop = document.getElementById("chair_top");
+    const chairBottom = document.getElementById("chair_bottom");
+    const chairLeft = document.getElementById("chair_left");
+    const chairRight = document.getElementById("chair_right");
 
     // ID auto-généré
     idInput.value = `${element}_${Date.now()}`;
+    chairTop.value = 0;
+    chairBottom.value = 0;
+    chairLeft.value = 0;
+    chairRight.value = 0;
 
     // --- Selon le type d'élément ---
     switch (element) {
@@ -452,13 +459,11 @@ function initializeInputs() {
                 heightInput.value = 40;
                 rotationInput.value = 0;
                 sizeInput.value = "";
-                chairSelect.value = "none";
             } else {
                 sizeInput.value = 20;
                 widthInput.value = "";
                 heightInput.value = "";
                 rotationInput.value = 0;
-                chairSelect.value = "none";
             }
             break;
         case "Wall":
@@ -526,7 +531,7 @@ function onChangeSensor() {
     const inputRotationEl = document.getElementById('input_rotation');
     const inputRotationContainer = inputRotationEl.parentElement;
 
-    const selectChairPosition = document.getElementById('chair_select');
+    const selectChairPosition = document.getElementById('chair_top');
     const selectChairContainer = selectChairPosition.parentElement;
 
     if (sensorTypeSelect.value === "DESK") {
@@ -859,7 +864,6 @@ function addElementSVG() {
     const inputRotationEl = document.getElementById('input_rotation');
     const inputRadiusEl = document.getElementById('input_radius');
     const inputLabelEl = document.getElementById('input_label');
-    const selectChairPosition = document.getElementById('chair_select');
 
     if (!inputIdEl || inputIdEl.value.trim() === '') {
         alert("Merci de saisir un ID.");
@@ -902,7 +906,12 @@ function addElementSVG() {
             width : parseInt(inputWidthEl.value),
             height : parseInt(inputHeightEl.value),
             rotation : parseInt(inputRotationEl.value),
-            chair : selectChairPosition.value
+            chairs : {
+                top: parseInt(document.getElementById("chair_top").value || 0),
+                bottom: parseInt(document.getElementById("chair_bottom").value || 0),
+                left: parseInt(document.getElementById("chair_left").value || 0),
+                right: parseInt(document.getElementById("chair_right").value || 0),
+            }
         }
         window.building3D.currentArchPlan.overlayManager.drawSensor(sensor);
     } else {
@@ -1011,7 +1020,6 @@ function updateElementSVG() {
     const inputRotationEl = document.getElementById('input_rotation');
     const inputRadiusEl = document.getElementById('input_radius');
     const inputLabelEl = document.getElementById('input_label');
-    const selectChairPosition = document.getElementById('chair_select');
 
     let rotation = 0;
     if (inputRotationEl && inputRotationEl.value.trim() !== '' ){
@@ -1029,7 +1037,12 @@ function updateElementSVG() {
             width : parseInt(inputWidthEl.value),
             height : parseInt(inputHeightEl.value),
             rotation : parseInt(rotation),
-            chair : selectChairPosition.value
+            chairs : {
+                top: parseInt(document.getElementById("chair_top").value || 0),
+                bottom: parseInt(document.getElementById("chair_bottom").value || 0),
+                left: parseInt(document.getElementById("chair_left").value || 0),
+                right: parseInt(document.getElementById("chair_right").value || 0),
+            }
         }
         window.building3D.currentArchPlan.overlayManager.updateSensorGeometry(sensor);
     } else {
