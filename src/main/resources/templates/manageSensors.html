@@ -178,12 +178,30 @@
                             GATEWAY_ID
                         </option>
                     </select>
+                    <!-- Protocol -->
+                    <select id="protocolSelect" name="protocolId" required>
+                        <option value="" disabled selected>Select a Protocol</option>
+                        <option th:each="p : ${protocols}"
+                                th:value="${p.id}"
+                                th:text="${p.name}">
+                            Protocol
+                        </option>
+                    </select>
                     <div class="field-error" th:if="${#fields.hasErrors('idGateway')}" th:errors="*{idGateway}"></div>
 
                     <!-- Frequency Plan -->
                     <input type="text" id="frequencyPlanInput" th:field="*{frequencyPlan}" placeholder="Frequency Plan"
                            th:classappend="${#fields.hasErrors('frequencyPlan')} ? 'input-error' : ''"/>
                     <div class="field-error" th:if="${#fields.hasErrors('frequencyPlan')}" th:errors="*{frequencyPlan}"></div>
+
+                    <select id="brandSelect" name="brandId" required>
+                        <option value="" disabled selected>Select a Brand</option>
+                        <option th:each="b : ${brands}"
+                                th:value="${b.id}"
+                                th:text="${b.name}">
+                            Brand
+                        </option>
+                    </select>
 
                     <!-- Building Name -->
                     <input type="text" id="buildingNameInput" th:field="*{buildingName}" placeholder="Building Name"

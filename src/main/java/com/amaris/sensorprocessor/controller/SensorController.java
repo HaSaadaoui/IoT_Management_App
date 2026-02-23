@@ -5,9 +5,8 @@
     import com.amaris.sensorprocessor.entity.Gateway;
     import com.amaris.sensorprocessor.entity.Sensor;
     import com.amaris.sensorprocessor.entity.User;
-    import com.amaris.sensorprocessor.service.GatewayService;
-    import com.amaris.sensorprocessor.service.SensorService;
-    import com.amaris.sensorprocessor.service.UserService;
+    import com.amaris.sensorprocessor.service.*;
+    import com.amaris.sensorprocessor.service.BrandService;
     import jakarta.servlet.http.HttpSession;
     import lombok.extern.slf4j.Slf4j;
     import org.springframework.beans.factory.annotation.Autowired;
@@ -58,18 +57,22 @@
         private final SensorService sensorService;
         private final GatewayService gatewayService;
         private final UserService userService;
+        private final ProtocolService protocolService;
+        private final BrandService brandService;
         private final com.amaris.sensorprocessor.service.SensorLorawanService sensorLorawanService;
         private final com.amaris.sensorprocessor.service.SensorSyncService sensorSyncService;
 
         @Autowired
         public SensorController(SensorService sensorService, GatewayService gatewayService, UserService userService,
-                               com.amaris.sensorprocessor.service.SensorLorawanService sensorLorawanService,
-                               com.amaris.sensorprocessor.service.SensorSyncService sensorSyncService) {
+                                SensorLorawanService sensorLorawanService,
+                                SensorSyncService sensorSyncService, ProtocolService protocolService,BrandService brandService) {
             this.sensorService = sensorService;
             this.gatewayService = gatewayService;
             this.userService = userService;
             this.sensorLorawanService = sensorLorawanService;
             this.sensorSyncService = sensorSyncService;
+            this.protocolService = protocolService;
+            this.brandService = brandService;
         }
 
         /* ===================== LISTE ===================== */
@@ -461,6 +464,9 @@
             List<Gateway> gateways = gatewayService.getAllGateways();
             model.addAttribute("sensors", sensors);
             model.addAttribute("gateways", gateways);
+            model.addAttribute("protocols", protocolService.findAll());
+            model.addAttribute("brands", brandService.findAll());
+
 
             List<String> buildings = Stream.concat(
                             sensors.stream().map(Sensor::getBuildingName),
