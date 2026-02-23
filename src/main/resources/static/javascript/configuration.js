@@ -866,7 +866,8 @@ function addElementSVG() {
         return;
     }
 
-    const elementWithID = Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+inputIdEl.value));
+    const id = CSS.escape(inputIdEl.value);
+    const elementWithID = Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+id));
     if (elementWithID.length) {
         alert("Un élément avec cet ID existe déjà.");
         return;
@@ -892,8 +893,8 @@ function addElementSVG() {
             id : inputIdEl.value,
             mode : sensorType.value,
             floor : floorNumber.value,
-            x : parseInt(inputSizeEl.value) || parseInt(inputWidthEl.value),
-            y : parseInt(inputSizeEl.value) || parseInt(inputHeightEl.value),
+            x : parseInt(inputSizeEl.value) || parseInt(inputWidthEl.value), //Default Value
+            y : parseInt(inputSizeEl.value) || parseInt(inputHeightEl.value), //Default Value
             size : parseInt(inputSizeEl.value),
             width : parseInt(inputWidthEl.value),
             height : parseInt(inputHeightEl.value),
@@ -978,7 +979,8 @@ function removeElementSVG() {
         return;
     }
     if (window.building3D && window.building3D.currentArchPlan) {
-        const elementWithID =  Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+elementId.value));
+        const id = CSS.escape(elementId.value);
+        const elementWithID = Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+id));
         if (!elementWithID.length) {
             alert("Aucun élément avec cet ID n'existe.");
             return;
