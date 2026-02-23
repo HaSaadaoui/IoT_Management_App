@@ -6,7 +6,7 @@ import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 @Data
-@Table("Sensors")
+@Table("sensors")
 public class Sensor {
 
     public Sensor() {}
@@ -15,7 +15,7 @@ public class Sensor {
     public Sensor(String idSensor, String deviceType, String commissioningDate,
                   Boolean status, String buildingName, Integer floor,
                   String location, String idGateway,
-                  String devEui, String joinEui, String appKey, String frequencyPlan) {
+                  String devEui, String joinEui, String appKey, String frequencyPlan,Integer brandId, Integer protocolId) {
         this.idSensor = idSensor;
         this.deviceType = deviceType;
         this.commissioningDate = commissioningDate;
@@ -28,6 +28,8 @@ public class Sensor {
         this.joinEui = joinEui;
         this.appKey = appKey;
         this.frequencyPlan = frequencyPlan;
+        this.brandId = brandId;
+        this.protocolId = protocolId;
     }
 
     @Id
@@ -66,4 +68,10 @@ public class Sensor {
 
     @Column("frequency_plan")
     private String frequencyPlan;
+
+    @Column("brand_id")
+    private Integer brandId;
+
+    @Column("protocol_id")
+    private Integer protocolId;
 }

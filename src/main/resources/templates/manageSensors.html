@@ -178,15 +178,6 @@
                             GATEWAY_ID
                         </option>
                     </select>
-                    <!-- Protocol -->
-                    <select id="protocolSelect" name="protocolId" required>
-                        <option value="" disabled selected>Select a Protocol</option>
-                        <option th:each="p : ${protocols}"
-                                th:value="${p.id}"
-                                th:text="${p.name}">
-                            Protocol
-                        </option>
-                    </select>
                     <div class="field-error" th:if="${#fields.hasErrors('idGateway')}" th:errors="*{idGateway}"></div>
 
                     <!-- Frequency Plan -->
@@ -194,12 +185,19 @@
                            th:classappend="${#fields.hasErrors('frequencyPlan')} ? 'input-error' : ''"/>
                     <div class="field-error" th:if="${#fields.hasErrors('frequencyPlan')}" th:errors="*{frequencyPlan}"></div>
 
-                    <select id="brandSelect" name="brandId" required>
+                    <select id="protocolSelect" th:field="*{protocolId}" required>
+                        <option value="" disabled selected>Select a Protocol</option>
+                        <option th:each="p : ${protocols}"
+                                th:value="${p.id}"
+                                th:text="${p.name}">
+                        </option>
+                    </select>
+
+                    <select id="brandSelect" th:field="*{brandId}" required>
                         <option value="" disabled selected>Select a Brand</option>
                         <option th:each="b : ${brands}"
                                 th:value="${b.id}"
                                 th:text="${b.name}">
-                            Brand
                         </option>
                     </select>
 
@@ -244,6 +242,7 @@
                     <div class="form-buttons">
                         <button type="submit">Add</button>
                         <button type="button" id="closeCreateSensor">Cancel</button>
+
                     </div>
                 </form>
 

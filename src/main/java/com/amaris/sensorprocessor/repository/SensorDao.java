@@ -67,8 +67,10 @@ public class SensorDao {
         return jdbcTemplate.update(
                 "INSERT INTO sensors (" +
                         "ID_SENSOR, DEVICE_TYPE, COMMISSIONING_DATE, STATUS, " +
-                        "BUILDING_NAME, FLOOR, LOCATION, ID_GATEWAY, DEV_EUI, FREQUENCY_PLAN" +
-                        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "BUILDING_NAME, FLOOR, LOCATION, ID_GATEWAY, " +
+                        "DEV_EUI, JOIN_EUI, APP_KEY, FREQUENCY_PLAN, " +
+                        "BRAND_ID, PROTOCOL_ID" +
+                        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 sensor.getIdSensor(),
                 sensor.getDeviceType(),
                 sensor.getCommissioningDate(),
@@ -78,10 +80,13 @@ public class SensorDao {
                 sensor.getLocation(),
                 sensor.getIdGateway(),
                 sensor.getDevEui(),
-                sensor.getFrequencyPlan()
+                sensor.getJoinEui(),
+                sensor.getAppKey(),
+                sensor.getFrequencyPlan(),
+                sensor.getBrandId(),
+                sensor.getProtocolId()
         );
     }
-
     public List<Sensor> findAllByDeviceType(String deviceType) {
         return jdbcTemplate.query(
                 "SELECT * FROM sensors WHERE DEVICE_TYPE = ?",
@@ -101,12 +106,11 @@ public class SensorDao {
 
     public boolean existsByBuildingAndType(String building, String deviceType){
         Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(1) FROM sensors WHERE DEVICE_TYPE = ? IS NULL OR BUILDING_NAME = ?",
+                "SELECT COUNT(1) FROM sensors WHERE DEVICE_TYPE = ? AND BUILDING_NAME = ?",
                 Integer.class,
                 deviceType,
                 building
         );
-
         return count != null && count > 0;
     }
 
@@ -131,7 +135,11 @@ public class SensorDao {
                         "LOCATION = ?, " +
                         "ID_GATEWAY = ?, " +
                         "DEV_EUI = ?, " +
-                        "FREQUENCY_PLAN = ? " +
+                        "JOIN_EUI = ?, " +
+                        "APP_KEY = ?, " +
+                        "FREQUENCY_PLAN = ?, " +
+                        "BRAND_ID = ?, " +
+                        "PROTOCOL_ID = ? " +
                         "WHERE ID_SENSOR = ?",
                 sensor.getDeviceType(),
                 sensor.getCommissioningDate(),
@@ -141,11 +149,14 @@ public class SensorDao {
                 sensor.getLocation(),
                 sensor.getIdGateway(),
                 sensor.getDevEui(),
+                sensor.getJoinEui(),
+                sensor.getAppKey(),
                 sensor.getFrequencyPlan(),
+                sensor.getBrandId(),
+                sensor.getProtocolId(),
                 sensor.getIdSensor()
         );
     }
-
     /**
      * Récupère la liste des sensors des type_device renseignés
      * @param deviceTypes exemple: "DESK", "OCCUP"
