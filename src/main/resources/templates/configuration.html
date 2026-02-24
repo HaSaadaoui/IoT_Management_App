@@ -668,6 +668,14 @@
                         <input type="number" id="chair_right" min="0" max="10" value="0" class="form-control" onchange="updateElementSVG()">
                 </div>
 
+                <div class="filter-card">
+                    <label>Style</label>
+                    <select id="filter-style" class="form-select" style="height: 45px;" onchange="updateElementSVG()">
+                        <option value="Dark" selected>Dark</option>
+                        <option value="Light">Light</option>
+                    </select>
+                </div>
+
                 <div class="col-md-4" style="margin-top: 20px;">
                     <button class="btn btn-violet" onclick="addElementSVG()">Add Element</button>
                     <button class="btn btn-violet" onclick="removeElementSVG()">Remove Element</button>

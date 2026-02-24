@@ -642,6 +642,7 @@ class SensorOverlayManager {
         desk.setAttribute("id", sensor.id);
         desk.setAttribute("floor-number", sensor.floor);
         desk.setAttribute("sensor-mode", sensor.mode);
+        desk.setAttribute("size", sensor.size);
         desk.setAttribute("chairs", JSON.stringify(sensor.chairs));
         if (sensor.rotation) {
             const cx = sensor.x + sensor.width / 2;
@@ -660,13 +661,15 @@ class SensorOverlayManager {
         const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
 
         const cx = sensor.x + sensor.width / 2;
-        const cy = sensor.y + sensor.height * 2/3;        
+        const cy = sensor.y + sensor.height / 2;        
 
         text.setAttribute("x", cx);
         text.setAttribute("y", cy);
         text.setAttribute("text-anchor", "middle");
+        text.setAttribute("dominant-baseline", "middle");
         text.setAttribute("font-family", "Arial, sans-serif");
-        text.setAttribute("font-size", Math.min(sensor.width, sensor.height) / 2);
+        const size = sensor.size || Math.min(sensor.width, sensor.height) / 2;
+        text.setAttribute("font-size", size);
         text.setAttribute("font-weight", "bold");
         text.setAttribute("fill", "#ffffff");
         text.setAttribute("class","sensor-temp");

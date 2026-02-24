@@ -1596,6 +1596,7 @@ class ArchitecturalFloorPlan {
         const rotation = g.getAttribute("data-rotation") ?? "";
         const radius = g.getAttribute("data-radius") ?? "0";
         const label = g.getAttribute("data-label") ?? "";
+        const style = g.getAttribute("data-style") ?? "Dark";
         const child = g.firstElementChild;
         if (!child) return;
         const tag = child.tagName.toLowerCase();
@@ -1607,7 +1608,7 @@ class ArchitecturalFloorPlan {
 
         setVal("input_id", id);
         setVal("filter-floor", floor);
-
+        setVal("filter-style", style);
         if (type === "Wall" || tag === "line") {
             setVal("input_size", parseFloat(size));
             setVal("input_width", parseFloat(width));

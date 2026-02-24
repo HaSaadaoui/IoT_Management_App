@@ -12,14 +12,15 @@ class FloorElementsManager {
     }
 
     // Config drawing methods
-    drawRect(parent, x, y, width, height, rotation = null, fill = false){
+    drawRect(parent, x, y, width, height, rotation = null, fill = false, style = "Dark") {
         const el = document.createElementNS(this.ns, "rect");
         el.setAttribute("x", x);
         el.setAttribute("y", y);
         el.setAttribute("width", width);
         el.setAttribute("height", height);
         el.setAttribute("fill", fill ? "#ffffff" : "none");
-        el.setAttribute("stroke", this.colors.wallStroke);
+        const color = (style && style !== "Dark") ? this.colors.interiorLine : this.colors.wallStroke;
+        el.setAttribute("stroke", color);
         el.setAttribute("stroke-width", 2);
         if (rotation) {
             const cx = x + width / 2;
@@ -29,16 +30,15 @@ class FloorElementsManager {
         parent.appendChild(el);
     }
 
-    drawCircle(parent, cx, cy, radius) {
+    drawCircle(parent, cx, cy, radius, style = "Dark") {
         const path = document.createElementNS(this.ns, "circle");
-
         path.setAttribute("r", radius);
         path.setAttribute("cx", cx);
         path.setAttribute("cy", cy);
         path.setAttribute("fill", "none");
-        path.setAttribute("stroke", this.colors.wallStroke);
+        const color = (style && style !== "Dark") ? this.colors.interiorLine : this.colors.wallStroke;
+        path.setAttribute("stroke", color);
         path.setAttribute("stroke-width", 2);
-
         parent.appendChild(path);
         return path;
     }
@@ -61,7 +61,7 @@ class FloorElementsManager {
         return line;
     }
 
-    drawLabel(parent, x, y, text, fontSize = 12, fontWeight = "normal", rotation = null) {
+    drawLabel(parent, x, y, text, fontSize = 12, fontWeight = "normal", rotation = null, style = "Dark") {
         const label = document.createElementNS(this.ns, "text");
         label.setAttribute("x", x);
         label.setAttribute("y", y);
@@ -69,7 +69,8 @@ class FloorElementsManager {
         label.setAttribute("font-family", "Arial, sans-serif");
         label.setAttribute("font-size", fontSize);
         label.setAttribute("font-weight", fontWeight);
-        label.setAttribute("fill", this.colors.text);
+        const color = (style && style !== "Dark") ? this.colors.interiorLine : this.colors.text;
+        label.setAttribute("fill", color);
         label.textContent = text;
         if (rotation) {
             const cx = x;
@@ -289,6 +290,7 @@ class FloorElementsManager {
         g.setAttribute("data-type", el.type);
         g.setAttribute("floor-number", el.floor ?? "");
         g.setAttribute("data-draggable", "true");
+        g.setAttribute("data-style", el.style ?? "Dark");
         g.style.cursor = "move";
         if (el.x != null) g.setAttribute("data-x", el.x);
         if (el.y != null) g.setAttribute("data-y", el.y);
@@ -299,25 +301,28 @@ class FloorElementsManager {
         if (el.label != null) g.setAttribute("data-label", el.label);
         if (el.rotation != null) g.setAttribute("data-rotation", el.rotation);
 
+        console.log("update element style "+ el.style);
+
         switch(el.type) {
             case "Wall":
                 const points = [{x: el.x, y: el.y}, {x: el.x + el.size, y: el.y}];
-                this.drawLine(g, points, this.colors.wallStroke, el.width, el.rotation || null);
+                const color = (el.style && el.style !== "Dark") ? this.colors.interiorLine : this.colors.wallStroke;
+                this.drawLine(g, points, color, el.width, el.rotation || null);
                 break;
             case "Room":
-                this.drawRect(g, el.x, el.y, el.width, el.height, el.rotation || null, false);
+                this.drawRect(g, el.x, el.y, el.width, el.height, el.rotation || null, false, el.style || "Dark");
                 break;
             case "Window":
-                this.drawRect(g, el.x, el.y, el.width, el.height, el.rotation || null, true);
+                this.drawRect(g, el.x, el.y, el.width, el.height, el.rotation || null, true, el.style || "Dark");
                 break;
             case "Door":
-                this.drawRect(g, el.x, el.y, el.width, el.height, el.rotation || null, true);
+                this.drawRect(g, el.x, el.y, el.width, el.height, el.rotation || null, true, el.style || "Dark");
                 break;
             case "Circle":
-                this.drawCircle(g, el.x, el.y, el.radius);
+                this.drawCircle(g, el.x, el.y, el.radius, el.style || "Dark");
                 break;
             case "Label":
-                this.drawLabel(g, el.x, el.y, el.label, el.size, "normal", el.rotation || null);
+                this.drawLabel(g, el.x, el.y, el.label, el.size, "normal", el.rotation || null, el.style || "Dark");
                 break;
         }
         parent.appendChild(g);
@@ -348,6 +353,7 @@ class FloorElementsManager {
         if (el.radius != null) g.setAttribute("data-radius", el.radius);
         if (el.label != null) g.setAttribute("data-label", el.label);
         if (el.rotation != null) g.setAttribute("data-rotation", el.rotation);
+        if (el.style != null) g.setAttribute("data-style", el.style);
 
         // MAJ enfant
         switch(el.type) {
@@ -357,6 +363,11 @@ class FloorElementsManager {
                 child.setAttribute("x2", el.x + el.size);
                 child.setAttribute("y2", el.y);
                 child.setAttribute("stroke-width", el.width);
+                if (el.style && el.style !== "Dark") {
+                    child.setAttribute("stroke", this.colors.interiorLine);
+                } else {
+                    child.setAttribute("stroke", this.colors.wallStroke); 
+                }
                 if (el.rotation != null) {
                     const cx = (el.x + (el.x + el.size)) / 2;
                     const cy = el.y;
@@ -373,6 +384,11 @@ class FloorElementsManager {
                 child.setAttribute("y", el.y);
                 child.setAttribute("width", el.width);
                 child.setAttribute("height", el.height);
+                if (el.style && el.style !== "Dark") {
+                    child.setAttribute("stroke", this.colors.interiorLine);
+                } else {
+                    child.setAttribute("stroke", this.colors.wallStroke); 
+                }
                 if (el.rotation != null) {
                     const cx = el.x + el.width / 2;
                     const cy = el.y + el.height / 2;
@@ -386,6 +402,11 @@ class FloorElementsManager {
                 child.setAttribute("cx", el.x);
                 child.setAttribute("cy", el.y);
                 child.setAttribute("r", el.radius);
+                if (el.style && el.style !== "Dark") {
+                    child.setAttribute("stroke", this.colors.interiorLine);
+                } else {
+                    child.setAttribute("stroke", this.colors.wallStroke); 
+                }
                 break;
             }
             case "Label": {
@@ -393,6 +414,11 @@ class FloorElementsManager {
                 child.setAttribute("y", el.y);
                 if (typeof el.size === "number") child.setAttribute("font-size", el.size);
                 if (typeof el.label === "string") child.textContent = el.label;
+                if (el.style && el.style !== "Dark") {
+                    child.setAttribute("fill", this.colors.interiorLine);
+                } else {
+                    child.setAttribute("fill", this.colors.text); 
+                }
                 if (el.rotation != null) {
                     child.setAttribute("transform", `rotate(${el.rotation} ${el.x} ${el.y})`);
                 } else {
