@@ -136,7 +136,7 @@ class FloorElementsManager {
         return el;
     }
 
-    drawDoor(parent, x, y, width, height, orientation = "horizontal", arc = false) {
+    drawDoor(parent, x, y, width, height, orientation = "horizontal", arc = false, rotate = null) {
         const w = orientation === "horizontal" ? width : height;
         const h = orientation === "horizontal" ? height : width;
 
@@ -148,6 +148,9 @@ class FloorElementsManager {
         el.setAttribute("fill", "#ffffff");
         el.setAttribute("stroke", this.colors.wallStroke);
         el.setAttribute("stroke-width", 2);
+        if (rotate) {
+            el.setAttribute("transform", rotate);
+        }
         parent.appendChild(el);
 
         // Door arc

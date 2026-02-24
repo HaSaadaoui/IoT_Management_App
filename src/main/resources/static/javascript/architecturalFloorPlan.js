@@ -995,7 +995,7 @@ class ArchitecturalFloorPlan {
         // New York Room (vertical extension)
         this.elementsManager.drawLine( g, [ { x: 200, y: 150 }, { x: 200, y: 280 }, ], this.colors.wallStroke, 2, );
         this.elementsManager.drawDoor(g, 202, 180, 40, 4, "vertical");
-        this.elementsManager.drawLabel(g, 260, -50, "New York", 16, "bold", "rotate(-90 290 110)");
+        this.elementsManager.drawLabel(g, 120, 160, "New York", 16, "bold");
 
         if (this.sensorMode === "DESK") {
             this.elementsManager.drawWorkstation( g, 790, 60, deskOccupancy["D01"] || "invalid", "D01", 30, 50, "left", null, 780, 85, 805, 90, );
