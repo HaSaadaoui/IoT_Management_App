@@ -89,7 +89,21 @@ async function loadSVGShapeFromUrl(url) {
                     return;
                 }
 
-                const baseShape = shapes[0].clone();
+                // Trouver la shape ayant la plus grande surface
+                let bestShape = null;
+                let maxArea = -Infinity;
+
+                shapes.forEach(shape => {
+                    const area = THREE.ShapeUtils.area(shape.getPoints());
+                    const absArea = Math.abs(area);
+                    if (absArea > maxArea) {
+                        maxArea = absArea;
+                        bestShape = shape;
+                    }
+                });
+
+                if (!bestShape) bestShape = shapes[0];
+                const baseShape = bestShape.clone();
 
                 const geom = new THREE.ShapeGeometry(baseShape);
                 geom.computeBoundingBox();
@@ -234,6 +248,7 @@ class Building3D {
         this.currentFloorNumber = null;
         this.currentSensorMode = 'DESK';
         this.currentArchPlan = null;
+        this._ephemeralSvgUrl = null;
 
         this.isDashboard = true;
 
@@ -284,6 +299,33 @@ class Building3D {
             return this.dbBuildingConfig.svgUrl;
         }
         return null;
+    }
+
+    // Sérialise le SVG courant et le met en blob URL
+    persistCurrentSvgToBlob() {
+        try {
+            // On ne persiste que dans la configuration
+            if (!this.currentArchPlan || this.isDashboard) return;
+
+            const svgContent = this.currentArchPlan.exportSVG();
+            if (!svgContent) return;
+
+            // Nettoyage ancien blob si existant
+            if (this._ephemeralSvgUrl) {
+                URL.revokeObjectURL(this._ephemeralSvgUrl);
+                this._ephemeralSvgUrl = null;
+            }
+            // Nouveau blob
+            const blob = new Blob([svgContent], { type: "image/svg+xml" });
+            this._ephemeralSvgUrl = URL.createObjectURL(blob);
+
+            // Alimente la source SVG utilisée au prochain drawFloorSVG()
+            if (this.isDbBuilding && this.dbBuildingConfig) {
+                this.dbBuildingConfig.svgUrl = this._ephemeralSvgUrl;
+            }
+        } catch (e) {
+            console.warn('[Building3D] persistCurrentSvgToBlob error', e);
+        }
     }
 
     startOccupancySSE() {
@@ -705,8 +747,13 @@ class Building3D {
         this.canvas.addEventListener('mousemove', (event) => this.onMouseMove(event));
         this.canvas.addEventListener('click',    (event) => this.onMouseClick(event));
         window.addEventListener('resize', () => this.onWindowResize());
-        window.addEventListener('beforeunload', () => this.stopOccupancySSE());
-
+        window.addEventListener('beforeunload', () => {
+            this.stopOccupancySSE();
+            if (this._ephemeralSvgUrl) {
+            try { URL.revokeObjectURL(this._ephemeralSvgUrl); } catch {}
+            this._ephemeralSvgUrl = null;
+            }
+        });
     }
 
     onMouseMove(event) {
@@ -882,6 +929,7 @@ class Building3D {
     }
 
     loadArchitecturalPlan(floorNumber) {
+        this.persistCurrentSvgToBlob();
         const deskGrid = document.getElementById('desk-grid');
         if (!deskGrid) {
             console.error('desk-grid not found');
@@ -1181,9 +1229,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const container = document.getElementById('building-3d-container');
     if (!container) return;
 
-    const siteAttr = container.dataset.site
-        ? container.dataset.site.toUpperCase()
-        : null;
+    const siteAttr = container.dataset.site ? container.dataset.site.toUpperCase() : null;
 
     window.building3D = new Building3D('building-3d-container', siteAttr);
     console.log('3D Building Digital Twin initialized for site:', siteAttr ?? '(empty scene)');
@@ -1202,6 +1248,10 @@ document.addEventListener('DOMContentLoaded', function () {
         floorSelect.addEventListener('change', () => {
             if (window.building3D) {
                 if (floorSelect.value === ""){
+                    if(!window.building3D.isDashboard){
+                        window.building3D.currentFloorNumber = "";
+                        window.building3D.loadArchitecturalPlan(""); 
+                    }
                     return;
                 }
                 const floorNumber = parseInt(floorSelect.value, 10);
