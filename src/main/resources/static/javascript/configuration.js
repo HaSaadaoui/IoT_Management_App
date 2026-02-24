@@ -1599,12 +1599,97 @@ function changeEditorLanguage(selectEl) {
 
     const value = (selectEl.value || "").toLowerCase();
     let mode = "ace/mode/javascript";
-
     if (value.includes("python")) mode = "ace/mode/python";
     else if (value.includes("java")) mode = "ace/mode/java";
-    else if (value.includes("c++")) mode = "ace/mode/c_cpp";
-
     editor.session.setMode(mode);
+}
+
+// ======================================================
+// ============= ENERGY CONFIGURATION ====================
+// ======================================================
+
+async function loadEnergyConfigs() {
+    try {
+        const response = await fetch('/api/configuration/building-energy');
+        if (!response.ok) throw new Error('Failed to load energy configs');
+        const configs = await response.json();
+        const tbody = document.getElementById('energy-config-tbody');
+        if (!tbody) return;
+        if (configs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No configurations yet.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = configs.map(config => `
+            <tr>
+                <td><strong>${config.buildingName}</strong></td>
+                <td>${config.energyCostPerKwh?.toFixed(4) || '0.0000'}</td>
+                <td>${config.currency || 'EUR'}</td>
+                <td>${config.co2EmissionFactor?.toFixed(4) || '0.0000'}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editEnergyConfig('${config.buildingName}')">Edit</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteEnergyConfig('${config.buildingName}')">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading energy configs:', error);
+    }
+}
+
+async function saveEnergyConfig() {
+    const buildingName = document.getElementById('energy-config-building')?.value;
+    const energyCostPerKwh = parseFloat(document.getElementById('energy-cost-kwh')?.value);
+    const currency = document.getElementById('energy-currency')?.value || 'EUR';
+    const co2EmissionFactor = parseFloat(document.getElementById('co2-emission-factor')?.value) || 0;
+
+    if (!buildingName) { alert('Please select a building'); return; }
+    if (isNaN(energyCostPerKwh) || energyCostPerKwh < 0) { alert('Please enter a valid energy cost'); return; }
+
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    if (!csrfMeta || !csrfHeaderMeta) { alert("CSRF token not found."); return; }
+
+    try {
+        const response = await fetch('/api/configuration/building-energy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', [csrfHeaderMeta.getAttribute("content")]: csrfMeta.getAttribute("content") },
+            body: JSON.stringify({ buildingName, energyCostPerKwh, currency, co2EmissionFactor })
+        });
+        if (response.ok) {
+            alert('Configuration saved!');
+            loadEnergyConfigs();
+            document.getElementById('energy-config-building').value = '';
+            document.getElementById('energy-cost-kwh').value = '';
+            document.getElementById('co2-emission-factor').value = '';
+        } else { throw new Error('Failed to save'); }
+    } catch (error) { alert('Error: ' + error.message); }
+}
+
+async function editEnergyConfig(buildingName) {
+    try {
+        const response = await fetch(`/api/configuration/building-energy/${encodeURIComponent(buildingName)}`);
+        if (!response.ok) throw new Error('Failed to load');
+        const config = await response.json();
+        document.getElementById('energy-config-building').value = config.buildingName;
+        document.getElementById('energy-cost-kwh').value = config.energyCostPerKwh || '';
+        document.getElementById('energy-currency').value = config.currency || 'EUR';
+        document.getElementById('co2-emission-factor').value = config.co2EmissionFactor || '';
+    } catch (error) { alert('Error: ' + error.message); }
+}
+
+async function deleteEnergyConfig(buildingName) {
+    if (!confirm(`Delete config for ${buildingName}?`)) return;
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    if (!csrfMeta || !csrfHeaderMeta) { alert("CSRF token not found."); return; }
+    try {
+        const response = await fetch(`/api/configuration/building-energy/${encodeURIComponent(buildingName)}`, {
+            method: 'DELETE',
+            headers: { [csrfHeaderMeta.getAttribute("content")]: csrfMeta.getAttribute("content") }
+        });
+        if (response.ok) { alert('Deleted!'); loadEnergyConfigs(); }
+        else { throw new Error('Failed'); }
+    } catch (error) { alert('Error: ' + error.message); }
 }
 
 // ======================================================
@@ -1630,6 +1715,10 @@ window.updateParameterUnits = updateParameterUnits;
 window.editNotificationPreference = editNotificationPreference;
 window.deleteNotificationPreference = deleteNotificationPreference;
 window.applyFormVisibility = applyFormVisibility;
+window.saveEnergyConfig = saveEnergyConfig;
+window.editEnergyConfig = editEnergyConfig;
+window.deleteEnergyConfig = deleteEnergyConfig;
+window.loadEnergyConfigs = loadEnergyConfigs;
 
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", function() {
@@ -1639,5 +1728,6 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof populateBuildingSelect === 'function') populateBuildingSelect();
     if (typeof toggleFormFields === 'function') toggleFormFields();
     if (typeof updateInputSizeLabel === 'function') updateInputSizeLabel();
-    if (window.building3D) { window.building3D.isDashboard = false};
+    if (typeof loadEnergyConfigs === 'function') loadEnergyConfigs();
+    if (window.building3D) { window.building3D.isDashboard = false; }
 });

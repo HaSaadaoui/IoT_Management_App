@@ -77,33 +77,7 @@ function initCharts() {
     Chart.defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
     Chart.defaults.color = '#64748b';
 
-    // Initialize office/location charts using data-chart-index
-    const chartData = [
-        [57.14, 42, 0.86],  // index 0
-        [75, 25, 0],        // index 1
-        [66.67, 33.33, 0]   // index 2
-    ];
-
-    chartData.forEach((data, index) => {
-        const statCard = document.querySelector(`.stat-card[data-chart-index="${index}"]`);
-        if (statCard) {
-            const chartElement = statCard.querySelector('.chart-office');
-            if (chartElement) {
-                // Use shared utility function
-                window.ChartUtils.createDoughnutChart(chartElement, data);
-            }
-        }
-    });
-
-    // Initialize total chart using data-chart-type="total"
-    const totalStatCard = document.querySelector('.stat-card[data-chart-type="total"]');
-    if (totalStatCard) {
-        const chartElement = totalStatCard.querySelector('#chart-total');
-        if (chartElement) {
-            // Use shared utility function
-            window.ChartUtils.createDoughnutChart(chartElement, [63.64, 36.36, 0]);
-        }
-    }
+    // Static chart initialization removed - charts are now populated by SSE via chartUtils.js
 
     // Historical Bar Chart is now handled by dashboard.js
     // Removed to prevent conflicts with the real histogram implementation

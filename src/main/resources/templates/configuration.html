@@ -75,32 +75,73 @@
 
     <!-- ================= ENERGY MANAGEMENT ================= -->
     <div class="config-card">
-        <h2>Energy Management</h2>
-        <form>
+        <h2>⚡ Energy Management</h2>
+        <p class="section-description">Configure energy cost and CO₂ emission factors per building</p>
+        
+        <!-- Building Selection -->
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Select Building</label>
+            <select id="energy-config-building" class="form-select" style="width: auto; max-width: 300px; height: 45px;">
+                <option value="">-- Select a building --</option>
+                <option value="Levallois-Building">Levallois Building</option>
+                <option value="Châteaudun-Building">Châteaudun Building</option>
+                <option value="Strasbourg-Building">Strasbourg Building</option>
+                <option value="Marseille-Building">Marseille Building</option>
+                <option value="Lille-Building">Lille Building</option>
+            </select>
+        </div>
+
+        <!-- Energy Configuration Form -->
+        <form id="energy-config-form" onsubmit="event.preventDefault(); saveEnergyConfig();">
             <div class="row mb-3">
-                <div class="col-md-6">
-                    <label>Management Mode</label>
-                    <select class="form-select" style="width: auto; max-width: 300px; height: 45px; margin-top: 10px; margin-left: 10px;">
-                        <option>Eco</option>
-                        <option>Normal</option>
-                        <option>Performance</option>
-                    </select>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">💰 Energy Cost per kWh</label>
+                    <div class="input-group">
+                        <input type="number" id="energy-cost-kwh" class="form-control" step="0.01" min="0" placeholder="0.21" required>
+                        <select id="energy-currency" class="form-select" style="max-width: 100px;">
+                            <option value="EUR">€</option>
+                            <option value="USD">$</option>
+                            <option value="GBP">£</option>
+                        </select>
+                    </div>
+                    <small class="text-muted">Cost per kilowatt-hour for this building</small>
                 </div>
-                <div class="col-md-6">
-                    <label>Consumption Alert Threshold</label>
-                    <input type="number" class="form-control" style="width: auto; max-width: 250px; margin-top: 10px; margin-left: 10px;">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">🌿 CO₂ Emission Factor</label>
+                    <div class="input-group">
+                        <input type="number" id="co2-emission-factor" class="form-control" step="0.001" min="0" placeholder="0.052" required>
+                        <span class="input-group-text">kg CO₂/kWh</span>
+                    </div>
+                    <small class="text-muted">CO₂ emissions per kWh based on location</small>
                 </div>
             </div>
-            <div class="mb-3">
-                <label>Period</label>
-                <select class="form-select" style="width: auto; max-width: 200px; height: 45px; margin-top: 10px; margin-left: 10px;">
-                    <option>Daily</option>
-                    <option>Weekly</option>
-                    <option>Monthly</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-violet" style="margin: 20px 0;">Save</button>
+            <button type="submit" class="btn btn-violet" style="margin: 20px 0;">
+                💾 Save Configuration
+            </button>
         </form>
+
+        <!-- Existing Configurations Table -->
+        <div class="mt-4">
+            <h4>📋 Current Building Configurations</h4>
+            <div class="table-responsive">
+                <table class="table table-striped" id="energy-config-table">
+                    <thead>
+                        <tr>
+                            <th>Building</th>
+                            <th>Energy Cost</th>
+                            <th>Currency</th>
+                            <th>CO₂ Factor (kg/kWh)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="energy-config-tbody">
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">Loading configurations...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <!-- ================= OCCUPANCY ================= -->

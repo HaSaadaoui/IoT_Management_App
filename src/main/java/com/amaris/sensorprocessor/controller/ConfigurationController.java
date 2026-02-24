@@ -3,6 +3,7 @@ package com.amaris.sensorprocessor.controller;
 import com.amaris.sensorprocessor.config.AlertThresholdConfig;
 import com.amaris.sensorprocessor.entity.*;
 import com.amaris.sensorprocessor.repository.AlertConfigurationDao;
+import com.amaris.sensorprocessor.repository.BuildingEnergyConfigDao;
 import com.amaris.sensorprocessor.repository.SensorDao;
 import com.amaris.sensorprocessor.service.AlertConfigurationService;
 import com.amaris.sensorprocessor.service.NotificationService;
@@ -29,6 +30,7 @@ public class ConfigurationController {
     private final UserService userService;
     private final SensorDao sensorDao;
     private final AlertConfigurationDao alertConfigurationDao;
+    private final BuildingEnergyConfigDao buildingEnergyConfigDao;
 
 
     @Autowired
@@ -37,7 +39,9 @@ public class ConfigurationController {
                                    NotificationService notificationService,
                                    SensorThresholdService sensorThresholdService,
                                    UserService userService,
-                                   SensorDao sensorDao, AlertConfigurationDao alertConfigurationDao) {
+                                   SensorDao sensorDao, 
+                                   AlertConfigurationDao alertConfigurationDao,
+                                   BuildingEnergyConfigDao buildingEnergyConfigDao) {
         this.alertThresholdConfig = alertThresholdConfig;
         this.alertConfigurationService = alertConfigurationService;
         this.notificationService = notificationService;
@@ -45,6 +49,7 @@ public class ConfigurationController {
         this.userService = userService;
         this.sensorDao = sensorDao;
         this.alertConfigurationDao = alertConfigurationDao;
+        this.buildingEnergyConfigDao = buildingEnergyConfigDao;
     }
 
     @GetMapping("/configuration")
@@ -164,6 +169,51 @@ public class ConfigurationController {
     public AlertConfigEntity getAlertConfig() {
         AlertConfigEntity config = alertConfigurationDao.load();
         return config != null ? config : new AlertConfigEntity(); // fallback si pas en DB
+    }
+
+    // ==================== BUILDING ENERGY CONFIG ====================
+
+    @GetMapping("/api/configuration/building-energy")
+    @ResponseBody
+    public ResponseEntity<?> getAllBuildingEnergyConfigs() {
+        List<BuildingEnergyConfig> configs = buildingEnergyConfigDao.findAll();
+        return ResponseEntity.ok(configs);
+    }
+
+    @GetMapping("/api/configuration/building-energy/{buildingName}")
+    @ResponseBody
+    public ResponseEntity<?> getBuildingEnergyConfig(@PathVariable String buildingName) {
+        Optional<BuildingEnergyConfig> config = buildingEnergyConfigDao.findByBuildingName(buildingName);
+        if (config.isPresent()) {
+            return ResponseEntity.ok(config.get());
+        }
+        // Return default values if not configured
+        BuildingEnergyConfig defaultConfig = new BuildingEnergyConfig();
+        defaultConfig.setBuildingName(buildingName);
+        defaultConfig.setEnergyCostPerKwh(0.0);
+        defaultConfig.setCurrency("EUR");
+        defaultConfig.setCo2EmissionFactor(0.0);
+        return ResponseEntity.ok(defaultConfig);
+    }
+
+    @PostMapping("/api/configuration/building-energy")
+    @ResponseBody
+    public ResponseEntity<?> saveBuildingEnergyConfig(@RequestBody BuildingEnergyConfig config) {
+        if (config.getBuildingName() == null || config.getBuildingName().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Building name is required"));
+        }
+        if (config.getEnergyCostPerKwh() == null || config.getEnergyCostPerKwh() < 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Energy cost must be a positive number"));
+        }
+        buildingEnergyConfigDao.save(config);
+        return ResponseEntity.ok().body(Map.of("message", "Building energy configuration saved successfully"));
+    }
+
+    @DeleteMapping("/api/configuration/building-energy/{buildingName}")
+    @ResponseBody
+    public ResponseEntity<?> deleteBuildingEnergyConfig(@PathVariable String buildingName) {
+        buildingEnergyConfigDao.delete(buildingName);
+        return ResponseEntity.ok().body(Map.of("message", "Building energy configuration deleted successfully"));
     }
 
 }

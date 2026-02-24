@@ -1,172 +1,62 @@
-// =============== BUILDING CHART INSTANCES ================
-const chartsByBuilding = {
-    CHATEAUDUN: {},
-    LEVALLOIS: {}
-};
+// ===== CHART UTILITIES + LIVE OCCUPANCY =====
+// ============================================
+// OCCUPANCY ZONES
+// ============================================
+function buildOccupancyZones() {
+    const zones = {
+        LEVALLOIS: {
+            3: {
+                OPEN_SPACE: { title: "Open_03_01", match: (id) => /^desk-03-(0[1-9]|[1-7][0-9]|8[0-2])$/.test(id) },
+                VALUEMENT: { title: "Valuement", match: (id) => /^desk-03-(8[3-9]|9[0-2])$/.test(id) },
+                MEETING_ROOM: { title: "Meeting Room", match: (id) => /^occup-vs70-03-0[1-2]$/.test(id) || id === "count-03-01" },
+                INTERVIEW_ROOM: { title: "Interview Room", match: (id) => /^desk-vs41-03-0[1-2]$/.test(id) },
+                PHONE_BOOTH: { title: "Phone Booth", match: (id) => [
+                    "desk-vs41-03-03",
+                    "desk-vs41-03-04",
+                    "occup-vs30-03-01",
+                    "occup-vs30-03-02",
+                    "desk-vs40-03-01",
+                    "occup-vs70-03-03",
+                    "occup-vs70-03-04"
+                ].includes(id) }
+            }
+        },
+        CHATEAUDUN: {}
+    };
 
-function renderOpenEspace(building, data) {
-
-    if (!chartsByBuilding[building]) {
-        chartsByBuilding[building] = {};
+    if (window.DeskSensorConfig?.mappings?.CHATEAUDUN) {
+        const chateaudunConfig = window.DeskSensorConfig.mappings.CHATEAUDUN;
+        Object.keys(chateaudunConfig).forEach(floorNum => {
+            const floorDesks = chateaudunConfig[floorNum] || [];
+            const sensorIds = floorDesks.filter(d => d.sensor).map(d => d.sensor);
+            
+            zones.CHATEAUDUN[floorNum] = {
+                [`FLOOR_${floorNum}`]: {
+                    title: `Floor ${floorNum}`,
+                    match: (id) => sensorIds.includes(id),
+                    expectedCount: floorDesks.length
+                }
+            };
+        });
     }
 
-    if (chartsByBuilding[building].openEspace) {
-        chartsByBuilding[building].openEspace.destroy();
-    }
-
-    const canvas = document.querySelector(`#${building}_OPEN_ESPACE`);
-    if (!canvas) {
-        console.warn("Canvas not found for building:", building);
-        return;
-    }
-
-    const ctx = canvas.getContext("2d");
-
-    chartsByBuilding[building].openEspace = new Chart(ctx, {
-        type: 'doughnut',
-        data: data,
-        options: { responsive: true }
-    });
+    return zones;
 }
 
-// ===== CHART UTILITIES + LIVE OCCUPANCY =====
-// =============  OCCUPANCY ZONES ===================
-const OCCUPANCY_ZONES = {
-    LEVALLOIS: {
-        3: {
-            OPEN_SPACE: { title: "Open_03_01", match: (id) => /^desk-03-(0[1-9]|[1-7][0-9]|8[0-2])$/.test(id) },
-            VALUEMENT: { title: "Valuement", match: (id) => /^desk-03-(8[3-9]|9[0-2])$/.test(id) },
-            MEETING_ROOM: { title: "Meeting Room", match: (id) => /^occup-vs70-03-0[1-2]$/.test(id) || id === "count-03-01" },
-            INTERVIEW_ROOM: { title: "Interview Room", match: (id) => /^desk-vs41-03-0[1-2]$/.test(id) },
-            PHONE_BOOTH: { title: "Phone Booth", match: (id) => [
-                "desk-vs41-03-03",
-                "desk-vs41-03-04",
-                "occup-vs30-03-01",
-                "occup-vs30-03-02",
-                "desk-vs40-03-01",
-                "occup-vs70-03-03",
-                "occup-vs70-03-04"
-            ].includes(id) }
-        }
-    },
-    CHATEAUDUN: {
-            0: {
-    			OPEN_SPACE: {
-    				title: "Open Space"
-    			}
-    		},
-            1: {
-                OPEN_SPACE: { title: "Phone Booth"/*, match: (id) =>
-                    ["desk-01-01"].includes(id)*/
-                },
-                MEETING_ROOM_GENEVA: {
-    				title: "Meeting Room Pacific"
-    			}
-            },
-            2: {
-    			OPEN_SPACE_1: {
-    				title: "Open Space 1",
-    				prefix: "desk-01-",
-    				start: 1,
-    				end: 7,
-    				match: (id) => /^desk-01-(0[1-7])$/.test(id)
-    			},
-    			OPEN_SPACE_2: {
-    				title: "Open Space 2",
-    				prefix: "desk-01-",
-    				start: 8,
-    				end: 15,
-    				match: (id) => /^desk-01-(0[8-9]|1[0-5])$/.test(id)
-    			},
-    			MEETING_ROOM_ATLANTIC: {
-    				title: "Meeting Room Atlantic"
-    			},
-    			MEETING_ROOM_PACIFIC: {
-    				title: "Meeting Room Pacific"
-    			}
-    		},
-            3: {
-    			OPEN_SPACE_1: {
-    				title: "Open Space 1",
-    				prefix: "desk-03-",
-    				start: 1,
-    				end: 7,
-    				match: (id) => /^desk-03-(0[1-7])$/.test(id)
-    			},
-    			OPEN_SPACE_2: {
-    				title: "Open Space 2",
-    				prefix: "desk-03-",
-    				start: 8,
-    				end: 15,
-    				match: (id) => /^desk-03-(0[8-9]|1[0-5])$/.test(id)
-    			},
-    			MEETING_ROOM_SEQUOLA: {
-    				title: "Meeting Room Sequola"
-    			},
-    			MEETING_ROOM_SANTA: {
-    				title: "Meeting Room Santa"
-    			}
-            },
-            4: {
-                OPEN_SPACE: {
-                    title: "Open Space",
-                    prefix: "desk-04-",
-                    start: 1,
-                    end: 8,
-                    match: (id) => /^desk-04-0[1-8]$/.test(id)
-                },
-    			MEETING_ROOM_NEWYORK: {
-    				title: "Meeting Room New York"
-    			},
-    			MEETING_ROOM_OREGAN: {
-    				title: "Meeting Room Oregan"
-    			},
-    			MEETING_ROOM_MIAMI: {
-    				title: "Meeting Room Miami"
-    			}
-            },
-            5: {
-                OPEN_SPACE_1: {
-                    title: "Open Space",
-                    prefix: "desk-05-",
-                    start: 1,
-                    end: 16,
-                    match: (id) => /^desk-05-(0[1-9]|1[0-6])$/.test(id)
-                },
-    			OPEN_SPACE_2: {
-                    title: "Open Space",
-                    prefix: "desk-05-",
-                    start: 17,
-                    end: 24,
-                    match: (id) => /^desk-05-(1[7-9]|2[0-4])$/.test(id)
-                }
-            },
-            6: {
-                OPEN_SPACE: {
-                    title: "Open Space",
-                    prefix: "desk-06-",
-                    start: 1,
-                    end: 8,
-                    match: (id) => /^desk-06-(0[1-8])$/.test(id)
-                },
-    			OPEN_SPACE_2: {
-                    title: "Open Space",
-                    prefix: "desk-06-",
-                    start: 9,
-                    end: 16,
-                    match: (id) => /^desk-06-(0[9]|1[0-6])$/.test(id)
-                },
-    			MEETING_ROOM_PARIS: {
-    				title: "Meeting Room Paris"
-    			}
-            }
-        }
-};
+let OCCUPANCY_ZONES = buildOccupancyZones();
+// ============================================
+// DASHBOARD CONTEXT
+// ============================================
+const DASHBOARD_CTX = { building: "CHATEAUDUN", floor: null };
 
-let occupancyUnsub = null;
+// ============================================
+// GLOBAL STATE
+// ============================================
+let occupancyUnsub = null;          // <-- à la place de occupancySource
 const occupancyState = {};
-
-// =============== SSE / LIVE OCCUPANCY ================
+// ============================================
+// SSE / LIVE OCCUPANCY
+// ============================================
 function openOccupancySSE(building, floor) {
   console.log("🔄 openOccupancySSE (SSEManager) called with:", building, floor);
 
@@ -208,17 +98,9 @@ function openOccupancySSE(building, floor) {
 
       // Snapshot complet
       const snapshot = Object.entries(occupancyState).map(([id, s]) => ({ id, status: s }));
-      const zoneStats = aggregateByZone(snapshot, building, floor);
 
-      if (building === "CHATEAUDUN") {
-        if (!floor || floor === "all") {
-            renderChateaudunCards(zoneStats);
-        } /*else {
-            renderChateaudunFloorDetails(zoneStats);
-        }*/
-      } else {
-          updateAllStatCards(zoneStats);
-      }
+      const zoneStats = aggregateByZone(snapshot, building, floor);
+      updateAllStatCards(zoneStats);
 
     } catch (err) {
       console.warn("[SSEManager][occupancy] handler error", err);
@@ -235,12 +117,13 @@ function closeOccupancySSE() {
   }
 }
 
-// Auto-clean
+// Bonus: auto-clean si tu veux (recommandé)
 window.addEventListener("beforeunload", () => {
   closeOccupancySSE();
 });
-
-// ============== HELPERS =================
+// ============================================
+// HELPERS
+// ============================================
 function normalizeDeskStatus(v) {
     if (v == null) return "invalid";
     if (typeof v === "string") {
@@ -254,193 +137,71 @@ function normalizeDeskStatus(v) {
     return "invalid";
 }
 
-// =============== AGGREGATION ===================
+// ============================================
+// AGGREGATION
+// ============================================
 function aggregateByZone(rawData, building, floor) {
-    if (building === "CHATEAUDUN" && (!floor || floor === "")) {
-        return aggregateChateaudunAllFloors(rawData);
+    OCCUPANCY_ZONES = buildOccupancyZones();
+    
+    const buildingZones = OCCUPANCY_ZONES?.[building];
+    if (!buildingZones || Object.keys(buildingZones).length === 0) {
+        console.warn(`No zones configured for building: ${building}`);
+        return {};
     }
 
-    if (building === "LEVALLOIS" && (!floor || floor === "" || floor === "all")) {
-        return aggregateLevalloisAllFloors(rawData);
-    }
-
-    // sinon → floor normal
-    return aggregateByZonesForFloor(rawData, building, floor);
-}
-
-// =============== LEVALLOIS ALL FLOORS =================
-function aggregateLevalloisAllFloors(rawData) {
-
-    const floors = OCCUPANCY_ZONES.LEVALLOIS;
+    // If floor is specified, use only that floor; otherwise aggregate across all floors
+    const floorsToProcess = floor != null ? { [floor]: buildingZones[floor] } : buildingZones;
+    
     const result = {};
-
-    Object.entries(floors).forEach(([floorNumber, zones]) => {
-
+    
+    // Initialize result for all zones across selected floors
+    Object.entries(floorsToProcess).forEach(([floorNum, zones]) => {
+        if (!zones) return;
         Object.entries(zones).forEach(([zoneKey, zone]) => {
-
             if (!result[zoneKey]) {
-                result[zoneKey] = {
-                    location: zone.title,
-                    free: 0,
-                    used: 0,
-                    invalid: 0
+                result[zoneKey] = { 
+                    location: zone.title, 
+                    free: 0, 
+                    used: 0, 
+                    invalid: 0,
+                    expectedCount: zone.expectedCount || 0
                 };
             }
+        });
+    });
 
-            rawData.forEach(({ id, status }) => {
+    // Aggregate data - match each sensor to its zone
+    rawData.forEach(({ id, status }) => {
+        Object.entries(floorsToProcess).forEach(([floorNum, zones]) => {
+            if (!zones) return;
+            Object.entries(zones).forEach(([zoneKey, zone]) => {
                 if (zone.match(id)) {
                     if (status === "free") result[zoneKey].free++;
                     else if (status === "used") result[zoneKey].used++;
                     else result[zoneKey].invalid++;
                 }
             });
-
-            // ===== INTEGRITY CHECK =====
-            if (zone.prefix && zone.start && zone.end) {
-
-                const expected = [];
-
-                for (let i = zone.start; i <= zone.end; i++) {
-                    expected.push(zone.prefix + i.toString().padStart(2,'0'));
-                }
-
-                const actual = rawData
-                    .filter(d => zone.match(d.id))
-                    .map(d => d.id);
-
-                const missing = expected.filter(d => !actual.includes(d));
-                result[zoneKey].invalid += missing.length;
-            }
         });
-
     });
 
-    console.log("Result from alert js", JSON.stringify(result, null, 2));
-    return result;
-}
-
-// ===== MODE ALL FLOORS (Châteaudun uniquement) =====
-function aggregateChateaudunAllFloors(rawData){
-    const floors = OCCUPANCY_ZONES.CHATEAUDUN;
-    const result = {};
-
-    Object.entries(floors).forEach(([floorNumber, zones]) => {
-        result[`FLOOR_${floorNumber}`] = {
-            location: `FLOOR_${floorNumber}`,
-            free: 0,
-            used: 0,
-            invalid: 0
-        };
-
-        Object.values(zones).forEach(zone => {
-            const expectedDesks = [];
-            // Génération desks attendus
-            for (let i = zone.start; i <= zone.end; i++) {
-                expectedDesks.push(
-                    zone.prefix + i.toString().padStart(2,'0')
-                );
-            }
-
-            const actualDesks = rawData
-                .filter(d => zone.match?.(d.id))
-                .map(d => d.id);
-
-            // Comptage réel
-            rawData.forEach(({ id, status }) => {
-                const isMatch = zone.match?.(id) ?? false;
-                if (isMatch) {
-                    if (status === "free") result[`FLOOR_${floorNumber}`].free++;
-                    else if (status === "used") result[`FLOOR_${floorNumber}`].used++;
-                    else result[`FLOOR_${floorNumber}`].invalid++;
-                }
-            });
-
-            // Missing desks
-            const missing = expectedDesks.filter(d => !actualDesks.includes(d));
-            result[`FLOOR_${floorNumber}`].invalid += missing.length;
-        });
-
-    });
-
-    console.log("Result from alert js", JSON.stringify(result, null, 2));
-    return result;
-}
-
-// sinon → floor normal
-function aggregateByZonesForFloor(rawData, building, floor){
-    const zones = OCCUPANCY_ZONES?.[building]?.[floor];
-    if (!zones) return {};
-
-    const result = {};
-
-    Object.entries(zones).forEach(([zoneKey, zone]) => {
-
-        result[zoneKey] = {
-            location: zone.title,
-            free: 0,
-            used: 0,
-            invalid: 0
-        };
-
-        rawData.forEach(({ id, status }) => {
-            if (zone.match(id)) {
-                if (status === "free") result[zoneKey].free++;
-                else if (status === "used") result[zoneKey].used++;
-                else result[zoneKey].invalid++;
-            }
-        });
-
-        // ===== INTEGRITY CHECK =====
-        if (zone.prefix && zone.start && zone.end) {
-
-            const expected = [];
-
-            for (let i = zone.start; i <= zone.end; i++) {
-                expected.push(zone.prefix + i.toString().padStart(2,'0'));
-            }
-
-            const actual = rawData
-                .filter(d => zone.match(d.id))
-                .map(d => d.id);
-
-            const missing = expected.filter(d => !actual.includes(d));
-            result[zoneKey].invalid += missing.length;
+    // Calculate invalid count for desks without sensors
+    Object.keys(result).forEach(zoneKey => {
+        const zone = result[zoneKey];
+        const actualCount = zone.free + zone.used + zone.invalid;
+        if (zone.expectedCount > actualCount) {
+            zone.invalid += (zone.expectedCount - actualCount);
         }
-
     });
 
-    console.log("Result from alert js", JSON.stringify(result, null, 2));
+    // Debug: log zone stats
+    console.log("📊 Zone stats:", result);
+    
     return result;
 }
 
-
-function renderChateaudunCards(zoneStats) {
-    console.log("Chateaudun zoneStats: ", zoneStats);
-    const container = document.getElementById("stats-chateaudun-global");
-    if (!container) return;
-
-    container.innerHTML = "";
-
-    Object.keys(zoneStats).forEach(zoneKey => {
-
-        const card = document.createElement("div");
-        card.className = "stat-card";
-        card.dataset.zone = zoneKey;
-
-        card.innerHTML = `
-            <h4 class="stat-card-title">${zoneStats[zoneKey].location}</h4>
-            <div class="stat-chart-container">
-                <canvas class="chart-office"></canvas>
-            </div>
-        `;
-
-        container.appendChild(card);
-    });
-
-    updateAllStatCards(zoneStats);
-}
-
-// =========== STAT CARD UPDATE ==============
+// ============================================
+// STAT CARD UPDATE
+// ============================================
 function updateAllStatCards(zoneStats) {
     document.querySelectorAll(".stat-card[data-zone]").forEach(card => {
         const zoneKey = card.dataset.zone;
@@ -450,48 +211,192 @@ function updateAllStatCards(zoneStats) {
     });
 }
 
-// ============== INITIALISATION =================
-const DASHBOARD_CTX = {
-    building: null,
-    floor: null
-};
+// Recycler le chart existant au lieu de le recréer
+function updateStatCard(statCard, data) {
+    if (!statCard) return;
 
-function normalizeFloor(value) {
-    if (!value || value === "all") return "";
-    return parseInt(value, 10);
+    const chartElement = statCard.querySelector(".chart-office");
+    const legendElement = statCard.querySelector(".stat-legend");
+    const titleElement = statCard.querySelector(".stat-card-title");
+
+    const total = data.free + data.used + data.invalid;
+    let freePercent = 0;
+    let usedPercent = 0;
+    let invalidPercent = 0;
+    if (total === 0) {
+        invalidPercent = 100;
+    } else {
+        freePercent = parseFloat(((data.free / total) * 100).toFixed(2));
+        usedPercent = parseFloat(((data.used / total) * 100).toFixed(2));
+        invalidPercent = parseFloat(((data.invalid / total) * 100).toFixed(2));
+    }
+
+    // Recycle chart - use createDoughnutChartConfig directly (defined later but hoisted)
+    if (chartElement) {
+        if (chartElement._chartInstance) {
+            const chart = chartElement._chartInstance;
+            chart.data.datasets[0].data = [freePercent, usedPercent, invalidPercent];
+            chart.data.datasets[0].backgroundColor = ["#10b981", "#ef4444", "#94a3b8"]; 
+            chart.update();
+        } else {
+            // Create doughnut chart config inline to avoid timing issues
+            const config = {
+                type: "doughnut",
+                data: {
+                    labels: ["Free", "Used", "Invalid"],
+                    datasets: [{
+                        data: [freePercent, usedPercent, invalidPercent],
+                        backgroundColor: ["#10b981", "#ef4444", "#94a3b8"],
+                        borderWidth: 0,
+                        hoverOffset: 10,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    cutout: "70%",
+                    layout: { padding: { top: 20, bottom: 5 } },
+                    animation: { duration: 0 },
+                    plugins: {
+                        legend: {
+                            display: false // We use custom legend
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const label = context.label;
+                                    const percent = Math.round(context.parsed);
+                                    return `${label}: ${percent}%`;
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+            chartElement._chartInstance = new Chart(chartElement, config);
+        }
+    }
+
+    // Update custom legend
+    if (legendElement) {
+        legendElement.innerHTML = `
+            <div class="custom-label"><span class="dot free"></span> Free (${freePercent.toFixed(0)}%)</div>
+            <div class="custom-label"><span class="dot used"></span> Used (${usedPercent.toFixed(0)}%)</div>
+            <div class="custom-label"><span class="dot invalid"></span> Invalid (${invalidPercent.toFixed(0)}%)</div>
+        `;
+    }
+    
+    if (titleElement && data.location) titleElement.textContent = data.location;
 }
 
+// ============================================
+// GENERATE STAT CARDS FOR BUILDING
+// ============================================
+function generateStatCardsForBuilding(building) {
+    const container = document.getElementById('sensor-stats-container');
+    if (!container) return;
 
-window.addEventListener("DOMContentLoaded", () => {
-    const buildingSelect = document.getElementById("filter-building");
-    const floorSelect = document.getElementById("filter-floor");
+    OCCUPANCY_ZONES = buildOccupancyZones();
+    console.log(`🔧 Rebuilt OCCUPANCY_ZONES for ${building}:`, OCCUPANCY_ZONES[building]);
 
-    if (!buildingSelect || !floorSelect) {
-        console.warn("Filters not found in DOM");
+    const buildingZones = OCCUPANCY_ZONES[building];
+    if (!buildingZones || Object.keys(buildingZones).length === 0) {
+        console.warn(`No zones defined for building: ${building}`);
+        container.innerHTML = '';
         return;
     }
 
-    // Initialisation contexte
-    DASHBOARD_CTX.building = buildingSelect.value;
-    DASHBOARD_CTX.floor = normalizeFloor(floorSelect.value);
-    console.log("DASHBOARD_CTX.building ===>", DASHBOARD_CTX.building );
-    console.log("DASHBOARD_CTX.floor ===>", DASHBOARD_CTX.floor );
-
-    openOccupancySSE(DASHBOARD_CTX.building, DASHBOARD_CTX.floor);
-
-    // ===== EVENT LISTENERS =====
-    buildingSelect.addEventListener("change", () => {
-        DASHBOARD_CTX.building = buildingSelect.value;
-        DASHBOARD_CTX.floor = normalizeFloor(floorSelect.value);
-
-        openOccupancySSE(DASHBOARD_CTX.building, DASHBOARD_CTX.floor);
+    // Collect all unique zones across all floors for this building
+    const allZones = new Map();
+    Object.entries(buildingZones).forEach(([floor, zones]) => {
+        Object.entries(zones).forEach(([zoneKey, zoneConfig]) => {
+            if (!allZones.has(zoneKey)) {
+                allZones.set(zoneKey, {
+                    key: zoneKey,
+                    title: zoneConfig.title,
+                    floor: floor
+                });
+            }
+        });
     });
 
-    floorSelect.addEventListener("change", () => {
-        DASHBOARD_CTX.floor = normalizeFloor(floorSelect.value);
-
-        openOccupancySSE(DASHBOARD_CTX.building, DASHBOARD_CTX.floor);
+    // Generate HTML for stat cards
+    let html = '';
+    let index = 0;
+    allZones.forEach((zone, zoneKey) => {
+        html += `
+            <div class="stat-card" data-zone="${zoneKey}" data-chart-index="${index}">
+                <h4 class="stat-card-title">${zone.title}</h4>
+                <div class="stat-chart-container">
+                    <canvas class="chart-office"></canvas>
+                </div>
+                <div class="stat-legend"></div>
+            </div>
+        `;
+        index++;
     });
+
+    container.innerHTML = html;
+    console.log(`📊 Generated ${allZones.size} stat cards for ${building}`);
+    
+    // Update DASHBOARD_CTX
+    DASHBOARD_CTX.building = building;
+    DASHBOARD_CTX.floor = null; // null = aggregate all floors
+    
+    // Fetch initial data from API (all floors) then start SSE for live updates
+    fetchInitialOccupancyData(building, null);
+    openOccupancySSE(building, null);
+}
+
+// ============================================
+// FETCH INITIAL OCCUPANCY DATA FROM API
+// ============================================
+async function fetchInitialOccupancyData(building, floor) {
+    try {
+        const qs = new URLSearchParams();
+        if (building) qs.set('building', building);
+        if (floor) qs.set('floor', floor);
+        
+        const response = await fetch(`/api/dashboard/occupancy?${qs.toString()}`);
+        if (!response.ok) {
+            console.warn('Failed to fetch initial occupancy data');
+            return;
+        }
+        
+        const data = await response.json();
+        if (!Array.isArray(data)) return;
+        
+        console.log(`📥 Fetched ${data.length} occupancy items from API`);
+        console.log(`📋 Sample sensor IDs:`, data.slice(0, 10).map(d => d.id));
+        
+        // Convert API data to snapshot format and update occupancyState
+        data.forEach(item => {
+            const id = item?.id || item?.deviceId;
+            const status = normalizeDeskStatus(item?.status || item?.occupancy);
+            if (id) {
+                occupancyState[id] = status;
+            }
+        });
+        
+        // Create snapshot and update all stat cards
+        const snapshot = Object.entries(occupancyState).map(([id, status]) => ({ id, status }));
+        const zoneStats = aggregateByZone(snapshot, building, floor);
+        updateAllStatCards(zoneStats);
+        
+    } catch (err) {
+        console.warn('Error fetching initial occupancy data:', err);
+    }
+}
+
+// ============================================
+// INIT
+// ============================================
+window.addEventListener("DOMContentLoaded", () => {
+    console.log("🟢 DOM fully loaded");
+    // generateStatCardsForBuilding now also opens SSE connection
+    const buildingFromFilter = document.getElementById('filter-building')?.value;
+    const initialBuilding = String(buildingFromFilter || DASHBOARD_CTX.building || '').toUpperCase();
+    generateStatCardsForBuilding(initialBuilding);
 });
 
 // Color constants - read from CSS variables for single source of truth
@@ -961,55 +866,6 @@ function updateLegend(legendElement, freePercent, usedPercent, invalidPercent) {
     `;
 }
 
-/**
- * Updates a complete stat card (chart, legend, and title)
- * @param {HTMLElement} statCard - The stat card container
- * @param {Object} data - Data object containing counts and location name
- */
-function updateStatCard(statCard, data) {
-    if (!statCard) return;
-
-    const chartElement = statCard.querySelector(".chart-office");
-    const legendElement = statCard.querySelector(".stat-legend");
-    const titleElement = statCard.querySelector(".stat-card-title");
-
-    let counts = [data.free, data.used, data.invalid];
-    let total = counts.reduce((a, b) => a + b, 0);
-
-    //Si aucune donnée → 100% invalid
-    if (total === 0) {
-        counts = [0, 0, 1];
-        total = 1;
-    }
-
-    let rounded = [0, 0, 0];
-
-    if (total > 0) {
-        let rawPercents = counts.map(c => (c / total) * 100);
-        rounded = rawPercents.map(p => Math.floor(p));
-        let remainder = 100 - rounded.reduce((a, b) => a + b, 0);
-        const remainders = rawPercents
-            .map((p, i) => ({ idx: i, diff: p - Math.floor(p) }))
-            .sort((a, b) => b.diff - a.diff);
-
-        for (let i = 0; i < remainder; i++) {
-            rounded[remainders[i].idx]++;
-        }
-    }
-
-    if (chartElement) {
-        createDoughnutChart(chartElement, counts);
-    }
-
-    if (legendElement) {
-        updateLegend(legendElement, rounded[0], rounded[1], rounded[2]);
-    }
-
-    if (titleElement && data.location) {
-        titleElement.textContent = data.location;
-    }
-}
-
 // Export functions for use in other modules
 if (typeof window !== "undefined") {
     window.ChartUtils = {
@@ -1042,5 +898,7 @@ if (typeof window !== "undefined") {
         updateStatCard,
         // Helpers
         hexToRgba,
+        // Stat card generation
+        generateStatCardsForBuilding,
     };
 }
