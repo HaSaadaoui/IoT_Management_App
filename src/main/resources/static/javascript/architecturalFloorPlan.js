@@ -14,6 +14,8 @@ class ArchitecturalFloorPlan {
         this.floorData = floorData;
         this.sensorMode = sensorMode;
         this.svg = null;
+        this.root = null;
+        this.viewport = null;
         this.overlayManager = null;
         this.elementsManager = null;
         this.buildingKey = buildingKey;
@@ -34,11 +36,26 @@ class ArchitecturalFloorPlan {
             text: "#374151",
         };
 
+        this.camera = {
+            scale: 1,
+            min: 0.2,
+            max: 8,
+            tx: 0,
+            ty: 0
+        };
+
+        this.zoomConfig = {
+            wheelSpeed: 0.15
+        };
+
         this.init();
     }
 
     init() {
         this.createSVG();
+        this.elementsManager = new FloorElementsManager(this.svg, this.colors);
+        this.enableZoom();
+        this.enablePan();
     }
 
     updateConfig(floorData, sensorMode, svgPath) {
@@ -63,28 +80,24 @@ class ArchitecturalFloorPlan {
         this.svg.setAttribute("viewBox", "0 0 1200 1200");
         this.svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
         this.svg.style.background = this.colors.background;
-
         this.container.appendChild(this.svg);
+
+        // Groupe pour gérer le zoom et le pan de tout le contenu
+        this.viewport = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        this.viewport.setAttribute("id", "viewport");
+        this.svg.appendChild(this.viewport)
+
+        // Content-root pour centrer le plan et faciliter les transformations
+        this.root = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        this.root.setAttribute("id", "content-root");
+        this.root.style.display = "none";
+        this.viewport.appendChild(this.root);
     }
 
     createGroup(id) {
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
         g.setAttribute("id", id);
         return g;
-    }
-
-    setContentRoot() {
-        let root = this.svg.querySelector("#content-root");
-        if (!root) {
-            root = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            root.setAttribute("id", "content-root");
-            root.style.display = "none";
-            const children = Array.from(this.svg.childNodes);
-            children.forEach(n => { if (n.nodeType === 1 && n.tagName !== "defs") root.appendChild(n); });
-            this.svg.appendChild(root);
-        } else {
-            return;
-        }
     }
 
     displayContentRoot() {
@@ -95,10 +108,6 @@ class ArchitecturalFloorPlan {
     }
 
     async drawFloorPlan(deskOccupancy = {}) {
-        this.elementsManager = new FloorElementsManager(this.svg, this.colors);
-        // Use content root group to center and fit
-        this.setContentRoot();
-
         // Clear every floor before redrawing
         for (let i = 0; i < this.floorsCount; i++) {
             const floorGroup = this.svg.querySelector(`#floor-${i}`);
@@ -500,7 +509,7 @@ class ArchitecturalFloorPlan {
                     fg.appendChild(child);
                 }
             });
-        }
+    }
 
     async populateSensorsFromSvg() {
         if (!this.svgPath) return [];
@@ -1640,6 +1649,57 @@ class ArchitecturalFloorPlan {
         }
         const sel = document.getElementById("filter-element");
         if (sel) sel.value = type;
+    }
+
+    enablePan() {
+        let dragging = false;
+        let last = { x: 0, y: 0 };
+
+        this.svg.addEventListener("mousedown", evt => {
+            dragging = true;
+            last = { x: evt.clientX, y: evt.clientY };
+        });
+
+        window.addEventListener("mousemove", evt => {
+            if (!dragging) return;
+
+            const dx = (evt.clientX - last.x);
+            const dy = (evt.clientY - last.y);
+
+            this.camera.tx += dx;
+            this.camera.ty += dy;
+
+            last = { x: evt.clientX, y: evt.clientY };
+            this.viewport.setAttribute("transform", `translate(${this.camera.tx}, ${this.camera.ty}) scale(${this.camera.scale})`);
+        });
+
+        window.addEventListener("mouseup", () => dragging = false);
+    }
+
+    enableZoom() {
+        this.svg.addEventListener("wheel", evt => {
+            evt.preventDefault();
+
+            const { wheelSpeed } = this.zoomConfig;
+            const delta = evt.deltaY > 0 ? -1 : 1;
+
+            // Point souris → coordonnées SVG
+            const pt = this.svg.createSVGPoint();
+            pt.x = evt.clientX;
+            pt.y = evt.clientY;
+            const cursor = pt.matrixTransform(this.svg.getScreenCTM().inverse());
+
+            const oldScale = this.camera.scale;
+            let newScale = oldScale * (1 + delta * wheelSpeed);
+            newScale = Math.max(this.camera.min, Math.min(this.camera.max, newScale));
+
+            // Compensation pour que le point sous le curseur reste fixe
+            this.camera.tx -= (cursor.x * newScale - cursor.x * oldScale);
+            this.camera.ty -= (cursor.y * newScale - cursor.y * oldScale);
+
+            this.camera.scale = newScale;
+            this.viewport.setAttribute("transform", `translate(${this.camera.tx}, ${this.camera.ty}) scale(${this.camera.scale})`);
+        }, { passive: false });
     }
 
     exportSVG() {
