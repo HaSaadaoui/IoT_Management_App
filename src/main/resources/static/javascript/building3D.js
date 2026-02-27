@@ -624,18 +624,15 @@ class Building3D {
         this.roofs  = [];
 
         const floorHeight = 2;
-
         let buildingShape, centerX, centerZ, floorsCount;
         let dbScale = 1;
 
         if (this.isDbBuilding && this.dbBuildingConfig) {
             floorsCount = this.dbBuildingConfig.floors || 1;
-
             if (!this.dbShapeCache) {
                 console.log("Loading DB building SVG from:", this.dbBuildingConfig.svgUrl);
                 this.dbShapeCache = await loadSVGShapeFromUrl(this.dbBuildingConfig.svgUrl);
             }
-
             dbScale       = this.dbBuildingConfig.scale || 1;
             buildingShape = this.dbShapeCache.shape;
             centerX       = this.dbShapeCache.centerX * dbScale;
@@ -818,7 +815,7 @@ class Building3D {
         }
     }
 
-   showFloorInfo(floorNumber) {
+    showFloorInfo(floorNumber) {
         const desksToExclude = [
                   { id: 'PB5', sensor: 'desk-vs40-03-01' },
                   { id: 'IR1', sensor: 'desk-vs41-03-01' },
@@ -864,7 +861,7 @@ class Building3D {
             <p style="margin-top:0.75rem;font-size:0.85rem;color:#9ca3af;font-style:italic;">Click to enter</p>
         `;
         overlay.classList.add('active');
-   }
+    }
 
     hideFloorInfo() {
         const overlay = document.getElementById('floor-info-overlay');
