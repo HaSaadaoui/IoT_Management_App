@@ -479,11 +479,6 @@ class Building3D {
             "floor",
             floorNumber
         );
-        // Update stats from building 3D
-		if (window.ChartUtils?.generateStatCardsForBuilding) {
-			// Génère uniquement les cartes du floor choisi
-			window.ChartUtils.generateStatCardsForBuilding(this.buildingKey, floorNumber);
-		}
 
         const floorInfo = this.floorData[floorNumber];
         if (!floorInfo) {
@@ -1044,10 +1039,6 @@ class Building3D {
         });
 
         this.currentFloorNumber = null;
-        if (window.ChartUtils?.generateStatCardsForBuilding) {
-            // Génère uniquement les cartes du floor choisi
-            window.ChartUtils.generateStatCardsForBuilding(this.buildingKey, this.currentFloorNumber);
-        }
     }
 
     async loadConfig() {

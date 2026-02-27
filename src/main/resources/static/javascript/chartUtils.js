@@ -2,26 +2,7 @@
 // ============================================
 // OCCUPANCY ZONES
 // ============================================
-function createDeskRangeMatcher(prefix, start, end) {
-    return id => {
-        const match = id.match(new RegExp(`^${prefix}-(\\d+)$`));
-        if (!match) return false;
-        const num = parseInt(match[1], 10);
-        return num >= start && num <= end;
-    };
-}
-
-// ============================================
 function buildOccupancyZones() {
-    const createDeskRangeMatcher = (prefix, start, end) => {
-        return id => {
-            const match = id.match(new RegExp(`^${prefix}-(\\d+)$`));
-            if (!match) return false;
-            const num = parseInt(match[1], 10);
-            return num >= start && num <= end;
-        };
-    };
-
     const zones = {
         LEVALLOIS: {
             3: {
@@ -40,101 +21,29 @@ function buildOccupancyZones() {
                 ].includes(id) }
             }
         },
-        CHATEAUDUN: {
-            0: {
-                FLOOR_0: {
-                    title: "Floor 0",
-                    OPEN_SPACE: { title: "Open Space", expectedCount: 0 },
-                    free: 0, used: 0, invalid: 0, expectedCount: 0
-                }
-            },
-            1: {
-                FLOOR_1: {
-                    title: "Floor 1",
-                    MEETING_ROOM_GENEVA: { title: "Meeting Room Geneva", expectedCount: 0 },
-                    free: 0, used: 0, invalid: 0, expectedCount: 0
-                }
-            },
-            2: {
-                FLOOR_2: {
-                    title: "Floor 2",
-                    OPEN_SPACE_1: { title: "Open Space 1", match: createDeskRangeMatcher("desk-01", 1, 7), expectedCount: 7 },
-                    OPEN_SPACE_2: { title: "Open Space 2", expectedCount: 8 },
-                    MEETING_ROOM_ATLANTIC: { title: "Meeting Room Atlantic", expectedCount: 0 },
-                    MEETING_ROOM_PACIFIC: { title: "Meeting Room Pacific", expectedCount: 0 },
-                    free: 0, used: 0, invalid: 0, expectedCount: 15
-                }
-            },
-            3: {
-                FLOOR_3: {
-                    title: "Floor 3",
-                    OPEN_SPACE_1: { title: "Open Space 1", expectedCount: 7 },
-                    OPEN_SPACE_2: { title: "Open Space 2", expectedCount: 8 },
-                    MEETING_ROOM_SEQUOLA: { title: "Meeting Room Sequola", expectedCount: 0 },
-                    MEETING_ROOM_SANTA: { title: "Meeting Room Santa", expectedCount: 0 },
-                    free: 0, used: 0, invalid: 0, expectedCount: 15
-                }
-            },
-            4: {
-                FLOOR_4: {
-                    title: "Floor 4",
-                    OPEN_SPACE_1: { title: "Open Space 1", match: createDeskRangeMatcher("desk-04", 1, 8), expectedCount: 8 },
-                    MEETING_ROOM_NEWYORK: { title: "Meeting Room New York", expectedCount: 0 },
-                    MEETING_ROOM_OREGAN: { title: "Meeting Room Oregan", expectedCount: 0 },
-                    MEETING_ROOM_MIAMI: { title: "Meeting Room Miami", expectedCount: 0 },
-                    free: 0, used: 0, invalid: 0, expectedCount: 8
-                }
-            },
-            5: {
-                FLOOR_5: {
-                    title: "Floor 5",
-                    OPEN_SPACE_1: { title: "Open Space 1", match: createDeskRangeMatcher("desk-05", 1, 16), expectedCount: 16 },
-                    OPEN_SPACE_2: { title: "Open Space 2", match: createDeskRangeMatcher("desk-05", 17, 24), expectedCount: 8 },
-                    free: 0, used: 0, invalid: 0, expectedCount: 24
-                }
-            },
-            6: {
-                FLOOR_6: {
-                    title: "Floor 6",
-                    OPEN_SPACE_1: { title: "Open Space 1", match: createDeskRangeMatcher("desk-06", 1, 8), expectedCount: 8 },
-                    OPEN_SPACE_2: { title: "Open Space 2", match: createDeskRangeMatcher("desk-06", 9, 16), expectedCount: 8 },
-                    MEETING_ROOM_PARIS: { title: "Meeting Room Paris", expectedCount: 0 },
-                    free: 0, used: 0, invalid: 0, expectedCount: 16
-                }
-            }
-        }
+        CHATEAUDUN: {}
     };
 
-    // fallback dynamique pour CHATEAUDUN si jamais la config côté serveur existe
     if (window.DeskSensorConfig?.mappings?.CHATEAUDUN) {
         const chateaudunConfig = window.DeskSensorConfig.mappings.CHATEAUDUN;
         Object.keys(chateaudunConfig).forEach(floorNum => {
             const floorDesks = chateaudunConfig[floorNum] || [];
             const sensorIds = floorDesks.filter(d => d.sensor).map(d => d.sensor);
-
-            zones.CHATEAUDUN[floorNum] = zones.CHATEAUDUN[floorNum] || {};
-            const floorZones = zones.CHATEAUDUN[floorNum][`FLOOR_${floorNum}`] || {
-                title: `Floor ${floorNum}`,
-                expectedCount: floorDesks.length,
-            };
-
-            // Assure que toutes les sous-zones ont un match
-            Object.keys(floorZones).forEach(zoneKey => {
-                if (typeof floorZones[zoneKey].match !== "function") {
-                    floorZones[zoneKey].match = () => false;
+            
+            zones.CHATEAUDUN[floorNum] = {
+                [`FLOOR_${floorNum}`]: {
+                    title: `Floor ${floorNum}`,
+                    match: (id) => sensorIds.includes(id),
+                    expectedCount: floorDesks.length
                 }
-            });
-
-            zones.CHATEAUDUN[floorNum][`FLOOR_${floorNum}`] = floorZones;
+            };
         });
     }
 
-    console.log("ZONES:", zones);
     return zones;
 }
 
 let OCCUPANCY_ZONES = buildOccupancyZones();
-console.log("OCCUPANCY_ZONES:", OCCUPANCY_ZONES);
 // ============================================
 // DASHBOARD CONTEXT
 // ============================================
@@ -232,98 +141,61 @@ function normalizeDeskStatus(v) {
 // AGGREGATION
 // ============================================
 function aggregateByZone(rawData, building, floor) {
-    const OCCUPANCY_ZONES = buildOccupancyZones();
+    OCCUPANCY_ZONES = buildOccupancyZones();
+    
     const buildingZones = OCCUPANCY_ZONES?.[building];
-    if (!buildingZones) return {};
-
-    const floorsToProcess =
-        floor != null ? { [floor]: buildingZones[floor] } : buildingZones;
-
-    const result = {};
-
-    function collectZones(obj, floorData) {
-        if (!obj || typeof obj !== "object") return;
-
-        Object.entries(obj).forEach(([key, val]) => {
-            if (!val || typeof val !== "object") return;
-
-            // Descendre dans FLOOR_X
-            if (key.startsWith("FLOOR_")) {
-                collectZones(val, floorData);
-                return;
-            }
-
-            // Zone réelle
-            if ("title" in val) {
-                floorData.zones[key] = {
-                    location: val.title,
-                    free: 0,
-                    used: 0,
-                    invalid: 0,
-                    expectedCount: val.expectedCount || 0,
-                    match: val.match   //ON CONSERVE LE MATCH ORIGINAL
-                };
-            }
-
-            collectZones(val, floorData);
-        });
+    if (!buildingZones || Object.keys(buildingZones).length === 0) {
+        console.warn(`No zones configured for building: ${building}`);
+        return {};
     }
 
-    // Init floors
+    // If floor is specified, use only that floor; otherwise aggregate across all floors
+    const floorsToProcess = floor != null ? { [floor]: buildingZones[floor] } : buildingZones;
+    
+    const result = {};
+    
+    // Initialize result for all zones across selected floors
     Object.entries(floorsToProcess).forEach(([floorNum, zones]) => {
         if (!zones) return;
-
-        const floorData = {
-            title: zones?.title || `Floor ${floorNum}`,
-            free: 0,
-            used: 0,
-            invalid: 0,
-            expectedCount: 0,
-            zones: {}
-        };
-
-        collectZones(zones, floorData);
-        result[floorNum] = floorData;
+        Object.entries(zones).forEach(([zoneKey, zone]) => {
+            if (!result[zoneKey]) {
+                result[zoneKey] = { 
+                    location: zone.title, 
+                    free: 0, 
+                    used: 0, 
+                    invalid: 0,
+                    expectedCount: zone.expectedCount || 0
+                };
+            }
+        });
     });
 
-    //AGRÉGATION
+    // Aggregate data - match each sensor to its zone
     rawData.forEach(({ id, status }) => {
-        Object.values(result).forEach(floorData => {
-            Object.values(floorData.zones).forEach(zone => {
-
-                if (zone.match && zone.match(id)) {   //matching
-                    if (status === "free") zone.free++;
-                    else if (status === "used") zone.used++;
-                    else zone.invalid++;
+        Object.entries(floorsToProcess).forEach(([floorNum, zones]) => {
+            if (!zones) return;
+            Object.entries(zones).forEach(([zoneKey, zone]) => {
+                if (zone.match(id)) {
+                    if (status === "free") result[zoneKey].free++;
+                    else if (status === "used") result[zoneKey].used++;
+                    else result[zoneKey].invalid++;
                 }
-
             });
         });
     });
 
-    // Totaux floor
-    Object.values(result).forEach(floorData => {
-        floorData.free = 0;
-        floorData.used = 0;
-        floorData.invalid = 0;
-        floorData.expectedCount = 0;
-
-        Object.values(floorData.zones).forEach(zone => {
-            const actual = zone.free + zone.used + zone.invalid;
-
-            if (zone.expectedCount > actual) {
-                zone.invalid += (zone.expectedCount - actual);
-            }
-
-            floorData.free += zone.free;
-            floorData.used += zone.used;
-            floorData.invalid += zone.invalid;
-            floorData.expectedCount += zone.expectedCount;
-        });
+    // Calculate invalid count for desks without sensors
+    Object.keys(result).forEach(zoneKey => {
+        const zone = result[zoneKey];
+        const actualCount = zone.free + zone.used + zone.invalid;
+        if (zone.expectedCount > actualCount) {
+            zone.invalid += (zone.expectedCount - actualCount);
+        }
     });
 
+    // Debug: log zone stats
     console.log("📊 Zone stats:", result);
-
+    
     return result;
 }
 
@@ -333,25 +205,9 @@ function aggregateByZone(rawData, building, floor) {
 function updateAllStatCards(zoneStats) {
     document.querySelectorAll(".stat-card[data-zone]").forEach(card => {
         const zoneKey = card.dataset.zone;
-        let foundData = null;
-
-        //Cas 1 : carte = FLOOR_X
-        if (zoneKey.startsWith("FLOOR_")) {
-            const floorNumber = zoneKey.split("_")[1];
-            foundData = zoneStats[floorNumber];
-        }
-        // Cas 2 : carte = vraie zone
-        else {
-            Object.values(zoneStats).forEach(floorData => {
-                if (floorData?.zones?.[zoneKey]) {
-                    foundData = floorData.zones[zoneKey];
-                }
-            });
-        }
-
-        if (!foundData) return;
-
-        updateStatCard(card, foundData);
+        const data = zoneStats[zoneKey];
+        if (!data) return;
+        updateStatCard(card, data);
     });
 }
 
@@ -364,11 +220,9 @@ function updateStatCard(statCard, data) {
     const titleElement = statCard.querySelector(".stat-card-title");
 
     const total = data.free + data.used + data.invalid;
-
     let freePercent = 0;
     let usedPercent = 0;
     let invalidPercent = 0;
-
     if (total === 0) {
         invalidPercent = 100;
     } else {
@@ -377,12 +231,15 @@ function updateStatCard(statCard, data) {
         invalidPercent = parseFloat(((data.invalid / total) * 100).toFixed(2));
     }
 
+    // Recycle chart - use createDoughnutChartConfig directly (defined later but hoisted)
     if (chartElement) {
         if (chartElement._chartInstance) {
             const chart = chartElement._chartInstance;
             chart.data.datasets[0].data = [freePercent, usedPercent, invalidPercent];
+            chart.data.datasets[0].backgroundColor = ["#10b981", "#ef4444", "#94a3b8"]; 
             chart.update();
         } else {
+            // Create doughnut chart config inline to avoid timing issues
             const config = {
                 type: "doughnut",
                 data: {
@@ -401,199 +258,94 @@ function updateStatCard(statCard, data) {
                     layout: { padding: { top: 20, bottom: 5 } },
                     animation: { duration: 0 },
                     plugins: {
-                        legend: { display: false },
+                        legend: {
+                            display: false // We use custom legend
+                        },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
-                                    const idx = context.dataIndex;
+                                label: (context) => {
+                                    const label = context.label;
                                     const percent = Math.round(context.parsed);
-
-                                    const counts = [
-                                        data.free,
-                                        data.used,
-                                        data.invalid
-                                    ];
-
-                                    return `${context.label}: ${percent}% (${counts[idx]} desks)`;
-                                }
-                            }
-                        }
-                    }
-                }
+                                    return `${label}: ${percent}%`;
+                                },
+                            },
+                        },
+                    },
+                },
             };
-
             chartElement._chartInstance = new Chart(chartElement, config);
         }
     }
 
-    // Legend propre (inchangée)
+    // Update custom legend
     if (legendElement) {
         legendElement.innerHTML = `
-            <div class="custom-label">
-                <span class="dot free"></span>
-                Free (${freePercent.toFixed(0)}%)
-            </div>
-            <div class="custom-label">
-                <span class="dot used"></span>
-                Used (${usedPercent.toFixed(0)}%)
-            </div>
-            <div class="custom-label">
-                <span class="dot invalid"></span>
-                Invalid (${invalidPercent.toFixed(0)}%)
-            </div>
+            <div class="custom-label"><span class="dot free"></span> Free (${freePercent.toFixed(0)}%)</div>
+            <div class="custom-label"><span class="dot used"></span> Used (${usedPercent.toFixed(0)}%)</div>
+            <div class="custom-label"><span class="dot invalid"></span> Invalid (${invalidPercent.toFixed(0)}%)</div>
         `;
     }
-
-    if (titleElement && data.location) {
-        titleElement.textContent = data.location;
-    }
+    
+    if (titleElement && data.location) titleElement.textContent = data.location;
 }
-
 
 // ============================================
 // GENERATE STAT CARDS FOR BUILDING
 // ============================================
-function generateStatCardsForBuilding(building, selectedFloor = null) {
+function generateStatCardsForBuilding(building) {
     const container = document.getElementById('sensor-stats-container');
     if (!container) return;
 
-    // Rebuild the occupancy zones
     OCCUPANCY_ZONES = buildOccupancyZones();
-    const buildingZones = OCCUPANCY_ZONES[building];
+    console.log(`🔧 Rebuilt OCCUPANCY_ZONES for ${building}:`, OCCUPANCY_ZONES[building]);
 
+    const buildingZones = OCCUPANCY_ZONES[building];
     if (!buildingZones || Object.keys(buildingZones).length === 0) {
+        console.warn(`No zones defined for building: ${building}`);
         container.innerHTML = '';
         return;
     }
 
+    // Collect all unique zones across all floors for this building
+    const allZones = new Map();
+    Object.entries(buildingZones).forEach(([floor, zones]) => {
+        Object.entries(zones).forEach(([zoneKey, zoneConfig]) => {
+            if (!allZones.has(zoneKey)) {
+                allZones.set(zoneKey, {
+                    key: zoneKey,
+                    title: zoneConfig.title,
+                    floor: floor
+                });
+            }
+        });
+    });
+
+    // Generate HTML for stat cards
     let html = '';
     let index = 0;
-
-    // 🔍 Detect structure type (FLOOR_X or flat)
-    const firstFloor = Object.values(buildingZones)[0];
-    const hasFloorWrapper =
-        firstFloor && Object.keys(firstFloor).some(k => k.startsWith('FLOOR_'));
-
-    // ======================================================
-    // 🟢 CASE 1: FLOOR SÉLECTIONNÉ
-    // ======================================================
-    if (selectedFloor != null && buildingZones[selectedFloor]) {
-
-        let floorData = buildingZones[selectedFloor];
-
-        // 👉 If structure has FLOOR_X wrapper (SQY type)
-        if (hasFloorWrapper) {
-            floorData = floorData[`FLOOR_${selectedFloor}`];
-        }
-
-        if (!floorData) {
-            container.innerHTML = '';
-            return;
-        }
-
-        const zones = Object.entries(floorData)
-            .filter(([key]) =>
-                !['title', 'free', 'used', 'invalid', 'expectedCount']
-                    .includes(key)
-            );
-
-        zones.forEach(([zoneKey, zoneData]) => {
-            html += `
-                <div class="stat-card"
-                     data-zone="${zoneKey}"
-                     data-floor="${selectedFloor}"
-                     data-chart-index="${index}">
-                    <h4 class="stat-card-title">${zoneData.title}</h4>
-                    <div class="stat-chart-container">
-                        <canvas class="chart-office"></canvas>
-                    </div>
-                    <div class="stat-legend"></div>
+    allZones.forEach((zone, zoneKey) => {
+        html += `
+            <div class="stat-card" data-zone="${zoneKey}" data-chart-index="${index}">
+                <h4 class="stat-card-title">${zone.title}</h4>
+                <div class="stat-chart-container">
+                    <canvas class="chart-office"></canvas>
                 </div>
-            `;
-            index++;
-        });
-
-    }
-    // ======================================================
-    // 🔵 CASE 2: AUCUN FLOOR SÉLECTIONNÉ
-    // ======================================================
-    else {
-
-        // 🏢 SQY TYPE (FLOOR_X structure)
-        if (hasFloorWrapper) {
-
-            Object.entries(buildingZones).forEach(([floorId, floorObj]) => {
-                const floorData = floorObj[`FLOOR_${floorId}`];
-
-                if (!floorData) return;
-
-                html += `
-                    <div class="stat-card"
-                         data-zone="FLOOR_${floorId}"
-                         data-floor="${floorId}"
-                         data-chart-index="${index}">
-                        <h4 class="stat-card-title">${floorData.title}</h4>
-                        <div class="stat-chart-container">
-                            <canvas class="chart-office"></canvas>
-                        </div>
-                        <div class="stat-legend"></div>
-                    </div>
-                `;
-                index++;
-            });
-
-        }
-        // 🏢 LEVALLOIS TYPE (flat structure)
-        else {
-
-            const allZones = new Map();
-
-            Object.entries(buildingZones).forEach(([floor, zones]) => {
-                Object.entries(zones).forEach(([zoneKey, zoneConfig]) => {
-                    if (!allZones.has(zoneKey)) {
-                        allZones.set(zoneKey, {
-                            key: zoneKey,
-                            title: zoneConfig.title,
-                            floor: floor
-                        });
-                    }
-                });
-            });
-
-            allZones.forEach((zone) => {
-                html += `
-                    <div class="stat-card"
-                         data-zone="${zone.key}"
-                         data-floor="${zone.floor}"
-                         data-chart-index="${index}">
-                        <h4 class="stat-card-title">${zone.title}</h4>
-                        <div class="stat-chart-container">
-                            <canvas class="chart-office"></canvas>
-                        </div>
-                        <div class="stat-legend"></div>
-                    </div>
-                `;
-                index++;
-            });
-        }
-    }
-
-
-	// 🔥 Destroy all existing charts before regenerating DOM
-	container.querySelectorAll("canvas").forEach(c => {
-		const ch = Chart.getChart(c);
-		if (ch) ch.destroy();
-	});
+                <div class="stat-legend"></div>
+            </div>
+        `;
+        index++;
+    });
 
     container.innerHTML = html;
-
-    // Mise à jour du contexte
+    console.log(`📊 Generated ${allZones.size} stat cards for ${building}`);
+    
+    // Update DASHBOARD_CTX
     DASHBOARD_CTX.building = building;
-    DASHBOARD_CTX.floor = selectedFloor;
-
-    // Fetch initial + SSE
-    fetchInitialOccupancyData(building, selectedFloor);
-    openOccupancySSE(building, selectedFloor);
+    DASHBOARD_CTX.floor = null; // null = aggregate all floors
+    
+    // Fetch initial data from API (all floors) then start SSE for live updates
+    fetchInitialOccupancyData(building, null);
+    openOccupancySSE(building, null);
 }
 
 // ============================================
@@ -604,19 +356,19 @@ async function fetchInitialOccupancyData(building, floor) {
         const qs = new URLSearchParams();
         if (building) qs.set('building', building);
         if (floor) qs.set('floor', floor);
-
+        
         const response = await fetch(`/api/dashboard/occupancy?${qs.toString()}`);
         if (!response.ok) {
             console.warn('Failed to fetch initial occupancy data');
             return;
         }
-
+        
         const data = await response.json();
         if (!Array.isArray(data)) return;
-
+        
         console.log(`📥 Fetched ${data.length} occupancy items from API`);
         console.log(`📋 Sample sensor IDs:`, data.slice(0, 10).map(d => d.id));
-
+        
         // Convert API data to snapshot format and update occupancyState
         data.forEach(item => {
             const id = item?.id || item?.deviceId;
@@ -625,12 +377,12 @@ async function fetchInitialOccupancyData(building, floor) {
                 occupancyState[id] = status;
             }
         });
-
+        
         // Create snapshot and update all stat cards
         const snapshot = Object.entries(occupancyState).map(([id, status]) => ({ id, status }));
         const zoneStats = aggregateByZone(snapshot, building, floor);
         updateAllStatCards(zoneStats);
-
+        
     } catch (err) {
         console.warn('Error fetching initial occupancy data:', err);
     }
