@@ -149,10 +149,15 @@
                     <div class="field-error" th:if="${#fields.hasErrors('idSensor')}" th:errors="*{idSensor}"></div>
 
                     <!-- Device Type -->
-                    <input type="text" th:field="*{deviceType}" placeholder="Device Type" required
-                           th:classappend="${#fields.hasErrors('deviceType')} ? 'input-error' : ''"/>
-                    <div class="field-error" th:if="${#fields.hasErrors('deviceType')}" th:errors="*{deviceType}"></div>
-
+                    <select th:field="*{idDeviceType}" required
+                            th:classappend="${#fields.hasErrors('idDeviceType')} ? 'input-error' : ''">
+                        <option value="" disabled selected>Select a Device Type</option>
+                        <option th:each="dt : ${deviceTypes}"
+                                th:value="${dt.idDeviceType}"
+                                th:text="${dt.label}">
+                        </option>
+                    </select>
+                    <div class="field-error" th:if="${#fields.hasErrors('idDeviceType')}" th:errors="*{idDeviceType}"></div>
                     <!-- Commissioning Date (optionnel) -->
                     <input type="text" id="commissioningDateInput" th:field="*{commissioningDate}"
                            placeholder="Commissioning Date (optional)" class="datepicker"
@@ -265,8 +270,13 @@
                 <form th:action="@{/manage-sensors/edit}" th:object="${sensorEdit}" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                     <input type="hidden" th:field="*{idSensor}"/>
-
-                    <input type="text" th:field="*{deviceType}" placeholder="Device Type" required/>
+                    <select th:field="*{idDeviceType}" required>
+                        <option value="" disabled>Select a Device Type</option>
+                        <option th:each="dt : ${deviceTypes}"
+                                th:value="${dt.idDeviceType}"
+                                th:text="${dt.label}">
+                        </option>
+                    </select>
                     <input type="text" class="datepicker" th:field="*{commissioningDate}" placeholder="Commissioning Date"/>
                     <input type="number" th:field="*{floor}" placeholder="Floor" required/>
                     <input type="text" th:field="*{location}" placeholder="Location"/>
