@@ -583,10 +583,11 @@ main {
 
 /* ===== OFFICE STATS ===== */
 .office-stats {
+    padding: 10px;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
-    max-width: 50%;
+    max-width: 100%;
     animation: fadeInUp 0.5s ease;
 }
 

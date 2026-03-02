@@ -258,13 +258,6 @@
                         >17/11/2025 11:23:47</strong
                         ></span
                     >
-                <button
-                        id="histogram-refresh-btn"
-                        class="refresh-btn"
-                        style="margin: 0; width: auto; min-width: 180px"
-                >
-                    🔄 Update Histogram
-                </button>
             </div>
         </section>
 
@@ -435,9 +428,7 @@
             <h3 class="section-title" id="live-section-title">
                 📊 Live Desk Occupancy - Châteaudun Office
             </h3>
-
-            <!-- Main Layout: 3D Model (left 60%) + Floor Stats (right 40%) -->
-            <div class="live-occupancy-layout" style="display: flex; gap: 1.5rem; align-items: flex-start;">
+            <div class="live-occupancy-layout">
                 <!-- LEFT: 3D Building Visualization (60%) -->
                 <div class="floor-plan-card" style="flex: 0 0 58%; min-width: 0;">
                     <div class="building-3d-header">
@@ -539,7 +530,7 @@
                     <select id="hist-filter-building" class="form-select">
                         <option value="LEVALLOIS" selected>Levallois</option>
                         <option value="CHATEAUDUN">Châteaudun</option>
-                    </select>   
+                    </select>
                 </div>
                 <div class="filter-item" style="align-self:end;">
                     <button id="hist-load" class="btn btn-primary">
@@ -1460,7 +1451,7 @@
         document.querySelectorAll('.history-sub-tab-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const section = this.dataset.section;
-                
+
                 // Update buttons
                 document.querySelectorAll('.history-sub-tab-btn').forEach(b => {
                     b.classList.remove('is-active');
@@ -1468,17 +1459,17 @@
                     b.style.color = '#6b7280';
                     b.style.border = '2px solid #e5e7eb';
                 });
-                
+
                 this.classList.add('is-active');
                 this.style.background = 'linear-gradient(135deg, var(--primary), var(--primary-light))';
                 this.style.color = 'white';
                 this.style.border = 'none';
-                
+
                 // Update sections
                 document.querySelectorAll('.history-sub-section').forEach(s => {
                     s.style.display = 'none';
                 });
-                
+
                 const targetSection = document.querySelector(`[data-section-content="${section}"]`);
                 if (targetSection) {
                     targetSection.style.display = 'block';
@@ -1511,7 +1502,7 @@
                 this.classList.add('active');
                 this.style.background = 'linear-gradient(135deg, var(--primary), var(--primary-light))';
                 this.style.color = 'white';
-                
+
                 const chartType = this.dataset.type;
                 if (chartType === 'table') {
                     document.getElementById('energy-cost-table-view').style.display = 'block';
@@ -1555,7 +1546,7 @@
         const spinner = document.getElementById('hist-load-spinner');
         const icon = document.getElementById('hist-load-icon');
         const button = document.getElementById('hist-load');
-        
+
         if (spinner && icon && button) {
             spinner.style.display = 'inline-block';
             icon.style.display = 'none';
@@ -1691,7 +1682,7 @@
     let energyTableData = [];
     let energyCurrentPage = 0;
     const ENERGY_ITEMS_PER_PAGE = 7; // One week per page
-    
+
     // Store original chart data to prevent undefined values when switching types
     let originalChartData = {
         labels: [],
@@ -1714,7 +1705,7 @@
         let totalKWh = 0;
 
         const dataPoints = data.dataPoints || [];
-        
+
         if (!Array.isArray(dataPoints) || dataPoints.length === 0) {
             console.warn('⚠️ No data points found in energy response');
             return;
@@ -1734,17 +1725,17 @@
                     day: '2-digit',
                     month: 'short'
                 });
-                
+
                 labels.push(dateLabel);
-                
+
                 // Calculate categories (already in kWh)
                 // Red Outlets = ch0 + ch1 + ch2
                 // White Outlets & Lighting = (ch6 + ch7 + ch8) - (ch3 + ch4 + ch5)
                 // Ventilation & Heaters = ch6 + ch7 + ch8
-                
+
                 let redSum = 0, whiteSum = 0, ventSum = 0;
                 let sum_ch6_7_8 = 0, sum_ch3_4_5 = 0;
-                
+
                 // DEBUG: Log first entry to see ALL channel values
                 if (dateLabel === labels[0] || labels.length === 0) {
                     console.log('=== DEBUG ENERGY CHANNELS FOR', entry.date, '===');
@@ -1762,7 +1753,7 @@
                     console.log('White Outlets = (CH6+7+8) - (CH3+4+5)');
                     console.log('Ventilation = CH6+7+8');
                 }
-                
+
                 // Red Outlets: channels 0, 1, 2
                 for (let ch = 0; ch <= 2; ch++) {
                     const val = entry.channels[String(ch)];  // FIX: Use string key
@@ -1770,7 +1761,7 @@
                         redSum += val;
                     }
                 }
-                
+
                 // For White calculation, we need ch3+4+5 and ch6+7+8
                 for (let ch = 3; ch <= 5; ch++) {
                     const val = entry.channels[String(ch)];  // FIX: Use string key
@@ -1784,13 +1775,13 @@
                         sum_ch6_7_8 += val;
                     }
                 }
-                
+
                 // White Outlets & Lighting = (ch6+7+8) - (ch3+4+5)
                 whiteSum = sum_ch6_7_8 - sum_ch3_4_5;
-                
+
                 // Ventilation & Heaters = ch6+7+8
                 ventSum = sum_ch6_7_8;
-                
+
                 // DEBUG: Log calculated sums for first entry
                 if (dateLabel === labels[0] || labels.length === 0) {
                     console.log('--- CALCULATED SUMS ---');
@@ -1801,11 +1792,11 @@
                     console.log('Ventilation (CH6+7+8):', ventSum.toFixed(2), 'kWh');
                     console.log('TOTAL:', (redSum + whiteSum + ventSum).toFixed(2), 'kWh');
                 }
-                
+
                 redOutlets.push(redSum);
                 whiteOutlets.push(whiteSum);
                 ventilation.push(ventSum);
-                
+
                 totalKWh += (redSum + whiteSum + ventSum);
             }
         });
@@ -1855,7 +1846,7 @@
                 }
             ]
         };
-        
+
         // Update chart
         energyConsumptionChart.data.labels = labels;
         energyConsumptionChart.data.datasets[0].data = redOutlets;
@@ -1875,7 +1866,7 @@
         // Initialize table
         energyCurrentPage = 0;
         renderEnergyTable();
-        
+
         // Trigger energy cost and CO2 calculations now that data is ready
         if (typeof calculateEnergyCosts === 'function') {
             calculateEnergyCosts();
@@ -1955,7 +1946,7 @@
             btn.addEventListener('click', function() {
                 const newType = this.getAttribute('data-type');
                 changeEnergyChartType(newType);
-                
+
                 // Update active button style
                 chartTypeBtns.forEach(b => {
                     b.style.background = 'transparent';
@@ -1973,13 +1964,13 @@
         if (!energyConsumptionChart || !originalChartData.datasets.length) return;
 
         const canvas = document.getElementById('energy-consumption-chart');
-        
+
         // Destroy old chart
         energyConsumptionChart.destroy();
 
         // Create new chart with different type
         const ctx = canvas.getContext('2d');
-        
+
         if (newType === 'doughnut') {
             // For doughnut, aggregate all data points using ORIGINAL saved data
             const datasets = originalChartData.datasets;
@@ -1987,7 +1978,7 @@
             const data = datasets.map(ds => {
                 return ds.data.reduce((sum, val) => sum + (val || 0), 0);
             });
-            
+
             energyConsumptionChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -2092,42 +2083,42 @@
     // =====================================================
     // ENVIRONMENT CHARTS - Temperature, Humidity, CO2, Sound
     // =====================================================
-    
+
     const envCharts = {
         temperature: null,
         humidity: null,
         co2: null,
         sound: null
     };
-    
+
     const envChartData = {
         temperature: { labels: [], data: [] },
         humidity: { labels: [], data: [] },
         co2: { labels: [], data: [] },
         sound: { labels: [], data: [] }
     };
-    
+
     const envChartTypes = {
         temperature: 'line',
         humidity: 'line',
         co2: 'line',
         sound: 'line'
     };
-    
+
     const envChartColors = {
         temperature: { bg: 'rgba(239, 68, 68, 0.2)', border: 'rgb(239, 68, 68)' },
         humidity: { bg: 'rgba(59, 130, 246, 0.2)', border: 'rgb(59, 130, 246)' },
         co2: { bg: 'rgba(16, 185, 129, 0.2)', border: 'rgb(16, 185, 129)' },
         sound: { bg: 'rgba(245, 158, 11, 0.2)', border: 'rgb(245, 158, 11)' }
     };
-    
+
     const envChartUnits = {
         temperature: '°C',
         humidity: '%',
         co2: 'ppm',
         sound: 'dB'
     };
-    
+
     function initializeEnvironmentCharts() {
         ['temperature', 'humidity', 'co2', 'sound'].forEach(type => {
             const canvasId = type === 'temperature' ? 'hist-temperature-chart' :
@@ -2135,7 +2126,7 @@
                             type === 'co2' ? 'hist-co2-chart' : 'hist-sound-chart';
             const canvas = document.getElementById(canvasId);
             if (!canvas) return;
-            
+
             const ctx = canvas.getContext('2d');
             envCharts[type] = new Chart(ctx, {
                 type: 'line',
@@ -2175,62 +2166,62 @@
             });
         });
     }
-    
+
     async function loadEnvironmentData() {
         const fromDateRaw = document.getElementById('hist-from')?.value;
         const toDateRaw = document.getElementById('hist-to')?.value;
         const building = document.getElementById('hist-filter-building')?.value || '';
-        
+
         if (!fromDateRaw || !toDateRaw) {
             console.warn('⚠️ Environment: Please select date range');
             return;
         }
-        
+
         // Convert datetime-local format (2026-02-01T10:47) to ISO date (2026-02-01)
         const fromDate = fromDateRaw.split('T')[0];
         const toDate = toDateRaw.split('T')[0];
-        
+
         console.log('🌡️ Environment params:', { fromDate, toDate, building });
-        
+
         try {
             const params = new URLSearchParams({ from: fromDate, to: toDate });
             if (building && building !== 'all') params.set('building', building);
-            
+
             console.log('🌡️ Loading environment data...');
             const response = await fetch(`/api/dashboard/environment/history?${params}`);
-            
+
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            
+
             const data = await response.json();
             console.log('✅ Environment data received:', data);
-            
+
             updateEnvironmentCharts(data);
         } catch (error) {
             console.error('❌ Environment data loading failed:', error);
         }
     }
-    
+
     function updateEnvironmentCharts(data) {
         ['temperature', 'humidity', 'co2', 'sound'].forEach(type => {
             const chartData = data[type] || [];
-            
+
             // Store original data
             envChartData[type].labels = chartData.map(d => formatEnvTimeBucket(d.timeBucket));
             envChartData[type].data = chartData.map(d => d.aggregatedValue);
-            
+
             // Calculate and display average
-            const avg = envChartData[type].data.length > 0 
-                ? envChartData[type].data.reduce((a, b) => a + b, 0) / envChartData[type].data.length 
+            const avg = envChartData[type].data.length > 0
+                ? envChartData[type].data.reduce((a, b) => a + b, 0) / envChartData[type].data.length
                 : 0;
-            
+
             const avgElement = document.getElementById(`env-${type === 'temperature' ? 'temp' : type}-avg`);
             if (avgElement) avgElement.textContent = avg.toFixed(1);
-            
+
             // Update chart
             renderEnvChart(type, envChartTypes[type]);
         });
     }
-    
+
     function formatEnvTimeBucket(timeBucket) {
         if (!timeBucket) return '';
         // Format: "2026-02-19 08" (YYYY-MM-DD HH) -> "19/02 08h"
@@ -2242,24 +2233,24 @@
         }
         return timeBucket;
     }
-    
+
     function renderEnvChart(type, chartType) {
         const chart = envCharts[type];
         if (!chart) return;
-        
+
         const canvasId = type === 'temperature' ? 'hist-temperature-chart' :
                         type === 'humidity' ? 'hist-humidity-chart' :
                         type === 'co2' ? 'hist-co2-chart' : 'hist-sound-chart';
         const canvas = document.getElementById(canvasId);
         if (!canvas) return;
-        
+
         // Destroy existing chart
         chart.destroy();
-        
+
         const ctx = canvas.getContext('2d');
         const labels = envChartData[type].labels;
         const data = envChartData[type].data;
-        
+
         if (chartType === 'doughnut') {
             // For doughnut, group data by ranges
             const ranges = getDataRanges(type, data);
@@ -2328,7 +2319,7 @@
             });
         }
     }
-    
+
     function getDataRanges(type, data) {
         // Define ranges based on type
         const ranges = {
@@ -2358,10 +2349,10 @@
                 { min: 70, max: Infinity, label: '> 70 dB (Very Loud)', color: 'rgba(239, 68, 68, 0.8)' }
             ]
         };
-        
+
         const typeRanges = ranges[type] || [];
         const counts = typeRanges.map(() => 0);
-        
+
         data.forEach(value => {
             for (let i = 0; i < typeRanges.length; i++) {
                 if (value >= typeRanges[i].min && value < typeRanges[i].max) {
@@ -2370,12 +2361,12 @@
                 }
             }
         });
-        
+
         // Filter out empty ranges
         const filteredLabels = [];
         const filteredValues = [];
         const filteredColors = [];
-        
+
         counts.forEach((count, i) => {
             if (count > 0) {
                 filteredLabels.push(typeRanges[i].label);
@@ -2383,23 +2374,23 @@
                 filteredColors.push(typeRanges[i].color);
             }
         });
-        
+
         return { labels: filteredLabels, values: filteredValues, colors: filteredColors };
     }
-    
+
     // Environment chart toggle handlers
     document.addEventListener('DOMContentLoaded', function() {
         initializeEnvironmentCharts();
-        
+
         // Add click handlers for environment chart toggle buttons
         document.querySelectorAll('.env-chart-toggle').forEach(toggle => {
             const chartType = toggle.getAttribute('data-chart');
-            
+
             toggle.querySelectorAll('.env-chart-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const newType = this.getAttribute('data-type');
                     envChartTypes[chartType] = newType;
-                    
+
                     // Update button styles
                     toggle.querySelectorAll('.env-chart-btn').forEach(b => {
                         b.style.background = 'transparent';
@@ -2409,7 +2400,7 @@
                     this.style.background = 'linear-gradient(135deg, var(--primary), var(--primary-light))';
                     this.style.color = 'white';
                     this.classList.add('active');
-                    
+
                     // Re-render chart
                     if (envChartData[chartType].data.length > 0) {
                         renderEnvChart(chartType, newType);
@@ -2417,7 +2408,7 @@
                 });
             });
         });
-        
+
         // Environment charts are loaded via the unified hist-load handler above
     });
 
@@ -2460,7 +2451,7 @@
 
         const labels = originalChartData.labels;
         const datasets = originalChartData.datasets || [];
-        
+
         // Sum all dataset values per time bucket
         const energyValues = [];
         for (let i = 0; i < labels.length; i++) {
@@ -2489,7 +2480,7 @@
 
         // Update table
         updateEnergyCostTable();
-        
+
         // Render CO2 chart (default is bar)
         renderCo2Chart('bar');
     }

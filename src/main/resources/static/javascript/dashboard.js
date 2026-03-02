@@ -1670,7 +1670,7 @@ async calculateTodaysEnergy() {
 		const timeRangeEl = document.getElementById('histogram-time-range');
 		const granularityEl = document.getElementById('histogram-granularity');
 		const metricTypeEl = document.getElementById('histogram-metric-type');
-		const refreshBtn = document.getElementById('histogram-refresh-btn');
+		//const refreshBtn = document.getElementById('histogram-refresh-btn');
 
 		if (timeRangeEl) {
 			timeRangeEl.addEventListener('change', (e) => {
@@ -1689,11 +1689,6 @@ async calculateTodaysEnergy() {
 				this.histogramConfig.metricType = e.target.value;
 			});
 		}
-
-		if (refreshBtn) {
-			refreshBtn.addEventListener('click', () => this.loadHistogramData());
-		}
-
 		this.loadHistogramData();
 	}
 
