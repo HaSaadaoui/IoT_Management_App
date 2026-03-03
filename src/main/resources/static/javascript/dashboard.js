@@ -97,7 +97,7 @@ DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' }
 		console.log('=== Dashboard Manager Initialized ===');
 		this.initializeFilters();
 		this.initializeHistogramControls();
-		
+
 		// Initialize alert cache for instant filtering
 		this.initAlertCache();
 
@@ -105,13 +105,13 @@ DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' }
 		this.loadDashboardData();
 		this.scheduleNextRefresh();
 	}
-	
+
 	async initAlertCache() {
 		if (!window.AlertCacheManager) {
 			console.warn('AlertCacheManager not loaded');
 			return;
 		}
-		
+
 		try {
 			// Initialize cache with current building
 			await window.AlertCacheManager.init({
@@ -119,13 +119,13 @@ DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' }
 				useSSE: true,
 				backgroundRefresh: true
 			});
-			
+
 			// Subscribe to real-time alert updates
 			this.alertUnsubscribe = window.AlertCacheManager.subscribe((alerts) => {
 				console.log('🔔 [Dashboard] Alert update received:', alerts.length, 'alerts');
 				this.updateAlerts(alerts);
 			});
-			
+
 			console.log('✅ [Dashboard] AlertCacheManager initialized');
 		} catch (e) {
 			console.error('Failed to init AlertCacheManager:', e);
@@ -381,14 +381,7 @@ applyBuildingStatVisibility() {
   if (!cards.length) return;
 
   cards.forEach(card => {
-    const zone = String(card.dataset.zone || '').toUpperCase(); // ✅ zone de la card
-    if (building === 'CHATEAUDUN') {
-      // ✅ Châteaudun: uniquement OPEN_SPACE
-      card.style.display = (zone === 'OPEN_SPACE') ? '' : 'none';
-    } else {
-      // ✅ autres bâtiments: tout visible
-      card.style.display = '';
-    }
+    card.style.display = '';
   });
 }
 
@@ -485,6 +478,11 @@ async handleFilterChange(filterId, value) {
       window.building3D.loadBuilding(building);
     }
 
+    // 6.5) Regenerate stat cards for the new building
+    if (window.ChartUtils?.generateStatCardsForBuilding) {
+      window.ChartUtils.generateStatCardsForBuilding(this.filters.building);
+    }
+
     // ✅ 7) Restart CONSO SSE (building + floor='')
 			this.startConsoAggregateSse();
 
@@ -509,7 +507,25 @@ async handleFilterChange(filterId, value) {
 
 		// ✅ Si on change d'étage : restart SSE (building + floor)
 		if (filterId === 'floor') {
+			const building = this.filters.building;
+			const floor = value || null;
+
+			if (window.ChartUtils?.generateStatCardsForBuilding) {
+				// Génère uniquement les cartes du floor choisi
+				window.ChartUtils.generateStatCardsForBuilding(building, floor);
+			}
+
+			// Redémarre SSE avec le floor
 			this.startConsoAggregateSse();
+
+			// Mettre à jour alert filters
+			this.updateAlertFilters();
+
+			// Reload data
+			await this.loadDashboardData();
+			this.applyBuildingStatVisibility();
+
+			return; // important : on ne continue pas le reste
 		}
 
 		// ✅ INSTANT ALERT FILTERING - no API call, uses cached data
@@ -756,9 +772,6 @@ async updateDashboard(data) {
   this.updateGlobalStatistics(data?.historicalData);
   this.applyBuildingStatVisibility();
 
-  // ✅ Attendre que le DOM + charts aient eu le temps de se créer
-  await this.updateOpenSpaceDonutForSelectedFloor();
-
   this.hideLoading();
 }
 
@@ -953,86 +966,6 @@ async updateLiveBuildingMetrics() {
     console.error('Error updating live building metrics:', e);
   }
 }
-
-
-async computeOpenSpaceStatsFromConfig() {
-  const building = String(this.filters.building || '').toUpperCase();
-  const floor = this.getEffectiveFloorParam();
-
-  // 1) Récupère les statuts live (free/used/invalid) depuis le backend
-  const occItems = await this.fetchOccupancy(floor); // ✅ floor déjà géré
-  const occMap = new Map(
-    (occItems || []).map(x => [String(x?.id || ''), String(x?.status || '').toLowerCase()])
-  );
-
-  // 2) Floors à prendre en compte depuis la config
-  const floors = floor
-    ? [Number(floor)]
-    : Object.keys(DeskSensorConfig.mappings[building] || {}).map(Number);
-
-  let used = 0, free = 0, invalid = 0;
-
-  floors.forEach(f => {
-    const desks = DeskSensorConfig.getFloorDesks(f, 'invalid', building);
-
-    desks.forEach(desk => {
-      if (!desk.sensor) { invalid++; return; }
-
-      const st = occMap.get(String(desk.sensor)); // ex: 'free' / 'used'
-      if (st === 'used') used++;
-      else if (st === 'free') free++;
-      else invalid++; // pas remonté / inconnu
-    });
-  });
-
-  const total = used + free + invalid;
-
-  return {
-    used, free, invalid, total,
-    usedPct: total ? (used / total) * 100 : 0,
-    freePct: total ? (free / total) * 100 : 0,
-    invalidPct: total ? (invalid / total) * 100 : 0
-  };
-}
-
-async updateOpenSpaceDonutForSelectedFloor() {
-  const stats = await this.computeOpenSpaceStatsFromConfig();
-
-  const card = document.querySelector('.office-stats .stat-card[data-zone="OPEN_SPACE"]');
-  if (!card) return;
-
-  const canvas = card.querySelector('canvas');
-  if (!canvas) return;
-
-  let chart = Chart.getChart(canvas);
-
-  // ✅ si pas encore instancié : on l'initialise
-  if (!chart) {
-    chart = new Chart(canvas, {
-      type: 'doughnut',
-      data: {
-        labels: ['Free', 'Used', 'Invalid'],
-        datasets: [{ data: [0, 0, 0], borderWidth: 0 }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '75%',
-        plugins: { legend: { display: false } }
-      }
-    });
-  }
-
-  chart.data.labels = [
-    `Free (${stats.freePct.toFixed(1)}%)`,
-    `Used (${stats.usedPct.toFixed(1)}%)`,
-    `Invalid (${stats.invalidPct.toFixed(1)}%)`
-  ];
-
-  chart.data.datasets[0].data = [stats.freePct, stats.usedPct, stats.invalidPct];
-  chart.update('none');
-}
-
 
 async calculateTodaysEnergy() {
   try {
@@ -1737,7 +1670,7 @@ async calculateTodaysEnergy() {
 		const timeRangeEl = document.getElementById('histogram-time-range');
 		const granularityEl = document.getElementById('histogram-granularity');
 		const metricTypeEl = document.getElementById('histogram-metric-type');
-		const refreshBtn = document.getElementById('histogram-refresh-btn');
+		//const refreshBtn = document.getElementById('histogram-refresh-btn');
 
 		if (timeRangeEl) {
 			timeRangeEl.addEventListener('change', (e) => {
@@ -1756,11 +1689,6 @@ async calculateTodaysEnergy() {
 				this.histogramConfig.metricType = e.target.value;
 			});
 		}
-
-		if (refreshBtn) {
-			refreshBtn.addEventListener('click', () => this.loadHistogramData());
-		}
-
 		this.loadHistogramData();
 	}
 

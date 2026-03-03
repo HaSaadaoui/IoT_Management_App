@@ -2,35 +2,143 @@
 // ============================================
 // OCCUPANCY ZONES
 // ============================================
-const OCCUPANCY_ZONES = {
-    LEVALLOIS: {
-        3: {
-            OPEN_SPACE: { title: "Open_03_01", match: (id) => /^desk-03-(0[1-9]|[1-7][0-9]|8[0-2])$/.test(id) },
-            VALUEMENT: { title: "Valuement", match: (id) => /^desk-03-(8[3-9]|9[0-2])$/.test(id) },
-            MEETING_ROOM: { title: "Meeting Room", match: (id) => /^occup-vs70-03-0[1-2]$/.test(id) || id === "count-03-01" },
-            INTERVIEW_ROOM: { title: "Interview Room", match: (id) => /^desk-vs41-03-0[1-2]$/.test(id) },
-            PHONE_BOOTH: { title: "Phone Booth", match: (id) => [
-                "desk-vs41-03-03",
-                "desk-vs41-03-04",
-                "occup-vs30-03-01",
-                "occup-vs30-03-02",
-                "desk-vs40-03-01",
-                "occup-vs70-03-03",
-                "occup-vs70-03-04"
-            ].includes(id) }
+function createDeskRangeMatcher(prefix, start, end) {
+    return id => {
+        const match = id.match(new RegExp(`^${prefix}-(\\d+)$`));
+        if (!match) return false;
+        const num = parseInt(match[1], 10);
+        return num >= start && num <= end;
+    };
+}
+
+// ============================================
+function buildOccupancyZones() {
+    const createDeskRangeMatcher = (prefix, start, end) => {
+        return id => {
+            const match = id.match(new RegExp(`^${prefix}-(\\d+)$`));
+            if (!match) return false;
+            const num = parseInt(match[1], 10);
+            return num >= start && num <= end;
+        };
+    };
+
+    const zones = {
+        LEVALLOIS: {
+            3: {
+                OPEN_SPACE: { title: "Open_03_01", match: (id) => /^desk-03-(0[1-9]|[1-7][0-9]|8[0-2])$/.test(id) },
+                VALUEMENT: { title: "Valuement", match: (id) => /^desk-03-(8[3-9]|9[0-2])$/.test(id) },
+                MEETING_ROOM: { title: "Meeting Room", match: (id) => /^occup-vs70-03-0[1-2]$/.test(id) || id === "count-03-01" },
+                INTERVIEW_ROOM: { title: "Interview Room", match: (id) => /^desk-vs41-03-0[1-2]$/.test(id) },
+                PHONE_BOOTH: { title: "Phone Booth", match: (id) => [
+                    "desk-vs41-03-03",
+                    "desk-vs41-03-04",
+                    "occup-vs30-03-01",
+                    "occup-vs30-03-02",
+                    "desk-vs40-03-01",
+                    "occup-vs70-03-03",
+                    "occup-vs70-03-04"
+                ].includes(id) }
+            }
+        },
+        CHATEAUDUN: {
+            0: {
+                FLOOR_0: {
+                    title: "Floor 0",
+                    OPEN_SPACE: { title: "Open Space", expectedCount: 0 },
+                    free: 0, used: 0, invalid: 0, expectedCount: 0
+                }
+            },
+            1: {
+                FLOOR_1: {
+                    title: "Floor 1",
+                    MEETING_ROOM_GENEVA: { title: "Meeting Room Geneva", expectedCount: 0 },
+                    free: 0, used: 0, invalid: 0, expectedCount: 0
+                }
+            },
+            2: {
+                FLOOR_2: {
+                    title: "Floor 2",
+                    OPEN_SPACE_1: { title: "Open Space 1", match: createDeskRangeMatcher("desk-01", 1, 7), expectedCount: 7 },
+                    OPEN_SPACE_2: { title: "Open Space 2", expectedCount: 8 },
+                    MEETING_ROOM_ATLANTIC: { title: "Meeting Room Atlantic", expectedCount: 0 },
+                    MEETING_ROOM_PACIFIC: { title: "Meeting Room Pacific", expectedCount: 0 },
+                    free: 0, used: 0, invalid: 0, expectedCount: 15
+                }
+            },
+            3: {
+                FLOOR_3: {
+                    title: "Floor 3",
+                    OPEN_SPACE_1: { title: "Open Space 1", expectedCount: 7 },
+                    OPEN_SPACE_2: { title: "Open Space 2", expectedCount: 8 },
+                    MEETING_ROOM_SEQUOLA: { title: "Meeting Room Sequola", expectedCount: 0 },
+                    MEETING_ROOM_SANTA: { title: "Meeting Room Santa", expectedCount: 0 },
+                    free: 0, used: 0, invalid: 0, expectedCount: 15
+                }
+            },
+            4: {
+                FLOOR_4: {
+                    title: "Floor 4",
+                    OPEN_SPACE_1: { title: "Open Space 1", match: createDeskRangeMatcher("desk-04", 1, 8), expectedCount: 8 },
+                    MEETING_ROOM_NEWYORK: { title: "Meeting Room New York", expectedCount: 0 },
+                    MEETING_ROOM_OREGAN: { title: "Meeting Room Oregan", expectedCount: 0 },
+                    MEETING_ROOM_MIAMI: { title: "Meeting Room Miami", expectedCount: 0 },
+                    free: 0, used: 0, invalid: 0, expectedCount: 8
+                }
+            },
+            5: {
+                FLOOR_5: {
+                    title: "Floor 5",
+                    OPEN_SPACE_1: { title: "Open Space 1", match: createDeskRangeMatcher("desk-05", 1, 16), expectedCount: 16 },
+                    OPEN_SPACE_2: { title: "Open Space 2", match: createDeskRangeMatcher("desk-05", 17, 24), expectedCount: 8 },
+                    free: 0, used: 0, invalid: 0, expectedCount: 24
+                }
+            },
+            6: {
+                FLOOR_6: {
+                    title: "Floor 6",
+                    OPEN_SPACE_1: { title: "Open Space 1", match: createDeskRangeMatcher("desk-06", 1, 8), expectedCount: 8 },
+                    OPEN_SPACE_2: { title: "Open Space 2", match: createDeskRangeMatcher("desk-06", 9, 16), expectedCount: 8 },
+                    MEETING_ROOM_PARIS: { title: "Meeting Room Paris", expectedCount: 0 },
+                    free: 0, used: 0, invalid: 0, expectedCount: 16
+                }
+            }
         }
-    },
-    CHATEAUDUN: {
-        2: { OPEN_SPACE: { title: "Open Space", match: (id) => /^desk-01-0[1-9]|desk-01-1[0-5]$/.test(id) } },
-        4: { OPEN_SPACE: { title: "Open Space", match: (id) => /^desk-01-0[1-8]$/.test(id) } },
-        5: { OPEN_SPACE: { title: "Open Space", match: (id) => /^desk-01-(0[1-9]|1[0-9]|2[0-4])$/.test(id) } },
-        6: { OPEN_SPACE: { title: "Open Space", match: (id) => /^desk-01-(0[1-9]|1[0-6])$/.test(id) } }
+    };
+
+    // fallback dynamique pour CHATEAUDUN si jamais la config côté serveur existe
+    if (window.DeskSensorConfig?.mappings?.CHATEAUDUN) {
+        const chateaudunConfig = window.DeskSensorConfig.mappings.CHATEAUDUN;
+        Object.keys(chateaudunConfig).forEach(floorNum => {
+            const floorDesks = chateaudunConfig[floorNum] || [];
+            const sensorIds = floorDesks.filter(d => d.sensor).map(d => d.sensor);
+
+            zones.CHATEAUDUN[floorNum] = zones.CHATEAUDUN[floorNum] || {};
+            const floorZones = zones.CHATEAUDUN[floorNum][`FLOOR_${floorNum}`] || {
+                title: `Floor ${floorNum}`,
+                expectedCount: floorDesks.length,
+            };
+
+            // Assure que toutes les sous-zones ont un match
+            Object.keys(floorZones).forEach(zoneKey => {
+                if (typeof floorZones[zoneKey].match !== "function") {
+                    floorZones[zoneKey].match = () => false;
+                }
+            });
+
+            zones.CHATEAUDUN[floorNum][`FLOOR_${floorNum}`] = floorZones;
+        });
     }
-};
+
+    console.log("ZONES:", zones);
+    return zones;
+}
+
+let OCCUPANCY_ZONES = buildOccupancyZones();
+console.log("OCCUPANCY_ZONES:", OCCUPANCY_ZONES);
 // ============================================
 // DASHBOARD CONTEXT
 // ============================================
-const DASHBOARD_CTX = { building: "LEVALLOIS", floor: 3 };
+const DASHBOARD_CTX = { building: "CHATEAUDUN", floor: null };
 
 // ============================================
 // GLOBAL STATE
@@ -124,50 +232,98 @@ function normalizeDeskStatus(v) {
 // AGGREGATION
 // ============================================
 function aggregateByZone(rawData, building, floor) {
-    const zones = OCCUPANCY_ZONES?.[building]?.[floor];
-    if (!zones) return {};
+    const OCCUPANCY_ZONES = buildOccupancyZones();
+    const buildingZones = OCCUPANCY_ZONES?.[building];
+    if (!buildingZones) return {};
+
+    const floorsToProcess =
+        floor != null ? { [floor]: buildingZones[floor] } : buildingZones;
 
     const result = {};
-    Object.entries(zones).forEach(([zoneKey, zone]) => {
-        result[zoneKey] = { location: zone.title, free: 0, used: 0, invalid: 0 };
+
+    function collectZones(obj, floorData) {
+        if (!obj || typeof obj !== "object") return;
+
+        Object.entries(obj).forEach(([key, val]) => {
+            if (!val || typeof val !== "object") return;
+
+            // Descendre dans FLOOR_X
+            if (key.startsWith("FLOOR_")) {
+                collectZones(val, floorData);
+                return;
+            }
+
+            // Zone réelle
+            if ("title" in val) {
+                floorData.zones[key] = {
+                    location: val.title,
+                    free: 0,
+                    used: 0,
+                    invalid: 0,
+                    expectedCount: val.expectedCount || 0,
+                    match: val.match   //ON CONSERVE LE MATCH ORIGINAL
+                };
+            }
+
+            collectZones(val, floorData);
+        });
+    }
+
+    // Init floors
+    Object.entries(floorsToProcess).forEach(([floorNum, zones]) => {
+        if (!zones) return;
+
+        const floorData = {
+            title: zones?.title || `Floor ${floorNum}`,
+            free: 0,
+            used: 0,
+            invalid: 0,
+            expectedCount: 0,
+            zones: {}
+        };
+
+        collectZones(zones, floorData);
+        result[floorNum] = floorData;
     });
 
+    //AGRÉGATION
     rawData.forEach(({ id, status }) => {
-        Object.entries(zones).forEach(([zoneKey, zone]) => {
-            if (zone.match(id)) {
-                if (status === "free") result[zoneKey].free++;
-                else if (status === "used") result[zoneKey].used++;
-                else result[zoneKey].invalid++;
-            }
+        Object.values(result).forEach(floorData => {
+            Object.values(floorData.zones).forEach(zone => {
+
+                if (zone.match && zone.match(id)) {   //matching
+                    if (status === "free") zone.free++;
+                    else if (status === "used") zone.used++;
+                    else zone.invalid++;
+                }
+
+            });
         });
     });
 
-    // ===== INTEGRITY CHECK =====
-    //Si le sensor n'est pas renvoyé ou a un statut inconu, alors ==> invalid
-    Object.entries(zones).forEach(([zoneKey, zone]) => {
-        const expectedDesks = [];
-        for (let i = 1; i <= 92; i++) {
-            const id = `desk-03-${i.toString().padStart(2,'0')}`;
-            if (zone.match(id)) expectedDesks.push(id);
-        }
+    // Totaux floor
+    Object.values(result).forEach(floorData => {
+        floorData.free = 0;
+        floorData.used = 0;
+        floorData.invalid = 0;
+        floorData.expectedCount = 0;
 
-        const actualDesks = rawData
-            .filter(d => zone.match(d.id))
-            .map(d => d.id);
+        Object.values(floorData.zones).forEach(zone => {
+            const actual = zone.free + zone.used + zone.invalid;
 
-        const missing = expectedDesks.filter(d => !actualDesks.includes(d));
-        const extra   = actualDesks.filter(d => !expectedDesks.includes(d));
+            if (zone.expectedCount > actual) {
+                zone.invalid += (zone.expectedCount - actual);
+            }
 
-        //Missing desks = INVALID
-        if (missing.length > 0) {
-            result[zoneKey].invalid += missing.length;
-        }
-
-        // Logs
-        //if (missing.length > 0) console.log(`❌ Missing desks:`, missing);
-        //if (extra.length > 0) console.log(`⚠️ Extra desks:`, extra);
+            floorData.free += zone.free;
+            floorData.used += zone.used;
+            floorData.invalid += zone.invalid;
+            floorData.expectedCount += zone.expectedCount;
+        });
     });
-    //console.log("Result from alert js", JSON.stringify(result, null, 2));
+
+    console.log("📊 Zone stats:", result);
+
     return result;
 }
 
@@ -177,9 +333,25 @@ function aggregateByZone(rawData, building, floor) {
 function updateAllStatCards(zoneStats) {
     document.querySelectorAll(".stat-card[data-zone]").forEach(card => {
         const zoneKey = card.dataset.zone;
-        const data = zoneStats[zoneKey];
-        if (!data) return;
-        updateStatCard(card, data);
+        let foundData = null;
+
+        //Cas 1 : carte = FLOOR_X
+        if (zoneKey.startsWith("FLOOR_")) {
+            const floorNumber = zoneKey.split("_")[1];
+            foundData = zoneStats[floorNumber];
+        }
+        // Cas 2 : carte = vraie zone
+        else {
+            Object.values(zoneStats).forEach(floorData => {
+                if (floorData?.zones?.[zoneKey]) {
+                    foundData = floorData.zones[zoneKey];
+                }
+            });
+        }
+
+        if (!foundData) return;
+
+        updateStatCard(card, foundData);
     });
 }
 
@@ -192,25 +364,276 @@ function updateStatCard(statCard, data) {
     const titleElement = statCard.querySelector(".stat-card-title");
 
     const total = data.free + data.used + data.invalid;
-    if (total === 0) return;
 
-    const freePercent = ((data.free / total) * 100).toFixed(2);
-    const usedPercent = ((data.used / total) * 100).toFixed(2);
-    const invalidPercent = ((data.invalid / total) * 100).toFixed(2);
+    let freePercent = 0;
+    let usedPercent = 0;
+    let invalidPercent = 0;
 
-    // Recycle chart
+    if (total === 0) {
+        invalidPercent = 100;
+    } else {
+        freePercent = parseFloat(((data.free / total) * 100).toFixed(2));
+        usedPercent = parseFloat(((data.used / total) * 100).toFixed(2));
+        invalidPercent = parseFloat(((data.invalid / total) * 100).toFixed(2));
+    }
+
     if (chartElement) {
         if (chartElement._chartInstance) {
             const chart = chartElement._chartInstance;
             chart.data.datasets[0].data = [freePercent, usedPercent, invalidPercent];
             chart.update();
         } else {
-            chartElement._chartInstance = new Chart(chartElement, ChartUtils.createDoughnutChartConfig([freePercent, usedPercent, invalidPercent]));
+            const config = {
+                type: "doughnut",
+                data: {
+                    labels: ["Free", "Used", "Invalid"],
+                    datasets: [{
+                        data: [freePercent, usedPercent, invalidPercent],
+                        backgroundColor: ["#10b981", "#ef4444", "#94a3b8"],
+                        borderWidth: 0,
+                        hoverOffset: 10,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    cutout: "70%",
+                    layout: { padding: { top: 20, bottom: 5 } },
+                    animation: { duration: 0 },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const idx = context.dataIndex;
+                                    const percent = Math.round(context.parsed);
+
+                                    const counts = [
+                                        data.free,
+                                        data.used,
+                                        data.invalid
+                                    ];
+
+                                    return `${context.label}: ${percent}% (${counts[idx]} desks)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            chartElement._chartInstance = new Chart(chartElement, config);
         }
     }
 
-    if (legendElement) ChartUtils.updateLegend(legendElement, freePercent, usedPercent, invalidPercent);
-    if (titleElement && data.location) titleElement.textContent = data.location;
+    // Legend propre (inchangée)
+    if (legendElement) {
+        legendElement.innerHTML = `
+            <div class="custom-label">
+                <span class="dot free"></span>
+                Free (${freePercent.toFixed(0)}%)
+            </div>
+            <div class="custom-label">
+                <span class="dot used"></span>
+                Used (${usedPercent.toFixed(0)}%)
+            </div>
+            <div class="custom-label">
+                <span class="dot invalid"></span>
+                Invalid (${invalidPercent.toFixed(0)}%)
+            </div>
+        `;
+    }
+
+    if (titleElement && data.location) {
+        titleElement.textContent = data.location;
+    }
+}
+
+
+// ============================================
+// GENERATE STAT CARDS FOR BUILDING
+// ============================================
+function generateStatCardsForBuilding(building, selectedFloor = null) {
+    const container = document.getElementById('sensor-stats-container');
+    if (!container) return;
+
+    // Rebuild the occupancy zones
+    OCCUPANCY_ZONES = buildOccupancyZones();
+    const buildingZones = OCCUPANCY_ZONES[building];
+
+    if (!buildingZones || Object.keys(buildingZones).length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = '';
+    let index = 0;
+
+    // 🔍 Detect structure type (FLOOR_X or flat)
+    const firstFloor = Object.values(buildingZones)[0];
+    const hasFloorWrapper =
+        firstFloor && Object.keys(firstFloor).some(k => k.startsWith('FLOOR_'));
+
+    // ======================================================
+    // 🟢 CASE 1: FLOOR SÉLECTIONNÉ
+    // ======================================================
+    if (selectedFloor != null && buildingZones[selectedFloor]) {
+
+        let floorData = buildingZones[selectedFloor];
+
+        // 👉 If structure has FLOOR_X wrapper (SQY type)
+        if (hasFloorWrapper) {
+            floorData = floorData[`FLOOR_${selectedFloor}`];
+        }
+
+        if (!floorData) {
+            container.innerHTML = '';
+            return;
+        }
+
+        const zones = Object.entries(floorData)
+            .filter(([key]) =>
+                !['title', 'free', 'used', 'invalid', 'expectedCount']
+                    .includes(key)
+            );
+
+        zones.forEach(([zoneKey, zoneData]) => {
+            html += `
+                <div class="stat-card"
+                     data-zone="${zoneKey}"
+                     data-floor="${selectedFloor}"
+                     data-chart-index="${index}">
+                    <h4 class="stat-card-title">${zoneData.title}</h4>
+                    <div class="stat-chart-container">
+                        <canvas class="chart-office"></canvas>
+                    </div>
+                    <div class="stat-legend"></div>
+                </div>
+            `;
+            index++;
+        });
+
+    }
+    // ======================================================
+    // 🔵 CASE 2: AUCUN FLOOR SÉLECTIONNÉ
+    // ======================================================
+    else {
+
+        // 🏢 SQY TYPE (FLOOR_X structure)
+        if (hasFloorWrapper) {
+
+            Object.entries(buildingZones).forEach(([floorId, floorObj]) => {
+                const floorData = floorObj[`FLOOR_${floorId}`];
+
+                if (!floorData) return;
+
+                html += `
+                    <div class="stat-card"
+                         data-zone="FLOOR_${floorId}"
+                         data-floor="${floorId}"
+                         data-chart-index="${index}">
+                        <h4 class="stat-card-title">${floorData.title}</h4>
+                        <div class="stat-chart-container">
+                            <canvas class="chart-office"></canvas>
+                        </div>
+                        <div class="stat-legend"></div>
+                    </div>
+                `;
+                index++;
+            });
+
+        }
+        // 🏢 LEVALLOIS TYPE (flat structure)
+        else {
+
+            const allZones = new Map();
+
+            Object.entries(buildingZones).forEach(([floor, zones]) => {
+                Object.entries(zones).forEach(([zoneKey, zoneConfig]) => {
+                    if (!allZones.has(zoneKey)) {
+                        allZones.set(zoneKey, {
+                            key: zoneKey,
+                            title: zoneConfig.title,
+                            floor: floor
+                        });
+                    }
+                });
+            });
+
+            allZones.forEach((zone) => {
+                html += `
+                    <div class="stat-card"
+                         data-zone="${zone.key}"
+                         data-floor="${zone.floor}"
+                         data-chart-index="${index}">
+                        <h4 class="stat-card-title">${zone.title}</h4>
+                        <div class="stat-chart-container">
+                            <canvas class="chart-office"></canvas>
+                        </div>
+                        <div class="stat-legend"></div>
+                    </div>
+                `;
+                index++;
+            });
+        }
+    }
+
+
+	// 🔥 Destroy all existing charts before regenerating DOM
+	container.querySelectorAll("canvas").forEach(c => {
+		const ch = Chart.getChart(c);
+		if (ch) ch.destroy();
+	});
+
+    container.innerHTML = html;
+
+    // Mise à jour du contexte
+    DASHBOARD_CTX.building = building;
+    DASHBOARD_CTX.floor = selectedFloor;
+
+    // Fetch initial + SSE
+    fetchInitialOccupancyData(building, selectedFloor);
+    openOccupancySSE(building, selectedFloor);
+}
+
+// ============================================
+// FETCH INITIAL OCCUPANCY DATA FROM API
+// ============================================
+async function fetchInitialOccupancyData(building, floor) {
+    try {
+        const qs = new URLSearchParams();
+        if (building) qs.set('building', building);
+        if (floor) qs.set('floor', floor);
+
+        const response = await fetch(`/api/dashboard/occupancy?${qs.toString()}`);
+        if (!response.ok) {
+            console.warn('Failed to fetch initial occupancy data');
+            return;
+        }
+
+        const data = await response.json();
+        if (!Array.isArray(data)) return;
+
+        console.log(`📥 Fetched ${data.length} occupancy items from API`);
+        console.log(`📋 Sample sensor IDs:`, data.slice(0, 10).map(d => d.id));
+
+        // Convert API data to snapshot format and update occupancyState
+        data.forEach(item => {
+            const id = item?.id || item?.deviceId;
+            const status = normalizeDeskStatus(item?.status || item?.occupancy);
+            if (id) {
+                occupancyState[id] = status;
+            }
+        });
+
+        // Create snapshot and update all stat cards
+        const snapshot = Object.entries(occupancyState).map(([id, status]) => ({ id, status }));
+        const zoneStats = aggregateByZone(snapshot, building, floor);
+        updateAllStatCards(zoneStats);
+
+    } catch (err) {
+        console.warn('Error fetching initial occupancy data:', err);
+    }
 }
 
 // ============================================
@@ -218,7 +641,10 @@ function updateStatCard(statCard, data) {
 // ============================================
 window.addEventListener("DOMContentLoaded", () => {
     console.log("🟢 DOM fully loaded");
-    openOccupancySSE(DASHBOARD_CTX.building, DASHBOARD_CTX.floor);
+    // generateStatCardsForBuilding now also opens SSE connection
+    const buildingFromFilter = document.getElementById('filter-building')?.value;
+    const initialBuilding = String(buildingFromFilter || DASHBOARD_CTX.building || '').toUpperCase();
+    generateStatCardsForBuilding(initialBuilding);
 });
 
 // Color constants - read from CSS variables for single source of truth
@@ -688,49 +1114,6 @@ function updateLegend(legendElement, freePercent, usedPercent, invalidPercent) {
     `;
 }
 
-/**
- * Updates a complete stat card (chart, legend, and title)
- * @param {HTMLElement} statCard - The stat card container
- * @param {Object} data - Data object containing counts and location name
- * @param {number} data.freeCount - Number of free items
- * @param {number} data.usedCount - Number of used items
- * @param {number} data.invalidCount - Number of invalid items
- * @param {string} data.location - Location name
- */
-function updateStatCard(statCard, data) {
-    if (!statCard) return;
-
-    const chartElement = statCard.querySelector(".chart-office");
-    const legendElement = statCard.querySelector(".stat-legend");
-    const titleElement = statCard.querySelector(".stat-card-title");
-
-    const counts = [data.free, data.used, data.invalid];
-    const total = counts.reduce((a, b) => a + b, 0);
-    if (total === 0) return;
-
-    // Arrondir pour que la somme des % = 100
-    let rawPercents = counts.map(c => (c / total) * 100);
-    let rounded = rawPercents.map(p => Math.floor(p));
-    let remainder = 100 - rounded.reduce((a, b) => a + b, 0);
-    const remainders = rawPercents.map((p, i) => ({ idx: i, diff: p - Math.floor(p) }))
-                                  .sort((a, b) => b.diff - a.diff);
-    for (let i = 0; i < remainder; i++) {
-        rounded[remainders[i].idx]++;
-    }
-
-    if (chartElement) {
-        createDoughnutChart(chartElement, counts);
-    }
-
-    if (legendElement) {
-        updateLegend(legendElement, rounded[0], rounded[1], rounded[2]);
-    }
-
-    if (titleElement && data.location) {
-        titleElement.textContent = data.location;
-    }
-}
-
 // Export functions for use in other modules
 if (typeof window !== "undefined") {
     window.ChartUtils = {
@@ -763,5 +1146,7 @@ if (typeof window !== "undefined") {
         updateStatCard,
         // Helpers
         hexToRgba,
+        // Stat card generation
+        generateStatCardsForBuilding,
     };
 }

@@ -9,6 +9,7 @@ import com.amaris.sensorprocessor.service.DashboardService;
 import com.amaris.sensorprocessor.service.SensorService;
 import com.amaris.sensorprocessor.service.UserService;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
+import com.amaris.sensorprocessor.repository.BuildingEnergyConfigDao;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,7 @@ public class DashboardController {
     private final DashboardService dashboardService;
     private final AlertService alertService;
     private final SensorDataDao sensorDataDao;
+    private final BuildingEnergyConfigDao buildingEnergyConfigDao;
 
     private final ObjectMapper om = new ObjectMapper();
 
@@ -61,13 +63,15 @@ public class DashboardController {
             DashboardService dashboardService,
             AlertService alertService,
             SensorService sensorService,
-            SensorDataDao sensorDataDao
+            SensorDataDao sensorDataDao,
+            BuildingEnergyConfigDao buildingEnergyConfigDao
     ) {
         this.userService = userService;
         this.dashboardService = dashboardService;
         this.alertService = alertService;
         this.sensorService = sensorService;
         this.sensorDataDao = sensorDataDao;
+        this.buildingEnergyConfigDao = buildingEnergyConfigDao;
     }
 
     @GetMapping("/dashboard")
@@ -531,5 +535,161 @@ public class DashboardController {
                         Flux.interval(Duration.ofSeconds(15))
                                 .map(t -> ServerSentEvent.builder("ping").event("keepalive").build())
                 );
+    }
+
+    /**
+     * API endpoint for environment history data (temperature, humidity, CO2, sound)
+     * Returns aggregated hourly data for charts
+     */
+    @GetMapping("/api/dashboard/environment/debug")
+    @ResponseBody
+    public Map<String, Object> debugEnvironmentData(@RequestParam(required = false) String building) {
+        Map<String, Object> result = new HashMap<>();
+        String dbBuilding = mapBuildingToDbName(building);
+        result.put("queryBuilding", building);
+        result.put("dbBuilding", dbBuilding);
+        
+        List<String> co2SensorIds = sensorService.getSensorIdsByTypeAndBuilding("CO2", dbBuilding);
+        result.put("co2SensorIds", co2SensorIds);
+        
+        // Check what data exists for each sensor
+        List<Map<String, Object>> sensorDataInfo = new java.util.ArrayList<>();
+        for (String sensorId : co2SensorIds) {
+            Map<String, Object> info = new HashMap<>();
+            info.put("sensorId", sensorId);
+            
+            var tempData = sensorDataDao.findLatestBySensorAndType(sensorId, PayloadValueType.TEMPERATURE);
+            var co2Data = sensorDataDao.findLatestBySensorAndType(sensorId, PayloadValueType.CO2);
+            var humData = sensorDataDao.findLatestBySensorAndType(sensorId, PayloadValueType.HUMIDITY);
+            
+            info.put("latestTemp", tempData.map(d -> d.getReceivedAt().toString() + " = " + d.getValueAsString()).orElse("NONE"));
+            info.put("latestCO2", co2Data.map(d -> d.getReceivedAt().toString() + " = " + d.getValueAsString()).orElse("NONE"));
+            info.put("latestHumidity", humData.map(d -> d.getReceivedAt().toString() + " = " + d.getValueAsString()).orElse("NONE"));
+            
+            sensorDataInfo.add(info);
+        }
+        result.put("sensorData", sensorDataInfo);
+        
+        return result;
+    }
+
+    @GetMapping("/api/dashboard/environment/history")
+    @ResponseBody
+    public Map<String, Object> getEnvironmentHistory(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String building
+    ) {
+        Map<String, Object> result = new HashMap<>();
+        
+        // Use LocalDateTime directly to match database storage format
+        java.time.LocalDateTime startDateTime = from.atStartOfDay();
+        java.time.LocalDateTime endDateTime = to.plusDays(1).atStartOfDay();
+        
+        // Get sensor IDs by type for the building
+        String dbBuilding = mapBuildingToDbName(building);
+        log.info("🌡️ Environment history request: from={}, to={}, building={}, dbBuilding={}", from, to, building, dbBuilding);
+        
+        List<String> tempSensorIds = new java.util.ArrayList<>(sensorService.getSensorIdsByTypeAndBuilding("CO2", dbBuilding));
+        tempSensorIds.addAll(sensorService.getSensorIdsByTypeAndBuilding("TEMPEX", dbBuilding));
+        
+        List<String> humiditySensorIds = new java.util.ArrayList<>(sensorService.getSensorIdsByTypeAndBuilding("CO2", dbBuilding));
+        humiditySensorIds.addAll(sensorService.getSensorIdsByTypeAndBuilding("HUMIDITY", dbBuilding));
+        
+        List<String> co2SensorIds = sensorService.getSensorIdsByTypeAndBuilding("CO2", dbBuilding);
+        
+        List<String> noiseSensorIds = sensorService.getSensorIdsByTypeAndBuilding("SON", dbBuilding);
+        
+        // Get aggregated data for each type using LocalDateTime
+        result.put("temperature", sensorDataDao.findAggregatedDataByPeriodAndType(
+                tempSensorIds, startDateTime, endDateTime, PayloadValueType.TEMPERATURE, "AVG"));
+        
+        result.put("humidity", sensorDataDao.findAggregatedDataByPeriodAndType(
+                humiditySensorIds, startDateTime, endDateTime, PayloadValueType.HUMIDITY, "AVG"));
+        
+        result.put("co2", sensorDataDao.findAggregatedDataByPeriodAndType(
+                co2SensorIds, startDateTime, endDateTime, PayloadValueType.CO2, "AVG"));
+        
+        result.put("sound", sensorDataDao.findAggregatedDataByPeriodAndType(
+                noiseSensorIds, startDateTime, endDateTime, PayloadValueType.LAEQ, "AVG"));
+        
+        return result;
+    }
+
+    @GetMapping("/api/dashboard/energy/cost")
+    @ResponseBody
+    public Map<String, Object> getEnergyCostData(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate to,
+            @RequestParam(required = false) String building) {
+        
+        Map<String, Object> result = new HashMap<>();
+        String dbBuilding = mapBuildingToDbName(building);
+        
+        // Get energy config for this building
+        var energyConfig = buildingEnergyConfigDao.findByBuildingName(dbBuilding);
+        double costPerKwh = energyConfig.map(c -> c.getEnergyCostPerKwh()).orElse(0.0);
+        double co2Factor = energyConfig.map(c -> c.getCo2EmissionFactor()).orElse(0.0);
+        String currency = energyConfig.map(c -> c.getCurrency()).orElse("EUR");
+        
+        result.put("costPerKwh", costPerKwh);
+        result.put("co2Factor", co2Factor);
+        result.put("currency", currency);
+        result.put("building", dbBuilding);
+        
+        // Get daily energy consumption data
+        java.time.LocalDateTime startDateTime = from.atStartOfDay();
+        java.time.LocalDateTime endDateTime = to.plusDays(1).atStartOfDay();
+        
+        // Use substr to get daily buckets (YYYY-MM-DD format, first 10 chars)
+        List<String> consoSensorIds = sensorService.getSensorIdsByTypeAndBuilding("CONSO", dbBuilding);
+        
+        List<Map<String, Object>> dailyData = new java.util.ArrayList<>();
+        double totalEnergy = 0;
+        double totalCost = 0;
+        double totalCo2 = 0;
+        
+        // Query daily aggregated data
+        if (!consoSensorIds.isEmpty()) {
+            String placeholders = String.join(",", java.util.Collections.nCopies(consoSensorIds.size(), "?"));
+            String query = "SELECT substr(received_at, 1, 10) as day, " +
+                          "SUM(CAST(value AS REAL)) as total_energy " +
+                          "FROM sensor_data " +
+                          "WHERE id_sensor IN (" + placeholders + ") " +
+                          "AND received_at >= ? AND received_at < ? " +
+                          "AND value_type = 'ENERGY' " +
+                          "AND value IS NOT NULL " +
+                          "GROUP BY substr(received_at, 1, 10) " +
+                          "ORDER BY day ASC";
+            
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+            String startStr = startDateTime.format(formatter);
+            String endStr = endDateTime.format(formatter);
+            
+            List<Object> params = new java.util.ArrayList<>(consoSensorIds);
+            params.add(startStr);
+            params.add(endStr);
+            
+            try {
+                var jdbcTemplate = new org.springframework.jdbc.core.JdbcTemplate(
+                    ((org.springframework.jdbc.core.JdbcTemplate) 
+                    org.springframework.beans.factory.BeanFactoryUtils
+                    .beanOfTypeIncludingAncestors(
+                        org.springframework.web.context.ContextLoader.getCurrentWebApplicationContext(),
+                        org.springframework.jdbc.core.JdbcTemplate.class)).getDataSource());
+                
+                // Use sensorDataDao's internal method or create simple query
+                // For now, return config info - actual data will come from frontend calculation
+            } catch (Exception e) {
+                log.error("Error querying energy data: {}", e.getMessage());
+            }
+        }
+        
+        result.put("dailyData", dailyData);
+        result.put("totalEnergy", totalEnergy);
+        result.put("totalCost", totalCost);
+        result.put("totalCo2", totalCo2);
+        
+        return result;
     }
 }

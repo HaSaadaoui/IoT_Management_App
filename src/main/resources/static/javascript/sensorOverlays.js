@@ -15,15 +15,22 @@ class SensorOverlayManager {
         ENERGY:   "⚡"
     }
 
-    constructor(svgContainer) {
+    constructor(svgContainer, colors, isDashboard = false) {
         this.svg = svgContainer;
+        this.colors = colors;
         this.thresholds = null; // stocke ici les seuils dynamiques
         this.currentFloor = 0;
-        this.isDashboard = true;
+        this.isDashboard = isDashboard;
         this.currentMode = 'DESK';
         this.sensors = [];
         this.overlayGroup = null;
         this.animationFrames = [];
+
+        this.init()
+    }
+
+    async init(){
+        await this.loadThresholds();
     }
 
     getIcon(sensorType, options = {}) {
@@ -37,11 +44,10 @@ class SensorOverlayManager {
         return icon;
     }
 
-    setSensorMode(mode, sensors, floorNumber, isDashboard = true) {
+    setSensorMode(mode, sensors, floorNumber) {
         this.currentMode = mode;
         this.sensors = sensors;
         this.currentFloor = floorNumber;
-        this.isDashboard = isDashboard;
         this.clearOverlay();
         this.createOverlay(mode);
     }
@@ -54,13 +60,16 @@ class SensorOverlayManager {
         if (!floorGroup) return;
 
         // On supprime seulement les capteurs précédents
-        const markers = floorGroup.querySelectorAll(".sensor-marker, circle, radialGradient, defs");
+        const markers = floorGroup.querySelectorAll(".sensor-marker, .circle-marker, radialGradient, defs");
         markers.forEach(el => el.remove());
     }
 
     createOverlay(mode) {
         // On récupère le groupe 'floor-x' existant
-        this.overlayGroup = this.svg.querySelector(`#${CSS.escape(`floor-${this.currentFloor}`)}`);;
+        this.overlayGroup = this.svg.querySelector(`#${CSS.escape(`floor-${this.currentFloor}`)}`);
+        if (!this.overlayGroup) {
+            this.overlayGroup = this.svg.querySelector("#all-floors");
+        }
 
         // On y dessine directement les capteurs
         if (this.isDashboard) {
@@ -76,6 +85,7 @@ class SensorOverlayManager {
                 case 'SECURITY': this.createSecurityOverlay(); break;
                 case 'COUNT': this.createCounterMap(); break;
                 case 'ENERGY': this.createEnergyMap(); break;
+                case 'DESK': this.createSensorsConfig(); break;
             }
         } else {
             this.createSensorsConfig();
@@ -113,6 +123,7 @@ class SensorOverlayManager {
         defs.appendChild(gradient);
 
         const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("class", "circle-marker");
         circle.setAttribute("id", circleId);
         circle.setAttribute("cx", sensor.x);
         circle.setAttribute("cy", sensor.y);
@@ -182,6 +193,7 @@ class SensorOverlayManager {
         defs.appendChild(gradient);
 
         const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("class", "circle-marker");
         circle.setAttribute("id", circleId);
         circle.setAttribute("cx", sensor.x);
         circle.setAttribute("cy", sensor.y);
@@ -222,6 +234,7 @@ class SensorOverlayManager {
             defs.appendChild(gradient);
             
             const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("class", "circle-marker");
             circle.setAttribute("cx", sensor.x);
             circle.setAttribute("cy", sensor.y);
             circle.setAttribute("r", "70");
@@ -244,6 +257,7 @@ class SensorOverlayManager {
         for (let i = 0; i < 3; i++) {
             setTimeout(() => {
                 const ripple = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                ripple.setAttribute("class", "circle-marker");
                 ripple.setAttribute("cx", x);
                 ripple.setAttribute("cy", y);
                 ripple.setAttribute("r", "10");
@@ -276,10 +290,10 @@ class SensorOverlayManager {
     createNoiseMap() {
       this.sensors.forEach(sensor => {
         const color = this.getNoiseColor(sensor.value);
-        //const color = this.getLevelColor(level);
 
         for (let i = 0; i < 3; i++) {
           const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          ring.setAttribute("class", "circle-marker");
           ring.setAttribute("id", `noise-ring-${sensor.id}-${i}`);
           ring.setAttribute("cx", sensor.x);
           ring.setAttribute("cy", sensor.y);
@@ -327,6 +341,7 @@ class SensorOverlayManager {
         defs.appendChild(gradient);
 
         const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("class", "circle-marker");
         circle.setAttribute("id", circleId);
         circle.setAttribute("cx", sensor.x);
         circle.setAttribute("cy", sensor.y);
@@ -376,6 +391,7 @@ class SensorOverlayManager {
         this.sensors.forEach(sensor => {
             if (sensor.presence) {
                 const glow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                glow.setAttribute("class", "circle-marker");
                 glow.setAttribute("cx", sensor.x);
                 glow.setAttribute("cy", sensor.y);
                 glow.setAttribute("r", "60");
@@ -393,6 +409,7 @@ class SensorOverlayManager {
         this.sensors.forEach(sensor => {
             if (sensor.alert) {
                 const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("class", "circle-marker");
                 circle.setAttribute("cx", sensor.x);
                 circle.setAttribute("cy", sensor.y);
                 circle.setAttribute("r", "20");
@@ -466,6 +483,7 @@ class SensorOverlayManager {
 
             // Halo
             const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("class", "circle-marker");
             circle.setAttribute("cx", sensor.x);
             circle.setAttribute("cy", sensor.y);
             circle.setAttribute("r", "65");
@@ -494,7 +512,7 @@ class SensorOverlayManager {
             const inVal = sensor.value?.in ?? "—";
             const outVal = sensor.value?.out ?? "—";
 
-            label.textContent = `${sensor.value} | ${outVal}`;
+            label.textContent = `${inVal} | ${outVal}`;
             this.overlayGroup.appendChild(label);
         });
 
@@ -519,6 +537,7 @@ class SensorOverlayManager {
 
             // 🔹 Cercle halo
             const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("class", "circle-marker");
             circle.setAttribute("cx", sensor.x);
             circle.setAttribute("cy", sensor.y);
             circle.setAttribute("r", "75");
@@ -558,6 +577,7 @@ class SensorOverlayManager {
 
             // 🟣 Halo
             const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("class", "circle-marker");
             circle.setAttribute("cx", sensor.x);
             circle.setAttribute("cy", sensor.y);
             circle.setAttribute("r", "60");
@@ -597,10 +617,10 @@ class SensorOverlayManager {
         icon.setAttribute("text-anchor", "middle");
         icon.setAttribute("font-size", sensor.size);
         icon.setAttribute("floor-number", sensor.floor);
-        icon.setAttribute("sensor-mode", sensor.mode);
+        icon.setAttribute("sensor-mode", sensor.type);
         icon.setAttribute("id", sensor.id);
         icon.setAttribute("class", "sensor");
-        icon.textContent = this.getIcon(sensor.mode);
+        icon.textContent = this.getIcon(sensor.type);
         g.appendChild(icon);
 
         const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -616,53 +636,53 @@ class SensorOverlayManager {
     }
 
     createDesk(g, sensor) {
-
         const desk = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         desk.setAttribute("x", sensor.x);
         desk.setAttribute("y", sensor.y);
         desk.setAttribute("width", sensor.width);
         desk.setAttribute("height", sensor.height);
-        desk.setAttribute("fill", "#94a3b8");
+        desk.setAttribute("fill", this.colors[sensor.status] || "#94a3b8");
         desk.setAttribute("stroke", "#000000");
         desk.setAttribute("stroke-width", 2);
         desk.setAttribute("rx", 3);
         desk.setAttribute("class", "sensor");
         desk.setAttribute("id", sensor.id);
         desk.setAttribute("floor-number", sensor.floor);
-        desk.setAttribute("sensor-mode", sensor.mode);
-        desk.setAttribute("chair", sensor.chair);
-
+        desk.setAttribute("sensor-mode", sensor.type);
+        sensor.size = sensor.size || Math.min(sensor.width, sensor.height) / 2;
+        desk.setAttribute("size", sensor.size);
+        desk.setAttribute("label", sensor.label);
+        desk.setAttribute("status", sensor.status || "invalid");
+        desk.setAttribute("chairs", JSON.stringify(sensor.chairs));
         if (sensor.rotation) {
             const cx = sensor.x + sensor.width / 2;
             const cy = sensor.y + sensor.height / 2;
             desk.setAttribute("transform",`rotate(${sensor.rotation} ${cx} ${cy})`);
         }
-
         g.appendChild(desk);
 
         this.addDeskLabel(g, sensor);
-
-        if (sensor.chair && sensor.chair !== 'none'){
+        if (sensor.chairs){
             this.addDeskChair(g, sensor);
         }
-        
     }
 
     addDeskLabel(g, sensor){
         const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
 
         const cx = sensor.x + sensor.width / 2;
-        const cy = sensor.y + sensor.height * 2/3;        
+        const cy = sensor.y + sensor.height / 2;        
 
         text.setAttribute("x", cx);
         text.setAttribute("y", cy);
         text.setAttribute("text-anchor", "middle");
+        text.setAttribute("dominant-baseline", "middle");
         text.setAttribute("font-family", "Arial, sans-serif");
-        text.setAttribute("font-size", Math.min(sensor.width, sensor.height) / 2);
+        text.setAttribute("font-size", sensor.size);
         text.setAttribute("font-weight", "bold");
         text.setAttribute("fill", "#ffffff");
         text.setAttribute("class","sensor-temp");
-        text.textContent = sensor.id;
+        text.textContent = sensor.label || sensor.id;
 
         if (sensor.rotation) {
             const cx_rotate = sensor.x + sensor.width / 2;
@@ -674,47 +694,53 @@ class SensorOverlayManager {
     }
 
     addDeskChair(g, sensor){
-        let cx = 0;
-        let cy = 0;
-        let rad = 0;
-        switch(sensor.chair){
-            case "bottom" :
-                rad = sensor.width / 10;
-                cx = sensor.x + sensor.width / 2;
-                cy = sensor.y + sensor.height + 2 * rad;
-                break;
-            case "top" :
-                rad = sensor.width / 10;
-                cx = sensor.x + sensor.width / 2;
-                cy = sensor.y - 2 * rad;
-                break;
-            case "right" :
-                rad = sensor.height / 10;
-                cx = sensor.x + sensor.width + 2 * rad;
-                cy = sensor.y + sensor.height / 2;
-                break;
-            case "left" :
-                rad = sensor.height / 10;
-                cx = sensor.x - 2 * rad;
-                cy = sensor.y + sensor.height / 2;
-                break;
-        }
-        const chair = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        chair.setAttribute("cx", cx);
-        chair.setAttribute("cy", cy);
-        chair.setAttribute("r", rad);
-        chair.setAttribute("fill", "#94a3b8");
-        chair.setAttribute("stroke", "#000000");
-        chair.setAttribute("stroke-width", 1);
-        chair.setAttribute("class","sensor-temp");
+        const sides = ["top", "bottom", "left", "right"];
+        sides.forEach(side => {
+            const count = sensor.chairs?.[side] || 0;
+            if (count <= 0) return;
 
-        if (sensor.rotation) {
-            const cx_rotate = sensor.x + sensor.width / 2;
-            const cy_rotate = sensor.y + sensor.height / 2;
-            chair.setAttribute("transform",`rotate(${sensor.rotation} ${cx_rotate} ${cy_rotate})`);
-        }
+            for (let i = 0; i < count; i++) {
+                let cx = 0, cy = 0, rad = 0;
+                switch (side) {
+                    case "top":
+                        rad = sensor.width / 10;
+                        cx = sensor.x + sensor.width * (i + 1) / (count + 1);
+                        cy = sensor.y - 2 * rad;
+                        break;
+                    case "bottom":
+                        rad = sensor.width / 10;
+                        cx = sensor.x + sensor.width * (i + 1) / (count + 1);
+                        cy = sensor.y + sensor.height + 2 * rad;
+                        break;
+                    case "left":
+                        rad = sensor.height / 10;
+                        cx = sensor.x - 2 * rad;
+                        cy = sensor.y + sensor.height * (i + 1) / (count + 1);
+                        break;
+                    case "right":
+                        rad = sensor.height / 10;
+                        cx = sensor.x + sensor.width + 2 * rad;
+                        cy = sensor.y + sensor.height * (i + 1) / (count + 1);
+                        break;
+                }
 
-        g.appendChild(chair);
+                const chair = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                chair.setAttribute("cx", cx);
+                chair.setAttribute("cy", cy);
+                chair.setAttribute("r", rad);
+                chair.setAttribute("fill", "#94a3b8");
+                chair.setAttribute("stroke", "#000000");
+                chair.setAttribute("stroke-width", 1);
+                chair.setAttribute("class", "sensor-temp");
+
+                if (sensor.rotation) {
+                    const cx_rotate = sensor.x + sensor.width / 2;
+                    const cy_rotate = sensor.y + sensor.height / 2;
+                    chair.setAttribute("transform",`rotate(${sensor.rotation} ${cx_rotate} ${cy_rotate})`);
+                }
+                g.appendChild(chair);
+            }
+        });
     }
 
     updateSensorValue(sensorId, value, timestamp) {
@@ -794,13 +820,18 @@ class SensorOverlayManager {
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
         g.setAttribute("class", "sensor-marker");
         g.setAttribute("id", "marker-"+sensor.id);
-        g.setAttribute("data-draggable", "true");
-        if (sensor.mode !== this.currentMode || parseInt(sensor.floor) !== parseInt(this.currentFloor)){
+        if (sensor.type !== this.currentMode || parseInt(sensor.floor) !== parseInt(this.currentFloor)){
             g.style.display="none";
         }
-        g.style.cursor = "move";
+        if (!this.isDashboard) {
+            g.setAttribute("data-draggable", "true");
+            g.style.cursor = "move";
+        } else {
+            g.removeAttribute("data-draggable");
+            g.style.cursor = "default";
+        }
 
-        if (sensor.mode === "DESK") {
+        if (sensor.type === "DESK") {
             this.createDesk(g, sensor);
         } else {
             this.createSensor(g, sensor);
