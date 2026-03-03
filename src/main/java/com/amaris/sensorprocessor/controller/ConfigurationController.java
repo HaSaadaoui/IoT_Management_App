@@ -42,12 +42,10 @@ public class ConfigurationController {
                                    SensorDao sensorDao,
                                    AlertConfigurationDao alertConfigurationDao,
                                    BrandService brandService,
-                                   ProtocolService protocolService, DeviceTypeService deviceTypeService,
-                                   SensorService sensorService) {
-
-                                   SensorDao sensorDao, 
-                                   AlertConfigurationDao alertConfigurationDao,
-                                   BuildingEnergyConfigDao buildingEnergyConfigDao) {
+                                   ProtocolService protocolService,
+                                   DeviceTypeService deviceTypeService,
+                                   SensorService sensorService,
+                                   BuildingEnergyConfigDao buildingEnergyConfigDao) { // ✅ UN SEUL constructeur
         this.alertThresholdConfig = alertThresholdConfig;
         this.alertConfigurationService = alertConfigurationService;
         this.notificationService = notificationService;
@@ -55,7 +53,6 @@ public class ConfigurationController {
         this.userService = userService;
         this.sensorDao = sensorDao;
         this.alertConfigurationDao = alertConfigurationDao;
-
         this.brandService = brandService;
         this.protocolService = protocolService;
         this.deviceTypeService = deviceTypeService;
@@ -66,8 +63,6 @@ public class ConfigurationController {
     @GetMapping("/configuration")
     public String configuration(Model model, Principal principal) {
         model.addAttribute("alertConfig", alertThresholdConfig);
-        
-        // Add sensors to model like manageSensors page does
         model.addAttribute("deviceTypes", deviceTypeService.findAll());
         model.addAttribute("brands", brandService.findAll());
         model.addAttribute("protocols", protocolService.findAll());
@@ -77,7 +72,7 @@ public class ConfigurationController {
             model.addAttribute("user", user);
             model.addAttribute("loggedUsername", user.getUsername());
         }
-        
+
         return "configuration";
     }
 
@@ -180,13 +175,11 @@ public class ConfigurationController {
     @ResponseBody
     public AlertConfigEntity getAlertConfig() {
         AlertConfigEntity config = alertConfigurationDao.load();
-        return config != null ? config : new AlertConfigEntity(); // fallback si pas en DB
+        return config != null ? config : new AlertConfigEntity();
     }
 
     @PostMapping("/configuration/brands/add")
-    public String addBrand(@RequestParam("name") String name,
-                           Model model,
-                           Principal principal) {
+    public String addBrand(@RequestParam("name") String name, Model model, Principal principal) {
         try {
             brandService.createByName(name);
             model.addAttribute("configMessage", "Brand added successfully");
@@ -197,9 +190,7 @@ public class ConfigurationController {
     }
 
     @PostMapping("/configuration/protocols/add")
-    public String addProtocol(@RequestParam("name") String name,
-                              Model model,
-                              Principal principal) {
+    public String addProtocol(@RequestParam("name") String name, Model model, Principal principal) {
         try {
             protocolService.createByName(name);
             model.addAttribute("configMessage", "Protocol added successfully");
@@ -210,9 +201,7 @@ public class ConfigurationController {
     }
 
     @PostMapping("/configuration/sensors/add")
-    public String addSensor(@ModelAttribute Sensor sensor,
-                            Model model,
-                            Principal principal) {
+    public String addSensor(@ModelAttribute Sensor sensor, Model model, Principal principal) {
         try {
             sensorService.create(sensor);
             model.addAttribute("configMessage", "Sensor created successfully");
@@ -232,6 +221,7 @@ public class ConfigurationController {
         }
         return configuration(model, principal);
     }
+
     @PostMapping("/configuration/device-types/add")
     public String addDeviceType(@RequestParam("name") String name, Model model, Principal principal) {
         try {
@@ -242,7 +232,6 @@ public class ConfigurationController {
         }
         return configuration(model, principal);
     }
-
 
     @PostMapping("/configuration/device-types/delete")
     public String deleteDeviceType(@RequestParam("id") Integer id, Model model, Principal principal) {
@@ -255,7 +244,6 @@ public class ConfigurationController {
         return configuration(model, principal);
     }
 
-
     @PostMapping("/configuration/protocols/delete")
     public String deleteProtocol(@RequestParam("id") Integer id, Model model, Principal principal) {
         try {
@@ -266,6 +254,7 @@ public class ConfigurationController {
         }
         return configuration(model, principal);
     }
+
     // ==================== BUILDING ENERGY CONFIG ====================
 
     @GetMapping("/api/configuration/building-energy")
@@ -282,7 +271,6 @@ public class ConfigurationController {
         if (config.isPresent()) {
             return ResponseEntity.ok(config.get());
         }
-        // Return default values if not configured
         BuildingEnergyConfig defaultConfig = new BuildingEnergyConfig();
         defaultConfig.setBuildingName(buildingName);
         defaultConfig.setEnergyCostPerKwh(0.0);
@@ -310,5 +298,4 @@ public class ConfigurationController {
         buildingEnergyConfigDao.delete(buildingName);
         return ResponseEntity.ok().body(Map.of("message", "Building energy configuration deleted successfully"));
     }
-
 }
