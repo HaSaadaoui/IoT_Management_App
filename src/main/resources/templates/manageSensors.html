@@ -185,11 +185,6 @@
                     </select>
                     <div class="field-error" th:if="${#fields.hasErrors('idGateway')}" th:errors="*{idGateway}"></div>
 
-                    <!-- Frequency Plan -->
-                    <input type="text" id="frequencyPlanInput" th:field="*{frequencyPlan}" placeholder="Frequency Plan"
-                           th:classappend="${#fields.hasErrors('frequencyPlan')} ? 'input-error' : ''"/>
-                    <div class="field-error" th:if="${#fields.hasErrors('frequencyPlan')}" th:errors="*{frequencyPlan}"></div>
-
                     <select id="protocolSelect" th:field="*{protocolId}" required>
                         <option value="" disabled selected>Select a Protocol</option>
                         <option th:each="p : ${protocols}"
@@ -197,6 +192,19 @@
                                 th:text="${p.name}">
                         </option>
                     </select>
+
+                    <div id="frequencyPlanWrapper" style="display:none;">
+                        <select id="frequencyPlanInput" th:field="*{frequencyPlan}"
+                                th:classappend="${#fields.hasErrors('frequencyPlan')} ? 'input-error' : ''">
+                            <option value="" disabled selected>Select a Frequency Plan</option>
+                            <option value="EU_863_870_TTN">Europe</option>
+                            <option value="US_902_928_FSB_2">United States</option>
+                            <option value="AU_915_928_FSB_2">Australia</option>
+                            <option value="CN_470_510_FSB_11">China</option>
+                            <option value="AS_920_923">Asia</option>
+                        </select>
+                        <div class="field-error" th:if="${#fields.hasErrors('frequencyPlan')}" th:errors="*{frequencyPlan}"></div>
+                    </div>
 
                     <select id="brandSelect" th:field="*{brandId}" required>
                         <option value="" disabled selected>Select a Brand</option>
@@ -207,11 +215,16 @@
                     </select>
 
                     <!-- Building Name -->
-                    <input type="text" id="buildingNameInput" th:field="*{buildingName}" placeholder="Building Name"
-                           list="buildingsOptions" required
-                           th:classappend="${#fields.hasErrors('buildingName')} ? 'input-error' : ''"/>
-                    <div class="field-error" th:if="${#fields.hasErrors('buildingName')}" th:errors="*{buildingName}"></div>
+                    <select id="buildingNameInput" th:field="*{buildingName}" required
+                            th:classappend="${#fields.hasErrors('buildingName')} ? 'input-error' : ''">
+                        <option value="" disabled selected>Select a Building</option>
+                        <option th:each="b : ${buildings}"
+                                th:value="${b}"
+                                th:text="${b}">
+                        </option>
+                    </select>
 
+                    <div class="field-error" th:if="${#fields.hasErrors('buildingName')}" th:errors="*{buildingName}"></div>
                     <datalist id="buildingsOptions">
                         <option th:each="b : ${buildings}" th:value="${b}" th:text="${b}">Building</option>
                     </datalist>

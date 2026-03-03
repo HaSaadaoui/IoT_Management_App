@@ -1,11 +1,7 @@
 package com.amaris.sensorprocessor.controller;
 
 import com.amaris.sensorprocessor.constant.Constants;
-import com.amaris.sensorprocessor.entity.DeviceType;
-import com.amaris.sensorprocessor.entity.PayloadValueType;
-import com.amaris.sensorprocessor.entity.Gateway;
-import com.amaris.sensorprocessor.entity.Sensor;
-import com.amaris.sensorprocessor.entity.User;
+import com.amaris.sensorprocessor.entity.*;
 import com.amaris.sensorprocessor.service.*;
 import com.amaris.sensorprocessor.service.BrandService;
 import jakarta.servlet.http.HttpSession;
@@ -60,6 +56,7 @@ public class SensorController {
     private final ProtocolService protocolService;
     private final BrandService brandService;
     private final DeviceTypeService deviceTypeService;
+    private final BuildingService buildingService;
     private final com.amaris.sensorprocessor.service.SensorLorawanService sensorLorawanService;
     private final com.amaris.sensorprocessor.service.SensorSyncService sensorSyncService;
 
@@ -67,7 +64,8 @@ public class SensorController {
     public SensorController(SensorService sensorService, GatewayService gatewayService,
                             UserService userService, SensorLorawanService sensorLorawanService,
                             SensorSyncService sensorSyncService, ProtocolService protocolService,
-                            BrandService brandService, DeviceTypeService deviceTypeService) { // ✅ AJOUT
+                            BrandService brandService, DeviceTypeService deviceTypeService,
+                            BuildingService buildingService) {
         this.sensorService = sensorService;
         this.gatewayService = gatewayService;
         this.userService = userService;
@@ -76,7 +74,9 @@ public class SensorController {
         this.protocolService = protocolService;
         this.brandService = brandService;
         this.deviceTypeService = deviceTypeService;
+        this.buildingService = buildingService;
     }
+
 
     /* ===================== LISTE ===================== */
 
@@ -452,10 +452,9 @@ public class SensorController {
         model.addAttribute("brands", brandService.findAll());
         model.addAttribute("deviceTypes", deviceTypeService.findAll()); // ✅ AJOUT
 
-        List<String> buildings = Stream.concat(
-                        sensors.stream().map(Sensor::getBuildingName),
-                        gateways.stream().map(Gateway::getBuildingName)
-                )
+        List<String> buildingNames = buildingService.getAllBuildings()
+                .stream()
+                .map(Building::getName)
                 .filter(Objects::nonNull)
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
@@ -463,7 +462,7 @@ public class SensorController {
                 .sorted()
                 .collect(Collectors.toList());
 
-        model.addAttribute("buildings", buildings);
+        model.addAttribute("buildings", buildingNames);
 
         if (!model.containsAttribute(SENSOR_ADD)) {
             model.addAttribute(SENSOR_ADD, new Sensor());
