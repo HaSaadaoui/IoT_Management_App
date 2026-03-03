@@ -161,26 +161,21 @@ class ArchitecturalFloorPlan {
         }
 
         // Gestion des capteurs
-        if (window.SensorOverlayManager) {
-            let sensors = [];
-            if (this.isDashboard){
-                sensors = this.generateSensorData(this.sensorMode, this.floorData.floorNumber);
-            } else {
-                sensors = await this.populateSensorsFromSvg();
+        // Par défaut on récupère les capteurs en dur (Levallois / Chateaudun), sinon on récupère ceux du SVG
+        let sensors = this.generateSensorData(this.sensorMode, this.floorData.floorNumber);
+        if (!sensors.length) {
+            sensors = await this.populateSensorsFromSvg();
+            if (this.sensorMode === "DESK"){
+                sensors.forEach(s => {s.status = deskOccupancy[s.id] || "invalid";});
             }
+        }
 
-            this.overlayManager = new SensorOverlayManager(this.svg);
+        this.overlayManager = new SensorOverlayManager(this.svg, this.colors, this.isDashboard);
+        this.overlayManager.setSensorMode(this.sensorMode, sensors, this.floorData.floorNumber);
 
-            // Ici on charge les seuils depuis la BDD
-            await this.overlayManager.loadThresholds();
-
-            this.overlayManager.setSensorMode(this.sensorMode, sensors, this.floorData.floorNumber, this.isDashboard);
-
-            if (this.isDashboard && this.sensorMode !== "DESK"){
-                // 🔥 LIVE
-                this.startLiveSensors();
-            }
-        } 
+        if (this.isDashboard && this.sensorMode !== "DESK"){
+            this.startLiveSensors();
+        }
 
         // On modifie le SVG pour le centrer sur l'écran
         this.centerSVGContent({ targetWidth: 1200, targetHeight: 1200, padding: 20, fit: true });
@@ -202,15 +197,15 @@ class ArchitecturalFloorPlan {
         const LEVALLOIS_F3_SENSOR_POSITIONS = {
           CO2: [
                 { id: "co2-03-01", x: 690, y: 290 }, // au-dessus de D01–D06
-                { id: "co2-03-02",   x: 190, y: 350 }, // proche du bloc suivant
-                { id: "co2-03-03",  x: 630, y: 425 }, // bloc encore à gauche
+                { id: "co2-03-02", x: 190, y: 350 }, // proche du bloc suivant
+                { id: "co2-03-03", x: 630, y: 425 }, // bloc encore à gauche
           ],
           TEMP: [
                  { id: "tempex-03-01", x: 320, y: 180 },
                  //Relever la temperature des capteurs co2 pour la temperature intérieure
                  { id: "co2-03-01", x: 645, y: 255 },
-                 { id: "co2-03-02",   x: 150, y: 350 },
-                 { id: "co2-03-03",  x: 605, y: 445 },
+                 { id: "co2-03-02", x: 150, y: 350 },
+                 { id: "co2-03-03", x: 605, y: 445 },
           ],
           LIGHT: [
                   { id: "eye-03-01", x: 500, y: 210 }, // au-dessus de D07–D09
@@ -227,8 +222,8 @@ class ArchitecturalFloorPlan {
                      //Même position que le capteur de la température
                      { id: "tempex-03-01", x: 320, y: 180 },
                      { id: "co2-03-01", x: 645, y: 255 },
-                     { id: "co2-03-02",   x: 150, y: 350 },
-                     { id: "co2-03-03",  x: 605, y: 445 },
+                     { id: "co2-03-02", x: 150, y: 350 },
+                     { id: "co2-03-03", x: 605, y: 445 },
 
           ],
           COUNT: [
@@ -470,7 +465,13 @@ class ArchitecturalFloorPlan {
             typedGroups.forEach(srcG => {
                 const floor = srcG.getAttribute("floor-number") ?? "";
                 const importedG = document.importNode(srcG, true);
-                importedG.setAttribute("data-draggable", importedG.getAttribute("data-draggable") ?? "true");
+                if (!this.isDashboard){
+                    importedG.setAttribute("data-draggable", importedG.getAttribute("data-draggable") ?? "true");
+                    importedG.style.cursor = "move";
+                } else {
+                    importedG.setAttribute("data-draggable", "false");
+                    importedG.style.cursor = "default";
+                }
                 if (floor === "" || floor == null) {
                     if (isNewAllFloor) allFloorsGroup.appendChild(importedG);
                 } else {
@@ -511,7 +512,7 @@ class ArchitecturalFloorPlan {
             });
     }
 
-    async populateSensorsFromSvg() {
+    async populateSensorsFromSvg(valueMap = null) {
         if (!this.svgPath) return [];
 
         let raw;
@@ -529,7 +530,7 @@ class ArchitecturalFloorPlan {
         // On considère capteur = tout élément portant la classe "sensor"
         const nodes = Array.from(doc.querySelectorAll('.sensor'));
 
-        const sensors = nodes
+        let sensors = nodes
             .map((el) => {
 
                 function extractRotation(transform) {
@@ -538,8 +539,9 @@ class ArchitecturalFloorPlan {
                     return match ? parseFloat(match[1]) : 0;
                 }
 
+                const liveValue = valueMap?.get(el.getAttribute('id')) ?? '--';
                 return { id : el.getAttribute('id'),
-                    mode : el.getAttribute('sensor-mode') || 'UNKNOWN',
+                    type : el.getAttribute('sensor-mode') || 'UNKNOWN',
                     floor : el.getAttribute('floor-number'),
                     x : parseFloat(el.getAttribute('x')),
                     y : parseFloat(el.getAttribute('y')),
@@ -547,9 +549,20 @@ class ArchitecturalFloorPlan {
                     width : parseInt(parseFloat(el.getAttribute('width'))),
                     height : parseInt(parseFloat(el.getAttribute('height'))),
                     rotation : extractRotation(el.getAttribute('transform')),
-                    chairs : JSON.parse(el.getAttribute("chairs") || "{}")
+                    chairs : JSON.parse(el.getAttribute("chairs") || "{}"),
+                    label : el.getAttribute('label'),
+                    value : liveValue,
+                    status : "invalid" //valeur par défaut
                 };
-            });
+        });
+
+        // pour la configuration on récupère tous les capteurs du svg
+        // pour le dashboard uniquement ceux de l'étage courant et du mode courant 
+        if (this.isDashboard){
+            sensors = sensors
+                .filter(s => s.floor == this.floorData.floorNumber)
+                .filter(s => s.type === this.sensorMode);
+        }
 
         return sensors;
     }
@@ -1386,6 +1399,7 @@ class ArchitecturalFloorPlan {
                     const inputWidth = document.getElementById("input_width");
                     const inputHeight = document.getElementById("input_height");
                     const inputRotation = document.getElementById("input_rotation");
+                    const inputLabel = document.getElementById("input_label");
                     const chairTop = document.getElementById("chair_top");
                     const chairBottom = document.getElementById("chair_bottom");
                     const chairLeft = document.getElementById("chair_left");
@@ -1406,6 +1420,7 @@ class ArchitecturalFloorPlan {
                     if (inputWidth) inputWidth.value = sensor.getAttribute("width");
                     if (inputHeight) inputHeight.value = sensor.getAttribute("height");
                     if (inputRotation) inputRotation.value = extractRotation(sensor.getAttribute('transform'));
+                    if (inputLabel) inputLabel.value = sensor.getAttribute("label") || "";
                     if (chairs && Object.keys(chairs).length > 0) {
                         if (chairTop) chairTop.value = chairs?.["top"];
                         if (chairBottom) chairBottom.value = chairs?.["bottom"];
@@ -1622,29 +1637,29 @@ class ArchitecturalFloorPlan {
             setVal("input_size", parseFloat(size));
             setVal("input_width", parseFloat(width));
             setVal("input_height", parseFloat(height));
-            setVal("input_radius", "");
+            setVal("input_radius", 0);
             setVal("input_label", "");
             setVal("input_rotation", rotation);
         } else if (type === "Room" || type === "Window" || type === "Door" || tag === "rect") {
             setVal("input_width", parseFloat(width));
             setVal("input_height", parseFloat(height));
-            setVal("input_size", "");
-            setVal("input_radius", "");
+            setVal("input_size", 0);
+            setVal("input_radius", 0);
             setVal("input_label", "");
             setVal("input_rotation", rotation);
         } else if (type === "Circle" || tag === "circle") {
             setVal("input_radius", radius);
-            setVal("input_width", "");
-            setVal("input_height", "");
-            setVal("input_size", "");
+            setVal("input_width", 0);
+            setVal("input_height", 0);
+            setVal("input_size", 0);
             setVal("input_label", "");
-            setVal("input_rotation", "");
+            setVal("input_rotation", 0);
         } else if (type === "Label" || tag === "text") {
             setVal("input_label", label);
             setVal("input_size", parseFloat(size));
-            setVal("input_width", "");
-            setVal("input_height", "");
-            setVal("input_radius", "");
+            setVal("input_width", 0);
+            setVal("input_height", 0);
+            setVal("input_radius", 0);
             setVal("input_rotation", rotation);
         }
         const sel = document.getElementById("filter-element");
@@ -1662,13 +1677,10 @@ class ArchitecturalFloorPlan {
 
         window.addEventListener("mousemove", evt => {
             if (!dragging) return;
-
             const dx = (evt.clientX - last.x);
             const dy = (evt.clientY - last.y);
-
             this.camera.tx += dx;
             this.camera.ty += dy;
-
             last = { x: evt.clientX, y: evt.clientY };
             this.viewport.setAttribute("transform", `translate(${this.camera.tx}, ${this.camera.ty}) scale(${this.camera.scale})`);
         });

@@ -209,10 +209,6 @@ const DeskSensorConfig = {
                 { id: 'PB6', sensor: 'occup-vs70-03-03' },
                 { id: 'PB7', sensor: 'occup-vs70-03-04' }
             ],
-        },
-        LILLE: {
-            // Add mappings for Lille here
-            0: []
         }
     },
 

@@ -379,18 +379,19 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
             if (sensorTypeContainer) sensorTypeContainer.style.display = 'block';
             if (styleSelectContainer) styleSelectContainer.style.display = 'none';
             if (inputSizeContainer) inputSizeContainer.style.display = 'block';
-            if (inputLabelContainer) inputLabelContainer.style.display = 'none';
             if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
             if (sensorMode === "DESK") {
                 if (inputWidthContainer) inputWidthContainer.style.display = 'block';
                 if (inputHeightContainer) inputHeightContainer.style.display = 'block';
                 if (inputRotationContainer) inputRotationContainer.style.display = 'block';
                 if (selectChairContainer) selectChairContainer.style.display = 'block';
+                if (inputLabelContainer) inputLabelContainer.style.display = 'block';
             } else {
                 if (inputWidthContainer) inputWidthContainer.style.display = 'none';
                 if (inputHeightContainer) inputHeightContainer.style.display = 'none';
                 if (inputRotationContainer) inputRotationContainer.style.display = 'none';
                 if (selectChairContainer) selectChairContainer.style.display = 'none';
+                if (inputLabelContainer) inputLabelContainer.style.display = 'none';
             }
             break;
 
@@ -481,6 +482,7 @@ function initializeInputs() {
                 heightInput.value = 40;
                 rotationInput.value = 0;
                 sizeInput.value = "";
+                labelInput.value = "Desk Sensor";
             } else {
                 sizeInput.value = 20;
                 widthInput.value = "";
@@ -550,6 +552,9 @@ function onChangeSensor() {
     const inputRotationEl = document.getElementById('input_rotation');
     const inputRotationContainer = inputRotationEl.parentElement;
 
+    const inputLabelEl = document.getElementById('input_label');
+    const inputLabelContainer = inputLabelEl.parentElement;
+
     const selectChairPosition = document.getElementById('chair_top');
     const selectChairContainer = selectChairPosition.parentElement;
 
@@ -558,11 +563,13 @@ function onChangeSensor() {
         if (inputHeightContainer) inputHeightContainer.style.display = 'block';
         if (inputRotationContainer) inputRotationContainer.style.display = 'block';
         if (selectChairContainer) selectChairContainer.style.display = 'block';
+        if (inputLabelContainer) inputLabelContainer.style.display = 'block';
     } else {
         if (inputWidthContainer) inputWidthContainer.style.display = 'none';
         if (inputHeightContainer) inputHeightContainer.style.display = 'none';
         if (inputRotationContainer) inputRotationContainer.style.display = 'none';
         if (selectChairContainer) selectChairContainer.style.display = 'none';
+        if (inputLabelContainer) inputLabelContainer.style.display = 'none';
     }
     this.initializeInputs();
     this.updateInputSizeLabel();
@@ -918,7 +925,7 @@ function addElementSVG() {
         }
         const sensor = {
             id : inputIdEl.value,
-            mode : sensorType.value,
+            type : sensorType.value,
             floor : floorNumber.value,
             x : centerX,
             y : centerY,
@@ -926,6 +933,7 @@ function addElementSVG() {
             width : parseInt(inputWidthEl.value),
             height : parseInt(inputHeightEl.value),
             rotation : parseInt(inputRotationEl.value),
+            label : inputLabelEl.value,
             chairs : {
                 top: parseInt(document.getElementById("chair_top").value || 0),
                 bottom: parseInt(document.getElementById("chair_bottom").value || 0),
@@ -1051,7 +1059,7 @@ function updateElementSVG() {
     if (elementSelect.value === "Sensor"){
         const sensor = {
             id : inputIdEl.value,
-            mode : sensorTypeSelect.value,
+            type : sensorTypeSelect.value,
             floor : floorNumberSelect.value,
             x : parseInt(inputSizeEl.value) || parseInt(inputWidthEl.value),
             y : parseInt(inputSizeEl.value) || parseInt(inputHeightEl.value),
@@ -1059,6 +1067,7 @@ function updateElementSVG() {
             width : parseInt(inputWidthEl.value),
             height : parseInt(inputHeightEl.value),
             rotation : parseInt(rotation),
+            label : inputLabelEl.value,
             chairs : {
                 top: parseInt(document.getElementById("chair_top").value || 0),
                 bottom: parseInt(document.getElementById("chair_bottom").value || 0),

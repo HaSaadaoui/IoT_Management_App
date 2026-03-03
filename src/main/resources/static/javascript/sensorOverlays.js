@@ -15,15 +15,22 @@ class SensorOverlayManager {
         ENERGY:   "⚡"
     }
 
-    constructor(svgContainer) {
+    constructor(svgContainer, colors, isDashboard = false) {
         this.svg = svgContainer;
+        this.colors = colors;
         this.thresholds = null; // stocke ici les seuils dynamiques
         this.currentFloor = 0;
-        this.isDashboard = true;
+        this.isDashboard = isDashboard;
         this.currentMode = 'DESK';
         this.sensors = [];
         this.overlayGroup = null;
         this.animationFrames = [];
+
+        this.init()
+    }
+
+    async init(){
+        await this.loadThresholds();
     }
 
     getIcon(sensorType, options = {}) {
@@ -37,11 +44,10 @@ class SensorOverlayManager {
         return icon;
     }
 
-    setSensorMode(mode, sensors, floorNumber, isDashboard = true) {
+    setSensorMode(mode, sensors, floorNumber) {
         this.currentMode = mode;
         this.sensors = sensors;
         this.currentFloor = floorNumber;
-        this.isDashboard = isDashboard;
         this.clearOverlay();
         this.createOverlay(mode);
     }
@@ -79,6 +85,7 @@ class SensorOverlayManager {
                 case 'SECURITY': this.createSecurityOverlay(); break;
                 case 'COUNT': this.createCounterMap(); break;
                 case 'ENERGY': this.createEnergyMap(); break;
+                case 'DESK': this.createSensorsConfig(); break;
             }
         } else {
             this.createSensorsConfig();
@@ -505,7 +512,7 @@ class SensorOverlayManager {
             const inVal = sensor.value?.in ?? "—";
             const outVal = sensor.value?.out ?? "—";
 
-            label.textContent = `${sensor.value} | ${outVal}`;
+            label.textContent = `${inVal} | ${outVal}`;
             this.overlayGroup.appendChild(label);
         });
 
@@ -610,10 +617,10 @@ class SensorOverlayManager {
         icon.setAttribute("text-anchor", "middle");
         icon.setAttribute("font-size", sensor.size);
         icon.setAttribute("floor-number", sensor.floor);
-        icon.setAttribute("sensor-mode", sensor.mode);
+        icon.setAttribute("sensor-mode", sensor.type);
         icon.setAttribute("id", sensor.id);
         icon.setAttribute("class", "sensor");
-        icon.textContent = this.getIcon(sensor.mode);
+        icon.textContent = this.getIcon(sensor.type);
         g.appendChild(icon);
 
         const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -634,15 +641,18 @@ class SensorOverlayManager {
         desk.setAttribute("y", sensor.y);
         desk.setAttribute("width", sensor.width);
         desk.setAttribute("height", sensor.height);
-        desk.setAttribute("fill", "#94a3b8");
+        desk.setAttribute("fill", this.colors[sensor.status] || "#94a3b8");
         desk.setAttribute("stroke", "#000000");
         desk.setAttribute("stroke-width", 2);
         desk.setAttribute("rx", 3);
         desk.setAttribute("class", "sensor");
         desk.setAttribute("id", sensor.id);
         desk.setAttribute("floor-number", sensor.floor);
-        desk.setAttribute("sensor-mode", sensor.mode);
+        desk.setAttribute("sensor-mode", sensor.type);
+        sensor.size = sensor.size || Math.min(sensor.width, sensor.height) / 2;
         desk.setAttribute("size", sensor.size);
+        desk.setAttribute("label", sensor.label);
+        desk.setAttribute("status", sensor.status || "invalid");
         desk.setAttribute("chairs", JSON.stringify(sensor.chairs));
         if (sensor.rotation) {
             const cx = sensor.x + sensor.width / 2;
@@ -668,12 +678,11 @@ class SensorOverlayManager {
         text.setAttribute("text-anchor", "middle");
         text.setAttribute("dominant-baseline", "middle");
         text.setAttribute("font-family", "Arial, sans-serif");
-        const size = sensor.size || Math.min(sensor.width, sensor.height) / 2;
-        text.setAttribute("font-size", size);
+        text.setAttribute("font-size", sensor.size);
         text.setAttribute("font-weight", "bold");
         text.setAttribute("fill", "#ffffff");
         text.setAttribute("class","sensor-temp");
-        text.textContent = sensor.id;
+        text.textContent = sensor.label || sensor.id;
 
         if (sensor.rotation) {
             const cx_rotate = sensor.x + sensor.width / 2;
@@ -811,13 +820,18 @@ class SensorOverlayManager {
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
         g.setAttribute("class", "sensor-marker");
         g.setAttribute("id", "marker-"+sensor.id);
-        g.setAttribute("data-draggable", "true");
-        if (sensor.mode !== this.currentMode || parseInt(sensor.floor) !== parseInt(this.currentFloor)){
+        if (sensor.type !== this.currentMode || parseInt(sensor.floor) !== parseInt(this.currentFloor)){
             g.style.display="none";
         }
-        g.style.cursor = "move";
+        if (!this.isDashboard) {
+            g.setAttribute("data-draggable", "true");
+            g.style.cursor = "move";
+        } else {
+            g.removeAttribute("data-draggable");
+            g.style.cursor = "default";
+        }
 
-        if (sensor.mode === "DESK") {
+        if (sensor.type === "DESK") {
             this.createDesk(g, sensor);
         } else {
             this.createSensor(g, sensor);
