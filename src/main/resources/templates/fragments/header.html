@@ -6,7 +6,7 @@
 <body>
 <th:block th:fragment="appHeader">
     <header class="app-header">
-        <a href="javascript:history.back()" class="back-btn" title="Back to list" style="margin-right: 20px">
+        <a th:href="${homeUrl != null ? homeUrl : '/home'}" class="back-btn" title="Back to list" style="margin-right: 20px">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="30" height="30" role="img"
                  aria-label="Flèche arrière violette">
                 <circle cx="15" cy="15" r="13" fill="none" stroke="#662179" stroke-width="2"/>
@@ -74,27 +74,6 @@
             </div>
         </div>
     </header>
-
-    <script>
-        function toggleMenu() {
-            document.getElementById("dropdownMenu").classList.toggle("show");
-        }
-
-        window.onclick = function (event) {
-            if (!event.target.closest('.dropdown')) {
-                document.getElementById("dropdownMenu").classList.remove("show");
-            }
-        }
-        const isHomePage = window.location.pathname.endsWith("/home");
-
-        if (!isHomePage) {
-            document.querySelector('.back-btn').style.visibility = 'visible';
-            document.querySelector('.back-btn').style.pointerEvents = 'auto';
-        } else {
-            document.querySelector('.back-btn').style.visibility = 'hidden';
-            document.querySelector('.back-btn').style.pointerEvents = 'none';
-        }
-    </script>
 </th:block>
 </body>
 </html>

@@ -40,7 +40,7 @@ public class HomeController {
     /**
      * @return la vue "home" pour afficher la page d'accueil.
      */
-    @GetMapping("/home")
+    @GetMapping({"/home", "/"})
     public String home(Model model, Principal principal) {
         User user = userService.searchUserByUsername(principal.getName());
         model.addAttribute("user", user);
