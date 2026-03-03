@@ -21,58 +21,132 @@
 <main class="config-page">
 
     <!-- ================= SENSOR MANAGEMENT ================= -->
+    <!-- ================= SENSOR MANAGEMENT ================= -->
+    <!-- ================= SENSOR MANAGEMENT ================= -->
     <div class="config-card">
         <h2>Sensor Management</h2>
-        <form>
-            <div class="row mb-3">
-                <div class="col-md-3">
-                    <label>Sensor Type</label>
-                    <select class="form-select" id="sensor-type">
-                        <option>Temperature</option>
-                        <option>CO2</option>
-                        <option>Presence</option>
-                        <option>Light</option>
-                        <option selected>Occupancy</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label>Brand</label>
-                    <input type="text" class="form-control" value="Elsys" style="margin-left:40px;">
-                </div>
-                <div class="col-md-3">
-                    <label>Decoder</label>
-                    <input type="text" class="form-control" value="Custom Elsys" style="margin-left: 20px;">
-                </div>
-                <div class="col-md-3">
-                    <label>Protocol</label>
-                    <input type="text" class="form-control" value="LoRaWAN" style="margin-left: 20px;">
-                </div>
-            </div>
-            <div class="mb-3">
-                <label>Formatter Language</label>
-                <select class="form-select" id="formatter-lang" onchange="changeEditorLanguage(this)">
-                    <option selected>JavaScript</option>
-                    <option>Python</option>
-                    <option>Java</option>
-                    <option>C++</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label>Payload Formatter</label>
-                <div id="payload-editor"></div>
-            </div>
-            <div class="mb-3">
-                <label>Test Byte Payload</label>
-                <div class="input-group">
-                    <input type="text" id="test-byte-payload" class="form-control" value="0100ED022D070E4D1102">
-                    <button type="button" class="btn btn-violet" onclick="testDecoder()" style="margin: 20px 0;">Test Decoder</button>
-                </div>
-                <div id="test-decoded">Decoded result will appear here</div>
-            </div>
-            <button type="submit" class="btn btn-violet" style="margin: 20px 0;">Save</button>
-        </form>
-    </div>
 
+        <div class="config-grid-3">
+
+            <!-- ================= SENSOR TYPES ================= -->
+            <section class="config-subcard">
+                <h3>Sensor Types</h3>
+
+                <form th:action="@{/configuration/device-types/add}" method="post" class="config-inline-form">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <input type="text" name="name" class="form-control" placeholder="ex: CO2, DESK, ENERGY" required>
+                    <button type="submit" class="btn btn-violet">Add</button>
+                </form>
+
+                <table class="config-mini-table">
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th style="width: 90px;">Action</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <!-- ✅ deviceTypes, dt.label, dt.idDeviceType -->
+                    <tr th:each="dt : ${deviceTypes}">
+                        <td th:text="${dt.label}">DESK</td>
+                        <td>
+                            <form th:action="@{/configuration/device-types/delete}" method="post"
+                                  onsubmit="return confirm('Delete device type: ' + [[${dt.label}]] + ' ?');">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                <input type="hidden" name="id" th:value="${dt.idDeviceType}"/>
+                                <button type="submit" class="btn btn-danger-mini">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${deviceTypes == null || #lists.isEmpty(deviceTypes)}">
+                        <td colspan="2" class="muted">No device types yet.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- ================= BRANDS ================= -->
+            <section class="config-subcard">
+                <h3>Brands</h3>
+
+                <form th:action="@{/configuration/brands/add}" method="post" class="config-inline-form">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <input type="text" name="name" class="form-control" placeholder="ex: Elsys, Watteco..." required>
+                    <button type="submit" class="btn btn-violet">Add</button>
+                </form>
+
+                <table class="config-mini-table">
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th style="width: 90px;">Action</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="b : ${brands}">
+                        <td th:text="${b.name}">Elsys</td>
+                        <td>
+                            <form th:action="@{/configuration/brands/delete}" method="post"
+                                  onsubmit="return confirm('Delete brand: ' + [[${b.name}]] + ' ?');">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                <input type="hidden" name="id" th:value="${b.id}"/>
+                                <button type="submit" class="btn btn-danger-mini">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${brands == null || #lists.isEmpty(brands)}">
+                        <td colspan="2" class="muted">No brands yet.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- ================= PROTOCOLS ================= -->
+            <section class="config-subcard">
+                <h3>Protocols</h3>
+
+                <form th:action="@{/configuration/protocols/add}" method="post" class="config-inline-form">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <input type="text" name="name" class="form-control" placeholder="ex: LoRaWAN, Zigbee..." required>
+                    <button type="submit" class="btn btn-violet">Add</button>
+                </form>
+
+                <table class="config-mini-table">
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th style="width: 90px;">Action</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="p : ${protocols}">
+                        <td th:text="${p.name}">LoRaWAN</td>
+                        <td>
+                            <form th:action="@{/configuration/protocols/delete}" method="post"
+                                  onsubmit="return confirm('Delete protocol: ' + [[${p.name}]] + ' ?');">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                <input type="hidden" name="id" th:value="${p.id}"/>
+                                <button type="submit" class="btn btn-danger-mini">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${protocols == null || #lists.isEmpty(protocols)}">
+                        <td colspan="2" class="muted">No protocols yet.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </section>
+
+        </div>
+
+        <!-- Messages -->
+        <div th:if="${configMessage != null}" class="alert alert-success" style="margin-top: 15px;">
+            <span th:text="${configMessage}"></span>
+        </div>
+        <div th:if="${configError != null}" class="alert alert-danger" style="margin-top: 15px;">
+            <span th:text="${configError}"></span>
+        </div>
+    </div>
     <!-- ================= ENERGY MANAGEMENT ================= -->
     <div class="config-card">
         <h2>⚡ Energy Management</h2>

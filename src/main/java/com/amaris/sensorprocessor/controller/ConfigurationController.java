@@ -5,10 +5,7 @@ import com.amaris.sensorprocessor.entity.*;
 import com.amaris.sensorprocessor.repository.AlertConfigurationDao;
 import com.amaris.sensorprocessor.repository.BuildingEnergyConfigDao;
 import com.amaris.sensorprocessor.repository.SensorDao;
-import com.amaris.sensorprocessor.service.AlertConfigurationService;
-import com.amaris.sensorprocessor.service.NotificationService;
-import com.amaris.sensorprocessor.service.SensorThresholdService;
-import com.amaris.sensorprocessor.service.UserService;
+import com.amaris.sensorprocessor.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -30,8 +27,11 @@ public class ConfigurationController {
     private final UserService userService;
     private final SensorDao sensorDao;
     private final AlertConfigurationDao alertConfigurationDao;
+    private final BrandService brandService;
+    private final ProtocolService protocolService;
+    private final DeviceTypeService deviceTypeService;
     private final BuildingEnergyConfigDao buildingEnergyConfigDao;
-
+    private final SensorService sensorService;
 
     @Autowired
     public ConfigurationController(AlertThresholdConfig alertThresholdConfig,
@@ -39,6 +39,12 @@ public class ConfigurationController {
                                    NotificationService notificationService,
                                    SensorThresholdService sensorThresholdService,
                                    UserService userService,
+                                   SensorDao sensorDao,
+                                   AlertConfigurationDao alertConfigurationDao,
+                                   BrandService brandService,
+                                   ProtocolService protocolService, DeviceTypeService deviceTypeService,
+                                   SensorService sensorService) {
+
                                    SensorDao sensorDao, 
                                    AlertConfigurationDao alertConfigurationDao,
                                    BuildingEnergyConfigDao buildingEnergyConfigDao) {
@@ -49,6 +55,11 @@ public class ConfigurationController {
         this.userService = userService;
         this.sensorDao = sensorDao;
         this.alertConfigurationDao = alertConfigurationDao;
+
+        this.brandService = brandService;
+        this.protocolService = protocolService;
+        this.deviceTypeService = deviceTypeService;
+        this.sensorService = sensorService;
         this.buildingEnergyConfigDao = buildingEnergyConfigDao;
     }
 
@@ -57,9 +68,10 @@ public class ConfigurationController {
         model.addAttribute("alertConfig", alertThresholdConfig);
         
         // Add sensors to model like manageSensors page does
-        List<Sensor> sensors = sensorDao.findAllSensors();
-        model.addAttribute("sensors", sensors);
-        
+        model.addAttribute("deviceTypes", deviceTypeService.findAll());
+        model.addAttribute("brands", brandService.findAll());
+        model.addAttribute("protocols", protocolService.findAll());
+
         if (principal != null) {
             User user = userService.searchUserByUsername(principal.getName());
             model.addAttribute("user", user);
@@ -171,6 +183,89 @@ public class ConfigurationController {
         return config != null ? config : new AlertConfigEntity(); // fallback si pas en DB
     }
 
+    @PostMapping("/configuration/brands/add")
+    public String addBrand(@RequestParam("name") String name,
+                           Model model,
+                           Principal principal) {
+        try {
+            brandService.createByName(name);
+            model.addAttribute("configMessage", "Brand added successfully");
+        } catch (Exception e) {
+            model.addAttribute("configError", e.getMessage());
+        }
+        return configuration(model, principal);
+    }
+
+    @PostMapping("/configuration/protocols/add")
+    public String addProtocol(@RequestParam("name") String name,
+                              Model model,
+                              Principal principal) {
+        try {
+            protocolService.createByName(name);
+            model.addAttribute("configMessage", "Protocol added successfully");
+        } catch (Exception e) {
+            model.addAttribute("configError", e.getMessage());
+        }
+        return configuration(model, principal);
+    }
+
+    @PostMapping("/configuration/sensors/add")
+    public String addSensor(@ModelAttribute Sensor sensor,
+                            Model model,
+                            Principal principal) {
+        try {
+            sensorService.create(sensor);
+            model.addAttribute("configMessage", "Sensor created successfully");
+        } catch (Exception e) {
+            model.addAttribute("configError", e.getMessage());
+        }
+        return configuration(model, principal);
+    }
+
+    @PostMapping("/configuration/brands/delete")
+    public String deleteBrand(@RequestParam("id") Integer id, Model model, Principal principal) {
+        try {
+            brandService.deleteById(id);
+            model.addAttribute("configMessage", "Brand deleted successfully");
+        } catch (Exception e) {
+            model.addAttribute("configError", e.getMessage());
+        }
+        return configuration(model, principal);
+    }
+    @PostMapping("/configuration/device-types/add")
+    public String addDeviceType(@RequestParam("name") String name, Model model, Principal principal) {
+        try {
+            deviceTypeService.createByLabel(name.toUpperCase());
+            model.addAttribute("configMessage", "Device type added successfully");
+        } catch (Exception e) {
+            model.addAttribute("configError", e.getMessage());
+        }
+        return configuration(model, principal);
+    }
+
+
+    @PostMapping("/configuration/device-types/delete")
+    public String deleteDeviceType(@RequestParam("id") Integer id, Model model, Principal principal) {
+        try {
+            deviceTypeService.deleteById(id);
+            model.addAttribute("configMessage", "Device type deleted successfully");
+        } catch (Exception e) {
+            model.addAttribute("configError", e.getMessage());
+        }
+        return configuration(model, principal);
+    }
+
+
+    @PostMapping("/configuration/protocols/delete")
+    public String deleteProtocol(@RequestParam("id") Integer id, Model model, Principal principal) {
+        try {
+            protocolService.deleteById(id);
+            model.addAttribute("configMessage", "Protocol deleted successfully");
+        } catch (Exception e) {
+            model.addAttribute("configError", e.getMessage());
+        }
+        return configuration(model, principal);
+    }
     // ==================== BUILDING ENERGY CONFIG ====================
 
     @GetMapping("/api/configuration/building-energy")

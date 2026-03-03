@@ -200,6 +200,68 @@ textarea {
     height: 45px;
 }
 
+.config-grid-3{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
+  gap: 18px;
+  margin-top: 12px;
+}
+
+.config-subcard{
+  background: #fff;
+  border: 2px solid #e8e1ef;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.config-subcard h3{
+  margin: 0 0 10px 0;
+  font-size: 18px;
+}
+
+.config-inline-form{
+  display:flex;
+  gap: 10px;
+  align-items:center;
+  margin-bottom: 12px;
+}
+
+.config-inline-form .form-control{
+  flex: 1;
+}
+
+.config-mini-table{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.config-mini-table th,
+.config-mini-table td{
+  border-bottom: 1px solid #eee;
+  padding: 10px 8px;
+}
+
+.btn-danger-mini{
+  background: #dc2626;
+  border: none;
+  color: white;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-danger-mini:hover{
+  background: #b91c1c;
+}
+
+.muted{
+  text-align:center;
+  font-style: italic;
+  color: #6b7280;
+}
+
 /* Fix specific dropdowns that show partial text */
 #sensor-type, #formatter-lang {
     width: auto !important;
