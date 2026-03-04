@@ -170,63 +170,70 @@ DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' }
 		});
 	}
 
-// =========================
-// ===== CONSO SSE (aggregate)
-// =========================
+    // =========================
+    // ===== CONSO SSE (aggregate)
+    // =========================
+    startConsoAggregateSse() {
+      const building = this.filters.building;
+      if (!building) return;
 
-startConsoAggregateSse() {
-  const building = this.filters.building;
-  if (!building) return;
+      this.stopConsoAggregateSse();
+      this.resetConsoMetrics();   // toujours reset au switch
 
-  // Stop ancien SSE si existant
-  this.stopConsoAggregateSse();
+      const floor = this.getEffectiveFloorParam();
+      const qs = new URLSearchParams({ building });
+      if (floor) qs.set('floor', String(floor));
 
-  const floor = this.getEffectiveFloorParam(); // '' si All Floors
-  const qs = new URLSearchParams({ building });
-  if (floor) qs.set('floor', String(floor));   // ✅ floor conditionnel
+      const url = `/api/dashboard/conso/live/aggregate/stream?${qs.toString()}`;
+      console.log('[CONSO SSE] starting', url);
 
-  const url = `/api/dashboard/conso/live/aggregate/stream?${qs.toString()}`;
-  console.log('[CONSO SSE] starting', url);
+      const es = new EventSource(url);
+      this.consoSse = es;
 
-  const es = new EventSource(url);
-  this.consoSse = es;
+      es.addEventListener('conso_aggregate', (ev) => {
+        try {
+          const payload = JSON.parse(ev.data);
 
-  es.addEventListener('conso_aggregate', (ev) => {
-    try {
-      const payload = JSON.parse(ev.data);
+          const kw = payload.powerTotalkW;
+          const kwh = payload.todayEnergykWh;
 
-      const kw = (payload.powerTotalkW != null)
-        ? Number(payload.powerTotalkW)
-        : (payload.powerTotalW != null ? Number(payload.powerTotalW) / 1000 : null);
+          if (kw == null) {
+            this.updateMetricValue('live-current-power', '--');
+          } else {
+            this.updateMetricValue('live-current-power', Number(kw).toFixed(2));
+          }
 
-      if (kw != null && !Number.isNaN(kw)) {
-        this.updateMetricValue('live-current-power', kw.toFixed(2));
-      }
+          if (kwh == null) {
+            this.updateMetricValue('live-daily-energy', '--');
+          } else {
+            this.updateMetricValue('live-daily-energy', Number(kwh).toFixed(2));
+          }
 
-      const kwh = (payload.todayEnergykWh != null)
-        ? Number(payload.todayEnergykWh)
-        : (payload.todayEnergyWh != null ? Number(payload.todayEnergyWh) / 1000 : null);
+        } catch (e) {
+          console.warn('[CONSO SSE] parse error', e);
+          this.resetConsoMetrics();
+        }
+      });
 
-      if (kwh != null && !Number.isNaN(kwh)) {
-        this.updateMetricValue('live-daily-energy', kwh.toFixed(2));
-      }
-    } catch (e) {
-      console.warn('[CONSO SSE] parse error', e);
+      es.onerror = (err) => {
+        console.warn('[CONSO SSE] error', err);
+        this.resetConsoMetrics();
+      };
     }
-  });
 
-  es.addEventListener('keepalive', () => {});
-  es.onerror = (err) => console.warn('[CONSO SSE] error', err);
-}
+    resetConsoMetrics() {
+      this.updateMetricValue('live-current-power', '--');
+      this.updateMetricValue('live-daily-energy', '--');
+    }
 
 
-stopConsoAggregateSse() {
-  if (this.consoSse) {
-    console.log('[CONSO SSE] stopping');
-    try { this.consoSse.close(); } catch {}
-    this.consoSse = null;
-  }
-}
+    stopConsoAggregateSse() {
+      if (this.consoSse) {
+        console.log('[CONSO SSE] stopping');
+        try { this.consoSse.close(); } catch {}
+        this.consoSse = null;
+      }
+    }
 
 	async fetchDeskSensors(building, floor) {
 		const params = new URLSearchParams({
@@ -431,109 +438,109 @@ applyBuildingStatVisibility() {
 		}
 	}
 
-async handleFilterChange(filterId, value) {
-  console.log(`=== Filter Change: ${filterId} ===`, value);
+    async handleFilterChange(filterId, value) {
+      console.log(`=== Filter Change: ${filterId} ===`, value);
 
-  const filterKey = filterId.replace('filter-', '').replace('-', '');
-  const mappedKey =
-    filterKey === 'sensortype' ? 'sensorType' :
-    filterKey === 'time' ? 'timeSlot' :
-    filterKey;
+      const filterKey = filterId.replace('filter-', '').replace('-', '');
+      const mappedKey =
+        filterKey === 'sensortype' ? 'sensorType' :
+        filterKey === 'time' ? 'timeSlot' :
+        filterKey;
 
-  // =========================
-  // ✅ Cas spécial BUILDING
-  // =========================
-  if (filterId === 'building') {
-    const building = this.buildings.find(
-      b => String(b.id) === String(value) || b.code === value
-    );
+      // =========================
+      // ✅ Cas spécial BUILDING
+      // =========================
+      if (filterId === 'building') {
+        const building = this.buildings.find(
+          b => String(b.id) === String(value) || b.code === value
+        );
 
-    if (!building) {
-      console.warn('Building not found for value:', value);
-      return;
+        if (!building) {
+          console.warn('Building not found for value:', value);
+          return;
+        }
+
+        // 1) Normaliser la clé building (code si dispo, sinon id)
+        this.filters.building = this.getBuildingKey(building);
+
+        // 2) Mettre à jour currentBuilding
+        this.currentBuilding = building;
+
+        // 3) Charger les floors (virtuel => code ok, DB => id)
+        const floorsLookupId = building.code ? building.code : building.id;
+        await this.loadBuildingFloors(floorsLookupId);
+
+        // 4) Reset floor après reload floors
+        this.filters.floor = '';
+        const floorSelect = document.getElementById('filter-floor');
+        if (floorSelect) floorSelect.value = '';
+
+        // 5) UI titles
+        this.updateBuildingTitle();
+        this.updateSensorTypeUI(this.filters.sensorType);
+
+        // 6) 3D
+        if (window.building3D?.loadBuilding) {
+          console.log('Mise à jour du modèle 3D pour:', building.name);
+          window.building3D.loadBuilding(building);
+        }
+
+        // 6.5) Regenerate stat cards for the new building
+        if (window.ChartUtils?.generateStatCardsForBuilding) {
+          window.ChartUtils.generateStatCardsForBuilding(this.filters.building);
+        }
+
+        // ✅ 7) Restart CONSO SSE (building + floor='')
+        this.startConsoAggregateSse();
+
+        // ✅ 8) Update alert filters locally (instant, no API call)
+        this.updateAlertFilters();
+
+        // 9) Reload data
+        await this.loadDashboardData();
+        this.applyBuildingStatVisibility();
+        return;
+      }
+
+      // =========================
+      // ✅ Cas général (floor, sensor-type)
+      // =========================
+      this.filters[mappedKey] = value;
+
+      // UI pour sensor-type
+      if (filterId === 'sensor-type') {
+          this.updateSensorTypeUI(value);
+      }
+
+      // ✅ Si on change d'étage : restart SSE (building + floor)
+      if (filterId === 'floor') {
+          const building = this.filters.building;
+          const floor = value || null;
+
+          if (window.ChartUtils?.generateStatCardsForBuilding) {
+              // Génère uniquement les cartes du floor choisi
+              window.ChartUtils.generateStatCardsForBuilding(building, floor);
+          }
+
+          // Redémarre SSE avec le floor
+          this.startConsoAggregateSse();
+
+          // Mettre à jour alert filters
+          this.updateAlertFilters();
+
+          // Reload data
+          await this.loadDashboardData();
+          this.applyBuildingStatVisibility();
+
+          return; // important : on ne continue pas le reste
+      }
+
+      // ✅ INSTANT ALERT FILTERING - no API call, uses cached data
+      this.updateAlertFilters();
+
+      await this.loadDashboardData();
+      this.applyBuildingStatVisibility();
     }
-
-    // 1) Normaliser la clé building (code si dispo, sinon id)
-    this.filters.building = this.getBuildingKey(building);
-
-    // 2) Mettre à jour currentBuilding
-    this.currentBuilding = building;
-
-    // 3) Charger les floors (virtuel => code ok, DB => id)
-    const floorsLookupId = building.code ? building.code : building.id;
-    await this.loadBuildingFloors(floorsLookupId);
-
-    // 4) Reset floor après reload floors
-    this.filters.floor = '';
-    const floorSelect = document.getElementById('filter-floor');
-    if (floorSelect) floorSelect.value = '';
-
-    // 5) UI titles
-    this.updateBuildingTitle();
-    this.updateSensorTypeUI(this.filters.sensorType);
-
-    // 6) 3D
-    if (window.building3D?.loadBuilding) {
-      console.log('Mise à jour du modèle 3D pour:', building.name);
-      window.building3D.loadBuilding(building);
-    }
-
-    // 6.5) Regenerate stat cards for the new building
-    if (window.ChartUtils?.generateStatCardsForBuilding) {
-      window.ChartUtils.generateStatCardsForBuilding(this.filters.building);
-    }
-
-    // ✅ 7) Restart CONSO SSE (building + floor='')
-			this.startConsoAggregateSse();
-
-			// ✅ 8) Update alert filters locally (instant, no API call)
-			this.updateAlertFilters();
-
-			// 9) Reload data
-			await this.loadDashboardData();
-			this.applyBuildingStatVisibility();
-			return;
-		}
-
-		// =========================
-		// ✅ Cas général (floor, sensor-type)
-		// =========================
-		this.filters[mappedKey] = value;
-
-		// UI pour sensor-type
-		if (filterId === 'sensor-type') {
-			this.updateSensorTypeUI(value);
-		}
-
-		// ✅ Si on change d'étage : restart SSE (building + floor)
-		if (filterId === 'floor') {
-			const building = this.filters.building;
-			const floor = value || null;
-
-			if (window.ChartUtils?.generateStatCardsForBuilding) {
-				// Génère uniquement les cartes du floor choisi
-				window.ChartUtils.generateStatCardsForBuilding(building, floor);
-			}
-
-			// Redémarre SSE avec le floor
-			this.startConsoAggregateSse();
-
-			// Mettre à jour alert filters
-			this.updateAlertFilters();
-
-			// Reload data
-			await this.loadDashboardData();
-			this.applyBuildingStatVisibility();
-
-			return; // important : on ne continue pas le reste
-		}
-
-		// ✅ INSTANT ALERT FILTERING - no API call, uses cached data
-		this.updateAlertFilters();
-
-		await this.loadDashboardData();
-		this.applyBuildingStatVisibility();
-	}
 
 	updateAlertFilters() {
 		if (window.AlertCacheManager?.setFilters) {
@@ -761,19 +768,18 @@ async handleFilterChange(filterId, value) {
 	// ===== DASHBOARD UPDATE =====
 	// =========================
 
-// updateDashboard(data)
-async updateDashboard(data) {
-  this.updateAlerts(data?.alerts);
-  this.updateLiveData(data?.liveSensorData);
-  this.updateLiveBuildingMetrics();
-  this.updateHistoricalData(data?.historicalData);
-  this.updateOccupationHistory(data?.historicalData);
-  this.updateCostAnalysis(data?.historicalData);
-  this.updateGlobalStatistics(data?.historicalData);
-  this.applyBuildingStatVisibility();
+    async updateDashboard(data) {
+      this.updateAlerts(data?.alerts);
+      this.updateLiveData(data?.liveSensorData);
+      this.updateLiveBuildingMetrics();
+      this.updateHistoricalData(data?.historicalData);
+      this.updateOccupationHistory(data?.historicalData);
+      this.updateCostAnalysis(data?.historicalData);
+      this.updateGlobalStatistics(data?.historicalData);
+      this.applyBuildingStatVisibility();
 
-  this.hideLoading();
-}
+      this.hideLoading();
+    }
 
 
 	updateAlerts(alerts) {
