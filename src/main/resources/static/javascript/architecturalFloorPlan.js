@@ -76,8 +76,9 @@ class ArchitecturalFloorPlan {
         // Create SVG element
         this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         this.svg.setAttribute("width", "100%");
-        this.svg.setAttribute("height", "100%");
-        this.svg.setAttribute("viewBox", "0 0 1200 1200");
+        this.svg.setAttribute("height", "auto");
+        this.svg.setAttribute("margin", "0");
+        this.svg.setAttribute("viewBox", "0 200 1200 800");
         this.svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
         this.svg.style.background = this.colors.background;
         this.container.appendChild(this.svg);

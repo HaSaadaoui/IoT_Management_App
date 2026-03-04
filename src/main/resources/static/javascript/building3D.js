@@ -906,13 +906,11 @@ class Building3D {
         }
 
         deskGrid.innerHTML = '';
-        deskGrid.style.display = 'block';
         deskGrid.style.gridTemplateColumns = '1fr';
         deskGrid.style.padding = '0';
         deskGrid.style.background = '#ffffff';
         deskGrid.style.borderRadius = '12px';
         deskGrid.style.border = '2px solid #e2e8f0';
-        deskGrid.style.minHeight = '600px';
 
         const floorData = this.floorData[floorNumber] || {};
         const floorsCount = this.getFloorsCount();
