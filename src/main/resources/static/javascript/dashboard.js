@@ -323,7 +323,6 @@ class DashboardManager {
 			const floorsLookupId = current.code ? current.code : current.id;
 			await this.loadBuildingFloors(floorsLookupId);
 
-			this.updateBuildingTitle();
 			await this.loadDashboardData();
 		} catch (e) {
 			console.error('Error loading buildings', e);
@@ -366,7 +365,6 @@ class DashboardManager {
 			if (floorSelect) floorSelect.value = '';
 
 			// 5) UI titles
-			this.updateBuildingTitle();
 			this.updateSensorTypeUI(this.filters.sensorType);
 
 			// 6) 3D
@@ -492,7 +490,11 @@ class DashboardManager {
 		};
 
 		const info = sensorInfo[sensorType] || sensorInfo.DESK;
-		const buildingName = this.getBuildingName();
+		const buildingSelect = document.getElementById('filter-building');
+		let buildingName = "Châteaudun";
+		if (buildingSelect) {
+			buildingName = buildingSelect.selectedOptions[0].text;
+		}
 
 		const liveTitle = document.getElementById('live-section-title');
 		if (liveTitle) {
@@ -503,41 +505,6 @@ class DashboardManager {
 		if (historicalTitle) {
 			historicalTitle.textContent = `📈 Historical ${info.name} Data - ${buildingName}`;
 		}
-
-		this.updateBuildingTitle();
-	}
-
-	updateBuildingTitle() {
-		const el = document.getElementById('building-title');
-		if (el) {
-			el.textContent = `🏢 ${this.getBuildingName()} Building`;
-		}
-	}
-
-	getBuildingName() {
-		const key = this.filters.building;
-
-		const legacyLabels = {
-			'rpi-mantu-appli': 'Châteaudun Office',
-			'lil-rpi-mantu-appli': 'Levallois Office',
-			'lorawan-network-mantu': 'Lille Office'
-		};
-
-		const staticLabels = {
-			CHATEAUDUN: 'Châteaudun Office',
-			LEVALLOIS: 'Levallois Office',
-			LILLE: 'Lille Office'
-		};
-
-		if (key && (legacyLabels[key] || staticLabels[key])) {
-			return legacyLabels[key] || staticLabels[key];
-		}
-
-		if (this.currentBuilding?.name) {
-			return this.currentBuilding.name;
-		}
-
-		return 'Office';
 	}
 
 	// =========================

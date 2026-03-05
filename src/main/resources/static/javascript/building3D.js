@@ -1279,11 +1279,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const buildingSelect = document.getElementById('filter-building');
     if (buildingSelect) {
         buildingSelect.addEventListener('change', async () => {
-            let val = buildingSelect.value; // "chateaudun", "levallois", "lille", "all", "DB:4" ...
-
-            if (val.toUpperCase() === 'ALL') {
-                val = 'CHATEAUDUN';
-            }
+            const val = buildingSelect.value; // "chateaudun", "levallois", "lille", "DB:4" ...
 
             if (window.building3D && typeof window.building3D.setBuilding === 'function') {
                 window.building3D.buildingKey = val.toUpperCase();
@@ -1291,20 +1287,35 @@ document.addEventListener('DOMContentLoaded', function () {
                 window.building3D.setBuilding();
             }
 
-            const labels = {
-                CHATEAUDUN: 'Châteaudun Office',
-                LEVALLOIS: 'Levallois Office'
-            };
-            const upperVal = val ? val.toUpperCase() : '';
-            const label = labels[upperVal] || 'Office';
-
-            const liveTitle     = document.getElementById('live-section-title');
-            const histTitle     = document.getElementById('historical-section-title');
+            const buildingName = buildingSelect.selectedOptions[0].text;
+        
             const buildingTitle = document.getElementById('building-title');
+            if (buildingTitle) buildingTitle.textContent = `🏢 ${buildingName} Office Building`;
 
-            if (liveTitle)     liveTitle.textContent     = `📊 Live Desk Occupancy - ${label}`;
-            if (histTitle)     histTitle.textContent     = `📈 Historical Sensor Data - ${label}`;
-            if (buildingTitle) buildingTitle.textContent = `🏢 ${label} Building`;
+            const sensorSelect = document.getElementById('filter-sensor-type');
+            if (sensorSelect) {
+                const sensorType = sensorSelect.value;
+
+                const sensorInfo = {
+                    DESK: {icon: '📊', name: 'Desk Occupancy'},
+                    CO2: {icon: '🌫️', name: 'CO₂ Air Quality'},
+                    TEMP: {icon: '🌡️', name: 'Temperature'},
+                    LIGHT: {icon: '💡', name: 'Light Levels'},
+                    MOTION: {icon: '👁️',name: 'Motion Detection'},
+                    NOISE: { icon: '🔉',name: 'Noise Levels'},
+                    HUMIDITY: {icon: '💧', name: 'Humidity'},
+                    TEMPEX: {icon: '🌀', name: 'HVAC Flow (TEMPex)'},
+                    PR: {icon: '👤',name: 'Presence & Light'},
+                    SECURITY: {icon: '🚨',name: 'Security Alerts'}
+                };
+
+                const info = sensorInfo[sensorType] || sensorInfo.DESK;
+                const liveTitle     = document.getElementById('live-section-title');
+                const histTitle     = document.getElementById('historical-section-title');
+                if (liveTitle)     liveTitle.textContent     = `${info.icon} Live ${info.name} - ${buildingName} Office`;
+                if (histTitle)     histTitle.textContent     = `📈 Historical ${info.name} Data - ${buildingName} Office`;
+            }
+
         });
     }
 });
