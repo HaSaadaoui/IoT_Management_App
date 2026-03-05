@@ -10,7 +10,6 @@ class DashboardManager {
         // TTL (ms) : si un device ne remonte plus, on l’enlève du total
         this.consoTtlMs = 2 * 60 * 1000; // 2 minutes
 
-
 		// Bâtiments "hors base"
 		this.virtualBuildings = {
 			CHATEAUDUN: {
@@ -37,20 +36,19 @@ class DashboardManager {
 		};
 
 		this.metricSources = {
-          TEMPERATURE_INT: { sensorType: 'ALL', excludeSensorType: 'TEMPEX', unit: '°C' },
-          TEMPERATURE_EXT: { sensorType: 'TEMPEX', unit: '°C' },
+			TEMPERATURE_INT: { sensorType: 'ALL', excludeSensorType: 'TEMPEX', unit: '°C' },
+			TEMPERATURE_EXT: { sensorType: 'TEMPEX', unit: '°C' },
 
-          HUMIDITY_INT:    { sensorType: 'ALL', excludeSensorType: 'TEMPEX', unit: '%' },
-          HUMIDITY_EXT:    { sensorType: 'TEMPEX', unit: '%' },
+			HUMIDITY_INT:    { sensorType: 'ALL', excludeSensorType: 'TEMPEX', unit: '%' },
+			HUMIDITY_EXT:    { sensorType: 'TEMPEX', unit: '%' },
 
-          CO2:       { sensorType: 'CO2', unit: 'ppm' },
-          OCCUPANCY: { sensorType: 'DESK', unit: '%' },
-          LIGHT:     { sensorType: 'EYE', unit: 'lux' },
-          LAEQ:      { sensorType: ['SON', 'NOISE'], unit: 'dB' },
-CURRENT_POWER: { sensorType: 'CONSO', metricType: 'POWER_TOTAL', unit: 'kW' },
-DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' },
+			CO2:       { sensorType: 'CO2', unit: 'ppm' },
+			OCCUPANCY: { sensorType: 'DESK', unit: '%' },
+			LIGHT:     { sensorType: 'EYE', unit: 'lux' },
+			LAEQ:      { sensorType: ['SON', 'NOISE'], unit: 'dB' },
+			CURRENT_POWER: { sensorType: 'CONSO', metricType: 'POWER_TOTAL', unit: 'kW' },
+			DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' },
         };
-
 
 		this.currentData = null;
 		this.selectedSensor = null;
@@ -174,72 +172,57 @@ DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' }
 // ===== CONSO SSE (aggregate)
 // =========================
 
-startConsoAggregateSse() {
-  const building = this.filters.building;
-  if (!building) return;
+	startConsoAggregateSse() {
+		const building = this.filters.building;
+		if (!building) return;
 
-  // Stop ancien SSE si existant
-  this.stopConsoAggregateSse();
+		// Stop ancien SSE si existant
+		this.stopConsoAggregateSse();
 
-  const floor = this.getEffectiveFloorParam(); // '' si All Floors
-  const qs = new URLSearchParams({ building });
-  if (floor) qs.set('floor', String(floor));   // ✅ floor conditionnel
+		const floor = this.getEffectiveFloorParam(); // '' si All Floors
+		const qs = new URLSearchParams({ building });
+		if (floor) qs.set('floor', String(floor));   // ✅ floor conditionnel
 
-  const url = `/api/dashboard/conso/live/aggregate/stream?${qs.toString()}`;
-  console.log('[CONSO SSE] starting', url);
+		const url = `/api/dashboard/conso/live/aggregate/stream?${qs.toString()}`;
+		console.log('[CONSO SSE] starting', url);
 
-  const es = new EventSource(url);
-  this.consoSse = es;
+		const es = new EventSource(url);
+		this.consoSse = es;
 
-  es.addEventListener('conso_aggregate', (ev) => {
-    try {
-      const payload = JSON.parse(ev.data);
+		es.addEventListener('conso_aggregate', (ev) => {
+			try {
+				const payload = JSON.parse(ev.data);
 
-      const kw = (payload.powerTotalkW != null)
-        ? Number(payload.powerTotalkW)
-        : (payload.powerTotalW != null ? Number(payload.powerTotalW) / 1000 : null);
+				const kw = (payload.powerTotalkW != null)
+					? Number(payload.powerTotalkW)
+					: (payload.powerTotalW != null ? Number(payload.powerTotalW) / 1000 : null);
 
-      if (kw != null && !Number.isNaN(kw)) {
-        this.updateMetricValue('live-current-power', kw.toFixed(2));
-      }
+				if (kw != null && !Number.isNaN(kw)) {
+					this.updateMetricValue('live-current-power', kw.toFixed(2));
+				}
 
-      const kwh = (payload.todayEnergykWh != null)
-        ? Number(payload.todayEnergykWh)
-        : (payload.todayEnergyWh != null ? Number(payload.todayEnergyWh) / 1000 : null);
+				const kwh = (payload.todayEnergykWh != null)
+					? Number(payload.todayEnergykWh)
+					: (payload.todayEnergyWh != null ? Number(payload.todayEnergyWh) / 1000 : null);
 
-      if (kwh != null && !Number.isNaN(kwh)) {
-        this.updateMetricValue('live-daily-energy', kwh.toFixed(2));
-      }
-    } catch (e) {
-      console.warn('[CONSO SSE] parse error', e);
-    }
-  });
-
-  es.addEventListener('keepalive', () => {});
-  es.onerror = (err) => console.warn('[CONSO SSE] error', err);
-}
-
-
-stopConsoAggregateSse() {
-  if (this.consoSse) {
-    console.log('[CONSO SSE] stopping');
-    try { this.consoSse.close(); } catch {}
-    this.consoSse = null;
-  }
-}
-
-	async fetchDeskSensors(building, floor) {
-		const params = new URLSearchParams({
-			building,
-			sensorType: 'DESK',
-			metricType: 'OCCUPANCY'
+				if (kwh != null && !Number.isNaN(kwh)) {
+					this.updateMetricValue('live-daily-energy', kwh.toFixed(2));
+				}
+			} catch (e) {
+				console.warn('[CONSO SSE] parse error', e);
+			}
 		});
-		if (floor) params.set('floor', floor);
 
-		const r = await fetch(`/api/dashboard/sensors?${params.toString()}`);
-		if (!r.ok) return [];
-		const data = await r.json();
-		return Array.isArray(data) ? data : [];
+		es.addEventListener('keepalive', () => {});
+		es.onerror = (err) => console.warn('[CONSO SSE] error', err);
+	}
+
+	stopConsoAggregateSse() {
+		if (this.consoSse) {
+			console.log('[CONSO SSE] stopping');
+			try { this.consoSse.close(); } catch {}
+			this.consoSse = null;
+		}
 	}
 
 	async fetchOccupancy(floorNumber) {
@@ -260,7 +243,6 @@ stopConsoAggregateSse() {
 		return Array.isArray(data) ? data : [];
 	}
 
-
 	computeOccupancyFromStatuses(items) {
 		const total = Array.isArray(items) ? items.length : 0;
 		const used = (items || []).filter(x => String(x?.status).toLowerCase() === 'used').length;
@@ -276,114 +258,14 @@ stopConsoAggregateSse() {
 		};
 	}
 
-	/**
-	 * Suppose lastValue:
-	 * - occupied: 1 / true
-	 * - free: 0 / false
-	 * - invalid: null/undefined or explicit invalid flags if you have them
-	 */
-	computeDeskStates(sensors) {
-		let occupied = 0;
-		let free = 0;
-		let invalid = 0;
+	applyBuildingStatVisibility() {
+		const cards = document.querySelectorAll('.office-stats .stat-card');
+		if (!cards.length) return;
 
-		sensors.forEach(s => {
-			const st = this.computeState(s, 60);
-			if (st === "used") occupied++;
-			else if (st === "free") free++;
-			else invalid++;
+		cards.forEach(card => {
+			card.style.display = '';
 		});
-
-		const totalValid = occupied + free;
-
-		return {
-			occupied, // X
-			free,
-			invalid,
-			totalValid, // Y
-			ratioLabel: `${occupied}/${totalValid}`, // "X/Y"
-			occupancyRatio: totalValid > 0 ? occupied / totalValid : 0 // optionnel si besoin graphique
-		};
 	}
-
-
-	renderDeskStateAverages(allFloorsStats) {
-		// allFloorsStats: [{ floor: 1, stats: {...}}, ...] + total computed
-		const section = document.getElementById('desk-state-averages-section');
-		const grid = document.getElementById('desk-avg-cards');
-		if (!section || !grid) return;
-
-		if (!allFloorsStats || allFloorsStats.length === 0) {
-			section.style.display = 'none';
-			return;
-		}
-
-		section.style.display = 'block';
-
-		// Total
-		const totalAgg = allFloorsStats.reduce((acc, it) => {
-			acc.total += it.stats.total;
-			acc.used += it.stats.used;
-			acc.free += it.stats.free;
-			acc.invalid += it.stats.invalid;
-			return acc;
-		}, {
-			total: 0,
-			used: 0,
-			free: 0,
-			invalid: 0
-		});
-
-		const totalPct = (x) => totalAgg.total > 0 ? (x / totalAgg.total) * 100 : 0;
-
-		const cards = [];
-
-		cards.push(this.renderDeskAvgCardHtml('All Floors', {
-			total: totalAgg.total,
-			usedPct: totalPct(totalAgg.used),
-			freePct: totalPct(totalAgg.free),
-			invalidPct: totalPct(totalAgg.invalid),
-			used: totalAgg.used,
-			free: totalAgg.free,
-			invalid: totalAgg.invalid
-		}, true));
-
-		// Per floor
-		allFloorsStats.forEach(({
-			floor,
-			stats
-		}) => {
-			cards.push(this.renderDeskAvgCardHtml(`Floor ${floor}`, stats, false));
-		});
-
-		grid.innerHTML = cards.join('');
-	}
-
-	renderDeskAvgCardHtml(title, stats, highlight) {
-		const cls = highlight ? 'chart-card metric-card--highlight' : 'chart-card';
-		return `
-          <div class="${cls}">
-              <h4>${title}</h4>
-              <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:10px;">
-                  <div><strong>Used</strong>: ${stats.usedPct.toFixed(1)}% <span style="color:#64748b;">(${stats.used})</span></div>
-                  <div><strong>Free</strong>: ${stats.freePct.toFixed(1)}% <span style="color:#64748b;">(${stats.free})</span></div>
-                  <div><strong>Invalid</strong>: ${stats.invalidPct.toFixed(1)}% <span style="color:#64748b;">(${stats.invalid})</span></div>
-                  <div style="margin-left:auto;"><strong>Total</strong>: ${stats.total}</div>
-              </div>
-          </div>
-      `;
-	}
-
-
-applyBuildingStatVisibility() {
-  const building = String(this.filters.building || '').toUpperCase();
-  const cards = document.querySelectorAll('.office-stats .stat-card');
-  if (!cards.length) return;
-
-  cards.forEach(card => {
-    card.style.display = '';
-  });
-}
 
 	async loadBuildings() {
 		const select = document.getElementById('filter-building');
@@ -431,59 +313,57 @@ applyBuildingStatVisibility() {
 		}
 	}
 
-async handleFilterChange(filterId, value) {
-  console.log(`=== Filter Change: ${filterId} ===`, value);
+	async handleFilterChange(filterId, value) {
+  		console.log(`=== Filter Change: ${filterId} ===`, value);
 
-  const filterKey = filterId.replace('filter-', '').replace('-', '');
-  const mappedKey =
-    filterKey === 'sensortype' ? 'sensorType' :
-    filterKey === 'time' ? 'timeSlot' :
-    filterKey;
+		const filterKey = filterId.replace('filter-', '').replace('-', '');
+		const mappedKey =
+			filterKey === 'sensortype' ? 'sensorType' :
+			filterKey === 'time' ? 'timeSlot' :
+			filterKey;
 
-  // =========================
-  // ✅ Cas spécial BUILDING
-  // =========================
-  if (filterId === 'building') {
-    const building = this.buildings.find(
-      b => String(b.id) === String(value) || b.code === value
-    );
+		// =========================
+		// ✅ Cas spécial BUILDING
+		// =========================
+		if (filterId === 'building') {
+			const building = this.buildings.find(b => String(b.id) === String(value) || b.code === value);
 
-    if (!building) {
-      console.warn('Building not found for value:', value);
-      return;
-    }
+			if (!building) {
+				console.warn('Building not found for value:', value);
+				return;
+			}
 
-    // 1) Normaliser la clé building (code si dispo, sinon id)
-    this.filters.building = this.getBuildingKey(building);
+			// 1) Normaliser la clé building (code si dispo, sinon id)
+			this.filters.building = this.getBuildingKey(building);
 
-    // 2) Mettre à jour currentBuilding
-    this.currentBuilding = building;
+			// 2) Mettre à jour currentBuilding
+			this.currentBuilding = building;
 
-    // 3) Charger les floors (virtuel => code ok, DB => id)
-    const floorsLookupId = building.code ? building.code : building.id;
-    await this.loadBuildingFloors(floorsLookupId);
+			// 3) Charger les floors (virtuel => code ok, DB => id)
+			const floorsLookupId = building.code ? building.code : building.id;
+			await this.loadBuildingFloors(floorsLookupId);
 
-    // 4) Reset floor après reload floors
-    this.filters.floor = '';
-    const floorSelect = document.getElementById('filter-floor');
-    if (floorSelect) floorSelect.value = '';
+			// 4) Reset floor après reload floors
+			this.filters.floor = '';
+			const floorSelect = document.getElementById('filter-floor');
+			if (floorSelect) floorSelect.value = '';
 
-    // 5) UI titles
-    this.updateBuildingTitle();
-    this.updateSensorTypeUI(this.filters.sensorType);
+			// 5) UI titles
+			this.updateBuildingTitle();
+			this.updateSensorTypeUI(this.filters.sensorType);
 
-    // 6) 3D
-    if (window.building3D?.loadBuilding) {
-      console.log('Mise à jour du modèle 3D pour:', building.name);
-      window.building3D.loadBuilding(building);
-    }
+			// 6) 3D
+			if (window.building3D?.loadBuilding) {
+			console.log('Mise à jour du modèle 3D pour:', building.name);
+			window.building3D.loadBuilding(building);
+			}
 
-    // 6.5) Regenerate stat cards for the new building
-    if (window.ChartUtils?.generateStatCardsForBuilding) {
-      window.ChartUtils.generateStatCardsForBuilding(this.filters.building);
-    }
+			// 6.5) Regenerate stat cards for the new building
+			if (window.ChartUtils?.generateStatCardsForBuilding) {
+			window.ChartUtils.generateStatCardsForBuilding(this.filters.building);
+			}
 
-    // ✅ 7) Restart CONSO SSE (building + floor='')
+    		// ✅ 7) Restart CONSO SSE (building + floor='')
 			this.startConsoAggregateSse();
 
 			// ✅ 8) Update alert filters locally (instant, no API call)
@@ -649,8 +529,6 @@ async handleFilterChange(filterId, value) {
 
 	async loadDashboardData() {
 		console.log('=== Loading Dashboard Data ===');
-
-
 		try {
 			this.showLoading();
 
@@ -729,52 +607,22 @@ async handleFilterChange(filterId, value) {
 		this.scheduleNextRefresh();
 	}
 
-	generateSampleAlerts() {
-		return [{
-				level: 'critical',
-				icon: '⚠️',
-				title: 'Critical CO2 Level',
-				message: 'Sensor CO2-B2 detected 1200 ppm',
-				time: '2 minutes ago'
-			},
-			{
-				level: 'warning',
-				icon: '🔔',
-				title: 'High Temperature',
-				message: 'Room A-103 temperature at 28°C',
-				time: '15 minutes ago'
-			}
-		];
-	}
-
-	generateSampleLiveData() {
-		const rooms = ['Open_05-01', 'Open_05-02', 'Meeting Room A'];
-		return rooms.map(room => ({
-			location: room,
-			freeCount: Math.floor(Math.random() * 20) + 10,
-			usedCount: Math.floor(Math.random() * 15) + 5,
-			invalidCount: Math.floor(Math.random() * 2)
-		}));
-	}
-
 	// =========================
 	// ===== DASHBOARD UPDATE =====
 	// =========================
 
-// updateDashboard(data)
-async updateDashboard(data) {
-  this.updateAlerts(data?.alerts);
-  this.updateLiveData(data?.liveSensorData);
-  this.updateLiveBuildingMetrics();
-  this.updateHistoricalData(data?.historicalData);
-  this.updateOccupationHistory(data?.historicalData);
-  this.updateCostAnalysis(data?.historicalData);
-  this.updateGlobalStatistics(data?.historicalData);
-  this.applyBuildingStatVisibility();
+	async updateDashboard(data) {
+		this.updateAlerts(data?.alerts);
+		this.updateLiveData(data?.liveSensorData);
+		this.updateLiveBuildingMetrics();
+		this.updateHistoricalData(data?.historicalData);
+		this.updateOccupationHistory(data?.historicalData);
+		this.updateCostAnalysis(data?.historicalData);
+		this.updateGlobalStatistics(data?.historicalData);
+		this.applyBuildingStatVisibility();
 
-  this.hideLoading();
-}
-
+		this.hideLoading();
+	}
 
 	updateAlerts(alerts) {
 		console.log('=== Updating Alerts ===');
@@ -839,168 +687,117 @@ async updateDashboard(data) {
 		this.updateTotalChart(liveData);
 	}
 
-	async fetchDeskSensorsAllFloors(building) {
-		const params = new URLSearchParams({
-			building,
-			sensorType: 'DESK',
-			metricType: 'OCCUPANCY'
-		});
+	async updateLiveBuildingMetrics() {
+		try {
+			// --- Desk usage ratio ---
+			try {
+				const floor = this.getEffectiveFloorParam();
+				const occItems = await this.fetchOccupancy(floor);
 
-		const r = await fetch(`/api/dashboard/sensors?${params.toString()}`);
-		if (!r.ok) return [];
-		const data = await r.json();
-		return Array.isArray(data) ? data : [];
+				const filtered = (occItems || []).filter(x => {
+					const id = String(x?.id || '').toLowerCase();
+					return /^desk-\d{2}-\d{2}$/.test(id);
+				});
+
+				const occ = this.computeOccupancyFromStatuses(filtered);
+				this.updateMetricValue('live-desk-usage', occ.label);
+			} catch (e) {
+				console.warn('Desk occupancy ratio failed', e);
+			}
+
+			const building = this.filters.building;
+			const floor = this.getEffectiveFloorParam();
+			const timeSlot = this.filters.timeSlot;
+
+			const safeSet = (elId, val, fmt) => {
+				if (val == null || Number.isNaN(Number(val))) return;
+				this.updateMetricValue(elId, fmt(Number(val)));
+			};
+
+			const getAvg = async ({
+				sensorType,
+				metricType,
+				excludeSensorType
+			}) => {
+				const { avg } = await this.fetchHistogramAvg({
+					building,
+					floor,
+					sensorType,
+					metricType,
+					timeRange: 'LAST_7_DAYS',
+					granularity: 'DAILY',
+					timeSlot,
+					excludeSensorType
+				});
+				return avg;
+			};
+
+			// =========================================================
+			// TEMP / HUM : EXT = TEMPEX ; INT = ALL (sauf TEMPEX)
+			// =========================================================
+
+			// EXT (TEMPEX)
+			try {
+				const tempExt = await getAvg({ sensorType: 'TEMPEX', metricType: 'TEMPERATURE' });
+				safeSet('live-avg-temperature-ext', tempExt, v => v.toFixed(1));
+			} catch (e) {
+				console.warn('Temperature EXT (TEMPEX) failed', e?.message || e);
+			}
+
+			try {
+				const humExt = await getAvg({ sensorType: 'TEMPEX', metricType: 'HUMIDITY' });
+				safeSet('live-avg-humidity-ext', humExt, v => v.toFixed(1));
+			} catch (e) {
+				console.warn('Humidity EXT (TEMPEX) failed', e?.message || e);
+			}
+
+			// INT (tous capteurs sauf TEMPEX)
+			// IMPORTANT: ton backend doit accepter sensorType=ALL (ou l’absence de sensorType).
+			// Ici je garde ALL car tu l’utilises déjà.
+			try {
+				const tempInt = await getAvg({
+					sensorType: 'ALL',
+					metricType: 'TEMPERATURE',
+					excludeSensorType: 'TEMPEX'
+				});
+				safeSet('live-avg-temperature-int', tempInt, v => v.toFixed(1));
+			} catch (e) {
+				console.warn('Temperature INT (ALL - TEMPEX) failed', e?.message || e);
+			}
+
+			try {
+				const humInt = await getAvg({
+					sensorType: 'ALL',
+					metricType: 'HUMIDITY',
+					excludeSensorType: 'TEMPEX'
+				});
+				safeSet('live-avg-humidity-int', humInt, v => v.toFixed(1));
+			} catch (e) {
+				console.warn('Humidity INT (ALL - TEMPEX) failed', e?.message || e);
+			}
+
+			// =========================================================
+			// AUTRES METRICS (moyenne bâtiment "normale")
+			// =========================================================
+
+			const mappings = [
+				{ metric: 'CO2', el: 'live-avg-co2', format: v => Math.round(v) },
+				{ metric: 'LAEQ', el: 'live-avg-sound', format: v => v.toFixed(1) },
+				{ metric: 'LIGHT', el: 'live-avg-light', format: v => Math.round(v) }
+			];
+
+			for (const { metric, el, format } of mappings) {
+				try {
+					const avg = await this.fetchLiveMetric(metric); // utilise metricSources
+					safeSet(el, avg, format);
+				} catch (e) {
+					console.warn(`Live metric ${metric} failed`, e?.message || e);
+				}
+			}
+		} catch (e) {
+			console.error('Error updating live building metrics:', e);
+		}
 	}
-
-
-async updateLiveBuildingMetrics() {
-  try {
-    // --- Desk usage ratio ---
-    try {
-      const floor = this.getEffectiveFloorParam();
-      const occItems = await this.fetchOccupancy(floor);
-
-      const filtered = (occItems || []).filter(x => {
-        const id = String(x?.id || '').toLowerCase();
-        return /^desk-\d{2}-\d{2}$/.test(id);
-      });
-
-      const occ = this.computeOccupancyFromStatuses(filtered);
-      this.updateMetricValue('live-desk-usage', occ.label);
-    } catch (e) {
-      console.warn('Desk occupancy ratio failed', e);
-    }
-
-    const building = this.filters.building;
-    const floor = this.getEffectiveFloorParam();
-    const timeSlot = this.filters.timeSlot;
-
-    const safeSet = (elId, val, fmt) => {
-      if (val == null || Number.isNaN(Number(val))) return;
-      this.updateMetricValue(elId, fmt(Number(val)));
-    };
-
-    const getAvg = async ({
-      sensorType,
-      metricType,
-      excludeSensorType
-    }) => {
-      const { avg } = await this.fetchHistogramAvg({
-        building,
-        floor,
-        sensorType,
-        metricType,
-        timeRange: 'LAST_7_DAYS',
-        granularity: 'DAILY',
-        timeSlot,
-        excludeSensorType
-      });
-      return avg;
-    };
-
-    // =========================================================
-    // TEMP / HUM : EXT = TEMPEX ; INT = ALL (sauf TEMPEX)
-    // =========================================================
-
-    // EXT (TEMPEX)
-    try {
-      const tempExt = await getAvg({ sensorType: 'TEMPEX', metricType: 'TEMPERATURE' });
-      safeSet('live-avg-temperature-ext', tempExt, v => v.toFixed(1));
-    } catch (e) {
-      console.warn('Temperature EXT (TEMPEX) failed', e?.message || e);
-    }
-
-
-
-    try {
-      const humExt = await getAvg({ sensorType: 'TEMPEX', metricType: 'HUMIDITY' });
-      safeSet('live-avg-humidity-ext', humExt, v => v.toFixed(1));
-    } catch (e) {
-      console.warn('Humidity EXT (TEMPEX) failed', e?.message || e);
-    }
-
-    // INT (tous capteurs sauf TEMPEX)
-    // IMPORTANT: ton backend doit accepter sensorType=ALL (ou l’absence de sensorType).
-    // Ici je garde ALL car tu l’utilises déjà.
-    try {
-      const tempInt = await getAvg({
-        sensorType: 'ALL',
-        metricType: 'TEMPERATURE',
-        excludeSensorType: 'TEMPEX'
-      });
-      safeSet('live-avg-temperature-int', tempInt, v => v.toFixed(1));
-    } catch (e) {
-      console.warn('Temperature INT (ALL - TEMPEX) failed', e?.message || e);
-    }
-
-    try {
-      const humInt = await getAvg({
-        sensorType: 'ALL',
-        metricType: 'HUMIDITY',
-        excludeSensorType: 'TEMPEX'
-      });
-      safeSet('live-avg-humidity-int', humInt, v => v.toFixed(1));
-    } catch (e) {
-      console.warn('Humidity INT (ALL - TEMPEX) failed', e?.message || e);
-    }
-
-    // =========================================================
-    // AUTRES METRICS (moyenne bâtiment "normale")
-    // =========================================================
-
-    const mappings = [
-      { metric: 'CO2', el: 'live-avg-co2', format: v => Math.round(v) },
-      { metric: 'LAEQ', el: 'live-avg-sound', format: v => v.toFixed(1) },
-      { metric: 'LIGHT', el: 'live-avg-light', format: v => Math.round(v) }
-    ];
-
-    for (const { metric, el, format } of mappings) {
-      try {
-        const avg = await this.fetchLiveMetric(metric); // utilise metricSources
-        safeSet(el, avg, format);
-      } catch (e) {
-        console.warn(`Live metric ${metric} failed`, e?.message || e);
-      }
-    }
-  } catch (e) {
-    console.error('Error updating live building metrics:', e);
-  }
-}
-
-async calculateTodaysEnergy() {
-  try {
-    const params = new URLSearchParams({
-      building: this.filters.building,
-      floor: this.getEffectiveFloorParam(),
-      sensorType: 'CONSO',
-      metricType: 'ENERGY_TOTAL',
-      timeRange: 'TODAY',
-      granularity: 'HOURLY', // optionnel (le backend le forcera)
-      timeSlot: String(this.filters.timeSlot || '').toUpperCase()
-    });
-
-    // nettoie les params vides
-    for (const [k, v] of [...params]) if (!v) params.delete(k);
-
-    const response = await fetch(`/api/dashboard/histogram?${params.toString()}`);
-    if (!response.ok) return;
-
-    const data = await response.json();
-    const points = data?.dataPoints || data?.data || [];
-
-    // Ici "value" dépend de ce que tu stockes :
-    // - si tes ENERGY_CHANNEL_X sont en Wh => ENERGY_TOTAL sera en Wh sur le bucket (selon ton backend)
-    // - si c’est déjà en kWh => ne divise pas.
-    const totalWh = Array.isArray(points)
-      ? points.reduce((sum, p) => sum + (Number(p?.value) || 0), 0)
-      : 0;
-
-    const totalKWh = totalWh / 1000; // si valeur en Wh
-    this.updateMetricValue('live-daily-energy', totalKWh.toFixed(2));
-  } catch (error) {
-    console.warn("Failed to calculate today's energy:", error);
-  }
-}
 
 	updateMetricValue(elementId, value) {
 		const element = document.getElementById(elementId);
@@ -1159,6 +956,8 @@ async calculateTodaysEnergy() {
 		const recentData = historicalData.dataPoints.slice(-10).reverse();
 
 		tableBody.innerHTML = recentData.map(d => {
+			const occ = Number(d.occupancyRate);
+			const formattedOcc = isFinite(occ) ? `${occ.toFixed(0)}%` : '--';
 			const date = new Date(d.date);
 			const formattedDate = date.toLocaleDateString('fr-FR', {
 				day: '2-digit',
@@ -1169,7 +968,7 @@ async calculateTodaysEnergy() {
 			return `
         <tr>
           <td>${formattedDate}</td>
-          <td>${d.occupancyRate.toFixed(0)}%</td>
+          <td>${formattedOcc}</td>
         </tr>
       `;
 		}).join('');
@@ -1776,7 +1575,6 @@ async calculateTodaysEnergy() {
       return { avg: last, data };
     }
 
-
 	renderHistogramChart(data) {
 		console.log('Rendering Histogram Chart');
 		this.renderDeskOccupancyBars(data);
@@ -1911,13 +1709,11 @@ async calculateTodaysEnergy() {
 		const minEl = document.getElementById('summary-min-value');
 		const maxEl = document.getElementById('summary-max-value');
 
-
 		if (totalEl) totalEl.textContent = summary?.totalSensors || '--';
 		if (activeEl) activeEl.textContent = summary?.activeSensors || '--';
 		if (avgEl) avgEl.textContent = summary?.avgValue != null ? summary.avgValue.toFixed(2) : '--';
 		if (minEl) minEl.textContent = summary?.minValue != null ? summary.minValue.toFixed(2) : '--';
 		if (maxEl) maxEl.textContent = summary?.maxValue != null ? summary.maxValue.toFixed(2) : '--';
-
 	}
 
 	updateHistogramTitle(data) {
@@ -1982,6 +1778,7 @@ async calculateTodaysEnergy() {
 		if (!f || f === 'all') return ''; // means: omit
 		return String(f);
 	}
+
 	parseIsoToDateSafe(isoStr) {
 		if (!isoStr) return null;
 		const d = new Date(isoStr);
@@ -2026,57 +1823,40 @@ async calculateTodaysEnergy() {
       return null;
     }
 
-
-	computeState(sensorInfo, staleMinutes = 60) {
-		const ts = this.parseIsoToDateSafe(sensorInfo?.lastTimestamp);
-		if (!ts) return "invalid";
-
-		const ageMs = Date.now() - ts.getTime();
-		if (ageMs > staleMinutes * 60 * 1000) return "invalid";
-
-		const v = sensorInfo?.lastValue;
-		if (typeof v !== "number" || Number.isNaN(v)) return "invalid";
-
-		return v > 0 ? "used" : "free";
-	}
-
-
-
-
 	// =========================
 	// ===== LABELS / UNITS =====
 	// =========================
 
-getMetricLabel(metricType) {
-  const labels = {
-    OCCUPANCY: 'Occupancy',
-    TEMPERATURE: 'Temperature',
-    CO2: 'CO₂ Level',
-    HUMIDITY: 'Humidity',
-    LIGHT: 'Light Level',
-    LAEQ: 'Noise Level',
-    MOTION: 'Motion Events',
-    POWER_TOTAL: 'Current Power',
-    ENERGY_TOTAL: 'Energy'
-  };
-  return labels[metricType] || metricType;
-}
+	getMetricLabel(metricType) {
+		const labels = {
+			OCCUPANCY: 'Occupancy',
+			TEMPERATURE: 'Temperature',
+			CO2: 'CO₂ Level',
+			HUMIDITY: 'Humidity',
+			LIGHT: 'Light Level',
+			LAEQ: 'Noise Level',
+			MOTION: 'Motion Events',
+			POWER_TOTAL: 'Current Power',
+			ENERGY_TOTAL: 'Energy'
+		};
+		return labels[metricType] || metricType;
+	}
 
-getMetricUnit(metricType, aggregationType) {
-  const units = {
-    OCCUPANCY: 'count',
-    TEMPERATURE: '°C',
-    CO2: 'ppm',
-    HUMIDITY: '%',
-    LIGHT: 'lux',
-    LAEQ: 'dB',
-    MOTION: 'events',
-    POWER_TOTAL: 'kW',
-    ENERGY_TOTAL: 'Wh'
-  };
-  if (aggregationType === 'COUNT') return 'count';
-  return units[metricType] || '';
-}
+	getMetricUnit(metricType, aggregationType) {
+		const units = {
+			OCCUPANCY: 'count',
+			TEMPERATURE: '°C',
+			CO2: 'ppm',
+			HUMIDITY: '%',
+			LIGHT: 'lux',
+			LAEQ: 'dB',
+			MOTION: 'events',
+			POWER_TOTAL: 'kW',
+			ENERGY_TOTAL: 'Wh'
+		};
+		if (aggregationType === 'COUNT') return 'count';
+		return units[metricType] || '';
+	}
 
 	getTimeRangeLabel(timeRange) {
 		const labels = {

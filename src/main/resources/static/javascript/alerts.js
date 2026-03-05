@@ -15,62 +15,6 @@ function updateRefreshTime() {
     document.getElementById('last-refresh-time').textContent = formatted;
 }
 
-// Building and Floor View Navigation
-function showFloorPlan(floorNumber) {
-    const buildingView = document.getElementById('building-view');
-    const floorPlanView = document.getElementById('floor-plan-view');
-    const floorTitle = document.getElementById('current-floor-title');
-    
-    // Hide building view, show floor plan
-    buildingView.style.display = 'none';
-    floorPlanView.style.display = 'block';
-    
-    // Update title
-    const floorNames = {
-        0: 'Ground Floor',
-        1: 'Floor 1',
-        2: 'Floor 2',
-        3: 'Floor 3'
-    };
-    floorTitle.textContent = `${floorNames[floorNumber]} - Ceiling View`;
-    
-    // Load desk data for this floor (in production, fetch from API)
-    loadFloorDesks(floorNumber);
-}
-
-function showBuildingView() {
-    const buildingView = document.getElementById('building-view');
-    const floorPlanView = document.getElementById('floor-plan-view');
-    
-    // Show building view, hide floor plan
-    buildingView.style.display = 'flex';
-    floorPlanView.style.display = 'none';
-}
-
-function loadFloorDesks(floorNumber) {
-    const deskGrid = document.getElementById('desk-grid');
-    const buildingSelect = document.getElementById('filter-building');
-    const buildingId = buildingSelect ? buildingSelect.value : 'CHATEAUDUN';
-
-    // Use shared configuration for desk-sensor mapping
-    const desks = window.DeskSensorConfig
-        ? window.DeskSensorConfig.getFloorDesks(floorNumber, 'invalid', buildingId)
-        : [];
-    
-    // Clear and rebuild desk grid
-    deskGrid.innerHTML = '';
-    desks.forEach(desk => {
-        const deskElement = document.createElement('div');
-        deskElement.className = `desk ${desk.status}`;
-        deskElement.setAttribute('data-desk', desk.id);
-        deskElement.textContent = desk.id;
-        deskElement.addEventListener('click', function() {
-            alert(`Desk ${desk.id}\nStatus: ${desk.status}\n\nClick to view detailed information.`);
-        });
-        deskGrid.appendChild(deskElement);
-    });
-}
-
 // Initialize charts using shared utility functions
 function initCharts() {
     // Chart.js default options
@@ -385,14 +329,9 @@ function initFilters() {
                 // Handle sensor type filter change
                 if (filterId === 'sensor-type') {
                     updatePageTitles(this.value);
-                    // if (window.building3D) {
-                    //     window.building3D.setSensorMode(this.value);
-                    // }
                 }
                 
                 updateRefreshTime();
-                // In production, this would trigger data refresh
-                // refreshDashboardData();
             });
         }
     });
