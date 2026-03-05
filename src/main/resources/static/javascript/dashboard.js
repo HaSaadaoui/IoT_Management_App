@@ -10,6 +10,7 @@ class DashboardManager {
         // TTL (ms) : si un device ne remonte plus, on l’enlève du total
         this.consoTtlMs = 2 * 60 * 1000; // 2 minutes
 
+
 		// Bâtiments "hors base"
 		this.virtualBuildings = {
 			CHATEAUDUN: {
@@ -49,6 +50,7 @@ class DashboardManager {
 			CURRENT_POWER: { sensorType: 'CONSO', metricType: 'POWER_TOTAL', unit: 'kW' },
 			DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' },
         };
+
 
 		this.currentData = null;
 		this.selectedSensor = null;
@@ -178,6 +180,7 @@ class DashboardManager {
 
 		// Stop ancien SSE si existant
 		this.stopConsoAggregateSse();
+        this.resetConsoMetrics();   // toujours reset au switch
 
 		const floor = this.getEffectiveFloorParam(); // '' si All Floors
 		const qs = new URLSearchParams({ building });
@@ -199,6 +202,8 @@ class DashboardManager {
 
 				if (kw != null && !Number.isNaN(kw)) {
 					this.updateMetricValue('live-current-power', kw.toFixed(2));
+				} else{
+				    this.updateMetricValue('live-current-power', '--');
 				}
 
 				const kwh = (payload.todayEnergykWh != null)
@@ -207,15 +212,27 @@ class DashboardManager {
 
 				if (kwh != null && !Number.isNaN(kwh)) {
 					this.updateMetricValue('live-daily-energy', kwh.toFixed(2));
+				} else{
+                    this.updateMetricValue('live-daily-energy', '--');
 				}
 			} catch (e) {
 				console.warn('[CONSO SSE] parse error', e);
+                this.resetConsoMetrics();
 			}
 		});
 
 		es.addEventListener('keepalive', () => {});
-		es.onerror = (err) => console.warn('[CONSO SSE] error', err);
+        es.onerror = (err) => {
+            console.warn('[CONSO SSE] error', err);
+            this.resetConsoMetrics();
+        };
 	}
+
+
+    resetConsoMetrics() {
+      this.updateMetricValue('live-current-power', '--');
+      this.updateMetricValue('live-daily-energy', '--');
+    }
 
 	stopConsoAggregateSse() {
 		if (this.consoSse) {
