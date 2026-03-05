@@ -19,9 +19,6 @@
 
 <!-- ================= CONFIGURATION PAGE ================= -->
 <main class="config-page">
-
-    <!-- ================= SENSOR MANAGEMENT ================= -->
-    <!-- ================= SENSOR MANAGEMENT ================= -->
     <!-- ================= SENSOR MANAGEMENT ================= -->
     <div class="config-card">
         <h2>Sensor Management</h2>
@@ -38,31 +35,32 @@
                     <button type="submit" class="btn btn-violet">Add</button>
                 </form>
 
-                <table class="config-mini-table">
-                    <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th style="width: 90px;">Action</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <!-- ✅ deviceTypes, dt.label, dt.idDeviceType -->
-                    <tr th:each="dt : ${deviceTypes}">
-                        <td th:text="${dt.label}">DESK</td>
-                        <td>
-                            <form th:action="@{/configuration/device-types/delete}" method="post"
-                                  onsubmit="return confirm('Delete device type: ' + [[${dt.label}]] + ' ?');">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                <input type="hidden" name="id" th:value="${dt.idDeviceType}"/>
-                                <button type="submit" class="btn btn-danger-mini">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
-                    <tr th:if="${deviceTypes == null || #lists.isEmpty(deviceTypes)}">
-                        <td colspan="2" class="muted">No device types yet.</td>
-                    </tr>
-                    </tbody>
-                </table>
+                <div class="config-mini-table-wrapper">
+                    <table class="config-mini-table">
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th style="width: 90px;">Action</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="dt : ${deviceTypes}">
+                            <td th:text="${dt.label}">DESK</td>
+                            <td>
+                                <form th:action="@{/configuration/device-types/delete}" method="post"
+                                      onsubmit="return confirm('Delete device type: ' + [[${dt.label}]] + ' ?');">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                    <input type="hidden" name="id" th:value="${dt.idDeviceType}"/>
+                                    <button type="submit" class="btn btn-danger-mini">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${deviceTypes == null || #lists.isEmpty(deviceTypes)}">
+                            <td colspan="2" class="muted">No device types yet.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
             </section>
 
             <!-- ================= BRANDS ================= -->
@@ -75,30 +73,32 @@
                     <button type="submit" class="btn btn-violet">Add</button>
                 </form>
 
-                <table class="config-mini-table">
-                    <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th style="width: 90px;">Action</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr th:each="b : ${brands}">
-                        <td th:text="${b.name}">Elsys</td>
-                        <td>
-                            <form th:action="@{/configuration/brands/delete}" method="post"
-                                  onsubmit="return confirm('Delete brand: ' + [[${b.name}]] + ' ?');">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                <input type="hidden" name="id" th:value="${b.id}"/>
-                                <button type="submit" class="btn btn-danger-mini">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
-                    <tr th:if="${brands == null || #lists.isEmpty(brands)}">
-                        <td colspan="2" class="muted">No brands yet.</td>
-                    </tr>
-                    </tbody>
-                </table>
+                <div class="config-mini-table-wrapper">
+                    <table class="config-mini-table">
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th style="width: 90px;">Action</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="b : ${brands}">
+                            <td th:text="${b.name}">Elsys</td>
+                            <td>
+                                <form th:action="@{/configuration/brands/delete}" method="post"
+                                      onsubmit="return confirm('Delete brand: ' + [[${b.name}]] + ' ?');">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                    <input type="hidden" name="id" th:value="${b.id}"/>
+                                    <button type="submit" class="btn btn-danger-mini">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${brands == null || #lists.isEmpty(brands)}">
+                            <td colspan="2" class="muted">No brands yet.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
             </section>
 
             <!-- ================= PROTOCOLS ================= -->
@@ -111,33 +111,36 @@
                     <button type="submit" class="btn btn-violet">Add</button>
                 </form>
 
-                <table class="config-mini-table">
-                    <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th style="width: 90px;">Action</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr th:each="p : ${protocols}">
-                        <td th:text="${p.name}">LoRaWAN</td>
-                        <td>
-                            <form th:action="@{/configuration/protocols/delete}" method="post"
-                                  onsubmit="return confirm('Delete protocol: ' + [[${p.name}]] + ' ?');">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                <input type="hidden" name="id" th:value="${p.id}"/>
-                                <button type="submit" class="btn btn-danger-mini">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
-                    <tr th:if="${protocols == null || #lists.isEmpty(protocols)}">
-                        <td colspan="2" class="muted">No protocols yet.</td>
-                    </tr>
-                    </tbody>
-                </table>
+                <div class="config-mini-table-wrapper">
+                    <table class="config-mini-table">
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th style="width: 90px;">Action</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="p : ${protocols}">
+                            <td th:text="${p.name}">LoRaWAN</td>
+                            <td>
+                                <form th:action="@{/configuration/protocols/delete}" method="post"
+                                      onsubmit="return confirm('Delete protocol: ' + [[${p.name}]] + ' ?');">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                    <input type="hidden" name="id" th:value="${p.id}"/>
+                                    <button type="submit" class="btn btn-danger-mini">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${protocols == null || #lists.isEmpty(protocols)}">
+                            <td colspan="2" class="muted">No protocols yet.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
             </section>
 
         </div>
+
 
         <!-- Messages -->
         <div th:if="${configMessage != null}" class="alert alert-success" style="margin-top: 15px;">

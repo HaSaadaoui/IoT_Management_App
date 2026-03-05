@@ -643,7 +643,7 @@ async function initBuildingConfig() {
         }
     } else {
         nameEl.value   = "";
-        floorsEl.value = 3;
+        floorsEl.value = 1;
         scaleEl.value  = 0.01;
         defaultSVGFile = "";
     }
@@ -660,10 +660,9 @@ function refresh3DConfig(){
 
     window.building3D.buildingKey = buildingId;
     window.building3D.isDbBuilding = true;
-    window.building3D.dbBuildingConfig = {floors: floorsEl.value, scale: scaleEl.value, svgUrl: null};
     window.building3D.dbShapeCache = null;
-    window.building3D.config = {id: buildingId};
-    window.building3D.dbBuildingConfig.svgUrl = defaultSVGFile;
+    window.building3D.dbBuildingConfig = {floors: floorsEl.value, scale: scaleEl.value, svgUrl: defaultSVGFile};
+    window.building3D.config = {id: buildingId, floors: floorsEl.value, scale: scaleEl.value};
 
     this.populateFloorSelect();
 

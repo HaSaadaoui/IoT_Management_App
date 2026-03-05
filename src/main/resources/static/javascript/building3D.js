@@ -261,10 +261,12 @@ class Building3D {
     }
 
     getDeskSensor(floorNumber, deskId) {
-        // Use shared configuration for desk-sensor mapping
-        return window.DeskSensorConfig
-            ? window.DeskSensorConfig.getSensor(floorNumber, deskId, this.buildingKey)
-            : null;
+        if (floorNumber == null || !deskId) return null;
+        const floor = this.floorData?.[floorNumber];
+        if (!floor || !Array.isArray(floor.desks)) return null;
+
+        const match = floor.desks.find(d => d?.id === deskId);
+        return match?.sensor ?? null;
     }
 
     getSvgPlanUrl() {
@@ -441,7 +443,11 @@ class Building3D {
         if (!this.isIn3DView && this.currentArchPlan && this.currentFloorNumber != null) {
             const floorInfo = this.floorData[this.currentFloorNumber];
             const m = {};
-            Object.values(floorInfo.desks).forEach(d => (m[d.id] = d.status));
+            if (this.isDbBuilding){
+                Object.values(floorInfo.desks).forEach(d => (m[d.sensor] = d.status));
+            } else {
+                Object.values(floorInfo.desks).forEach(d => (m[d.id] = d.status));
+            } 
             this.currentArchPlan.drawFloorPlan(m);
         }
     }
@@ -472,7 +478,11 @@ class Building3D {
             if (sensorId && this.deskStatusMap.has(sensorId)) {
                 const status = this.deskStatusMap.get(sensorId);
                 desk.status = status;
-                deskOccupancy[desk.id] = status;
+                if (this.isDbBuilding){
+                    deskOccupancy[desk.sensor] = status;
+                } else {
+                    deskOccupancy[desk.id] = status;
+                } 
             }
         });
 
@@ -800,12 +810,10 @@ class Building3D {
         const overlay = document.getElementById('floor-info-overlay');
         if (!overlay) return;
 
-        const mapping = window.DeskSensorConfig?.mappings?.[this.buildingKey] ?? {};
-        const keys = Object.keys(mapping);
-        const raw = keys[floorNumber];
-
-        const parsed = Number.parseInt(raw ?? '0', 10);
-        const actualFloor = Number.isNaN(parsed) ? 0 : parsed;
+        let actualFloor = floorNumber;
+        if (this.buildingKey === "LEVALLOIS"){
+            actualFloor = 3;
+        }
         const data = this.floorData[actualFloor];
 
         let desks = data.desks;
@@ -1048,15 +1056,11 @@ class Building3D {
                     scale: b.scale || 0.01
                 };
 
-                // for (let i = 0; i < b.floorsCount; i++) {
-                //     this.config.floorData[i] = {
-                //         name: 'Floor '+i,
-                //         desks: [] //TODO load from DB?
-                //     };
-                // }
-
-                let letTemp = BUILDINGS["LEVALLOIS"];
-                this.floorData = JSON.parse(JSON.stringify(letTemp.floorData));
+                this.floorData = [];
+                const svgFloorData = await this.loadFloorDataFromSvg(this.dbBuildingConfig.svgUrl);
+                if (Object.keys(svgFloorData).length > 0) {
+                    this.floorData = svgFloorData;
+                }
 
                 console.log("Loaded DB building config:", this.dbBuildingConfig);
             } catch (e) {
@@ -1069,6 +1073,61 @@ class Building3D {
 
             this.config = BUILDINGS[this.buildingKey];
             this.floorData = JSON.parse(JSON.stringify(this.config.floorData));
+        }
+    }
+
+    async loadFloorDataFromSvg(svgUrl) {
+        if (!svgUrl) {
+            console.warn("[loadFloorDataFromSvg] No SVG URL provided");
+            return {};
+        }
+
+        try {
+            const resp = await fetch(svgUrl);
+            if (!resp.ok) {
+                console.error("[loadFloorDataFromSvg] HTTP error", resp.status);
+                return {};
+            }
+
+            const svgContent = await resp.text();
+            const doc = new DOMParser().parseFromString(svgContent, "image/svg+xml");
+
+            const nodes = [...doc.querySelectorAll(".sensor")]
+                .filter(el => el.getAttribute("sensor-mode") === "DESK");
+
+            const floorData = {};
+
+            nodes.forEach(el => {
+                const floor = parseInt(el.getAttribute("floor-number"), 10);
+                const deskLabel = el.getAttribute("label");   // ex: D01
+                const sensorId = el.getAttribute("id");       // ex: desk-03-01
+
+                if (isNaN(floor)) return;
+
+                if (!floorData[floor]) {
+                    let name = `Floor ${floor}`;
+                    if (floor === 0){
+                        name = 'Ground Floor';
+                    }
+                    floorData[floor] = {
+                        name: name,
+                        desks: []
+                    };
+                }
+
+                floorData[floor].desks.push({
+                    id: deskLabel,
+                    sensor: sensorId,
+                    status: "invalid"
+                });
+            });
+
+            console.log("✔ desk sensors imported from SVG:", floorData);
+            return floorData;
+
+        } catch (err) {
+            console.error("[loadFloorDataFromSvg] Error parsing SVG:", err);
+            return {};
         }
     }
 
