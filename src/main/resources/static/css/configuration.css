@@ -373,6 +373,20 @@ textarea {
     color: #e5e7eb;
 }
 
+.btn-decoder-mini {
+    background: #662179;
+    border: none;
+    color: white;
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-decoder-mini:hover {
+    background: #4a1857;
+}
+
 #test-decoded {
     background: #f0f0f0;
     padding: 10px;

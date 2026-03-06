@@ -78,13 +78,21 @@
                         <thead>
                         <tr>
                             <th>Name</th>
-                            <th style="width: 90px;">Action</th>
+                            <th style="width: 160px;">Action</th>
                         </tr>
                         </thead>
                         <tbody>
                         <tr th:each="b : ${brands}">
                             <td th:text="${b.name}">Elsys</td>
-                            <td>
+                            <td style="display:flex; gap:4px; align-items:center;">
+                                <button type="button"
+                                        class="btn btn-decoder-mini decoder-btn"
+                                        th:data-brand-id="${b.id}"
+                                        th:data-brand-name="${b.name}"
+                                        onclick="openDecoderEditor(this.dataset.brandId, this.dataset.brandName)">
+                                    Decoder
+                                </button>
+                                <!-- Bouton Delete existant -->
                                 <form th:action="@{/configuration/brands/delete}" method="post"
                                       onsubmit="return confirm('Delete brand: ' + [[${b.name}]] + ' ?');">
                                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
@@ -154,11 +162,12 @@
     <div class="config-card">
         <h2>⚡ Energy Management</h2>
         <p class="section-description">Configure energy cost and CO₂ emission factors per building</p>
-        
+
         <!-- Building Selection -->
         <div class="mb-4">
             <label class="form-label fw-semibold">Select Building</label>
-            <select id="energy-config-building" class="form-select" style="width: auto; max-width: 300px; height: 45px;">
+            <select id="energy-config-building" class="form-select"
+                    style="width: auto; max-width: 300px; height: 45px;">
                 <option value="">-- Select a building --</option>
                 <option value="Levallois-Building">Levallois Building</option>
                 <option value="Châteaudun-Building">Châteaudun Building</option>
@@ -174,7 +183,8 @@
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">💰 Energy Cost per kWh</label>
                     <div class="input-group">
-                        <input type="number" id="energy-cost-kwh" class="form-control" step="0.01" min="0" placeholder="0.21" required>
+                        <input type="number" id="energy-cost-kwh" class="form-control" step="0.01" min="0"
+                               placeholder="0.21" required>
                         <select id="energy-currency" class="form-select" style="max-width: 100px;">
                             <option value="EUR">€</option>
                             <option value="USD">$</option>
@@ -186,7 +196,8 @@
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">🌿 CO₂ Emission Factor</label>
                     <div class="input-group">
-                        <input type="number" id="co2-emission-factor" class="form-control" step="0.001" min="0" placeholder="0.052" required>
+                        <input type="number" id="co2-emission-factor" class="form-control" step="0.001" min="0"
+                               placeholder="0.052" required>
                         <span class="input-group-text">kg CO₂/kWh</span>
                     </div>
                     <small class="text-muted">CO₂ emissions per kWh based on location</small>
@@ -203,18 +214,18 @@
             <div class="table-responsive">
                 <table class="table table-striped" id="energy-config-table">
                     <thead>
-                        <tr>
-                            <th>Building</th>
-                            <th>Energy Cost</th>
-                            <th>Currency</th>
-                            <th>CO₂ Factor (kg/kWh)</th>
-                            <th>Actions</th>
-                        </tr>
+                    <tr>
+                        <th>Building</th>
+                        <th>Energy Cost</th>
+                        <th>Currency</th>
+                        <th>CO₂ Factor (kg/kWh)</th>
+                        <th>Actions</th>
+                    </tr>
                     </thead>
                     <tbody id="energy-config-tbody">
-                        <tr>
-                            <td colspan="5" class="text-center text-muted">Loading configurations...</td>
-                        </tr>
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">Loading configurations...</td>
+                    </tr>
                     </tbody>
                 </table>
             </div>
@@ -237,7 +248,8 @@
             </div>
             <div class="mb-3">
                 <label>Period</label>
-                <select class="form-select" style="width: 30%; max-width: none; height: 45px; margin-top: 10px; margin-left: 10px;">
+                <select class="form-select"
+                        style="width: 30%; max-width: none; height: 45px; margin-top: 10px; margin-left: 10px;">
                     <option>Daily</option>
                     <option>Weekly</option>
                     <option>Monthly</option>
@@ -251,7 +263,7 @@
     <div class="config-card">
         <h2>🚨 Alerts and Notifications</h2>
         <p class="section-description">Configure alert thresholds and notification preferences for sensor monitoring</p>
-        
+
         <!-- Form 1: Global Thresholds -->
         <form onsubmit="event.preventDefault(); saveAlertConfig();" class="threshold-form">
             <h4 class="subsection-title">📊 Global Threshold Configuration</h4>
@@ -262,7 +274,8 @@
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Data Max Age (minutes)</label>
                         <div class="input-with-unit">
-                            <input type="number" id="alert-data-age" class="form-control" th:value="${alertConfig.dataMaxAgeMinutes}" step="1" min="1">
+                            <input type="number" id="alert-data-age" class="form-control"
+                                   th:value="${alertConfig.dataMaxAgeMinutes}" step="1" min="1">
                             <span class="input-unit">min</span>
                         </div>
                         <small class="text-muted">Maximum age before sensor is considered offline</small>
@@ -276,14 +289,16 @@
                     <div class="col-md-6">
                         <label class="form-label">Critical Threshold</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="alert-co2-critical" class="form-control" th:value="${alertConfig.co2.critical}" placeholder="e.g., 1000.0">
+                            <input type="number" step="0.1" id="alert-co2-critical" class="form-control"
+                                   th:value="${alertConfig.co2.critical}" placeholder="e.g., 1000.0">
                             <span class="input-unit">ppm</span>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Warning Threshold</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="alert-co2-warning" class="form-control" th:value="${alertConfig.co2.warning}" placeholder="e.g., 800.0">
+                            <input type="number" step="0.1" id="alert-co2-warning" class="form-control"
+                                   th:value="${alertConfig.co2.warning}" placeholder="e.g., 800.0">
                             <span class="input-unit">ppm</span>
                         </div>
                     </div>
@@ -296,28 +311,32 @@
                     <div class="col-md-3">
                         <label class="form-label">Critical High</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="alert-temp-crit-high" class="form-control" th:value="${alertConfig.temperature.criticalHigh}" placeholder="e.g., 30.0">
+                            <input type="number" step="0.1" id="alert-temp-crit-high" class="form-control"
+                                   th:value="${alertConfig.temperature.criticalHigh}" placeholder="e.g., 30.0">
                             <span class="input-unit">°C</span>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Warning High</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="alert-temp-warn-high" class="form-control" th:value="${alertConfig.temperature.warningHigh}" placeholder="e.g., 26.0">
+                            <input type="number" step="0.1" id="alert-temp-warn-high" class="form-control"
+                                   th:value="${alertConfig.temperature.warningHigh}" placeholder="e.g., 26.0">
                             <span class="input-unit">°C</span>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Warning Low</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="alert-temp-warn-low" class="form-control" th:value="${alertConfig.temperature.warningLow}" placeholder="e.g., 19.0">
+                            <input type="number" step="0.1" id="alert-temp-warn-low" class="form-control"
+                                   th:value="${alertConfig.temperature.warningLow}" placeholder="e.g., 19.0">
                             <span class="input-unit">°C</span>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Critical Low</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="alert-temp-crit-low" class="form-control" th:value="${alertConfig.temperature.criticalLow}" placeholder="e.g., 16.0">
+                            <input type="number" step="0.1" id="alert-temp-crit-low" class="form-control"
+                                   th:value="${alertConfig.temperature.criticalLow}" placeholder="e.g., 16.0">
                             <span class="input-unit">°C</span>
                         </div>
                     </div>
@@ -330,14 +349,16 @@
                     <div class="col-md-6">
                         <label class="form-label">Warning High</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="alert-hum-warn-high" class="form-control" th:value="${alertConfig.humidity.warningHigh}" placeholder="e.g., 70.0">
+                            <input type="number" step="0.1" id="alert-hum-warn-high" class="form-control"
+                                   th:value="${alertConfig.humidity.warningHigh}" placeholder="e.g., 70.0">
                             <span class="input-unit">%</span>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Warning Low</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="alert-hum-warn-low" class="form-control" th:value="${alertConfig.humidity.warningLow}" placeholder="e.g., 30.0">
+                            <input type="number" step="0.1" id="alert-hum-warn-low" class="form-control"
+                                   th:value="${alertConfig.humidity.warningLow}" placeholder="e.g., 30.0">
                             <span class="input-unit">%</span>
                         </div>
                     </div>
@@ -350,7 +371,8 @@
                     <div class="col-md-6">
                         <label class="form-label">Warning Threshold</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="alert-noise-warning" class="form-control" th:value="${alertConfig.noise.warning}" placeholder="e.g., 70.0">
+                            <input type="number" step="0.1" id="alert-noise-warning" class="form-control"
+                                   th:value="${alertConfig.noise.warning}" placeholder="e.g., 70.0">
                             <span class="input-unit">dB</span>
                         </div>
                     </div>
@@ -361,20 +383,24 @@
             <div class="threshold-group mb-4">
                 <h5 class="parameter-title">🖥️ Gateway System Monitoring</h5>
                 <p class="text-muted mb-3">Configure alert thresholds for gateway system resources</p>
-                
+
                 <!-- CPU Thresholds -->
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
                         <label class="form-label">CPU Critical Threshold</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="gateway-cpu-critical" class="form-control" th:value="${gatewayConfig != null ? gatewayConfig.cpu.critical : 85.0}" placeholder="e.g., 85.0">
+                            <input type="number" step="0.1" id="gateway-cpu-critical" class="form-control"
+                                   th:value="${gatewayConfig != null ? gatewayConfig.cpu.critical : 85.0}"
+                                   placeholder="e.g., 85.0">
                             <span class="input-unit">%</span>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">CPU Warning Threshold</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="gateway-cpu-warning" class="form-control" th:value="${gatewayConfig != null ? gatewayConfig.cpu.warning : 70.0}" placeholder="e.g., 70.0">
+                            <input type="number" step="0.1" id="gateway-cpu-warning" class="form-control"
+                                   th:value="${gatewayConfig != null ? gatewayConfig.cpu.warning : 70.0}"
+                                   placeholder="e.g., 70.0">
                             <span class="input-unit">%</span>
                         </div>
                     </div>
@@ -385,14 +411,18 @@
                     <div class="col-md-6">
                         <label class="form-label">RAM Critical Threshold</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="gateway-ram-critical" class="form-control" th:value="${gatewayConfig != null ? gatewayConfig.ram.critical : 85.0}" placeholder="e.g., 85.0">
+                            <input type="number" step="0.1" id="gateway-ram-critical" class="form-control"
+                                   th:value="${gatewayConfig != null ? gatewayConfig.ram.critical : 85.0}"
+                                   placeholder="e.g., 85.0">
                             <span class="input-unit">%</span>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">RAM Warning Threshold</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="gateway-ram-warning" class="form-control" th:value="${gatewayConfig != null ? gatewayConfig.ram.warning : 70.0}" placeholder="e.g., 70.0">
+                            <input type="number" step="0.1" id="gateway-ram-warning" class="form-control"
+                                   th:value="${gatewayConfig != null ? gatewayConfig.ram.warning : 70.0}"
+                                   placeholder="e.g., 70.0">
                             <span class="input-unit">%</span>
                         </div>
                     </div>
@@ -403,14 +433,18 @@
                     <div class="col-md-6">
                         <label class="form-label">Disk Critical Threshold</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="gateway-disk-critical" class="form-control" th:value="${gatewayConfig != null ? gatewayConfig.disk.critical : 90.0}" placeholder="e.g., 90.0">
+                            <input type="number" step="0.1" id="gateway-disk-critical" class="form-control"
+                                   th:value="${gatewayConfig != null ? gatewayConfig.disk.critical : 90.0}"
+                                   placeholder="e.g., 90.0">
                             <span class="input-unit">%</span>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Disk Warning Threshold</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="gateway-disk-warning" class="form-control" th:value="${gatewayConfig != null ? gatewayConfig.disk.warning : 80.0}" placeholder="e.g., 80.0">
+                            <input type="number" step="0.1" id="gateway-disk-warning" class="form-control"
+                                   th:value="${gatewayConfig != null ? gatewayConfig.disk.warning : 80.0}"
+                                   placeholder="e.g., 80.0">
                             <span class="input-unit">%</span>
                         </div>
                     </div>
@@ -421,14 +455,18 @@
                     <div class="col-md-6">
                         <label class="form-label">Temperature Critical Threshold</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="gateway-temp-critical" class="form-control" th:value="${gatewayConfig != null ? gatewayConfig.temperature.critical : 80.0}" placeholder="e.g., 80.0">
+                            <input type="number" step="0.1" id="gateway-temp-critical" class="form-control"
+                                   th:value="${gatewayConfig != null ? gatewayConfig.temperature.critical : 80.0}"
+                                   placeholder="e.g., 80.0">
                             <span class="input-unit">°C</span>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Temperature Warning Threshold</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="gateway-temp-warning" class="form-control" th:value="${gatewayConfig != null ? gatewayConfig.temperature.warning : 70.0}" placeholder="e.g., 70.0">
+                            <input type="number" step="0.1" id="gateway-temp-warning" class="form-control"
+                                   th:value="${gatewayConfig != null ? gatewayConfig.temperature.warning : 70.0}"
+                                   placeholder="e.g., 70.0">
                             <span class="input-unit">°C</span>
                         </div>
                     </div>
@@ -436,8 +474,11 @@
             </div>
 
             <div class="d-flex justify-content-end">
-                <button type="submit" class="btn btn-violet btn-lg" style="margin: 20px 0;">💾 Save Global Thresholds</button>
-                <button type="button" class="btn btn-violet btn-lg ms-3" onclick="saveGatewayThresholds()" style="margin: 20px 0;">🖥️ Save Gateway Thresholds</button>
+                <button type="submit" class="btn btn-violet btn-lg" style="margin: 20px 0;">💾 Save Global Thresholds
+                </button>
+                <button type="button" class="btn btn-violet btn-lg ms-3" onclick="saveGatewayThresholds()"
+                        style="margin: 20px 0;">🖥️ Save Gateway Thresholds
+                </button>
             </div>
         </form>
 
@@ -447,7 +488,7 @@
         <div class="sensor-threshold-section mt-5">
             <h4 class="subsection-title">🎯 Per-Sensor Threshold Override</h4>
             <p class="subsection-description">Set custom thresholds for specific sensors (overrides global defaults)</p>
-            
+
             <div class="row g-3 mb-4">
                 <div class="col-md-5">
                     <label class="form-label fw-semibold">Select Sensor</label>
@@ -471,34 +512,40 @@
                     <div class="col-md-3">
                         <label class="form-label">Critical High</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="sensor-critical-high" class="form-control" placeholder="e.g., 1000">
+                            <input type="number" step="0.1" id="sensor-critical-high" class="form-control"
+                                   placeholder="e.g., 1000">
                             <span class="input-unit" id="unit-1">unit</span>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Warning High</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="sensor-warning-high" class="form-control" placeholder="e.g., 800">
+                            <input type="number" step="0.1" id="sensor-warning-high" class="form-control"
+                                   placeholder="e.g., 800">
                             <span class="input-unit" id="unit-2">unit</span>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Warning Low</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="sensor-warning-low" class="form-control" placeholder="e.g., 18">
+                            <input type="number" step="0.1" id="sensor-warning-low" class="form-control"
+                                   placeholder="e.g., 18">
                             <span class="input-unit" id="unit-3">unit</span>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Critical Low</label>
                         <div class="input-with-unit">
-                            <input type="number" step="0.1" id="sensor-critical-low" class="form-control" placeholder="e.g., 16">
+                            <input type="number" step="0.1" id="sensor-critical-low" class="form-control"
+                                   placeholder="e.g., 16">
                             <span class="input-unit" id="unit-4">unit</span>
                         </div>
                     </div>
                 </div>
                 <div class="d-flex justify-content-end">
-                    <button type="button" class="btn btn-violet" onclick="saveSensorThreshold()" style="margin: 20px 0;">💾 Save Sensor Threshold</button>
+                    <button type="button" class="btn btn-violet" onclick="saveSensorThreshold()"
+                            style="margin: 20px 0;">💾 Save Sensor Threshold
+                    </button>
                 </div>
             </div>
 
@@ -568,15 +615,16 @@
     <div class="config-card">
         <h2>📧 Notification Channels</h2>
         <p>Configure how you want to receive alerts for different sensor parameters</p>
-        
+
         <form onsubmit="event.preventDefault(); saveNotificationChannels();">
             <h4 class="subsection-title">Channel Configuration</h4>
             <p class="subsection-description">Choose notification preferences for specific parameters</p>
-            
+
             <div class="notification-config">
                 <div class="mb-4">
                     <label class="form-label fw-bold">Parameter to Monitor</label>
-                    <select id="notif-parameter" class="form-select" style="width: 100%; max-width: none; height: 45px; margin-top: 10px;">
+                    <select id="notif-parameter" class="form-select"
+                            style="width: 100%; max-width: none; height: 45px; margin-top: 10px;">
                         <option value="TEMPERATURE">Temperature</option>
                         <option value="CO2">CO2</option>
                         <option value="HUMIDITY">Humidity</option>
@@ -588,14 +636,16 @@
                     <label class="form-label fw-bold" style="margin-top: 10px;">Notification Channels</label>
                     <div class="channel-options">
                         <div class="channel-option">
-                            <input class="form-check-input" type="checkbox" id="notif-email" onchange="toggleNotifChannelInput()">
+                            <input class="form-check-input" type="checkbox" id="notif-email"
+                                   onchange="toggleNotifChannelInput()">
                             <label class="form-check-label" for="notif-email">
                                 <span class="channel-icon">📧</span>
                                 <span class="channel-name">Email Notifications</span>
                             </label>
                         </div>
                         <div class="channel-option">
-                            <input class="form-check-input" type="checkbox" id="notif-sms" onchange="toggleNotifChannelInput()">
+                            <input class="form-check-input" type="checkbox" id="notif-sms"
+                                   onchange="toggleNotifChannelInput()">
                             <label class="form-check-label" for="notif-sms">
                                 <span class="channel-icon">📱</span>
                                 <span class="channel-name">SMS Notifications</span>
@@ -606,7 +656,8 @@
 
                 <div id="notif-email-input" style="display:none; margin-top: 20px;" class="mb-3">
                     <label class="form-label">Email Address</label>
-                    <input type="email" id="notif-custom-email" class="form-control" placeholder="Leave empty to use account email">
+                    <input type="email" id="notif-custom-email" class="form-control"
+                           placeholder="Leave empty to use account email">
                     <small class="text-muted">Optional: Override your account email for this parameter</small>
                 </div>
 
@@ -617,7 +668,9 @@
                 </div>
 
                 <div class="d-flex justify-content-end mt-4">
-                    <button type="submit" class="btn btn-violet btn-lg" style="margin: 20px 0;">💾 Save Notification Preferences</button>
+                    <button type="submit" class="btn btn-violet btn-lg" style="margin: 20px 0;">💾 Save Notification
+                        Preferences
+                    </button>
                 </div>
             </div>
         </form>
@@ -650,12 +703,14 @@
 
             <div class="col-md-4">
                 <label>Number of Floors</label>
-                <input type="number" id="building-floors" class="form-control" value="3" min="1" onchange="applyFormUpdate()">
+                <input type="number" id="building-floors" class="form-control" value="3" min="1"
+                       onchange="applyFormUpdate()">
             </div>
 
             <div class="col-md-4">
                 <label>Scale (optional)</label>
-                <input type="number" id="building-scale" class="form-control" value="0.01" step="0.001" onchange="applyFormUpdate()">
+                <input type="number" id="building-scale" class="form-control" value="0.01" step="0.001"
+                       onchange="applyFormUpdate()">
             </div>
         </div>
 
@@ -666,163 +721,362 @@
         </div>
 
         <div class="mt-2 mb-3">
-            <button class="btn btn-violet" type="button" onclick="saveBuildingConfig()" style="margin: 20px 10px 20px 0;">Save Building</button>
-            <button class="btn btn-violet" type="button" onclick="deleteBuildingConfig()" style="margin: 20px 0;">Delete Building</button>
+            <button class="btn btn-violet" type="button" onclick="saveBuildingConfig()"
+                    style="margin: 20px 10px 20px 0;">Save Building
+            </button>
+            <button class="btn btn-violet" type="button" onclick="deleteBuildingConfig()" style="margin: 20px 0;">Delete
+                Building
+            </button>
         </div>
 
         <!-- 3D Building Visualization -->
         <div id="floor-plan-card" class="floor-plan-card" style="display: none"></div>
-            <div class="building-3d-header">
-                <button id="back-to-3d-btn" class="btn btn-violet" style="display: none" onclick="return3DView()">← Back to 3D View</button>
-            </div>
+        <div class="building-3d-header">
+            <button id="back-to-3d-btn" class="btn btn-violet" style="display: none" onclick="return3DView()">← Back to
+                3D View
+            </button>
+        </div>
 
-            <!-- 3D Canvas Container -->
-            <div id="building-3d-container" class="building-3d-container">
-                <canvas id="building-canvas"></canvas>
-                <div class="building-controls">
-                    <div class="control-hint">
-                        <span>🖱️ Rotate: Left Click + Drag</span>
-                        <span>🔍 Zoom: Scroll</span>
-                        <span>👆 Click floor to enter</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2D Floor Plan View (Hidden by default) -->
-            <div id="floor-plan-2d" class="floor-plan-2d" style="display: none">
-                <div class="floor-plan-header">
-                    <h4 id="current-floor-title"> Floor 1 - Ceiling View</h4>
-                </div>
-                <div class="floor-plan">
-                    <!-- Desk Grid -->
-                    <div class="desk-grid" id="desk-grid">
-                        <!-- Desks will be dynamically generated -->
-                    </div>
-                </div>
-                <!-- 2D Element Parameters -->
-                <div class="filter-card">
-                    <label>Element</label>
-                    <select id="filter-element" class="form-select" style="height: 45px;" onchange="onChangeElement()">
-                        <option value="Sensor" selected>Sensor</option>
-                        <option value="Wall">Wall</option>
-                        <option value="Room">Room</option>
-                        <option value="Door">Door</option>
-                        <option value="Window">Window</option>
-                        <option value="Circle">Circle</option>
-                        <option value="Label">Label</option>
-                    </select>
-                </div>
-
-                <div class="filter-card">
-                    <label>Sensor Type</label>
-                    <select id="filter-sensor-type" class="form-select" style="height: 45px;" onchange="onChangeSensor()">
-                        <option value="DESK" selected>Desk Occupancy</option>
-                        <option value="LIGHT">Light Levels</option>
-                        <option value="CO2">CO₂ Air Quality</option>
-                        <option value="TEMP">Temperature</option>
-                        <option value="MOTION">Motion Detection</option>
-                        <option value="NOISE">Noise Levels</option>
-                        <option value="HUMIDITY">Humidity</option>
-                        <option value="TEMPEX">HVAC Flow</option>
-                        <option value="PR">Presence & Light</option>
-                        <option value="SECURITY">Security Alerts</option>
-                        <option value="COUNT">People Counter</option>
-                        <option value="ENERGY">Energy Consumption</option>
-                    </select>
-                </div>
-
-                <div class="filter-card">
-                    <label>Floor</label>
-                    <select id="filter-floor" class="form-select" style="height: 45px;">
-                        <option value="0" selected>Ground Floor</option>
-                        <option value="1">Floor 1</option>
-                    </select>
-                </div>
-
-                <div class="col-md-4">
-                    <label>ID</label>
-                    <input type="text" id="input_id" class="form-control">
-                </div>
-
-                <div class="col-md-4">
-                    <label>Text</label>
-                    <input type="text" id="input_label" class="form-control" onchange="updateElementSVG()">
-                </div>
-
-                <div class="col-md-4">
-                    <label>Size</label>
-                    <input type="number" id="input_size" min="0" max="1000" step="10" value="20" class="form-control" onchange="updateElementSVG()">
-                </div>
-
-                <div class="col-md-4">
-                    <label>Radius</label>
-                    <input type="number" id="input_radius" min="0" max="1000" step="10" value="20" class="form-control" onchange="updateElementSVG()">
-                </div>
-
-                <div class="col-md-4">
-                <label>Width</label>
-                    <input type="number" id="input_width" min="0" max="1000" step="10" value="20" class="form-control" onchange="updateElementSVG()">
-                </div>
-
-                <div class="col-md-4">
-                <label>Height</label>
-                    <input type="number" id="input_height" min="0" max="1000" step="10" value="20" class="form-control" onchange="updateElementSVG()">
-                </div>
-
-                <div class="col-md-4">
-                <label>Rotation (degrees)</label>
-                    <input type="number" id="input_rotation" min="0" max="360" step="5" value="0" class="form-control" onchange="updateElementSVG()">
-                </div>
-
-                <div class="filter-card">
-                    <label>Desk Chair : </label>
-                        <label>Top</label>
-                        <input type="number" id="chair_top" min="0" max="10" value="0" class="form-control" onchange="updateElementSVG()">
-                        <label>Bottom</label>
-                        <input type="number" id="chair_bottom" min="0" max="10" value="0" class="form-control" onchange="updateElementSVG()">
-                        <label>Left</label>
-                        <input type="number" id="chair_left" min="0" max="10" value="0" class="form-control" onchange="updateElementSVG()">
-                        <label>Right</label>
-                        <input type="number" id="chair_right" min="0" max="10" value="0" class="form-control" onchange="updateElementSVG()">
-                </div>
-
-                <div class="filter-card">
-                    <label>Style</label>
-                    <select id="filter-style" class="form-select" style="height: 45px;" onchange="updateElementSVG()">
-                        <option value="Dark" selected>Dark</option>
-                        <option value="Light">Light</option>
-                    </select>
-                </div>
-
-                <div class="col-md-4" style="margin-top: 20px;">
-                    <button class="btn btn-violet" onclick="addElementSVG()">Add Element</button>
-                    <button class="btn btn-violet" onclick="removeElementSVG()">Remove Element</button>
+        <!-- 3D Canvas Container -->
+        <div id="building-3d-container" class="building-3d-container">
+            <canvas id="building-canvas"></canvas>
+            <div class="building-controls">
+                <div class="control-hint">
+                    <span>🖱️ Rotate: Left Click + Drag</span>
+                    <span>🔍 Zoom: Scroll</span>
+                    <span>👆 Click floor to enter</span>
                 </div>
             </div>
         </div>
 
-    <!-- Ace: seulement pour le payload decoder -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.1/ace.js"></script>
+        <!-- 2D Floor Plan View (Hidden by default) -->
+        <div id="floor-plan-2d" class="floor-plan-2d" style="display: none">
+            <div class="floor-plan-header">
+                <h4 id="current-floor-title"> Floor 1 - Ceiling View</h4>
+            </div>
+            <div class="floor-plan">
+                <!-- Desk Grid -->
+                <div class="desk-grid" id="desk-grid">
+                    <!-- Desks will be dynamically generated -->
+                </div>
+            </div>
+            <!-- 2D Element Parameters -->
+            <div class="filter-card">
+                <label>Element</label>
+                <select id="filter-element" class="form-select" style="height: 45px;" onchange="onChangeElement()">
+                    <option value="Sensor" selected>Sensor</option>
+                    <option value="Wall">Wall</option>
+                    <option value="Room">Room</option>
+                    <option value="Door">Door</option>
+                    <option value="Window">Window</option>
+                    <option value="Circle">Circle</option>
+                    <option value="Label">Label</option>
+                </select>
+            </div>
 
-    <!-- Three.js + OrbitControls + SVGLoader (r128 / r131 style UMD) -->
-    <script src="/javascript/lib/three.min.js"></script>
-    <script src="/javascript/lib/OrbitControls.js"></script>
-    <script src="/javascript/lib/SVGLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
-    <script src="/javascript/chartUtils.js"></script>
-    <script src="/javascript/deskSensorConfig.js"></script>
-    <script src="/javascript/sensorOverlays.js"></script>
-    <script src="/javascript/floorElementsManager.js"></script>
-    <script src="/javascript/architecturalFloorPlan.js"></script>
-    <script src="/javascript/building3D.js"></script>
+            <div class="filter-card">
+                <label>Sensor Type</label>
+                <select id="filter-sensor-type" class="form-select" style="height: 45px;" onchange="onChangeSensor()">
+                    <option value="DESK" selected>Desk Occupancy</option>
+                    <option value="LIGHT">Light Levels</option>
+                    <option value="CO2">CO₂ Air Quality</option>
+                    <option value="TEMP">Temperature</option>
+                    <option value="MOTION">Motion Detection</option>
+                    <option value="NOISE">Noise Levels</option>
+                    <option value="HUMIDITY">Humidity</option>
+                    <option value="TEMPEX">HVAC Flow</option>
+                    <option value="PR">Presence & Light</option>
+                    <option value="SECURITY">Security Alerts</option>
+                    <option value="COUNT">People Counter</option>
+                    <option value="ENERGY">Energy Consumption</option>
+                </select>
+            </div>
 
-    <!-- ================= SCRIPT SPECIFIQUE PAGE ================= -->
-    <script th:inline="javascript">
-        /*<![CDATA[*/
-        window.SENSORS = /*[[${sensors}]]*/ [];
-        /*]]>*/
-    </script>
-    <script src="/javascript/configuration.js"></script>
+            <div class="filter-card">
+                <label>Floor</label>
+                <select id="filter-floor" class="form-select" style="height: 45px;">
+                    <option value="0" selected>Ground Floor</option>
+                    <option value="1">Floor 1</option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label>ID</label>
+                <input type="text" id="input_id" class="form-control">
+            </div>
+
+            <div class="col-md-4">
+                <label>Text</label>
+                <input type="text" id="input_label" class="form-control" onchange="updateElementSVG()">
+            </div>
+
+            <div class="col-md-4">
+                <label>Size</label>
+                <input type="number" id="input_size" min="0" max="1000" step="10" value="20" class="form-control"
+                       onchange="updateElementSVG()">
+            </div>
+
+            <div class="col-md-4">
+                <label>Radius</label>
+                <input type="number" id="input_radius" min="0" max="1000" step="10" value="20" class="form-control"
+                       onchange="updateElementSVG()">
+            </div>
+
+            <div class="col-md-4">
+                <label>Width</label>
+                <input type="number" id="input_width" min="0" max="1000" step="10" value="20" class="form-control"
+                       onchange="updateElementSVG()">
+            </div>
+
+            <div class="col-md-4">
+                <label>Height</label>
+                <input type="number" id="input_height" min="0" max="1000" step="10" value="20" class="form-control"
+                       onchange="updateElementSVG()">
+            </div>
+
+            <div class="col-md-4">
+                <label>Rotation (degrees)</label>
+                <input type="number" id="input_rotation" min="0" max="360" step="5" value="0" class="form-control"
+                       onchange="updateElementSVG()">
+            </div>
+
+            <div class="filter-card">
+                <label>Desk Chair : </label>
+                <label>Top</label>
+                <input type="number" id="chair_top" min="0" max="10" value="0" class="form-control"
+                       onchange="updateElementSVG()">
+                <label>Bottom</label>
+                <input type="number" id="chair_bottom" min="0" max="10" value="0" class="form-control"
+                       onchange="updateElementSVG()">
+                <label>Left</label>
+                <input type="number" id="chair_left" min="0" max="10" value="0" class="form-control"
+                       onchange="updateElementSVG()">
+                <label>Right</label>
+                <input type="number" id="chair_right" min="0" max="10" value="0" class="form-control"
+                       onchange="updateElementSVG()">
+            </div>
+
+            <div class="filter-card">
+                <label>Style</label>
+                <select id="filter-style" class="form-select" style="height: 45px;" onchange="updateElementSVG()">
+                    <option value="Dark" selected>Dark</option>
+                    <option value="Light">Light</option>
+                </select>
+            </div>
+
+            <div class="col-md-4" style="margin-top: 20px;">
+                <button class="btn btn-violet" onclick="addElementSVG()">Add Element</button>
+                <button class="btn btn-violet" onclick="removeElementSVG()">Remove Element</button>
+            </div>
+        </div>
+    </div>
+</main>
+<!-- Three.js + OrbitControls + SVGLoader (r128 / r131 style UMD) -->
+<script src="/javascript/lib/three.min.js"></script>
+<script src="/javascript/lib/OrbitControls.js"></script>
+<script src="/javascript/lib/SVGLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
+<script src="/javascript/chartUtils.js"></script>
+<script src="/javascript/deskSensorConfig.js"></script>
+<script src="/javascript/sensorOverlays.js"></script>
+<script src="/javascript/floorElementsManager.js"></script>
+<script src="/javascript/architecturalFloorPlan.js"></script>
+<script src="/javascript/building3D.js"></script>
+
+<!-- ================= SCRIPT SPECIFIQUE PAGE ================= -->
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    window.SENSORS = /*[[${sensors}]]*/ [];
+    /*]]>*/
+</script>
+<script src="/javascript/configuration.js"></script>
+
+<!-- ===== MODAL PAYLOAD DECODER ===== -->
+<div id="decoder-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
+     z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#1e1e2e; border-radius:12px; width:900px; max-width:95vw; max-height:90vh;
+                display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+
+        <!-- Header -->
+        <div style="padding:1rem 1.5rem; border-bottom:1px solid #333; display:flex;
+                    justify-content:space-between; align-items:center;">
+            <h3 style="color:#fff; margin:0;">📝 Payload Decoder —
+                <span id="decoder-brand-name" style="color:#a78bfa;"></span>
+            </h3>
+            <button onclick="closeDecoderModal()"
+                    style="background:none;border:none;color:#aaa;font-size:1.5rem;cursor:pointer;">✕
+            </button>
+        </div>
+
+        <!-- Ace Editor -->
+        <div id="ace-decoder-editor" style="height:380px; font-size:14px;"></div>
+
+        <!-- Test Zone -->
+        <div style="padding:1rem 1.5rem; border-top:1px solid #333; background:#16213e;">
+            <div style="display:flex; gap:0.75rem; align-items:flex-end; flex-wrap:wrap;">
+                <div style="flex:1; min-width:200px;">
+                    <label style="color:#94a3b8; font-size:0.8rem; display:block; margin-bottom:4px;">
+                        🧪 Test Payload (hex)
+                    </label>
+                    <input id="test-payload-hex" type="text" class="form-control"
+                           placeholder="ex: 01006400C8FF"
+                           style="font-family:monospace; background:#0f0f23; color:#e2e8f0; border:1px solid #444;">
+                </div>
+                <div>
+                    <label style="color:#94a3b8; font-size:0.8rem; display:block; margin-bottom:4px;">fPort</label>
+                    <input id="test-fport" type="number" value="1" class="form-control"
+                           style="width:70px; background:#0f0f23; color:#e2e8f0; border:1px solid #444;">
+                </div>
+                <button onclick="testDecoderNow()" class="btn btn-violet">▶ Run Test</button>
+            </div>
+
+            <!-- Résultat -->
+            <pre id="test-result"
+                 style="display:none; margin-top:0.75rem; padding:0.75rem; background:#0f0f23;
+                        border-radius:8px; font-size:0.85rem; color:#4ade80; min-height:60px;
+                        white-space:pre-wrap; border:1px solid #333; overflow:auto; max-height:150px;"></pre>
+        </div>
+
+        <!-- Footer -->
+        <div style="padding:1rem 1.5rem; border-top:1px solid #333;
+                    display:flex; justify-content:flex-end; gap:0.75rem;">
+            <button onclick="closeDecoderModal()"
+                    class="btn" style="background:#374151; color:#fff;">Cancel
+            </button>
+            <button onclick="saveDecoderNow()" class="btn btn-violet">💾 Save Decoder</button>
+        </div>
+    </div>
+</div>
+
+<!-- Ace Editor CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/ace.min.js"></script>
+
+<script th:inline="javascript">
+    const DECODER_CSRF_TOKEN  = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+    const DECODER_CSRF_HEADER = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+        let aceDecoderEditor    = null;
+        let currentDecoderBrandId = null;
+
+        function openDecoderEditor(brandId, brandName) {
+            currentDecoderBrandId = brandId;
+            document.getElementById('decoder-brand-name').textContent = brandName;
+            document.getElementById('decoder-modal').style.display    = 'flex';
+            document.getElementById('test-result').style.display      = 'none';
+
+            // Init Ace une seule fois
+            if (!aceDecoderEditor) {
+                aceDecoderEditor = ace.edit('ace-decoder-editor');
+                aceDecoderEditor.setTheme('ace/theme/monokai');
+                aceDecoderEditor.session.setMode('ace/mode/javascript');
+                aceDecoderEditor.setOptions({ fontSize: '14px', showPrintMargin: false });
+            }
+
+            // Charge le decoder existant depuis le serveur
+            fetch(`/configuration/brands/${brandId}/decoder`, {
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                aceDecoderEditor.setValue(data.decoder || getDefaultDecoder(), -1);
+                aceDecoderEditor.clearSelection();
+            })
+            .catch(() => {
+                aceDecoderEditor.setValue(getDefaultDecoder(), -1);
+                aceDecoderEditor.clearSelection();
+            });
+        }
+
+        function closeDecoderModal() {
+            document.getElementById('decoder-modal').style.display = 'none';
+        }
+
+        function saveDecoderNow() {
+            const decoder = aceDecoderEditor.getValue();
+            fetch(`/configuration/brands/${currentDecoderBrandId}/decoder`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    [DECODER_CSRF_HEADER]: DECODER_CSRF_TOKEN
+                },
+                body: JSON.stringify({ decoder })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    closeDecoderModal();
+                    // Toast simple
+                    const t = document.createElement('div');
+                    t.textContent = '✅ Decoder saved!';
+                    t.style.cssText = 'position:fixed;bottom:2rem;right:2rem;background:#22c55e;color:#fff;' +
+                        'padding:.75rem 1.5rem;border-radius:8px;font-weight:600;z-index:99999;';
+                    document.body.appendChild(t);
+                    setTimeout(() => t.remove(), 3000);
+                }
+            });
+        }
+
+        function testDecoderNow() {
+            const decoder  = aceDecoderEditor.getValue();
+            const payload  = document.getElementById('test-payload-hex').value.trim();
+            const fport    = document.getElementById('test-fport').value || '1';
+            const resultEl = document.getElementById('test-result');
+
+            if (!payload) {
+                resultEl.style.display = 'block';
+                resultEl.style.color   = '#fbbf24';
+                resultEl.textContent   = '⚠️  Please enter a hex payload (e.g. 01006400C8)';
+                return;
+            }
+
+            resultEl.style.display = 'block';
+            resultEl.style.color   = '#94a3b8';
+            resultEl.textContent   = '⏳ Running...';
+
+            fetch('/configuration/brands/test-decoder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    [DECODER_CSRF_HEADER]: DECODER_CSRF_TOKEN
+                },
+                body: JSON.stringify({ decoder, payload, fport })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    resultEl.style.color = '#4ade80';
+                    resultEl.textContent = '✅ Result:\n' +
+                        JSON.stringify(JSON.parse(data.result), null, 2);
+                } else {
+                    resultEl.style.color = '#f87171';
+                    resultEl.textContent = '❌ Error:\n' + data.error;
+                }
+            })
+            .catch(err => {
+                resultEl.style.color = '#f87171';
+                resultEl.textContent = '❌ Network error: ' + err.message;
+            });
+        }
+
+        function getDefaultDecoder() {
+            return `function decodeUplink(input) {
+        var bytes = input.bytes;
+        var decoded = {};
+
+        // TODO: parse your bytes here
+        // Example:
+        // decoded.temperature = ((bytes[0] << 8) | bytes[1]) / 100.0;
+        // decoded.humidity    = bytes[2];
+
+        return { data: decoded };
+    }`;
+        }
+
+        // Ferme le modal en cliquant sur l'overlay
+        document.getElementById('decoder-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeDecoderModal();
+        });
+</script>
 
 </body>
 </html>
