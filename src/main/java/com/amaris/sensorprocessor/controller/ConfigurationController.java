@@ -66,6 +66,7 @@ public class ConfigurationController {
         model.addAttribute("deviceTypes", deviceTypeService.findAll());
         model.addAttribute("brands", brandService.findAll());
         model.addAttribute("protocols", protocolService.findAll());
+        model.addAttribute("gatewayConfig", null);
 
         if (principal != null) {
             User user = userService.searchUserByUsername(principal.getName());
@@ -298,4 +299,41 @@ public class ConfigurationController {
         buildingEnergyConfigDao.delete(buildingName);
         return ResponseEntity.ok().body(Map.of("message", "Building energy configuration deleted successfully"));
     }
+
+    @GetMapping("/configuration/brands/{id}/decoder")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getDecoder(@PathVariable Integer id) {
+        String decoder = brandService.getDecoder(id);
+        return ResponseEntity.ok(Map.of("decoder", decoder != null ? decoder : ""));
+    }
+
+
+    @PostMapping("/configuration/brands/{id}/decoder")
+    @ResponseBody
+    public ResponseEntity<String> saveDecoder(@PathVariable Integer id,
+                                              @RequestBody Map<String, String> body) {
+        brandService.updateDecoder(id, body.get("decoder"));
+        return ResponseEntity.ok("{\"success\":true}");
+    }
+
+    @PostMapping("/configuration/brands/test-decoder")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> testDecoder(@RequestBody Map<String, String> body) {
+        String decoder = body.get("decoder");
+        String hexPayload = body.get("payload");
+        int fPort = 1; // valeur par défaut
+        try {
+            fPort = Integer.parseInt(body.getOrDefault("fport", "1"));
+        } catch (NumberFormatException ignored) {}
+
+        try {
+            String result = brandService.testDecoder(decoder, hexPayload, fPort);
+            return ResponseEntity.ok(Map.of("success", true, "result", result));
+        } catch (Exception e) {
+            return ResponseEntity.ok(Map.of("success", false, "error", e.getMessage()));
+        }
+    }
+
+
+
 }
