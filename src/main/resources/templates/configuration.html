@@ -999,7 +999,7 @@
                     'Content-Type': 'application/json',
                     [DECODER_CSRF_HEADER]: DECODER_CSRF_TOKEN
                 },
-                body: JSON.stringify({ decoder })
+                body: JSON.stringify({ decoder: decoder })
             })
             .then(r => r.json())
             .then(data => {
