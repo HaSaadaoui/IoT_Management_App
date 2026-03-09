@@ -151,6 +151,19 @@ public class SensorController {
 
         try {
             sensorService.create(sensor);
+            // ✅ Push du payload formatter TTN selon la marque
+            String decoder = brandService.getDecoder(sensor.getBrandId());
+            if (decoder != null && !decoder.isBlank()) {
+                try {
+                    sensorLorawanService.pushPayloadFormatter(
+                            sensor.getIdGateway(),
+                            sensor.getIdSensor(),
+                            decoder
+                    );
+                } catch (Exception e) {
+                    log.warn("[Sensors] Payload push to TTN failed for {}: {}", sensor.getIdSensor(), e.getMessage());
+                }
+            }
         } catch (IllegalArgumentException | IllegalStateException e) {
             bindingResult.addError(new FieldError(SENSOR_ADD, "idSensor", e.getMessage()));
             prepareModel(model);

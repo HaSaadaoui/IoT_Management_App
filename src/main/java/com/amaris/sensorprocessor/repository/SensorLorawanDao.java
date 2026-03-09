@@ -3,11 +3,17 @@ package com.amaris.sensorprocessor.repository;
 import com.amaris.sensorprocessor.entity.LorawanSensorData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.Map;
 
 @Repository
 public class SensorLorawanDao {
@@ -119,6 +125,40 @@ public class SensorLorawanDao {
             )
             .toBodilessEntity()
             .block();
+    }
+    public void pushPayloadFormatter(String applicationId, String deviceId, String decoderJs) {
+        WebClient client = webClientBuilder.baseUrl(lorawanBaseUrl).build();
+
+        Map<String, Object> body = Map.of(
+                "end_device", Map.of(
+                        "ids", Map.of("device_id", deviceId),
+                        "formatters", Map.of(
+                                "up_formatter", "FORMATTER_JAVASCRIPT",
+                                "up_formatter_parameter", decoderJs
+                        )
+                ),
+                "field_mask", Map.of("paths", List.of("formatters"))
+        );
+
+        client.put()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/as/applications/{app}/devices/{dev}")
+                        .build(applicationId, deviceId))
+                .header(AUTHORIZATION, BEARER + " " + lorawanToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .retrieve()
+                .onStatus(
+                        status -> status.isError(),
+                        resp -> resp.bodyToMono(String.class).flatMap(msg ->
+                                Mono.error(new WebClientResponseException(
+                                        "TTN formatter error: " + msg,
+                                        resp.statusCode().value(), resp.statusCode().toString(),
+                                        null, null, null))
+                        )
+                )
+                .toBodilessEntity()
+                .block();
     }
 
 }
