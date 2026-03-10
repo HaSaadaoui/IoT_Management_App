@@ -3,9 +3,9 @@ name: Deploy to Azure Cloud with Docker Compose
 on:
   push:
     branches:
-      - main # STAGING (PRE-PROD)
-      - develop # TEST
-      - pipeline-test # Remove later
+      - main
+      - develop
+      - pipeline-test
   workflow_dispatch:
 
 env:
@@ -30,6 +30,8 @@ jobs:
             echo "USER=azureuser" >> $GITHUB_ENV
             echo "PORT=80" >> $GITHUB_ENV
             echo "GATEWAY_BRANCH=main" >> $GITHUB_ENV
+            echo "NSG_NAME=vm-sensorprocessor-1-nsg" >> $GITHUB_ENV
+            echo "RESOURCE_GROUP=Test-WebApp-Migration" >> $GITHUB_ENV
           else
             echo "SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USER_TEST }}" >> $GITHUB_ENV
             echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASS_TEST }}" >> $GITHUB_ENV
@@ -38,12 +40,35 @@ jobs:
             echo "USER=mantu" >> $GITHUB_ENV
             echo "PORT=8080" >> $GITHUB_ENV
             echo "GATEWAY_BRANCH=develop" >> $GITHUB_ENV
+            echo "NSG_NAME=vm-sensorprocessor-1-nsg" >> $GITHUB_ENV
+            echo "RESOURCE_GROUP=Test-WebApp-Migration" >> $GITHUB_ENV
           fi
           echo "BRANCH=${{ env.BRANCH }}" >> $GITHUB_ENV
           echo "DOCKER_REGISTRY=localhost:5000" >> $GITHUB_ENV
           echo "SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver" >> $GITHUB_ENV
           echo "ACS_CONNECTION_STRING=${{ secrets.ACS_CONNECTION_STRING }}" >> $GITHUB_ENV
-          
+
+      # ✅ NOUVEAU : Connexion Azure + ajout IP runner dans le NSG
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Add runner IP to NSG
+        run: |
+          RUNNER_IP=$(curl -s https://api.ipify.org)
+          echo "RUNNER_IP=$RUNNER_IP" >> $GITHUB_ENV
+          az network nsg rule create \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --nsg-name ${{ env.NSG_NAME }} \
+            --name GitHubActionsSSH \
+            --priority 500 \
+            --source-address-prefixes $RUNNER_IP \
+            --destination-port-ranges 22 \
+            --access Allow \
+            --protocol Tcp \
+            --direction Inbound
+
       - name: ssh-agent setup
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -63,40 +88,23 @@ jobs:
           echo "Compression completed"
           echo "Starting SCP transfer"
           scp -o StrictHostKeyChecking=no sensorprocessor.tar.gz ${{ env.USER }}@${{ env.HOST }}:/home/${{ env.USER }}/sensorprocessor.tar.gz
-          echo "SCP transfer completed"
-          echo "Starting SSH to Azure Cloud"
           ssh -o StrictHostKeyChecking=no ${{ env.USER }}@${{ env.HOST }} '
             sudo bash -c "gunzip -f /home/${{ env.USER }}/sensorprocessor.tar.gz && docker load -i /home/${{ env.USER }}/sensorprocessor.tar"
           '
-          echo "SSH and Docker load completed"
 
       - name: Build and copy Gateway image to Azure Cloud
         run: |
-          echo "Cloning repository"
           git clone ${{ env.GATEWAY_MONITORING_GIT_URL }} tmp_gateway_monitoring_api && cd tmp_gateway_monitoring_api
-          
           if [[ "${{ env.BRANCH }}" != "main" ]]; then
             git checkout develop
           fi
-
-          echo "Build the gateway docker image"
           docker build --platform linux/amd64 -t localhost:5000/gateway:${{ env.GATEWAY_BRANCH }} .
-
-          echo "Saving gateway docker image"
           docker save -o gateway.tar localhost:5000/gateway:${{ env.GATEWAY_BRANCH }}
-
-          echo "Compressing gateway image"
           gzip gateway.tar
-
-          echo "Starting SCP transfer for gateway"
           scp -o StrictHostKeyChecking=no gateway.tar.gz ${{ env.USER }}@${{ env.HOST }}:/home/${{ env.USER }}/gateway.tar.gz
-          echo "SCP transfer for gateway completed"
-          echo "Starting SSH to Azure Cloud for gateway"
-
           ssh -o StrictHostKeyChecking=no ${{ env.USER }}@${{ env.HOST }} '
             sudo bash -c "gunzip -f /home/${{ env.USER }}/gateway.tar.gz && docker load -i /home/${{ env.USER }}/gateway.tar"
           '
-          echo "SSH and Docker load for gateway completed"
 
       - name: Run Docker Compose on Azure Cloud
         run: |
@@ -123,5 +131,10 @@ jobs:
             sudo docker compose -f docker-compose.yml up -d --remove-orphans
           '
 
-
-          
+      - name: Remove runner IP from NSG
+        if: always()
+        run: |
+          az network nsg rule delete \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --nsg-name ${{ env.NSG_NAME }} \
+            --name GitHubActionsSSH
