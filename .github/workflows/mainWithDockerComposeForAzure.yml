@@ -31,7 +31,7 @@ jobs:
             echo "PORT=80" >> $GITHUB_ENV
             echo "GATEWAY_BRANCH=main" >> $GITHUB_ENV
             echo "NSG_NAME=vm-sensorprocessor-1-nsg" >> $GITHUB_ENV
-            echo "RESOURCE_GROUP=Test-WebApp-Migration" >> $GITHUB_ENV
+            echo "RESOURCE_GROUP=rg-Smart-Building-Mantu" >> $GITHUB_ENV
           else
             echo "SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USER_TEST }}" >> $GITHUB_ENV
             echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASS_TEST }}" >> $GITHUB_ENV
@@ -41,7 +41,7 @@ jobs:
             echo "PORT=8080" >> $GITHUB_ENV
             echo "GATEWAY_BRANCH=develop" >> $GITHUB_ENV
             echo "NSG_NAME=vm-sensorprocessor-1-nsg" >> $GITHUB_ENV
-            echo "RESOURCE_GROUP=Test-WebApp-Migration" >> $GITHUB_ENV
+            echo "RESOURCE_GROUP=rg-Smart-Building-Mantu" >> $GITHUB_ENV
           fi
           echo "BRANCH=${{ env.BRANCH }}" >> $GITHUB_ENV
           echo "DOCKER_REGISTRY=localhost:5000" >> $GITHUB_ENV
