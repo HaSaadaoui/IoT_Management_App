@@ -68,8 +68,13 @@ jobs:
             --protocol Tcp \
             --direction Inbound
           echo "Waiting for NSG rule to propagate..."
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            TARGET_HOST="${{ secrets.AZURE_HOST }}"
+          else
+            TARGET_HOST="${{ secrets.AZURE_HOST_TEST }}"
+          fi
           for i in {1..12}; do
-            if nc -z -w5 ${{ env.HOST }} 22; then
+            if nc -z -w5 $TARGET_HOST 22 2>/dev/null; then
               echo "SSH port is open, continuing..."
               break
             fi
