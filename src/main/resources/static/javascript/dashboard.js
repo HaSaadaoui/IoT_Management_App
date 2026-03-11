@@ -104,6 +104,9 @@ class DashboardManager {
 		this.loadBuildings();
 		this.loadDashboardData();
 		this.scheduleNextRefresh();
+
+		initEnvironmentCharts();
+		startEnvironmentSSE(this.filters.building);
 	}
 
 	async initAlertCache() {
@@ -1886,8 +1889,309 @@ class DashboardManager {
 	}
 }
 
+// =============================
+// ENVIRONMENT REALTIME CHARTS
+// =============================
+
+const envRealtimeCharts = {};
+const ENV_MAX_POINTS = 50;
+const metricUnits = {
+  temperature: "°C",
+  humidity: "%",
+  co2: "ppm",
+  sound: "dB"
+};
+
+const rtEnvChartColors = {
+	temperature: { bg: 'rgba(239, 68, 68, 0.2)', border: 'rgb(239, 68, 68)' },
+	humidity: { bg: 'rgba(59, 130, 246, 0.2)', border: 'rgb(59, 130, 246)' },
+	co2: { bg: 'rgba(16, 185, 129, 0.2)', border: 'rgb(16, 185, 129)' },
+	sound: { bg: 'rgba(245, 158, 11, 0.2)', border: 'rgb(245, 158, 11)' }
+};
+
+const ENV_CONFIG = {
+	temperature: {
+		canvas: "rt-temperature-chart",
+		color: "#ef4444",
+		unit: "°C"
+	},
+	humidity: {
+		canvas: "rt-humidity-chart",
+		color: "#3b82f6",
+		unit: "%"
+	},
+	co2: {
+		canvas: "rt-co2-chart",
+		color: "#10b981",
+		unit: "ppm"
+	},
+	sound: {
+		canvas: "rt-sound-chart",
+		color: "#f59e0b",
+		unit: "dB"
+	}
+};
+
+
+function initEnvironmentCharts() {
+	Object.entries(ENV_CONFIG).forEach(([key, cfg]) => {
+		const canvas = document.getElementById(cfg.canvas);
+		if (!canvas) return;
+
+		const ctx = canvas.getContext("2d");
+
+		envRealtimeCharts[key] = new Chart(ctx, {
+			type: "line",
+			data: {
+				labels: [],
+				datasets: [{
+					label: key,
+					data: [],
+					backgroundColor: rtEnvChartColors[key].bg,
+					borderColor: rtEnvChartColors[key].border,
+					borderWidth: 2,
+					fill: true,
+					tension: 0.4
+				}]
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				animation: false,
+				plugins: {
+					legend: { display: false },
+					tooltip: {
+						callbacks: {
+							label: ctx => `${ctx.parsed.y.toFixed(1)} ${metricUnits[key]}`
+						}
+					}
+				},
+				scales: {
+					x: {
+						ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 12 }
+						//display: true
+					},
+					y: {
+						beginAtZero: false,
+						title: {
+							display: true,
+							text: metricUnits[key] || ""
+						}
+					}
+				}
+			}
+		});
+
+	});
+
+	initEnvChartToggles();
+}
+
+function initEnvChartToggles() {
+
+	document.querySelectorAll(".env-chart-btn").forEach(btn => {
+
+		btn.addEventListener("click", () => {
+
+			const container = btn.closest(".env-chart-toggle");
+			const chartKey = container.dataset.chart;
+			const type = btn.dataset.type;
+
+			container.querySelectorAll(".env-chart-btn")
+				.forEach(b => b.classList.remove("active"));
+
+			btn.classList.add("active");
+
+			const chart = envRealtimeCharts[chartKey];
+			if (!chart) return;
+
+			chart.config.type = type;
+			chart.update();
+
+		});
+	});
+}
+
+
+function updateEnvChart(metric, value) {
+
+	const chart = envRealtimeCharts[metric];
+	if (!chart) return;
+
+	const now = new Date().toLocaleTimeString();
+
+	chart.data.labels.push(now);
+	chart.data.datasets[0].data.push(value);
+
+	if (chart.data.labels.length > ENV_MAX_POINTS) {
+		chart.data.labels.shift();
+		chart.data.datasets[0].data.shift();
+	}
+
+	chart.update("none");
+}
+
+
+const envMaxValues = {};
+
+function updateEnvStats(metric) {
+
+  const chart = envCharts[metric];
+  if (!chart) return;
+
+  const data = chart.data.datasets[0].data;
+
+  if (!data.length) return;
+
+  const avg = data.reduce((a,b)=>a+b,0) / data.length;
+  const max = Math.max(...data);
+
+  const avgEl = document.getElementById(`env-${metric}-avg`);
+  const maxEl = document.getElementById(`env-${metric}-max`);
+
+  if (avgEl) avgEl.textContent = avg.toFixed(2);
+  if (maxEl) maxEl.textContent = max.toFixed(2);
+
+}
+
+
+
+function updateEnvAverage(metric) {
+
+  const chart = envRealtimeCharts[metric];
+  if (!chart) return;
+
+  const values = chart.data.datasets[0].data;
+
+  if (values.length < 2) {
+	return; // pas assez de données
+  }
+
+  const sum = values.reduce((a, b) => a + b, 0);
+  const avg = sum / values.length;
+
+  const map = {
+	temperature: "env-temp-avg",
+	humidity: "env-humidity-avg",
+	co2: "env-co2-avg",
+	sound: "env-sound-avg"
+  };
+
+  const el = document.getElementById(map[metric]);
+  if (el) el.textContent = avg.toFixed(2);
+}
+
+function updateEnvMax(metric) {
+
+  const chart = envRealtimeCharts[metric];
+  if (!chart) return;
+
+  const data = chart.data.datasets[0].data;
+
+  if (!data || data.length === 0) return;
+
+  const max = Math.max(...data);
+
+  const map = {
+    temperature: "env-temp-max",
+    humidity: "env-humidity-max",
+    co2: "env-co2-max",
+    sound: "env-sound-max"
+  };
+
+  const el = document.getElementById(map[metric]);
+  if (el) el.textContent = max.toFixed(2);
+}
+
+
+let environmentUnsub = null;
+const environmentState = {};
+
+function startEnvironmentSSE(building) {
+
+  console.log("🌡️ startEnvironmentSSE called:", building);
+
+  if (environmentUnsub) {
+	console.log("🔁 Unsub previous environment SSE");
+	environmentUnsub();
+	environmentUnsub = null;
+  }
+
+  if (!window.SSEManager?.subscribeEnvironment) {
+	console.warn("❌ SSEManager.subscribeEnvironment not available");
+	return;
+  }
+
+  environmentUnsub = window.SSEManager.subscribeEnvironment(building, (msg) => {
+	console.log("🌡️ ENV MESSAGE", msg);
+
+	try {
+
+	  const decoded =
+		msg?.uplink_message?.decoded_payload ??
+		msg?.decoded_payload ??
+		msg?.payload ??
+		{};
+
+	  const temperature = decoded?.temperature;
+	  const humidity = decoded?.humidity;
+	  const co2 = decoded?.co2;
+	  const sound = decoded?.LAeq;
+
+	  if (temperature != null) {
+		updateEnvChart("temperature", temperature);
+		updateEnvAverage("temperature", temperature);
+		updateEnvMax("temperature");
+	  }
+
+	  if (humidity != null) {
+		updateEnvChart("humidity", humidity);
+		updateEnvAverage("humidity", humidity);
+		updateEnvMax("humidity");
+	  }
+
+	  if (co2 != null) {
+		updateEnvChart("co2", co2);
+		updateEnvAverage("co2", co2);
+		updateEnvMax("co2");
+	  }
+
+	  if (sound != null) {
+		updateEnvChart("sound", sound);
+		updateEnvAverage("sound", sound);
+		updateEnvMax("sound");
+	  }
+
+	} catch (err) {
+	  console.warn("[SSEManager][environment] handler error", err);
+	}
+
+  });
+}
+
+function closeEnvironmentSSE() {
+  if (environmentUnsub) {
+	console.log("🔒 Unsubscribe environment SSE");
+	environmentUnsub();
+	environmentUnsub = null;
+  }
+}
+
+const filters = {
+	building: "",
+	floor: ""
+};
+
+window.addEventListener("beforeunload", () => {
+  closeOccupancySSE();
+  closeEnvironmentSSE();
+});
+
 document.addEventListener('DOMContentLoaded', () => {
 	console.log('Initializing Dashboard Manager...');
+
+    filters.building = document.getElementById('filter-building')?.value;
+	filters.floor  = document.getElementById('filter-floor')?.value;
 	window.dashboardManager = new DashboardManager();
 });
 
