@@ -174,14 +174,16 @@ const BUILDINGS = {
         floors: 7,
         scale: 0.01,
         createShape: createChateaudunShape,
-        floorData: JSON.parse(JSON.stringify(CHATEAUDUN_BASE_FLOOR_DATA))
+        floorData: JSON.parse(JSON.stringify(CHATEAUDUN_BASE_FLOOR_DATA)),
+        excludedFloors: [] 
     },
     LEVALLOIS: {
         id: 'LEVALLOIS',
         floors: 1,
         scale: 0.06,
         createShape: createLevalloisShape,
-        floorData: JSON.parse(JSON.stringify(LEVALLOIS_BASE_FLOOR_DATA))
+        floorData: JSON.parse(JSON.stringify(LEVALLOIS_BASE_FLOOR_DATA)),
+        excludedFloors: [] 
     }
 };
 
@@ -307,10 +309,9 @@ class Building3D {
     startOccupancySSE() {
         this.stopOccupancySSE();
 
-        const building = this.getSseBuildingKey();
-        if (!building || !window.SSEManager?.subscribeOccupancy) return;
+        if (!this.buildingKey || !window.SSEManager?.subscribeOccupancy) return;
 
-        this.occupancyUnsub = window.SSEManager.subscribeOccupancy(building, (msg) => {
+        this.occupancyUnsub = window.SSEManager.subscribeOccupancy(this.buildingKey, (msg) => {
             try {
                 const deviceId =
                     msg?.end_device_ids?.device_id ||
@@ -332,13 +333,6 @@ class Building3D {
                 console.warn('[Building3D][SSE] error', e);
             }
         });
-    }
-
-    getSseBuildingKey() {
-        // si DB:4 -> envoie "4" (ou l’ID attendu par le backend)
-        const b = String(this.buildingKey || '');
-        if (b.toUpperCase().startsWith('DB:')) return b.split(':')[1];
-        return b;
     }
 
     stopOccupancySSE() {
@@ -604,6 +598,7 @@ class Building3D {
 
         const floorHeight = 2;
         const floorsCount = this.config.floors || 1;
+        const excludedFloors = this.config.excludedFloors || [];
         let buildingShape, centerX, centerZ, dbScale;
 
         if (this.isDbBuilding && this.dbBuildingConfig) {
@@ -644,7 +639,7 @@ class Building3D {
             floor.position.set(-centerX, i * floorHeight, -centerZ);
             floor.castShadow = true;
             floor.receiveShadow = true;
-            floor.userData = { floorNumber: i, type: 'floor', clickable: true };
+            floor.userData = { floorNumber: i, type: 'floor', clickable: excludedFloors.includes(String(i)) ? false : true };
             floorGroup.add(floor);
             this.floors.push(floor);
 
@@ -815,6 +810,7 @@ class Building3D {
             actualFloor = 3;
         }
         const data = this.floorData[actualFloor];
+        if (!data) return;
 
         let desks = data.desks;
         if (this.buildingKey === 'LEVALLOIS') {
@@ -1025,9 +1021,7 @@ class Building3D {
         
         const upper = this.buildingKey.toUpperCase();
         let dbId = null;
-        if (upper.startsWith('DB:')) {
-            dbId = parseInt(this.buildingKey.split(':')[1], 10);
-        } else if (/^\d+$/.test(this.buildingKey)) {
+        if (/^\d+$/.test(this.buildingKey)) {
             dbId = parseInt(this.buildingKey, 10);
         }
 
@@ -1041,19 +1035,21 @@ class Building3D {
                 }
                 const b = await resp.json();
 
-                this.buildingKey = `DB:${dbId}`;
+                this.buildingKey = String(dbId);
                 this.isDbBuilding = true;
                 this.dbBuildingConfig = {
                     id: b.id,
                     name: b.name,
                     floors: b.floorsCount || 1,
                     scale: b.scale || 0.01,
-                    svgUrl: b.svgPlan
+                    svgUrl: b.svgPlan,
+                    excludedFloors: b.excludedFloors ? b.excludedFloors.map(String) : [] 
                 };
                 this.config = {
                     id: b.id,
                     floors: b.floorsCount || 1,
-                    scale: b.scale || 0.01
+                    scale: b.scale || 0.01,
+                    excludedFloors: b.excludedFloors ? b.excludedFloors.map(String) : [] 
                 };
 
                 this.floorData = [];
@@ -1279,7 +1275,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const buildingSelect = document.getElementById('filter-building');
     if (buildingSelect) {
         buildingSelect.addEventListener('change', async () => {
-            const val = buildingSelect.value; // "chateaudun", "levallois", "lille", "DB:4" ...
+            const val = buildingSelect.value; // "chateaudun", "levallois", "lille", "4" ...
 
             if (window.building3D && typeof window.building3D.setBuilding === 'function') {
                 window.building3D.buildingKey = val.toUpperCase();

@@ -708,6 +708,28 @@
             </div>
 
             <div class="col-md-4">
+                <label>Exclude Floors</label>
+                <div id="excluded-floors-wrapper" class="floor-checkbox-wrapper">
+                    <div class="floor-checkbox-header" onclick="toggleFloorCheckboxPanel()">
+                        <span id="floor-checkbox-summary">All floors visible</span>
+                        <span class="floor-checkbox-chevron" id="floor-checkbox-chevron">▾</span>
+                    </div>
+                    <div id="floor-checkbox-panel" class="floor-checkbox-panel" style="display:none;">
+                        <div class="floor-checkbox-select-all">
+                            <label class="floor-checkbox-item floor-checkbox-master">
+                                <span class="floor-custom-checkbox" id="master-checkbox-ui"></span>
+                                <input type="checkbox" id="floor-select-all" onchange="toggleAllFloors(this)">
+                                <span class="floor-checkbox-label">Select all</span>
+                            </label>
+                        </div>
+                        <div id="floor-checkbox-list" class="floor-checkbox-list">
+                            <!-- Dynamically populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
                 <label>Scale (optional)</label>
                 <input type="number" id="building-scale" class="form-control" value="0.01" step="0.001"
                        onchange="applyFormUpdate()">
