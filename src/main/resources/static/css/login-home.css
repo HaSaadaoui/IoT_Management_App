@@ -54,6 +54,13 @@ body.home-page .app-footer {
     display: block;
 }
 
+.dashboard-card.disabled {
+    opacity: 0.4;
+    filter: grayscale(100%);
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 /* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 768px) {
     body {

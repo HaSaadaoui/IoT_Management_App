@@ -27,7 +27,8 @@ public class BuildingController {
             @RequestParam("name") String name,
             @RequestParam("floors") int floors,
             @RequestParam("scale") double scale,
-            @RequestParam("svgFile") MultipartFile svgFile
+            @RequestParam("svgFile") MultipartFile svgFile,
+            @RequestParam(value = "excludedFloors", required = false) List<Integer> excludedFloors
     ) throws Exception {
 
         // BindingResult pour éventuelles erreurs
@@ -42,6 +43,7 @@ public class BuildingController {
                 floors,
                 scale,
                 svgFile,
+                excludedFloors,
                 bindingResult
         );
 
@@ -59,7 +61,8 @@ public class BuildingController {
             @RequestParam("name") String name,
             @RequestParam("floors") int floors,
             @RequestParam("scale") double scale,
-            @RequestParam("svgFile") MultipartFile svgFile
+            @RequestParam("svgFile") MultipartFile svgFile,
+            @RequestParam(value = "excludedFloors", required = false) List<Integer> excludedFloors
     ) throws Exception {
 
         // BindingResult pour éventuelles erreurs
@@ -78,6 +81,7 @@ public class BuildingController {
                     floors,
                     scale,
                     svgFile,
+                    excludedFloors,
                     bindingResult
             );
         } else {
@@ -87,6 +91,7 @@ public class BuildingController {
                     name,
                     floors,
                     scale,
+                    excludedFloors,
                     bindingResult
             );
         }

@@ -15,95 +15,13 @@ function updateRefreshTime() {
     document.getElementById('last-refresh-time').textContent = formatted;
 }
 
-// Building and Floor View Navigation
-function showFloorPlan(floorNumber) {
-    const buildingView = document.getElementById('building-view');
-    const floorPlanView = document.getElementById('floor-plan-view');
-    const floorTitle = document.getElementById('current-floor-title');
-    
-    // Hide building view, show floor plan
-    buildingView.style.display = 'none';
-    floorPlanView.style.display = 'block';
-    
-    // Update title
-    const floorNames = {
-        0: 'Ground Floor',
-        1: 'Floor 1',
-        2: 'Floor 2',
-        3: 'Floor 3'
-    };
-    floorTitle.textContent = `${floorNames[floorNumber]} - Ceiling View`;
-    
-    // Load desk data for this floor (in production, fetch from API)
-    loadFloorDesks(floorNumber);
-}
-
-function showBuildingView() {
-    const buildingView = document.getElementById('building-view');
-    const floorPlanView = document.getElementById('floor-plan-view');
-    
-    // Show building view, hide floor plan
-    buildingView.style.display = 'flex';
-    floorPlanView.style.display = 'none';
-}
-
-function loadFloorDesks(floorNumber) {
-    const deskGrid = document.getElementById('desk-grid');
-    const buildingSelect = document.getElementById('filter-building');
-    const buildingId = buildingSelect ? buildingSelect.value : 'CHATEAUDUN';
-
-    // Use shared configuration for desk-sensor mapping
-    const desks = window.DeskSensorConfig
-        ? window.DeskSensorConfig.getFloorDesks(floorNumber, 'invalid', buildingId)
-        : [];
-    
-    // Clear and rebuild desk grid
-    deskGrid.innerHTML = '';
-    desks.forEach(desk => {
-        const deskElement = document.createElement('div');
-        deskElement.className = `desk ${desk.status}`;
-        deskElement.setAttribute('data-desk', desk.id);
-        deskElement.textContent = desk.id;
-        deskElement.addEventListener('click', function() {
-            alert(`Desk ${desk.id}\nStatus: ${desk.status}\n\nClick to view detailed information.`);
-        });
-        deskGrid.appendChild(deskElement);
-    });
-}
-
 // Initialize charts using shared utility functions
 function initCharts() {
     // Chart.js default options
     Chart.defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
     Chart.defaults.color = '#64748b';
 
-    // Initialize office/location charts using data-chart-index
-    const chartData = [
-        [57.14, 42, 0.86],  // index 0
-        [75, 25, 0],        // index 1
-        [66.67, 33.33, 0]   // index 2
-    ];
-
-    chartData.forEach((data, index) => {
-        const statCard = document.querySelector(`.stat-card[data-chart-index="${index}"]`);
-        if (statCard) {
-            const chartElement = statCard.querySelector('.chart-office');
-            if (chartElement) {
-                // Use shared utility function
-                window.ChartUtils.createDoughnutChart(chartElement, data);
-            }
-        }
-    });
-
-    // Initialize total chart using data-chart-type="total"
-    const totalStatCard = document.querySelector('.stat-card[data-chart-type="total"]');
-    if (totalStatCard) {
-        const chartElement = totalStatCard.querySelector('#chart-total');
-        if (chartElement) {
-            // Use shared utility function
-            window.ChartUtils.createDoughnutChart(chartElement, [63.64, 36.36, 0]);
-        }
-    }
+    // Static chart initialization removed - charts are now populated by SSE via chartUtils.js
 
     // Historical Bar Chart is now handled by dashboard.js
     // Removed to prevent conflicts with the real histogram implementation
@@ -373,18 +291,22 @@ function updatePageTitles(sensorType) {
             globalTitle: 'Alert Summary'
         }
     };
-    
+    const buildingSelect = document.getElementById('filter-building');
+    let buildingName = "Châteaudun";
+    if (buildingSelect) {
+        buildingName = buildingSelect.selectedOptions[0].text;
+    }
     const info = sensorInfo[sensorType] || sensorInfo['DESK'];
     
     // Update section titles
     const liveTitle = document.getElementById('live-section-title');
     if (liveTitle) {
-        liveTitle.textContent = `${info.icon} ${info.liveTitle} - Châteaudun Office`;
+        liveTitle.textContent = `${info.icon} ${info.liveTitle} - ${buildingName} Office`;
     }
     
     const historicalTitle = document.getElementById('historical-section-title');
     if (historicalTitle) {
-        historicalTitle.textContent = `📈 ${info.historicalTitle} - Châteaudun Office`;
+        historicalTitle.textContent = `📈 ${info.historicalTitle} - ${buildingName} Office`;
     }
     
     const chartTitle = document.getElementById('historical-chart-title');
@@ -411,14 +333,9 @@ function initFilters() {
                 // Handle sensor type filter change
                 if (filterId === 'sensor-type') {
                     updatePageTitles(this.value);
-                    // if (window.building3D) {
-                    //     window.building3D.setSensorMode(this.value);
-                    // }
                 }
                 
                 updateRefreshTime();
-                // In production, this would trigger data refresh
-                // refreshDashboardData();
             });
         }
     });

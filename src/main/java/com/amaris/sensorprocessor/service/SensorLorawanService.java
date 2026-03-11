@@ -39,6 +39,13 @@ public class SensorLorawanService {
     }
 
 
+    public void pushPayloadFormatter(String idGateway, String sensorId, String decoderJs) {
+        String applicationId = getApplicationIdForGateway(idGateway);
+        sensorLorawanDao.pushPayloadFormatter(applicationId, sensorId, decoderJs);
+        log.info("[LoRaWAN] pushed payload formatter for device {} in application {}", sensorId, applicationId);
+    }
+
+
     public void createDevice(String idGateway, LorawanSensorData body) {
         String applicationId = getApplicationIdForGateway(idGateway);
         sensorLorawanDao.insertSensorInLorawan(applicationId, body);

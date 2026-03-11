@@ -15,62 +15,52 @@ public class SensorDao {
 
     private final JdbcTemplate jdbcTemplate;
 
+    private static final String BASE_SELECT =
+            "SELECT s.* " +                                                    // ✅ s.* suffit, device_type est déjà dans la table
+                    "FROM sensors s " +
+                    "LEFT JOIN device_type dt ON s.id_device_type = dt.id_device_type ";
     @Autowired
     public SensorDao(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    /** Récupère tous les capteurs. */
     public List<Sensor> findAllSensors() {
-        return jdbcTemplate.query(
-                "SELECT * FROM sensors",
-                new BeanPropertyRowMapper<>(Sensor.class)
-        );
+        return jdbcTemplate.query(BASE_SELECT, new BeanPropertyRowMapper<>(Sensor.class));
     }
 
-    /** Récupère tous les capteurs. */
     public List<Sensor> findAllByBuilding(String building) {
         return jdbcTemplate.query(
-                "SELECT * FROM sensors WHERE building_name = ?",
-                new BeanPropertyRowMapper<>(Sensor.class),
-                building
-        );
+                BASE_SELECT + "WHERE s.building_name = ?",
+                new BeanPropertyRowMapper<>(Sensor.class), building);
     }
 
     public List<String> findAllGateways() {
         return jdbcTemplate.queryForList(
                 "SELECT DISTINCT id_gateway FROM sensors WHERE id_gateway IS NOT NULL",
-                String.class
-        );
+                String.class);
     }
 
-    /** Récupère un capteur par son ID. */
     public Optional<Sensor> findByIdOfSensor(String id) {
         List<Sensor> sensors = jdbcTemplate.query(
-                "SELECT * FROM sensors WHERE ID_SENSOR = ?",
-                new BeanPropertyRowMapper<>(Sensor.class),
-                id
-        );
+                BASE_SELECT + "WHERE s.id_sensor = ?",
+                new BeanPropertyRowMapper<>(Sensor.class), id);
         return sensors.isEmpty() ? Optional.empty() : Optional.of(sensors.get(0));
     }
 
-    /** Supprime un capteur par son ID. */
     public int deleteByIdOfSensor(String id) {
-        return jdbcTemplate.update(
-                "DELETE FROM sensors WHERE ID_SENSOR = ?",
-                id
-        );
+        return jdbcTemplate.update("DELETE FROM sensors WHERE id_sensor = ?", id);
     }
 
-    /** Insère un capteur (colonnes de base uniquement). */
     public int insertSensor(Sensor sensor) {
         return jdbcTemplate.update(
                 "INSERT INTO sensors (" +
-                        "ID_SENSOR, DEVICE_TYPE, COMMISSIONING_DATE, STATUS, " +
-                        "BUILDING_NAME, FLOOR, LOCATION, ID_GATEWAY, DEV_EUI, FREQUENCY_PLAN" +
-                        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "id_sensor, id_device_type, commissioning_date, status, " +
+                        "building_name, floor, location, id_gateway, " +
+                        "dev_eui, join_eui, app_key, frequency_plan, " +
+                        "brand_id, protocol_id" +
+                        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 sensor.getIdSensor(),
-                sensor.getDeviceType(),
+                sensor.getIdDeviceType(),
                 sensor.getCommissioningDate(),
                 sensor.getStatus(),
                 sensor.getBuildingName(),
@@ -78,62 +68,58 @@ public class SensorDao {
                 sensor.getLocation(),
                 sensor.getIdGateway(),
                 sensor.getDevEui(),
-                sensor.getFrequencyPlan()
-        );
+                sensor.getJoinEui(),
+                sensor.getAppKey(),
+                sensor.getFrequencyPlan(),
+                sensor.getBrandId(),
+                sensor.getProtocolId());
     }
 
     public List<Sensor> findAllByDeviceType(String deviceType) {
         return jdbcTemplate.query(
-                "SELECT * FROM sensors WHERE DEVICE_TYPE = ?",
-                new BeanPropertyRowMapper<>(Sensor.class),
-                deviceType
-        );
+                BASE_SELECT + "WHERE dt.type_name = ?", // ✅
+                new BeanPropertyRowMapper<>(Sensor.class), deviceType);
     }
 
     public List<Sensor> findAllByDeviceTypeAndBuilding(String deviceType, String building) {
         return jdbcTemplate.query(
-                "SELECT * FROM sensors WHERE DEVICE_TYPE = ? AND BUILDING_NAME = ?",
-                new BeanPropertyRowMapper<>(Sensor.class),
-                deviceType,
-                building
-        );
+                BASE_SELECT + "WHERE dt.type_name = ? AND s.building_name = ?", // ✅
+                new BeanPropertyRowMapper<>(Sensor.class), deviceType, building);
     }
 
-    public boolean existsByBuildingAndType(String building, String deviceType){
+    public boolean existsByBuildingAndType(String building, String deviceType) {
         Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(1) FROM sensors WHERE DEVICE_TYPE = ? IS NULL OR BUILDING_NAME = ?",
-                Integer.class,
-                deviceType,
-                building
-        );
-
+                "SELECT COUNT(1) FROM sensors s " +
+                        "JOIN device_type dt ON s.id_device_type = dt.id_device_type " +
+                        "WHERE dt.type_name = ? AND s.building_name = ?", // ✅
+                Integer.class, deviceType, building);
         return count != null && count > 0;
     }
 
-
     public List<Sensor> findAllByLocation(String location) {
         return jdbcTemplate.query(
-                "SELECT * FROM sensors WHERE location = ?",
-                new BeanPropertyRowMapper<>(Sensor.class),
-                location
-        );
+                BASE_SELECT + "WHERE s.location = ?",
+                new BeanPropertyRowMapper<>(Sensor.class), location);
     }
 
-    /** Met à jour les colonnes de base (sauf la PK). */
     public int updateSensor(Sensor sensor) {
         return jdbcTemplate.update(
                 "UPDATE sensors SET " +
-                        "DEVICE_TYPE = ?, " +
-                        "COMMISSIONING_DATE = ?, " +
-                        "STATUS = ?, " +
-                        "BUILDING_NAME = ?, " +
-                        "FLOOR = ?, " +
-                        "LOCATION = ?, " +
-                        "ID_GATEWAY = ?, " +
-                        "DEV_EUI = ?, " +
-                        "FREQUENCY_PLAN = ? " +
-                        "WHERE ID_SENSOR = ?",
-                sensor.getDeviceType(),
+                        "id_device_type = ?, " +
+                        "commissioning_date = ?, " +
+                        "status = ?, " +
+                        "building_name = ?, " +
+                        "floor = ?, " +
+                        "location = ?, " +
+                        "id_gateway = ?, " +
+                        "dev_eui = ?, " +
+                        "join_eui = ?, " +
+                        "app_key = ?, " +
+                        "frequency_plan = ?, " +
+                        "brand_id = ?, " +
+                        "protocol_id = ? " +
+                        "WHERE id_sensor = ?",
+                sensor.getIdDeviceType(),
                 sensor.getCommissioningDate(),
                 sensor.getStatus(),
                 sensor.getBuildingName(),
@@ -141,28 +127,24 @@ public class SensorDao {
                 sensor.getLocation(),
                 sensor.getIdGateway(),
                 sensor.getDevEui(),
+                sensor.getJoinEui(),
+                sensor.getAppKey(),
                 sensor.getFrequencyPlan(),
-                sensor.getIdSensor()
-        );
+                sensor.getBrandId(),
+                sensor.getProtocolId(),
+                sensor.getIdSensor());
     }
 
-    /**
-     * Récupère la liste des sensors des type_device renseignés
-     * @param deviceTypes exemple: "DESK", "OCCUP"
-     * @return les of sensors
-     */
     public List<Sensor> findAllByDeviceTypes(List<String> deviceTypes) {
-        String placeholders = deviceTypes.stream()
-                .map(t -> "?")
-                .collect(Collectors.joining(","));
-
-        String sql = "SELECT * FROM sensors WHERE DEVICE_TYPE IN (" + placeholders + ")";
-
-        return jdbcTemplate.query(
-                sql,
-                new BeanPropertyRowMapper<>(Sensor.class),
-                deviceTypes.toArray()
-        );
+        String placeholders = deviceTypes.stream().map(t -> "?").collect(Collectors.joining(","));
+        String sql = BASE_SELECT + "WHERE dt.type_name IN (" + placeholders + ")"; // ✅
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Sensor.class), deviceTypes.toArray());
     }
 
+    public Optional<Sensor> findByDevEui(String devEui) {
+        List<Sensor> sensors = jdbcTemplate.query(
+                BASE_SELECT + "WHERE s.dev_eui = ?",
+                new BeanPropertyRowMapper<>(Sensor.class), devEui);
+        return sensors.isEmpty() ? Optional.empty() : Optional.of(sensors.get(0));
+    }
 }

@@ -2,25 +2,62 @@
 // Manage Sensors (JS)
 // =======================
 
-// Références globales (certains éléments peuvent ne pas exister selon la page)
+const CAN_EDIT_SENSORS = !!window.CAN_EDIT_SENSORS;
+
+function disableLink(a) {
+  if (!a) return;
+  a.classList.add('disabled');
+  a.setAttribute('aria-disabled', 'true');
+  a.setAttribute('tabindex', '-1');
+}
+
+// Références globales
 const modalCreate = document.getElementById("createSensorPopup");
 const modalDelete = document.getElementById("deleteSensorPopup");
 const modalEdit   = document.getElementById("editSensorPopup");
-
 const btnCreate   = document.getElementById("openCreateBtn");
 const exitDelete  = document.getElementById("closeDelete");
 
-// Données injectées par Thymeleaf (définies dans la page)
+// Données injectées par Thymeleaf
 const SENSORS  = Array.isArray(window.SENSORS)  ? window.SENSORS  : [];
 const GATEWAYS = Array.isArray(window.GATEWAYS) ? window.GATEWAYS : [];
-
+const BUILDING_FLOORS = Array.isArray(window.BUILDING_FLOORS) ? window.BUILDING_FLOORS : [];
 // -----------------------
 // Helpers UI
 // -----------------------
 function updateSelectPlaceholderStyle(select) {
   if (!select) return;
-  const isEmpty = !select.value;
-  select.classList.toggle('empty', isEmpty);
+  select.classList.toggle('empty', !select.value);
+}
+
+function populateFloors(selectEl, building, currentFloor = null) {
+  if (!selectEl) return;
+
+  selectEl.innerHTML = '<option value="" disabled selected>Select a Floor</option>';
+
+  if (!building) {
+    selectEl.disabled = true;
+    return;
+  }
+
+  // ✅ UTILISE window.BUILDING_FLOORS au lieu de SENSORS
+  const bf = (window.BUILDING_FLOORS || []).find(b => b.name === building);
+  if (!bf || !bf.floorsCount) {
+    selectEl.disabled = true;
+    return;
+  }
+
+  for (let i = 1; i <= bf.floorsCount; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `Floor ${i}`;
+    selectEl.appendChild(opt);
+  }
+
+  selectEl.disabled = false;
+  if (currentFloor != null) {
+    selectEl.value = String(currentFloor);
+  }
 }
 
 function sqlLikeToRegex(pattern) {
@@ -32,9 +69,7 @@ function sqlLikeToRegex(pattern) {
 function matchesLikeOrIncludes(value, query) {
   if (!query) return true;
   const v = String(value ?? '');
-  if (query.includes('%')) {
-    return sqlLikeToRegex(query).test(v);
-  }
+  if (query.includes('%')) return sqlLikeToRegex(query).test(v);
   return v.toLowerCase().startsWith(query.toLowerCase());
 }
 
@@ -46,6 +81,7 @@ function keepHexAndUpper(s) {
 // DOM Ready
 // -----------------------
 document.addEventListener('DOMContentLoaded', () => {
+
   // Filtres / Table / Pagination
   const tableBody      = document.getElementById('sensorTableBody');
   const buildingFilter = document.getElementById('buildingFilter');
@@ -58,6 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const openCreateBtn      = document.getElementById('openCreateBtn');
   const closeCreateBtn     = document.getElementById('closeCreateSensor') || document.getElementById('closeCreate');
   const gatewaySelect      = document.getElementById('gatewaySelect');
+  const protocolSelect     = document.getElementById('protocolSelect');
+  const frequencyPlanWrapper = document.getElementById('frequencyPlanWrapper');
+  const floorSelect       = document.getElementById('floorSelect');
   const frequencyPlanInput = document.getElementById('frequencyPlanInput');
   const buildingNameInput  = document.getElementById('buildingNameInput');
   const devEuiInput        = document.getElementById('devEuiInput');
@@ -66,9 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Champs Edit
   const closeEditBtn           = document.getElementById('closeEditSensor');
-  const gatewaySelectEdit      = document.getElementById('gatewaySelectEdit');       // disabled (info)
-  const frequencyPlanInputEdit = document.getElementById('frequencyPlanInputEdit');  // readonly
-  const buildingNameInputEdit  = document.getElementById('buildingNameInputEdit');   // readonly
+  const gatewaySelectEdit      = document.getElementById('gatewaySelectEdit');
+  const frequencyPlanInputEdit = document.getElementById('frequencyPlanInputEdit');
+  const buildingNameInputEdit  = document.getElementById('buildingNameInputEdit');
+  const floorSelectEdit   = document.getElementById('floorSelectEdit');
 
   // État pagination
   const PAGE_SIZE = 10;
@@ -79,17 +119,15 @@ document.addEventListener('DOMContentLoaded', () => {
   if (buildingFilter) updateSelectPlaceholderStyle(buildingFilter);
   if (statusFilter)   updateSelectPlaceholderStyle(statusFilter);
 
-  // Peupler le filtre Building à partir des capteurs (unique trié)
+  // -----------------------
+  // Peupler le filtre Building
+  // -----------------------
   function populateBuildings() {
     if (!buildingFilter) return;
-
     const uniques = Array.from(new Set(
       (SENSORS || []).map(s => (s.buildingName || '').trim()).filter(Boolean)
     )).sort();
-
-    // Supprime toutes les options (sauf la 1re placeholder)
     buildingFilter.querySelectorAll('option:not([value=""])').forEach(o => o.remove());
-
     for (const b of uniques) {
       const opt = document.createElement('option');
       opt.value = b;
@@ -99,19 +137,54 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSelectPlaceholderStyle(buildingFilter);
   }
 
-  // ----- Liaison Gateway -> Frequency Plan + Building (Create) -----
+  // -----------------------
+  // Toggle Frequency Plan selon protocole
+  // -----------------------
+  function toggleFrequencyPlan() {
+    if (!protocolSelect || !frequencyPlanWrapper) return;
+    const selectedText = protocolSelect.selectedOptions[0]?.text?.toLowerCase() ?? '';
+    const isLorawan = selectedText.includes('lora');
+    frequencyPlanWrapper.style.display = isLorawan ? 'block' : 'none';
+    if (!isLorawan && frequencyPlanInput) {
+      frequencyPlanInput.value = '';
+    }
+  }
+
+  protocolSelect?.addEventListener('change', toggleFrequencyPlan);
+
+  // -----------------------
+  // Gateway -> Frequency Plan + Building
+  // -----------------------
   function applyGatewayHintsCreate() {
     if (!gatewaySelect) return;
     const opt = gatewaySelect.selectedOptions[0];
     if (!opt) return;
     const freq = opt.getAttribute('data-freq')     || '';
     const bldg = opt.getAttribute('data-building') || '';
-    if (frequencyPlanInput) frequencyPlanInput.value = freq;
-    if (buildingNameInput)  buildingNameInput.value  = bldg;
+
+    if (frequencyPlanInput && frequencyPlanWrapper?.style.display !== 'none') {
+      const match = Array.from(frequencyPlanInput.options).find(o => o.value === freq);
+      if (match) frequencyPlanInput.value = freq;
+    }
+
+    if (buildingNameInput) {
+      const match = Array.from(buildingNameInput.options).find(o => o.value === bldg);
+      buildingNameInput.value = match ? bldg : '';
+    }
+
+    populateFloors(floorSelect, buildingNameInput?.value || '');
   }
+
   gatewaySelect?.addEventListener('change', applyGatewayHintsCreate);
 
-  // Nettoyage/formatage HEX (Create)
+// Floor dynamique selon building (Add)
+buildingNameInput?.addEventListener('change', () => {
+  populateFloors(floorSelect, buildingNameInput.value);
+});
+
+  // -----------------------
+  // Formatage HEX
+  // -----------------------
   devEuiInput?.addEventListener('input', () => {
     devEuiInput.value = keepHexAndUpper(devEuiInput.value).slice(0, 16);
   });
@@ -122,13 +195,18 @@ document.addEventListener('DOMContentLoaded', () => {
     appKeyInput.value = keepHexAndUpper(appKeyInput.value).slice(0, 32);
   });
 
-  // ----- Table rendering -----
+  // -----------------------
+  // Table rendering
+  // -----------------------
   function renderRows(rows) {
     if (!tableBody) return;
     tableBody.innerHTML = '';
 
     rows.forEach((s) => {
       const row = document.createElement('tr');
+      const editClass = CAN_EDIT_SENSORS ? '' : 'disabled';
+      const delClass  = CAN_EDIT_SENSORS ? '' : 'disabled';
+
       row.innerHTML = `
         <td>${s.idSensor ?? ''}</td>
         <td>${s.devEui ?? ''}</td>
@@ -146,10 +224,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <a href="/manage-sensors/monitoring/${s.idSensor}">
               <img src="/image/monitoring-data.svg" alt="Monitor">
             </a>
-            <a href="/manage-sensors/edit/${s.idSensor}">
+            <a href="/manage-sensors/edit/${s.idSensor}" class="${editClass}" aria-disabled="${!CAN_EDIT_SENSORS}">
               <img src="/image/edit-icon.svg" alt="Edit">
             </a>
-            <a href="#" class="openDeletePopup" data-id="${s.idSensor}">
+            <a href="#" class="openDeletePopup ${delClass}" data-id="${s.idSensor}" aria-disabled="${!CAN_EDIT_SENSORS}">
               <img src="/image/delete-icon.svg" alt="Delete">
             </a>
           </div>
@@ -168,28 +246,30 @@ document.addEventListener('DOMContentLoaded', () => {
       tableBody.appendChild(emptyRow);
     }
 
-    // Re-bind delete buttons
-    tableBody.querySelectorAll('.openDeletePopup').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.preventDefault();
-        const id = btn.getAttribute('data-id');
-        const form = document.getElementById('deleteForm');
-        if (form) {
-          form.action = `/manage-sensors/delete/${id}`;
-        }
-        if (modalDelete) modalDelete.style.display = 'block';
+    if (CAN_EDIT_SENSORS) {
+      tableBody.querySelectorAll('.openDeletePopup').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.preventDefault();
+          const id = btn.getAttribute('data-id');
+          const form = document.getElementById('deleteForm');
+          if (form) form.action = `/manage-sensors/delete/${id}`;
+          if (modalDelete) modalDelete.style.display = 'block';
+        });
       });
-    });
+    } else {
+      tableBody.querySelectorAll('a.disabled').forEach(disableLink);
+    }
   }
 
-  // ----- Pagination -----
+  // -----------------------
+  // Pagination
+  // -----------------------
   function renderPagination(totalCount) {
     if (!paginationEl) return;
-
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
     currentPage = Math.min(currentPage, totalPages);
-
     paginationEl.innerHTML = '';
+
     const btn = (label, page, disabled = false, active = false, ariaLabel) => {
       const b = document.createElement('button');
       b.className = 'page-btn' + (active ? ' active' : '');
@@ -210,11 +290,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const totalPagesToShow = 5;
     let startPage = Math.max(1, currentPage - Math.floor(totalPagesToShow / 2));
-    let endPage = Math.min(totalPages, startPage + totalPagesToShow - 1);
+    let endPage   = Math.min(totalPages, startPage + totalPagesToShow - 1);
     if (endPage - startPage + 1 < totalPagesToShow) {
       startPage = Math.max(1, endPage - totalPagesToShow + 1);
     }
-
     for (let p = startPage; p <= endPage; p++) {
       paginationEl.appendChild(btn(String(p), p, false, p === currentPage));
     }
@@ -224,23 +303,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderRowsPaginated() {
-    const total = filteredRows.length;
-    const start = (currentPage - 1) * PAGE_SIZE;
+    const total    = filteredRows.length;
+    const start    = (currentPage - 1) * PAGE_SIZE;
     const pageRows = filteredRows.slice(start, start + PAGE_SIZE);
     renderRows(pageRows);
     renderPagination(total);
     updateSensorCount(total);
   }
 
-  // Update sensor count display
   function updateSensorCount(count) {
-    const sensorCountEl = document.getElementById('sensorCount');
-    if (sensorCountEl) {
-      sensorCountEl.textContent = count;
-    }
+    const el = document.getElementById('sensorCount');
+    if (el) el.textContent = count;
   }
 
-  // ----- Filtres -----
+  // -----------------------
+  // Filtres
+  // -----------------------
   function applyFilters() {
     const b = buildingFilter?.value || '';
     const s = statusFilter?.value   || '';
@@ -249,43 +327,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let rows = (SENSORS || []).slice();
 
-    if (b) {
-      rows = rows.filter(x => (x.buildingName || '') === b);
-    }
+    if (b) rows = rows.filter(x => (x.buildingName || '') === b);
     if (s) {
       const boolVal = (s === 'true');
       rows = rows.filter(x => String(x.status) === String(boolVal));
     }
-    if (q) {
-      rows = rows.filter(x => matchesLikeOrIncludes(x.idSensor, q));
-    }
+    if (q) rows = rows.filter(x => matchesLikeOrIncludes(x.idSensor, q));
     if (d) {
       const dDate = new Date(d);
       rows = rows.filter(x => {
         if (!x.commissioningDate) return false;
-        const gDate = new Date(x.commissioningDate);
-        return gDate >= dDate;
+        return new Date(x.commissioningDate) >= dDate;
       });
     }
 
     filteredRows = rows;
-    currentPage = 1;
+    currentPage  = 1;
     renderRowsPaginated();
   }
 
-  // ----- Listeners filtres -----
-  buildingFilter?.addEventListener('change', () => {
-    updateSelectPlaceholderStyle(buildingFilter);
-    applyFilters();
-  });
-  statusFilter?.addEventListener('change', () => {
-    updateSelectPlaceholderStyle(statusFilter);
-    applyFilters();
-  });
+  buildingFilter?.addEventListener('change', () => { updateSelectPlaceholderStyle(buildingFilter); applyFilters(); });
+  statusFilter?.addEventListener('change',   () => { updateSelectPlaceholderStyle(statusFilter);   applyFilters(); });
   searchInput?.addEventListener('input', applyFilters);
-  dateInput?.addEventListener('input', applyFilters);
+  dateInput?.addEventListener('input',   applyFilters);
 
-  // ----- Clear boutons -----
   document.getElementById('clearBuilding')?.addEventListener('click', () => {
     if (!buildingFilter) return;
     buildingFilter.value = '';
@@ -310,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // -----------------------
-  // Modals: Create / Edit / Delete
+  // Modals : Create / Edit / Delete
   // -----------------------
 
   // CREATE
@@ -318,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
     openCreateBtn.addEventListener('click', (e) => {
       e.preventDefault();
       modalCreate.style.display = 'block';
-      // auto-remplir si une gateway est déjà sélectionnée
+      toggleFrequencyPlan();
       applyGatewayHintsCreate();
     });
   }
@@ -329,44 +394,43 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // EDIT — si le modal existe (retour de /manage-sensors/edit/{id}), on l’ouvre automatiquement
-  if (modalEdit) {
-    modalEdit.style.display = 'block';
-  }
-  if (closeEditBtn && modalEdit) {
-    closeEditBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      modalEdit.style.display = 'none';
-    });
-  }
+  // EDIT
+if (modalEdit && floorSelectEdit) {
+  // ✅ Building récupéré depuis data-building (pas depuis un select)
+  const buildingEdit  = floorSelectEdit.dataset.building || '';
+  const currentFloor  = floorSelectEdit.dataset.current  || '';
+  populateFloors(floorSelectEdit, buildingEdit, currentFloor);
+  // Pas d'event change building : on ne change pas le building en Edit
+}
 
-  // DELETE — fermeture
+if (closeEditBtn && modalEdit) {
+  closeEditBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    modalEdit.style.display = 'none';
+  });
+}
+
+  // DELETE
   if (exitDelete && modalDelete) {
-    exitDelete.addEventListener("click", () => {
+    exitDelete.addEventListener('click', () => {
       const errorDiv = document.querySelector('.error-message-delete');
-      if (errorDiv) {
-        errorDiv.style.display = 'none';
-        errorDiv.textContent = '';
-      }
+      if (errorDiv) { errorDiv.style.display = 'none'; errorDiv.textContent = ''; }
       modalDelete.style.display = 'none';
     });
   }
 
-  // Fermer en cliquant hors du contenu (overlay) : Create / Edit / Delete
+  // Fermer sur overlay click
   window.addEventListener('click', (e) => {
     if (modalCreate && e.target === modalCreate) modalCreate.style.display = 'none';
     if (modalEdit   && e.target === modalEdit)   modalEdit.style.display   = 'none';
     if (modalDelete && e.target === modalDelete) {
       const errorDiv = document.querySelector('.error-message-delete');
-      if (errorDiv) {
-        errorDiv.style.display = 'none';
-        errorDiv.textContent = '';
-      }
+      if (errorDiv) { errorDiv.style.display = 'none'; errorDiv.textContent = ''; }
       modalDelete.style.display = 'none';
     }
   });
 
-  // Échap pour fermer modals ouverts
+  // Fermer sur Échap
   window.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (modalCreate && getComputedStyle(modalCreate).display !== 'none') modalCreate.style.display = 'none';
@@ -380,14 +444,13 @@ document.addEventListener('DOMContentLoaded', () => {
   populateBuildings();
   filteredRows = SENSORS || [];
   renderRowsPaginated();
-
-  // Si une gateway est présélectionnée dans le Create form (ex: validation côté serveur), pousser les hints
+  toggleFrequencyPlan();
   applyGatewayHintsCreate();
 });
 
 // -----------------------
-// Flatpickr init (format simple compatible colonne DATE)
+// Flatpickr
 // -----------------------
 if (typeof flatpickr === 'function') {
-  flatpickr(".datepicker", { dateFormat: "Y-m-d" });
+  flatpickr('.datepicker', { dateFormat: 'Y-m-d' });
 }

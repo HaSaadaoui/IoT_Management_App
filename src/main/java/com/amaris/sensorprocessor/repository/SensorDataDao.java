@@ -627,6 +627,74 @@ public class SensorDataDao {
     }
 
     /**
+     * Find aggregated data by period and type with hourly binning (LocalDateTime version).
+     * This method uses LocalDateTime to match the format stored in the database.
+     */
+    public List<AggregatedDataPoint> findAggregatedDataByPeriodAndType(
+            List<String> sensorIds,
+            java.time.LocalDateTime startDateTime,
+            java.time.LocalDateTime endDateTime,
+            PayloadValueType valueType,
+            String aggregationType) {
+
+        if (sensorIds == null || sensorIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        String placeholders = String.join(",", java.util.Collections.nCopies(sensorIds.size(), "?"));
+        // Use substr for ISO-8601 format - extract YYYY-MM-DDTHH (first 13 chars)
+        String hourBucket = "substr(received_at, 1, 13)";
+
+        String aggFunc = switch (aggregationType.toUpperCase()) {
+            case "AVG", "AVERAGE" -> "AVG";
+            case "SUM" -> "SUM";
+            case "COUNT" -> "COUNT";
+            case "MAX" -> "MAX";
+            case "MIN" -> "MIN";
+            default -> "AVG";
+        };
+
+        String query = "SELECT " +
+                      hourBucket + " as time_bucket, " +
+                      aggFunc + "(CAST(value AS REAL)) as agg_value, " +
+                      "COUNT(*) as data_point_count, " +
+                      "COUNT(DISTINCT id_sensor) as sensor_count " +
+                      "FROM sensor_data " +
+                      "WHERE id_sensor IN (" + placeholders + ") " +
+                      "  AND received_at >= ? AND received_at < ? " +
+                      "  AND value_type = ? " +
+                      "  AND value IS NOT NULL " +
+                      "GROUP BY " + hourBucket + " " +
+                      "ORDER BY " + hourBucket + " ASC";
+
+        // Format dates consistently to match database storage format
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+        String startStr = startDateTime.format(formatter);
+        String endStr = endDateTime.format(formatter);
+        
+        List<Object> params = new ArrayList<>(sensorIds.size() + 3);
+        params.addAll(sensorIds);
+        params.add(startStr);
+        params.add(endStr);
+        params.add(valueType.toString());
+
+        try {
+            List<AggregatedDataPoint> results = jdbcTemplate.query(query, (rs, rowNum) -> {
+                return new AggregatedDataPoint(
+                    rs.getString(1),  // time_bucket
+                    rs.getDouble(2),  // agg_value
+                    rs.getInt(4),     // sensor_count
+                    rs.getInt(3)      // data_point_count
+                );
+            }, params.toArray());
+            return results;
+        } catch (Exception e) {
+            System.err.println("Error executing LocalDateTime aggregation: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    /**
      * Find aggregated data by period and type with hourly binning.
      * This method aggregates sensor data by hour for memory efficiency.
      *
@@ -682,8 +750,12 @@ public class SensorDataDao {
         params.add(ts(endDate));
         params.add(valueType.toString());
 
+        System.out.println("🔍 Aggregation query params: sensorIds=" + sensorIds + 
+                ", startDate=" + ts(startDate) + ", endDate=" + ts(endDate) + 
+                ", valueType=" + valueType.toString());
+
         try {
-            return jdbcTemplate.query(query, (rs, rowNum) -> {
+            List<AggregatedDataPoint> results = jdbcTemplate.query(query, (rs, rowNum) -> {
                 return new AggregatedDataPoint(
                     rs.getString("time_bucket"),
                     rs.getDouble("agg_value"),
@@ -691,6 +763,8 @@ public class SensorDataDao {
                     rs.getInt("data_point_count")
                 );
             }, params.toArray());
+            System.out.println("🔍 Aggregation results count: " + results.size());
+            return results;
         } catch (Exception e) {
             System.err.println("Error executing aggregation: " + e.getMessage());
             return new ArrayList<>();

@@ -6,18 +6,18 @@ import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 @Data
-@Table("Sensors")
+@Table("sensors")
 public class Sensor {
 
     public Sensor() {}
 
-    // ⇨ Si tu gardes un constructeur custom, pense à l’aligner avec les nouveaux champs
-    public Sensor(String idSensor, String deviceType, String commissioningDate,
+    public Sensor(String idSensor, Integer idDeviceType, String commissioningDate,
                   Boolean status, String buildingName, Integer floor,
                   String location, String idGateway,
-                  String devEui, String joinEui, String appKey, String frequencyPlan) {
+                  String devEui, String joinEui, String appKey, String frequencyPlan,
+                  Integer brandId, Integer protocolId) {
         this.idSensor = idSensor;
-        this.deviceType = deviceType;
+        this.idDeviceType = idDeviceType;
         this.commissioningDate = commissioningDate;
         this.status = status;
         this.buildingName = buildingName;
@@ -28,14 +28,16 @@ public class Sensor {
         this.joinEui = joinEui;
         this.appKey = appKey;
         this.frequencyPlan = frequencyPlan;
+        this.brandId = brandId;
+        this.protocolId = protocolId;
     }
 
     @Id
     @Column("id_sensor")
     private String idSensor;
 
-    @Column("device_type")
-    private String deviceType;
+    @Column("id_device_type")
+    private Integer idDeviceType;
 
     @Column("commissioning_date")
     private String commissioningDate;
@@ -66,4 +68,10 @@ public class Sensor {
 
     @Column("frequency_plan")
     private String frequencyPlan;
+
+    @Column("brand_id")
+    private Integer brandId;
+
+    @Column("protocol_id")
+    private Integer protocolId;
 }

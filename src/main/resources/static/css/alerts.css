@@ -436,7 +436,6 @@ main {
 }
 
 .sensor-marker:hover {
-    transform: scale(1.2);
     filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
 }
 
@@ -481,10 +480,7 @@ main {
 }
 
 .desk-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-    padding: 1.5rem;
+    display:block;
     background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
     border-radius: 12px;
     border: 2px dashed var(--border);
@@ -545,10 +541,12 @@ main {
 
 /* ===== FLOOR LEGEND ===== */
 .floor-legend {
-    display: flex;
-    gap: 2rem;
+    display: block;
+    flex-direction: column;
     justify-content: center;
     padding: 1rem;
+    gap: 2 rem;
+    font-size: 0.85rem;
     background: var(--bg-main);
     border-radius: 8px;
 }
@@ -583,6 +581,7 @@ main {
 
 /* ===== OFFICE STATS ===== */
 .office-stats {
+    padding-top: 10px;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
@@ -1186,4 +1185,20 @@ main {
 
 .doughnut-labels div {
     flex-shrink: 0;
+}
+
+
+/* Tablette */
+@media (max-width: 768px) {
+    .office-stats {
+        grid-template-columns: 1fr; /* une seule colonne */
+    }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .office-stats {
+        grid-template-columns: 1fr; /* une seule colonne */
+        gap: 0.5rem;
+    }
 }

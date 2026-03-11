@@ -290,8 +290,12 @@ function toggleNotifChannelInput() {
     if (phoneDiv) phoneDiv.style.display = smsChk && smsChk.checked ? "block" : "none";
 }
 
+// ======================================================
+// =====================  2D CONFIG  ===================
+// ======================================================
+
 function populateFloorSelect() {
-    const floorSelect = document.getElementById('filter-floor');
+    const floorSelect = document.getElementById("filter-floor");
     const floorsEl = document.getElementById("building-floors");
     const elementSelect = document.getElementById("filter-element");
 
@@ -299,6 +303,8 @@ function populateFloorSelect() {
         console.warn('Floor select not found (#filter-floor). Skipping floors update.');
         return;
     }
+
+    const previousfloorValue = floorSelect.value;
 
     floorSelect.innerHTML = '';
     if(!floorsEl || isNaN(floorsEl.value)) {
@@ -309,58 +315,244 @@ function populateFloorSelect() {
     if (elementSelect && elementSelect.value && elementSelect.value !== "Sensor") {
         floorSelect.innerHTML = '<option value="">All Floors</option>';
     }
-    for (let i = 0; i < floorsEl.value; i++) {
-        const opt = document.createElement('option');
-        opt.value = String(i);
-        if (i === 0) {
-            opt.textContent = `Ground Floor`;
-        } else {
-            opt.textContent = `Floor ${i}`;
+
+    // Keep track of previously excluded floors
+    const previouslyExcluded = (window._pendingExcludedFloors !== undefined)
+        ? window._pendingExcludedFloors.map(String)
+        : getExcludedFloors();
+    // On consomme la valeur une seule fois
+    window._pendingExcludedFloors = undefined;
+
+    // Clear hidden select and checkbox list
+    const checkboxList = document.getElementById('floor-checkbox-list');
+    if (checkboxList) checkboxList.innerHTML = '';
+
+    const totalFloors = parseInt(floorsEl.value, 10) || 0;
+
+    for (let i = 0; i < totalFloors; i++) {
+        const isExcluded = previouslyExcluded.includes(String(i));
+        const label = i === 0 ? 'Ground Floor' : `Floor ${i}`;
+
+        // Populate filter-floor select
+        if (!isExcluded){
+            const opt = document.createElement('option');
+            opt.value = String(i);
+            opt.textContent = label;
+            floorSelect.appendChild(opt);
         }
-        floorSelect.appendChild(opt);
+
+        // Populate custom checkbox list
+        if (checkboxList) {
+            const item = document.createElement('label');
+            item.className = 'floor-checkbox-item' + (isExcluded ? ' floor-excluded' : '');
+            item.innerHTML = `
+                <span class="floor-custom-checkbox ${isExcluded ? 'checked' : ''}"></span>
+                <input type="checkbox" value="${i}" ${isExcluded ? 'checked' : ''} onchange="onFloorCheckboxChange(this)">
+                <span class="floor-checkbox-label">${label}</span>
+                ${isExcluded ? '<span class="floor-excluded-badge">excluded</span>' : ''}
+            `;
+            checkboxList.prepend(item); // prepend so highest floor is at top
+        }
+    }
+
+    floorSelect.value = previousfloorValue;
+    updateFloorCheckboxSummary();
+}
+
+function getExcludedFloors() {
+    const checkboxes = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function toggleFloorCheckboxPanel() {
+    const panel = document.getElementById('floor-checkbox-panel');
+    const chevron = document.getElementById('floor-checkbox-chevron');
+    if (!panel) return;
+    const isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    if (chevron) chevron.textContent = isOpen ? '▾' : '▴';
+}
+
+function onFloorCheckboxChange(cb) {
+    const item = cb.closest('.floor-checkbox-item');
+    const customCb = item?.querySelector('.floor-custom-checkbox');
+    const badge = item?.querySelector('.floor-excluded-badge');
+
+    if (cb.checked) {
+        item?.classList.add('floor-excluded');
+        customCb?.classList.add('checked');
+        if (!badge) {
+            const b = document.createElement('span');
+            b.className = 'floor-excluded-badge';
+            b.textContent = 'excluded';
+            item?.appendChild(b);
+        }
+    } else {
+        item?.classList.remove('floor-excluded');
+        customCb?.classList.remove('checked');
+        badge?.remove();
+    }
+
+    updateFloorCheckboxSummary();
+    this.applyFormUpdate();
+}
+
+function toggleAllFloors(masterCb) {
+    const checked = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]:checked');
+    const all = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]');
+    all.forEach(cb => {
+        cb.checked = checked.length === all.length ? false : true;
+        onFloorCheckboxChange(cb);
+    });
+    updateMasterCheckboxUI();
+}
+
+function updateFloorCheckboxSummary() {
+    const all = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]');
+    const checked = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]:checked');
+    const summary = document.getElementById('floor-checkbox-summary');
+    if (!summary) return;
+
+    const total = all.length;
+    const excluded = checked.length;
+
+    if (excluded === 0) {
+        summary.textContent = 'All floors visible';
+    } else if (excluded === total) {
+        summary.textContent = 'All floors excluded';
+    } else {
+        summary.textContent = `${excluded} floor${excluded > 1 ? 's' : ''} excluded`;
+    }
+
+    updateMasterCheckboxUI();
+}
+
+function updateMasterCheckboxUI() {
+    const all = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]');
+    const checked = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]:checked');
+    const masterUI = document.getElementById('master-checkbox-ui');
+    const masterInput = document.getElementById('floor-select-all');
+    if (!masterUI) return;
+
+    if (checked.length === 0) {
+        masterUI.classList.remove('checked', 'indeterminate');
+        if (masterInput) masterInput.checked = false;
+    } else if (checked.length === all.length) {
+        masterUI.classList.add('checked');
+        masterUI.classList.remove('indeterminate');
+        if (masterInput) masterInput.checked = true;
+    } else {
+        masterUI.classList.remove('checked');
+        masterUI.classList.add('indeterminate');
+        if (masterInput) masterInput.checked = false;
+    }
+}
+
+function updateInputSizeLabel() {
+    const elementValue = document.getElementById('filter-element')?.value;
+    const sensorTypeValue = document.getElementById('filter-sensor-type')?.value;
+
+    const sizeInput = document.getElementById('input_size');
+    const sizeLabel = sizeInput?.parentElement?.querySelector('label');
+    if (!sizeLabel) return;
+
+    if (elementValue === 'Sensor' && sensorTypeValue === 'DESK') {
+        sizeLabel.textContent = 'Font Size';
+    } else {
+        sizeLabel.textContent = 'Size';
     }
 }
 
 function toggleFormFields() {
-    
     const elementSelect = document.getElementById('filter-element');
-    const floorSelect = document.getElementById('filter-floor');
-
     const sensorTypeSelect = document.getElementById('filter-sensor-type');
-    const sensorTypeContainer = sensorTypeSelect.parentElement;
+    this.applyFormVisibility(elementSelect.value, sensorTypeSelect.value);
+}
 
+function applyFormVisibility(elementValue, sensorTypeValue) {
+    this.populateFloorSelect(); 
+    const sensorTypeSelect = document.getElementById('filter-sensor-type');
+
+    const sensorTypeContainer = sensorTypeSelect?.parentElement;
     const inputSizeEl = document.getElementById('input_size');
-    const inputSizeContainer = inputSizeEl.parentElement;
-
+    const inputSizeContainer = inputSizeEl?.parentElement;
     const inputRadiusEl = document.getElementById('input_radius');
-    const inputRadiusContainer = inputRadiusEl.parentElement;
-
+    const inputRadiusContainer = inputRadiusEl?.parentElement;
+    const inputLabelEl = document.getElementById('input_label');
+    const inputLabelContainer = inputLabelEl?.parentElement;
     const inputWidthEl = document.getElementById('input_width');
-    const inputWidthContainer = inputWidthEl.parentElement;
-
+    const inputWidthContainer = inputWidthEl?.parentElement;
     const inputHeightEl = document.getElementById('input_height');
-    const inputHeightContainer = inputHeightEl.parentElement;
-
+    const inputHeightContainer = inputHeightEl?.parentElement;
     const inputRotationEl = document.getElementById('input_rotation');
-    const inputRotationContainer = inputRotationEl.parentElement;
+    const inputRotationContainer = inputRotationEl?.parentElement;
+    const selectChairPosition = document.getElementById('chair_top');
+    const selectChairContainer = selectChairPosition?.parentElement;
+    const styleSelect = document.getElementById("filter-style");
+    const styleSelectContainer = styleSelect?.parentElement;
 
-    const selectChairPosition = document.getElementById('chair_select');
-    const selectChairContainer = selectChairPosition.parentElement;
+    const sensorMode = (sensorTypeValue ?? sensorTypeSelect?.value ?? 'DESK');
 
-    floorSelect.value = "0";
-
-    switch (elementSelect.value) {
-        case "Sensor" :
-            sensorTypeSelect.value = "DESK";
+    switch (elementValue) {
+        case "Sensor":
             if (sensorTypeContainer) sensorTypeContainer.style.display = 'block';
+            if (styleSelectContainer) styleSelectContainer.style.display = 'none';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'block';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
+            if (sensorMode === "DESK") {
+                if (inputWidthContainer) inputWidthContainer.style.display = 'block';
+                if (inputHeightContainer) inputHeightContainer.style.display = 'block';
+                if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+                if (selectChairContainer) selectChairContainer.style.display = 'block';
+                if (inputLabelContainer) inputLabelContainer.style.display = 'block';
+            } else {
+                if (inputWidthContainer) inputWidthContainer.style.display = 'none';
+                if (inputHeightContainer) inputHeightContainer.style.display = 'none';
+                if (inputRotationContainer) inputRotationContainer.style.display = 'none';
+                if (selectChairContainer) selectChairContainer.style.display = 'none';
+                if (inputLabelContainer) inputLabelContainer.style.display = 'none';
+            }
+            break;
+
+        case "Wall":
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'block';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
+            if (inputWidthContainer) inputWidthContainer.style.display = 'block';
+            if (inputHeightContainer) inputHeightContainer.style.display = 'none';
+            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+            if (selectChairContainer) selectChairContainer.style.display = 'none';
+            if (inputLabelContainer) inputLabelContainer.style.display = 'none';
+            if (styleSelectContainer) styleSelectContainer.style.display = 'block';
+            break;
+
+        case "Room":
+        case "Door":
+        case "Window":
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
             if (inputSizeContainer) inputSizeContainer.style.display = 'none';
             if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
             if (inputWidthContainer) inputWidthContainer.style.display = 'block';
             if (inputHeightContainer) inputHeightContainer.style.display = 'block';
             if (inputRotationContainer) inputRotationContainer.style.display = 'block';
-            if (selectChairContainer) selectChairContainer.style.display = 'block';
+            if (selectChairContainer) selectChairContainer.style.display = 'none';
+            if (inputLabelContainer) inputLabelContainer.style.display = 'none';
+            if (styleSelectContainer) styleSelectContainer.style.display = 'block';
             break;
-        case "Wall" :
+
+        case "Circle":
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'none';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'block';
+            if (inputWidthContainer) inputWidthContainer.style.display = 'none';
+            if (inputHeightContainer) inputHeightContainer.style.display = 'none';
+            if (inputRotationContainer) inputRotationContainer.style.display = 'none';
+            if (selectChairContainer) selectChairContainer.style.display = 'none';
+            if (inputLabelContainer) inputLabelContainer.style.display = 'none';
+            if (styleSelectContainer) styleSelectContainer.style.display = 'block';
+            break;
+
+        case "Label":
             if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
             if (inputSizeContainer) inputSizeContainer.style.display = 'block';
             if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
@@ -368,45 +560,107 @@ function toggleFormFields() {
             if (inputHeightContainer) inputHeightContainer.style.display = 'none';
             if (inputRotationContainer) inputRotationContainer.style.display = 'block';
             if (selectChairContainer) selectChairContainer.style.display = 'none';
+            if (inputLabelContainer) inputLabelContainer.style.display = 'block';
+            if (styleSelectContainer) styleSelectContainer.style.display = 'block';
             break;
-        case "Room" :
-            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
-            if (inputSizeContainer) inputSizeContainer.style.display = 'none';
-            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
-            if (inputWidthContainer) inputWidthContainer.style.display = 'block';
-            if (inputHeightContainer) inputHeightContainer.style.display = 'block';
-            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
-            if (selectChairContainer) selectChairContainer.style.display = 'none';
+    }
+
+    this.updateInputSizeLabel();
+}
+
+function initializeInputs() {
+    const element = document.getElementById("filter-element").value;
+    const sensorType = document.getElementById("filter-sensor-type").value;
+
+    const idInput = document.getElementById("input_id");
+    const sizeInput = document.getElementById("input_size");
+    const widthInput = document.getElementById("input_width");
+    const heightInput = document.getElementById("input_height");
+    const radiusInput = document.getElementById("input_radius");
+    const rotationInput = document.getElementById("input_rotation");
+    const labelInput = document.getElementById("input_label");
+    const chairTop = document.getElementById("chair_top");
+    const chairBottom = document.getElementById("chair_bottom");
+    const chairLeft = document.getElementById("chair_left");
+    const chairRight = document.getElementById("chair_right");
+    const styleSelect = document.getElementById("filter-style");
+
+    // ID auto-généré
+    idInput.value = `${element}_${Date.now()}`;
+    chairTop.value = 0;
+    chairBottom.value = 0;
+    chairLeft.value = 0;
+    chairRight.value = 0;
+    styleSelect.value = "Dark";
+
+    // --- Selon le type d'élément ---
+    switch (element) {
+        case "Sensor":
+            if (sensorType === "DESK") {
+                widthInput.value = 40;
+                heightInput.value = 40;
+                rotationInput.value = 0;
+                sizeInput.value = "";
+                labelInput.value = "Desk Sensor";
+            } else {
+                sizeInput.value = 20;
+                widthInput.value = "";
+                heightInput.value = "";
+                rotationInput.value = 0;
+            }
             break;
-        case "Door" :
-            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
-            if (inputSizeContainer) inputSizeContainer.style.display = 'none';
-            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
-            if (inputWidthContainer) inputWidthContainer.style.display = 'block';
-            if (inputHeightContainer) inputHeightContainer.style.display = 'block';
-            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
-            if (selectChairContainer) selectChairContainer.style.display = 'none';
+        case "Wall":
+            sizeInput.value = 120;
+            widthInput.value = 5;
+            heightInput.value = "";
+            radiusInput.value = "";
+            rotationInput.value = 0;
+            labelInput.value = "";
             break;
-        case "Window" :
-            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
-            if (inputSizeContainer) inputSizeContainer.style.display = 'none';
-            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
-            if (inputWidthContainer) inputWidthContainer.style.display = 'block';
-            if (inputHeightContainer) inputHeightContainer.style.display = 'block';
-            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
-            if (selectChairContainer) selectChairContainer.style.display = 'none';
+        case "Room":
+            widthInput.value = 80;
+            heightInput.value = 80;
+            sizeInput.value = "";
+            radiusInput.value = "";
+            rotationInput.value = 0;
+            labelInput.value = "";
             break;
-        default:
-            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+        case "Door":
+            widthInput.value = 10;
+            heightInput.value = 5;
+            sizeInput.value = "";
+            radiusInput.value = "";
+            rotationInput.value = 0;
+            labelInput.value = "";
+            break;
+        case "Window":
+            widthInput.value = 10;
+            heightInput.value = 2;
+            sizeInput.value = "";
+            radiusInput.value = "";
+            rotationInput.value = 0;
+            labelInput.value = "";
+            break;
+        case "Circle":
+            radiusInput.value = 40;
+            sizeInput.value = "";
+            widthInput.value = "";
+            heightInput.value = "";
+            rotationInput.value = 0;
+            labelInput.value = "";
+            break;
+        case "Label":
+            sizeInput.value = 40;
+            widthInput.value = "";
+            heightInput.value = "";
+            rotationInput.value = 0;
+            labelInput.value = "New Label";
             break;
     }
 }
 
 function onChangeSensor() {
     const sensorTypeSelect = document.getElementById('filter-sensor-type');
-
-    const inputSizeEl = document.getElementById('input_size');
-    const inputSizeContainer = inputSizeEl.parentElement;
 
     const inputWidthEl = document.getElementById('input_width');
     const inputWidthContainer = inputWidthEl.parentElement;
@@ -417,28 +671,35 @@ function onChangeSensor() {
     const inputRotationEl = document.getElementById('input_rotation');
     const inputRotationContainer = inputRotationEl.parentElement;
 
-    const selectChairPosition = document.getElementById('chair_select');
+    const inputLabelEl = document.getElementById('input_label');
+    const inputLabelContainer = inputLabelEl.parentElement;
+
+    const selectChairPosition = document.getElementById('chair_top');
     const selectChairContainer = selectChairPosition.parentElement;
 
     if (sensorTypeSelect.value === "DESK") {
-        if (inputSizeContainer) inputSizeContainer.style.display = 'none';
         if (inputWidthContainer) inputWidthContainer.style.display = 'block';
         if (inputHeightContainer) inputHeightContainer.style.display = 'block';
         if (inputRotationContainer) inputRotationContainer.style.display = 'block';
         if (selectChairContainer) selectChairContainer.style.display = 'block';
+        if (inputLabelContainer) inputLabelContainer.style.display = 'block';
     } else {
-        if (inputSizeContainer) inputSizeContainer.style.display = 'block';
         if (inputWidthContainer) inputWidthContainer.style.display = 'none';
         if (inputHeightContainer) inputHeightContainer.style.display = 'none';
         if (inputRotationContainer) inputRotationContainer.style.display = 'none';
         if (selectChairContainer) selectChairContainer.style.display = 'none';
+        if (inputLabelContainer) inputLabelContainer.style.display = 'none';
     }
+    this.initializeInputs();
+    this.updateInputSizeLabel();
 }
 
 function onChangeElement() {
     this.populateFloorSelect();
+    this.initializeInputs();
     this.toggleFormFields();
-
+    this.updateInputSizeLabel();
+    
     const floorSelect = document.getElementById('filter-floor');
     const sensorTypeSelect = document.getElementById('filter-sensor-type');
     if (window.building3D) {
@@ -455,7 +716,6 @@ async function populateBuildingSelect() {
     try {
         const resp = await fetch('/api/buildings');
         let buildings = resp.ok ? await resp.json() : [];
-
         // Remplissage du select
         select.innerHTML = '';
 
@@ -496,14 +756,16 @@ async function initBuildingConfig() {
             floorsEl.value = b.floorsCount || 1;
             scaleEl.value  = b.scale || 0.01;
             defaultSVGFile = b.svgPlan || "";
+            window._pendingExcludedFloors = b.excludedFloors || [];
         } catch (e) {
             console.error("Erreur lors du chargement du bâtiment :", e);
         }
     } else {
         nameEl.value   = "";
-        floorsEl.value = 3;
+        floorsEl.value = 1;
         scaleEl.value  = 0.01;
         defaultSVGFile = "";
+        window._pendingExcludedFloors = [];
     }
     svgInput.value = "";
     this.refresh3DConfig()
@@ -515,13 +777,15 @@ function refresh3DConfig(){
     const scaleEl  = document.getElementById("building-scale");
 
     const buildingId = selectBuilding.value || "tempKeyConfig";
+    const previouslyExcluded = (window._pendingExcludedFloors !== undefined)
+        ? window._pendingExcludedFloors.map(String)
+        : getExcludedFloors();
 
     window.building3D.buildingKey = buildingId;
     window.building3D.isDbBuilding = true;
-    window.building3D.dbBuildingConfig = {floors: floorsEl.value, scale: scaleEl.value, svgUrl: null};
     window.building3D.dbShapeCache = null;
-    window.building3D.config = {id: buildingId};
-    window.building3D.dbBuildingConfig.svgUrl = defaultSVGFile;
+    window.building3D.dbBuildingConfig = {floors: floorsEl.value, scale: scaleEl.value, excludedFloors: previouslyExcluded, svgUrl: defaultSVGFile};
+    window.building3D.config = {id: buildingId, floors: floorsEl.value, excludedFloors: previouslyExcluded, scale: scaleEl.value};
 
     this.populateFloorSelect();
 
@@ -593,6 +857,7 @@ async function deleteBuildingConfig() {
         floorsEl.value = 3;
         scaleEl.value  = 0.01;
         defaultSVGFile = "";
+        window._pendingExcludedFloors = [];
 
         this.refresh3DConfig();
         window.building3D.setBuilding();
@@ -612,6 +877,10 @@ async function saveBuildingConfig() {
     const floors  = parseInt(floorsEl.value, 10) || 1;
     const scale   = parseFloat(scaleEl.value) || 0.01;
     svgFile = svgInput.files[0];
+
+    const excludedFloors = Array.from(
+        document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]:checked')
+    ).map(cb => parseInt(cb.value, 10));
 
     if (!name) {
         alert("Merci de saisir un nom de bâtiment.");
@@ -666,6 +935,7 @@ async function saveBuildingConfig() {
     formData.append("scale", scale);
     formData.append("svgFile", svgFile);
     formData.append(csrf.parameterName, csrf.token);
+    excludedFloors.forEach(f => formData.append("excludedFloors", f));
 
     // Si aucun bâtiment sélectionné, on appelle la méthode createBuildingConfig sinon updateBuildingConfig
     if (!isNaN(selectBuilding.value) && selectBuilding.value !== null && selectBuilding.value !== "") {
@@ -733,63 +1003,162 @@ async function updateBuildingConfig(formData) {
     });
 }
 
+// ======================================================
+// =====================  SVG ELEMENTS  =================
+// ======================================================
+
 function addElementSVG() {
     const sensorType  = document.getElementById("filter-sensor-type");
     const floorNumber = document.getElementById("filter-floor");
+    const elementSelect = document.getElementById('filter-element');
     const inputIdEl  = document.getElementById("input_id");
     const inputSizeEl = document.getElementById("input_size");
     const inputWidthEl = document.getElementById('input_width');
     const inputHeightEl = document.getElementById('input_height');
     const inputRotationEl = document.getElementById('input_rotation');
-    const selectChairPosition = document.getElementById('chair_select');
+    const inputRadiusEl = document.getElementById('input_radius');
+    const inputLabelEl = document.getElementById('input_label');
+    const inputStyleEl = document.getElementById('filter-style');
 
     if (!inputIdEl || inputIdEl.value.trim() === '') {
         alert("Merci de saisir un ID.");
         return;
     }
-    if (window.building3D && window.building3D.currentArchPlan) {
-        const elementWithID = Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+inputIdEl.value));
-        if (elementWithID.length) {
-            alert("Un élément avec cet ID existe déjà.");
-            return;
-        }
+
+    const id = CSS.escape(inputIdEl.value);
+    const elementWithID = Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+id));
+    if (elementWithID.length) {
+        alert("Un élément avec cet ID existe déjà.");
+        return;
     }
 
-    // Contrôle sur la présence de size / width / height -> dépendra du type d'élément
+    // Récupère le centre du plan (dans le bon repère)
+    const { x: centerX, y: centerY } = getPlanCenterXY();
 
-    if (window.building3D && window.building3D.currentArchPlan && window.building3D.currentArchPlan.overlayManager) {
+    if (elementSelect.value === "Sensor"){
+        if (sensorType.value === "DESK") {
+            if (!inputWidthEl || inputWidthEl.value.trim() === '') {
+                alert("Please fill the width input");
+                return;
+            }
+            if (!inputHeightEl || inputHeightEl.value.trim() === '') {
+                alert("Please fill the height input");
+                return;
+            }
+        } else {
+            if (!inputSizeEl || inputSizeEl.value.trim() === '') {
+                alert("Please fill the size input");
+                return;
+            }
+        }
         const sensor = {
             id : inputIdEl.value,
-            mode : sensorType.value,
+            type : sensorType.value,
             floor : floorNumber.value,
-            x : parseInt(inputSizeEl.value) || parseInt(inputWidthEl.value),
-            y : parseInt(inputSizeEl.value) || parseInt(inputHeightEl.value),
+            x : centerX,
+            y : centerY,
             size : parseInt(inputSizeEl.value),
             width : parseInt(inputWidthEl.value),
             height : parseInt(inputHeightEl.value),
             rotation : parseInt(inputRotationEl.value),
-            chair : selectChairPosition.value
+            label : inputLabelEl.value,
+            chairs : {
+                top: parseInt(document.getElementById("chair_top").value || 0),
+                bottom: parseInt(document.getElementById("chair_bottom").value || 0),
+                left: parseInt(document.getElementById("chair_left").value || 0),
+                right: parseInt(document.getElementById("chair_right").value || 0),
+            }
         }
         window.building3D.currentArchPlan.overlayManager.drawSensor(sensor);
+    } else {
+        switch (elementSelect.value){
+            case "Wall":
+                if (!inputSizeEl || inputSizeEl.value.trim() === '') {
+                    alert("Please fill the size input");
+                    return;
+                }
+                break;
+            case "Room":
+                if (!inputWidthEl || inputWidthEl.value.trim() === '') {
+                    alert("Please fill the width input");
+                    return;
+                }
+                if (!inputHeightEl || inputHeightEl.value.trim() === '') {
+                    alert("Please fill the height input");
+                    return;
+                }
+                break;
+            case "Door":
+                if (!inputWidthEl || inputWidthEl.value.trim() === '') {
+                    alert("Please fill the width input");
+                    return;
+                }
+                if (!inputHeightEl || inputHeightEl.value.trim() === '') {
+                    alert("Please fill the height input");
+                    return;
+                }
+                break;
+            case "Window":
+                if (!inputWidthEl || inputWidthEl.value.trim() === '') {
+                    alert("Please fill the width input");
+                    return;
+                }
+                if (!inputHeightEl || inputHeightEl.value.trim() === '') {
+                    alert("Please fill the height input");
+                    return;
+                }
+                break;
+            case "Circle":
+                if (!inputRadiusEl || inputRadiusEl.value.trim() === '') {
+                    alert("Please fill the radius input");
+                    return;
+                }
+                break;
+            case "Label":
+                if (!inputLabelEl || inputLabelEl.value.trim() === '') {
+                    alert("Please fill the label input");
+                    return;
+                }
+                break;
+        }
+        const element = {
+            id : inputIdEl.value,
+            type : elementSelect.value,
+            floor : floorNumber.value,
+            x : centerX,
+            y : centerY,
+            size : parseInt(inputSizeEl.value),
+            width : parseInt(inputWidthEl.value),
+            height : parseInt(inputHeightEl.value),
+            radius : parseInt(inputRadiusEl.value),
+            rotation : parseInt(inputRotationEl.value),
+            label : inputLabelEl.value,
+            style : inputStyleEl ? inputStyleEl.value : "Dark"
+        };
+        window.building3D.currentArchPlan.elementsManager.addElement(element);
     }
 }
 
 function removeElementSVG() {
     const elementId  = document.getElementById("input_id");
+    const elementSelect = document.getElementById('filter-element');
 
-    if (!elementId || !elementId.value || elementId.value.trim() === '') {
+    if (!elementId || elementId.value.trim() === '') {
         alert("Merci de saisir un ID.");
         return;
     }
     if (window.building3D && window.building3D.currentArchPlan) {
-        const elementWithID =  Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+elementId.value));
+        const id = CSS.escape(elementId.value);
+        const elementWithID = Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+id));
         if (!elementWithID.length) {
             alert("Aucun élément avec cet ID n'existe.");
             return;
         }
     }
-    if (window.building3D && window.building3D.currentArchPlan && window.building3D.currentArchPlan.overlayManager) {
+    if (elementSelect.value === "Sensor"){
         window.building3D.currentArchPlan.overlayManager.removeSensorMarkerById(elementId.value);
+    } else {
+        window.building3D.currentArchPlan.elementsManager.removeElement(elementId.value);
     }
 }
 
@@ -806,50 +1175,88 @@ function updateElementSVG() {
     const inputWidthEl = document.getElementById('input_width');
     const inputHeightEl = document.getElementById('input_height');
     const inputRotationEl = document.getElementById('input_rotation');
-    const selectChairPosition = document.getElementById('chair_select');
-    // const inputRadiusEl = document.getElementById('input_radius');
+    const inputRadiusEl = document.getElementById('input_radius');
+    const inputLabelEl = document.getElementById('input_label');
+    const inputStyleEl = document.getElementById('filter-style');
 
     let rotation = 0;
     if (inputRotationEl && inputRotationEl.value.trim() !== '' ){
         rotation = parseInt(inputRotationEl.value, 10);
     }
 
-    switch (elementSelect.value) {
-        case "Sensor" :
-            const sensor = {
-                id : inputIdEl.value,
-                mode : sensorTypeSelect.value,
-                floor : floorNumberSelect.value,
-                x : parseInt(inputSizeEl.value),
-                y : parseInt(inputSizeEl.value),
-                size : parseInt(inputSizeEl.value),
-                width : parseInt(inputWidthEl.value),
-                height : parseInt(inputHeightEl.value),
-                rotation : parseInt(inputRotationEl.value),
-                chair : selectChairPosition.value
+    if (elementSelect.value === "Sensor"){
+        const sensor = {
+            id : inputIdEl.value,
+            type : sensorTypeSelect.value,
+            floor : floorNumberSelect.value,
+            x : parseInt(inputSizeEl.value) || parseInt(inputWidthEl.value),
+            y : parseInt(inputSizeEl.value) || parseInt(inputHeightEl.value),
+            size : parseInt(inputSizeEl.value),
+            width : parseInt(inputWidthEl.value),
+            height : parseInt(inputHeightEl.value),
+            rotation : parseInt(rotation),
+            label : inputLabelEl.value,
+            chairs : {
+                top: parseInt(document.getElementById("chair_top").value || 0),
+                bottom: parseInt(document.getElementById("chair_bottom").value || 0),
+                left: parseInt(document.getElementById("chair_left").value || 0),
+                right: parseInt(document.getElementById("chair_right").value || 0),
             }
-            window.building3D.currentArchPlan.overlayManager.updateSensorGeometry(sensor);
-            break;
-        case "Wall" :
-            // size / rotation
-            console.log("updateElementSVG Wall");
-            break;
-        case "Room" :
-            // width / height / rotation
-            console.log("updateElementSVG Room");
-            break;
-        case "Door" :
-            // width / height / rotation
-            console.log("updateElementSVG Door");
-            break;
-        case "Window" :
-            // width / height / rotation
-            console.log("updateElementSVG Window");
-            break;
-        default:
-            console.log("updateElementSVG default");
-            break;
+        }
+        window.building3D.currentArchPlan.overlayManager.updateSensorGeometry(sensor);
+    } else {
+        const element = {
+            id : inputIdEl.value,
+            type : elementSelect.value,
+            floor : floorNumberSelect.value,
+            x : parseInt(inputSizeEl.value) || parseInt(inputWidthEl.value) || parseInt(inputRadiusEl.value),
+            y : parseInt(inputSizeEl.value) || parseInt(inputHeightEl.value) || parseInt(inputRadiusEl.value),
+            size : parseInt(inputSizeEl.value),
+            width : parseInt(inputWidthEl.value),
+            height : parseInt(inputHeightEl.value),
+            radius : parseInt(inputRadiusEl.value),
+            rotation : parseInt(rotation),
+            label : inputLabelEl.value,
+            style : inputStyleEl ? inputStyleEl.value : "Dark"
+        };
+        window.building3D.currentArchPlan.elementsManager.updateElement(element);
     }
+}
+
+function getPlanCenterXY() {
+    const arch = window.building3D?.currentArchPlan;
+    if (!arch || !arch.svg) {
+        return { x: 600, y: 600 };
+    }
+
+    const svg = arch.svg;
+    const root = svg.querySelector('#content-root') || svg;
+
+    try {
+        // Centre de l'élément SVG à l'écran (pixels)
+        const rect = svg.getBoundingClientRect();
+        const pt = svg.createSVGPoint();
+        pt.x = rect.left + rect.width / 2;
+        pt.y = rect.top + rect.height / 2;
+
+        const ctm = root.getScreenCTM();
+        if (ctm) {
+            const p = pt.matrixTransform(ctm.inverse());
+            return { x: Math.round(p.x), y: Math.round(p.y) };
+        }
+    } catch (e) {
+        // no-op: on tombera sur le fallback viewBox ci-dessous
+    }
+
+    // Fallback: centre du viewBox si disponible
+    const vb = svg.viewBox?.baseVal;
+    if (vb) {
+        return {
+            x: Math.round(vb.x + vb.width / 2),
+            y: Math.round(vb.y + vb.height / 2)
+        };
+    }
+    return { x: 600, y: 600 };
 }
 
 // ======================================================
@@ -1329,20 +1736,103 @@ function changeEditorLanguage(selectEl) {
 
     const value = (selectEl.value || "").toLowerCase();
     let mode = "ace/mode/javascript";
-
     if (value.includes("python")) mode = "ace/mode/python";
     else if (value.includes("java")) mode = "ace/mode/java";
-    else if (value.includes("c++")) mode = "ace/mode/c_cpp";
-
     editor.session.setMode(mode);
+}
+
+// ======================================================
+// ============= ENERGY CONFIGURATION ====================
+// ======================================================
+
+async function loadEnergyConfigs() {
+    try {
+        const response = await fetch('/api/configuration/building-energy');
+        if (!response.ok) throw new Error('Failed to load energy configs');
+        const configs = await response.json();
+        const tbody = document.getElementById('energy-config-tbody');
+        if (!tbody) return;
+        if (configs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No configurations yet.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = configs.map(config => `
+            <tr>
+                <td><strong>${config.buildingName}</strong></td>
+                <td>${config.energyCostPerKwh?.toFixed(4) || '0.0000'}</td>
+                <td>${config.currency || 'EUR'}</td>
+                <td>${config.co2EmissionFactor?.toFixed(4) || '0.0000'}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editEnergyConfig('${config.buildingName}')">Edit</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteEnergyConfig('${config.buildingName}')">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading energy configs:', error);
+    }
+}
+
+async function saveEnergyConfig() {
+    const buildingName = document.getElementById('energy-config-building')?.value;
+    const energyCostPerKwh = parseFloat(document.getElementById('energy-cost-kwh')?.value);
+    const currency = document.getElementById('energy-currency')?.value || 'EUR';
+    const co2EmissionFactor = parseFloat(document.getElementById('co2-emission-factor')?.value) || 0;
+
+    if (!buildingName) { alert('Please select a building'); return; }
+    if (isNaN(energyCostPerKwh) || energyCostPerKwh < 0) { alert('Please enter a valid energy cost'); return; }
+
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    if (!csrfMeta || !csrfHeaderMeta) { alert("CSRF token not found."); return; }
+
+    try {
+        const response = await fetch('/api/configuration/building-energy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', [csrfHeaderMeta.getAttribute("content")]: csrfMeta.getAttribute("content") },
+            body: JSON.stringify({ buildingName, energyCostPerKwh, currency, co2EmissionFactor })
+        });
+        if (response.ok) {
+            alert('Configuration saved!');
+            loadEnergyConfigs();
+            document.getElementById('energy-config-building').value = '';
+            document.getElementById('energy-cost-kwh').value = '';
+            document.getElementById('co2-emission-factor').value = '';
+        } else { throw new Error('Failed to save'); }
+    } catch (error) { alert('Error: ' + error.message); }
+}
+
+async function editEnergyConfig(buildingName) {
+    try {
+        const response = await fetch(`/api/configuration/building-energy/${encodeURIComponent(buildingName)}`);
+        if (!response.ok) throw new Error('Failed to load');
+        const config = await response.json();
+        document.getElementById('energy-config-building').value = config.buildingName;
+        document.getElementById('energy-cost-kwh').value = config.energyCostPerKwh || '';
+        document.getElementById('energy-currency').value = config.currency || 'EUR';
+        document.getElementById('co2-emission-factor').value = config.co2EmissionFactor || '';
+    } catch (error) { alert('Error: ' + error.message); }
+}
+
+async function deleteEnergyConfig(buildingName) {
+    if (!confirm(`Delete config for ${buildingName}?`)) return;
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    if (!csrfMeta || !csrfHeaderMeta) { alert("CSRF token not found."); return; }
+    try {
+        const response = await fetch(`/api/configuration/building-energy/${encodeURIComponent(buildingName)}`, {
+            method: 'DELETE',
+            headers: { [csrfHeaderMeta.getAttribute("content")]: csrfMeta.getAttribute("content") }
+        });
+        if (response.ok) { alert('Deleted!'); loadEnergyConfigs(); }
+        else { throw new Error('Failed'); }
+    } catch (error) { alert('Error: ' + error.message); }
 }
 
 // ======================================================
 // ================== GLOBAL EXPORTS =====================
 // ======================================================
 
-window.addElementSVG = addElementSVG;
-window.removeElementSVG = removeElementSVG;
 window.initBuildingConfig = initBuildingConfig;
 window.deleteBuildingConfig = deleteBuildingConfig;
 window.changeEditorLanguage = changeEditorLanguage;
@@ -1361,6 +1851,11 @@ window.deleteSensorThreshold = deleteSensorThreshold;
 window.updateParameterUnits = updateParameterUnits;
 window.editNotificationPreference = editNotificationPreference;
 window.deleteNotificationPreference = deleteNotificationPreference;
+window.applyFormVisibility = applyFormVisibility;
+window.saveEnergyConfig = saveEnergyConfig;
+window.editEnergyConfig = editEnergyConfig;
+window.deleteEnergyConfig = deleteEnergyConfig;
+window.loadEnergyConfigs = loadEnergyConfigs;
 
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", function() {
@@ -1369,6 +1864,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof loadAllSensorThresholds === 'function') loadAllSensorThresholds();
     if (typeof populateBuildingSelect === 'function') populateBuildingSelect();
     if (typeof toggleFormFields === 'function') toggleFormFields();
-    if (window.building3D) { window.building3D.isDashboard = false};
-
+    if (typeof updateInputSizeLabel === 'function') updateInputSizeLabel();
+    if (typeof loadEnergyConfigs === 'function') loadEnergyConfigs();
+    if (window.building3D) { window.building3D.isDashboard = false; }
 });

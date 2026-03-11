@@ -7,11 +7,10 @@
     <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}"/>
     <link rel="stylesheet" href="/css/monitoringSensor.css"/>
 
-
     <script th:inline="javascript">
         document.documentElement.dataset.deviceId  = /*[[${sensor.idSensor}]]*/ '';
         document.documentElement.dataset.gatewayId = /*[[${sensor.idGateway}]]*/ '';
-        document.documentElement.dataset.devType   = /*[[${sensor.deviceType}]]*/ '';
+        document.documentElement.dataset.devType   = /*[[${deviceTypeLabel}]]*/ '';
         document.documentElement.dataset.sseToken  = /*[[${sseToken}]]*/ '';
     </script>
 
@@ -29,7 +28,7 @@
 
 <body data-page="monitoringSensor">
 <header class="app-header">
-    <a href="javascript:history.back()" class="back-btn" title="Back to list" style="margin-right: 20px">
+    <a th:href="${homeUrl != null ? homeUrl : '/home'}" class="back-btn" title="Back to list" style="margin-right: 20px">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="30" height="30" role="img"
              aria-label="Flèche arrière violette">
             <circle cx="15" cy="15" r="13" fill="none" stroke="#662179" stroke-width="2"/>
@@ -82,14 +81,14 @@
                 <h4>Gateway</h4>
                 <p th:with="gid=${sensor.idGateway}, ip=${gatewayIp} ?: ''">
                     <a class="link"
-                       th:href="@{|/manage-gateways/monitoring/${gid}/view?ip=${ip}|}" 
+                       th:href="@{|/manage-gateways/monitoring/${gid}/view?ip=${ip}|}"
                        th:text="${gid}">--</a>
                 </p>
             </div>
 
             <div class="card"><h4>Building</h4><p th:text="${sensor.buildingName} ?: '--'">--</p></div>
             <div class="card"><h4>Floor</h4><p th:text="${sensor.floor} ?: '--'">--</p></div>
-            <div class="card"><h4>Type</h4><p th:text="${sensor.deviceType} ?: '--'">--</p></div>
+            <div class="card"><h4>Type</h4><p th:text="${deviceTypeLabel} ?: '--'">--</p></div>
             <div class="card"><h4>Last seen</h4><p><span id="s-last" class="badge">--</span></p></div>
             <div class="card"><h4>Protocol</h4><p><span class="badge">LoRaWAN</span></p></div>
         </section>
@@ -98,7 +97,7 @@
         <h3 class="section-title">🕒 Last seen</h3>
 
         <!-- COUNT -->
-        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'COUNT')}">
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'COUNT')}">
             <div class="card"><h4 class="with-icon icon-signal">Battery</h4>
                 <p><span id="s-count-batt" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
@@ -109,7 +108,7 @@
         </section>
 
         <!-- OCCUP -->
-        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'OCCUP')}">
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'OCCUP')}">
             <div class="card"><h4>Occupancy</h4><p><span id="s-occup-presence" class="badge">--</span></p></div>
             <!-- VS70: Illuminance -->
             <div class="card" id="s-occup-illum-card"><h4 class="with-icon icon-light">Illuminance</h4><p><span id="s-occup-illum" class="badge">--</span></p></div>
@@ -123,7 +122,7 @@
         </section>
 
         <!-- TEMPEX -->
-        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'TEMPEX')}">
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'TEMPEX')}">
             <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-tempex-temp" class="badge">--</span></p></div>
             <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-tempex-hum" class="humidity-badge humidity--normal">--</span></p></div>
             <div class="card"><h4>Battery</h4>
@@ -134,7 +133,7 @@
         </section>
 
         <!-- PIR_LIGHT -->
-        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'PIR_LIGHT')}">
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'PIR_LIGHT')}">
             <div class="card"><h4>PIR</h4><p><span id="s-pir-presence" class="badge">--</span></p></div>
             <div class="card"><h4>Daylight</h4><p><span id="s-pir-daylight" class="badge">--</span></p></div>
             <div class="card"><h4>Battery</h4>
@@ -145,7 +144,7 @@
         </section>
 
         <!-- DESK -->
-        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'DESK')}">
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'DESK')}">
             <div class="card"><h4>👤 Occupancy</h4><p><span id="s-desk-occupancy" class="badge">--</span></p></div>
             <div class="card" id="s-desk-temp-card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-desk-temp" class="temp-badge temp--normal">--</span></p></div>
             <div class="card" id="s-desk-hum-card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-desk-hum" class="humidity-badge humidity--normal">-- %</span></p></div>
@@ -157,7 +156,7 @@
         </section>
 
         <!-- CO2 -->
-        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'CO2')}">
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'CO2')}">
             <div class="card">
                 <h4>💨 CO₂ Level</h4>
                 <p><span id="s-co2-ppm" class="co2-badge co2--good">-- ppm</span></p>
@@ -174,7 +173,7 @@
         </section>
 
         <!-- SON -->
-        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'SON')}">
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'SON')}">
             <div class="card"><h4>Equivalent Sound Level (LAeq)</h4><p><span id="s-sound-laeq" class="badge">--</span></p></div>
             <div class="card"><h4>Sound Impact (LAI)</h4><p><span id="s-sound-lai" class="badge">--</span></p></div>
             <div class="card"><h4>Max Sound Impact (LAImax)</h4><p><span id="s-sound-laimax" class="badge">--</span></p></div>
@@ -186,7 +185,7 @@
         </section>
 
         <!-- EYE -->
-        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'EYE')}">
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'EYE')}">
             <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-eye-temp" class="badge">--</span></p></div>
             <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-eye-hum" class="humidity-badge humidity--normal">--</span></p></div>
             <div class="card"><h4>Light</h4><p><span id="s-eye-light" class="badge">--</span></p></div>
@@ -199,16 +198,16 @@
         </section>
 
         <!-- GENERIC -->
-        <section class="info-grid" th:if="${!(#strings.equalsIgnoreCase(sensor.deviceType,'COUNT')
-          or #strings.equalsIgnoreCase(sensor.deviceType,'OCCUP')
-          or #strings.equalsIgnoreCase(sensor.deviceType,'PIR_LIGHT')
-          or #strings.equalsIgnoreCase(sensor.deviceType,'DESK')
-          or #strings.equalsIgnoreCase(sensor.deviceType,'CO2')
-          or #strings.equalsIgnoreCase(sensor.deviceType,'TEMPEX')
-          or #strings.equalsIgnoreCase(sensor.deviceType,'SON')
-          or #strings.equalsIgnoreCase(sensor.deviceType,'EYE')
-          or #strings.equalsIgnoreCase(sensor.deviceType,'ENERGY')
-          or #strings.equalsIgnoreCase(sensor.deviceType,'CONSO'))}">
+        <section class="info-grid" th:if="${!(#strings.equalsIgnoreCase(deviceTypeLabel,'COUNT')
+          or #strings.equalsIgnoreCase(deviceTypeLabel,'OCCUP')
+          or #strings.equalsIgnoreCase(deviceTypeLabel,'PIR_LIGHT')
+          or #strings.equalsIgnoreCase(deviceTypeLabel,'DESK')
+          or #strings.equalsIgnoreCase(deviceTypeLabel,'CO2')
+          or #strings.equalsIgnoreCase(deviceTypeLabel,'TEMPEX')
+          or #strings.equalsIgnoreCase(deviceTypeLabel,'SON')
+          or #strings.equalsIgnoreCase(deviceTypeLabel,'EYE')
+          or #strings.equalsIgnoreCase(deviceTypeLabel,'ENERGY')
+          or #strings.equalsIgnoreCase(deviceTypeLabel,'CONSO'))}">
             <div class="card"><h4>Battery</h4>
                 <p><span id="s-gen-batt" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
@@ -217,9 +216,9 @@
         </section>
 
         <!-- ENERGY/CONSO - Energy Consumption -->
-        <section th:if="${#strings.equalsIgnoreCase(sensor.deviceType,'ENERGY') or #strings.equalsIgnoreCase(sensor.deviceType,'CONSO')}">
+        <section th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'ENERGY') or #strings.equalsIgnoreCase(deviceTypeLabel,'CONSO')}">
             <h3 class="section-title">⚡ Energy Consumption</h3>
-            
+
             <!-- Dashboard principal -->
             <div class="energy-dashboard">
                 <!-- Groupes de consommation -->
@@ -234,7 +233,7 @@
                             <div class="kwh-value">-- kWh</div>
                         </div>
                     </div>
-                    
+
                     <div id="energy-group-white-outlets" class="energy-group">
                         <div class="energy-group-header">
                             <span class="group-name">⚪ White Outlets & Lighting</span>
@@ -245,7 +244,7 @@
                             <div class="kwh-value">-- kWh</div>
                         </div>
                     </div>
-                    
+
                     <div id="energy-group-ventilation" class="energy-group">
                         <div class="energy-group-header">
                             <span class="group-name">🌬️ Ventilation & Heaters</span>
@@ -256,7 +255,7 @@
                             <div class="kwh-value">-- kWh</div>
                         </div>
                     </div>
-                    
+
                     <div id="energy-group-other" class="energy-group">
                         <div class="energy-group-header">
                             <span class="group-name">🔧 Other Circuits</span>
@@ -268,7 +267,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Total et graphique -->
                 <div>
                     <div id="energy-total" class="energy-total">
@@ -279,7 +278,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div id="energy-chart" class="energy-chart" style="margin-top: 1.5rem;">
                         <div style="text-align: center; color: #64748b; padding: 2rem;">
                             📊 Real-time Chart<br>
@@ -288,7 +287,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Channel Details -->
             <h4 class="section-title" style="font-size: 1.1rem; margin-top: 2rem;">Channel Details</h4>
             <div class="energy-channels">
@@ -297,56 +296,48 @@
                         <span class="channel-number">Channel 0</span>
                         <span class="channel-uuid">--</span>
                     </div>
-
                 </div>
                 <div id="energy-channel-1" class="energy-channel">
                     <div class="energy-channel-header">
                         <span class="channel-number">Channel 1</span>
                         <span class="channel-uuid">--</span>
                     </div>
-
                 </div>
                 <div id="energy-channel-2" class="energy-channel">
                     <div class="energy-channel-header">
                         <span class="channel-number">Channel 2</span>
                         <span class="channel-uuid">--</span>
                     </div>
-
                 </div>
                 <div id="energy-channel-3" class="energy-channel">
                     <div class="energy-channel-header">
                         <span class="channel-number">Channel 3</span>
                         <span class="channel-uuid">--</span>
                     </div>
-
                 </div>
                 <div id="energy-channel-4" class="energy-channel">
                     <div class="energy-channel-header">
                         <span class="channel-number">Channel 4</span>
                         <span class="channel-uuid">--</span>
                     </div>
-
                 </div>
                 <div id="energy-channel-5" class="energy-channel">
                     <div class="energy-channel-header">
                         <span class="channel-number">Channel 5</span>
                         <span class="channel-uuid">--</span>
                     </div>
-
                 </div>
                 <div id="energy-channel-6" class="energy-channel">
                     <div class="energy-channel-header">
                         <span class="channel-number">Channel 6</span>
                         <span class="channel-uuid">--</span>
                     </div>
-
                 </div>
                 <div id="energy-channel-7" class="energy-channel">
                     <div class="energy-channel-header">
                         <span class="channel-number">Channel 7</span>
                         <span class="channel-uuid">--</span>
                     </div>
-
                 </div>
                 <div id="energy-channel-8" class="energy-channel">
                     <div class="energy-channel-header">
@@ -392,7 +383,7 @@
                         <canvas id="realtime-chart-main"></canvas>
                     </div>
                 </div>
-                
+
                 <!-- Graphique secondaire -->
                 <div class="chart-container" id="secondary-chart-container">
                     <div class="chart-header">
@@ -415,7 +406,7 @@
                     <div class="chart-header"><h4>📏 Distance</h4></div>
                     <div class="chart-canvas-wrapper"><canvas id="realtime-chart-distance"></canvas></div>
                 </div>
-                
+
                 <!-- Humidity Chart for CO2 and DESK sensors -->
                 <div class="chart-container" id="humidity-chart-container" style="display: none;">
                     <div class="chart-header">
@@ -425,7 +416,7 @@
                         <canvas id="realtime-chart-humidity"></canvas>
                     </div>
                 </div>
-                
+
                 <!-- Light Chart for CO2 and EYE sensors -->
                 <div class="chart-container" id="light-chart-container" style="display: none;">
                     <div class="chart-header">
@@ -435,7 +426,7 @@
                         <canvas id="realtime-chart-light"></canvas>
                     </div>
                 </div>
-                
+
                 <!-- Occupancy Chart for EYE sensor -->
                 <div class="chart-container" id="occupancy-chart-container" style="display: none;">
                     <div class="chart-header">
@@ -445,7 +436,7 @@
                         <canvas id="realtime-chart-occupancy"></canvas>
                     </div>
                 </div>
-                
+
                 <!-- Motion Chart for EYE sensor -->
                 <div class="chart-container" id="motion-chart-container" style="display: none;">
                     <div class="chart-header">
@@ -455,7 +446,7 @@
                         <canvas id="realtime-chart-motion"></canvas>
                     </div>
                 </div>
-                
+
                 <!-- LAImax Chart for SON sensor -->
                 <div class="chart-container" id="laimax-chart-container" style="display: none;">
                     <div class="chart-header">
@@ -465,13 +456,13 @@
                         <canvas id="realtime-chart-laimax"></canvas>
                     </div>
                 </div>
-                
+
             </div>
         </section>
 
         <!-- Network / Radio -->
         <h3 class="section-title">📡 Network / Radio</h3>
-        
+
         <section id="net-grid" class="info-grid">
             <div class="card"><h4>Frequency Plan</h4><p th:text="${
                 sensor.frequencyPlan == 'EU_863_870_TTN' ? 'Europe' :
@@ -495,7 +486,7 @@
                 <span class="value-line">Freq: <span id="s-freq" class="badge">--</span></span>
             </p></div>
         </section>
-        
+
         <!-- Signal Quality Charts -->
         <section class="realtime-charts">
             <div class="chart-grid">
@@ -511,7 +502,7 @@
                         <canvas id="realtime-chart-rssi"></canvas>
                     </div>
                 </div>
-                
+
                 <!-- SNR Chart -->
                 <div class="chart-container">
                     <div class="chart-header">
@@ -612,22 +603,21 @@
         <!-- Section pour l'histogramme de consommation -->
         <div class="charts-section" id="consumption-histogram-section" style="display: none;">
             <h4 class="subsection-title">⚡ Energy Consumption</h4>
-                <!-- Red Outlets -->
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <div class="chart-title">
-                            <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🔴</span>
-                            <span>Total consumption</span>
-                        </div>
-                        <div class="chart-info">
-                            <span class="kpi-value" id="hist-total-total">--</span> kWh for selected period
-                        </div>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">
+                        <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🔴</span>
+                        <span>Total consumption</span>
                     </div>
-                    <div class="chart-container">
-                        <canvas id="histConsumptionAll"></canvas>
+                    <div class="chart-info">
+                        <span class="kpi-value" id="hist-total-total">--</span> kWh for selected period
                     </div>
                 </div>
-                <br>
+                <div class="chart-container">
+                    <canvas id="histConsumptionAll"></canvas>
+                </div>
+            </div>
+            <br>
         </div>
 
     </section>

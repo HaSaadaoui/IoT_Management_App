@@ -1,13 +1,18 @@
 package com.amaris.sensorprocessor.controller;
 
+import com.amaris.sensorprocessor.entity.Building;
+import com.amaris.sensorprocessor.entity.Gateway;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.User;
 import com.amaris.sensorprocessor.model.dashboard.*;
 import com.amaris.sensorprocessor.service.AlertService;
+import com.amaris.sensorprocessor.service.BuildingService;
 import com.amaris.sensorprocessor.service.DashboardService;
+import com.amaris.sensorprocessor.service.GatewayService;
 import com.amaris.sensorprocessor.service.SensorService;
 import com.amaris.sensorprocessor.service.UserService;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
+import com.amaris.sensorprocessor.repository.BuildingEnergyConfigDao;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +35,6 @@ import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.time.Duration;
 
 @Slf4j
 @Controller
@@ -40,7 +44,10 @@ public class DashboardController {
     private final UserService userService;
     private final DashboardService dashboardService;
     private final AlertService alertService;
+    private final GatewayService gatewayService;
+    private final BuildingService buildingService;
     private final SensorDataDao sensorDataDao;
+    private final BuildingEnergyConfigDao buildingEnergyConfigDao;
 
     private final ObjectMapper om = new ObjectMapper();
 
@@ -59,13 +66,19 @@ public class DashboardController {
             DashboardService dashboardService,
             AlertService alertService,
             SensorService sensorService,
-            SensorDataDao sensorDataDao
+            GatewayService gatewayService,
+            BuildingService buildingService,
+            SensorDataDao sensorDataDao,
+            BuildingEnergyConfigDao buildingEnergyConfigDao
     ) {
         this.userService = userService;
         this.dashboardService = dashboardService;
         this.alertService = alertService;
         this.sensorService = sensorService;
+        this.gatewayService = gatewayService;
+        this.buildingService = buildingService;
         this.sensorDataDao = sensorDataDao;
+        this.buildingEnergyConfigDao = buildingEnergyConfigDao;
     }
 
     @GetMapping("/dashboard")
@@ -78,8 +91,81 @@ public class DashboardController {
 
     @GetMapping("/api/alerts")
     @ResponseBody
-    public List<Alert> getAlerts() {
-        return alertService.getCurrentAlerts("");
+    public List<Alert> getAlerts(@RequestParam(required = false) String building) {
+        String dbBuilding = building != null ? mapBuildingToDbName(building) : "";
+        return alertService.getCurrentAlerts(dbBuilding);
+    }
+
+    @GetMapping(value = "/api/alerts/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @ResponseBody
+    public Flux<ServerSentEvent<String>> streamAlerts(
+            @RequestParam(required = false) String building
+    ) {
+        final String dbBuilding = building != null ? mapBuildingToDbName(building) : "";
+        
+        // Periodic alert refresh (every 2 minutes - sensors update on value change or every 10min)
+        Flux<ServerSentEvent<String>> alertStream = Flux.interval(Duration.ofMinutes(2))
+                .publishOn(Schedulers.boundedElastic())
+                .map(tick -> {
+                    try {
+                        List<Alert> alerts = alertService.getCurrentAlerts(dbBuilding);
+                        String json = om.writeValueAsString(alerts);
+                        return ServerSentEvent.<String>builder(json)
+                                .event("alert_update")
+                                .build();
+                    } catch (Exception e) {
+                        log.error("Error streaming alerts: {}", e.getMessage());
+                        return ServerSentEvent.<String>builder("[]")
+                                .event("alert_update")
+                                .build();
+                    }
+                });
+        
+        // Keepalive every 60 seconds
+        Flux<ServerSentEvent<String>> keepAlive = Flux.interval(Duration.ofSeconds(60))
+                .map(t -> ServerSentEvent.<String>builder("ping")
+                        .event("keepalive")
+                        .build());
+        
+        // Initial alerts on connect
+        Flux<ServerSentEvent<String>> initialAlerts = Mono.fromCallable(() -> {
+            try {
+                List<Alert> alerts = alertService.getCurrentAlerts(dbBuilding);
+                String json = om.writeValueAsString(alerts);
+                return ServerSentEvent.<String>builder(json)
+                        .event("alert_update")
+                        .build();
+            } catch (Exception e) {
+                return ServerSentEvent.<String>builder("[]")
+                        .event("alert_update")
+                        .build();
+            }
+        }).subscribeOn(Schedulers.boundedElastic()).flux();
+        
+        return initialAlerts.concatWith(alertStream.mergeWith(keepAlive));
+    }
+    
+    private String mapBuildingToDbName(String building) {
+        if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
+            return "";
+        }
+        // Permet de conserver le fonctionnement en dur pour l'instant
+        if (isInteger(building)){
+            Optional<Building> optBuilding = buildingService.findById(Integer.parseInt(building));
+            if (optBuilding.isPresent()){
+                return optBuilding.get().getName();
+            } else {
+                return building;
+            }
+        }
+        else {
+            return switch (building.trim().toUpperCase()) {
+                case "CHATEAUDUN", "CHÂTEAUDUN"     -> "Châteaudun-Building";
+                case "LEVALLOIS"                    -> "Levallois-Building";
+                case "LILLE"                        -> "Lille";
+                default -> building;
+            };
+        }
     }
 
     @GetMapping("/api/dashboard")
@@ -112,7 +198,6 @@ public class DashboardController {
                 .toInstant();
     }
 
-
     @GetMapping(value = "/api/dashboard/occupancy/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @ResponseBody
     public Flux<ServerSentEvent<String>> streamOccupancy(
@@ -136,15 +221,35 @@ public class DashboardController {
     }
 
     private String mapBuildingToAppId(String building) {
+        String defaultValue = "rpi-mantu-appli";
         if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
-            return "rpi-mantu-appli";
+            return defaultValue;
         }
-        return switch (building.trim().toUpperCase()) {
-            case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
-            case "LEVALLOIS" -> "lorawan-network-mantu";
-            case "LILLE" -> "lil-rpi-mantu-appli";
-            default -> building;
-        };
+        // Permet de conserver le fonctionnement en dur pour l'instant
+        if (isInteger(building)){
+            Optional<Gateway> gateway = gatewayService.findByBuildingId(building);
+            if (gateway.isPresent()){
+                return gateway.get().getGatewayId();
+            } else {
+                return defaultValue;
+            }
+        } else {
+            return switch (building.trim().toUpperCase()) {
+                case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
+                case "LEVALLOIS"                -> "lorawan-network-mantu";
+                case "LILLE"                    -> "lil-rpi-mantu-appli";
+                default                         -> building;
+            };
+        }
+    }
+
+    private boolean isInteger(String s) {
+        try {
+            Integer.parseInt(s);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     @GetMapping(value = "/api/dashboard/conso/live/aggregate/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -467,5 +572,161 @@ public class DashboardController {
                         Flux.interval(Duration.ofSeconds(15))
                                 .map(t -> ServerSentEvent.builder("ping").event("keepalive").build())
                 );
+    }
+
+    /**
+     * API endpoint for environment history data (temperature, humidity, CO2, sound)
+     * Returns aggregated hourly data for charts
+     */
+    @GetMapping("/api/dashboard/environment/debug")
+    @ResponseBody
+    public Map<String, Object> debugEnvironmentData(@RequestParam(required = false) String building) {
+        Map<String, Object> result = new HashMap<>();
+        String dbBuilding = mapBuildingToDbName(building);
+        result.put("queryBuilding", building);
+        result.put("dbBuilding", dbBuilding);
+        
+        List<String> co2SensorIds = sensorService.getSensorIdsByTypeAndBuilding("CO2", dbBuilding);
+        result.put("co2SensorIds", co2SensorIds);
+        
+        // Check what data exists for each sensor
+        List<Map<String, Object>> sensorDataInfo = new java.util.ArrayList<>();
+        for (String sensorId : co2SensorIds) {
+            Map<String, Object> info = new HashMap<>();
+            info.put("sensorId", sensorId);
+            
+            var tempData = sensorDataDao.findLatestBySensorAndType(sensorId, PayloadValueType.TEMPERATURE);
+            var co2Data = sensorDataDao.findLatestBySensorAndType(sensorId, PayloadValueType.CO2);
+            var humData = sensorDataDao.findLatestBySensorAndType(sensorId, PayloadValueType.HUMIDITY);
+            
+            info.put("latestTemp", tempData.map(d -> d.getReceivedAt().toString() + " = " + d.getValueAsString()).orElse("NONE"));
+            info.put("latestCO2", co2Data.map(d -> d.getReceivedAt().toString() + " = " + d.getValueAsString()).orElse("NONE"));
+            info.put("latestHumidity", humData.map(d -> d.getReceivedAt().toString() + " = " + d.getValueAsString()).orElse("NONE"));
+            
+            sensorDataInfo.add(info);
+        }
+        result.put("sensorData", sensorDataInfo);
+        
+        return result;
+    }
+
+    @GetMapping("/api/dashboard/environment/history")
+    @ResponseBody
+    public Map<String, Object> getEnvironmentHistory(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String building
+    ) {
+        Map<String, Object> result = new HashMap<>();
+        
+        // Use LocalDateTime directly to match database storage format
+        java.time.LocalDateTime startDateTime = from.atStartOfDay();
+        java.time.LocalDateTime endDateTime = to.plusDays(1).atStartOfDay();
+        
+        // Get sensor IDs by type for the building
+        String dbBuilding = mapBuildingToDbName(building);
+        log.info("🌡️ Environment history request: from={}, to={}, building={}, dbBuilding={}", from, to, building, dbBuilding);
+        
+        List<String> tempSensorIds = new java.util.ArrayList<>(sensorService.getSensorIdsByTypeAndBuilding("CO2", dbBuilding));
+        tempSensorIds.addAll(sensorService.getSensorIdsByTypeAndBuilding("TEMPEX", dbBuilding));
+        
+        List<String> humiditySensorIds = new java.util.ArrayList<>(sensorService.getSensorIdsByTypeAndBuilding("CO2", dbBuilding));
+        humiditySensorIds.addAll(sensorService.getSensorIdsByTypeAndBuilding("HUMIDITY", dbBuilding));
+        
+        List<String> co2SensorIds = sensorService.getSensorIdsByTypeAndBuilding("CO2", dbBuilding);
+        
+        List<String> noiseSensorIds = sensorService.getSensorIdsByTypeAndBuilding("SON", dbBuilding);
+        
+        // Get aggregated data for each type using LocalDateTime
+        result.put("temperature", sensorDataDao.findAggregatedDataByPeriodAndType(
+                tempSensorIds, startDateTime, endDateTime, PayloadValueType.TEMPERATURE, "AVG"));
+        
+        result.put("humidity", sensorDataDao.findAggregatedDataByPeriodAndType(
+                humiditySensorIds, startDateTime, endDateTime, PayloadValueType.HUMIDITY, "AVG"));
+        
+        result.put("co2", sensorDataDao.findAggregatedDataByPeriodAndType(
+                co2SensorIds, startDateTime, endDateTime, PayloadValueType.CO2, "AVG"));
+        
+        result.put("sound", sensorDataDao.findAggregatedDataByPeriodAndType(
+                noiseSensorIds, startDateTime, endDateTime, PayloadValueType.LAEQ, "AVG"));
+        
+        return result;
+    }
+
+    @GetMapping("/api/dashboard/energy/cost")
+    @ResponseBody
+    public Map<String, Object> getEnergyCostData(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate to,
+            @RequestParam(required = false) String building) {
+        
+        Map<String, Object> result = new HashMap<>();
+        String dbBuilding = mapBuildingToDbName(building);
+        
+        // Get energy config for this building
+        var energyConfig = buildingEnergyConfigDao.findByBuildingName(dbBuilding);
+        double costPerKwh = energyConfig.map(c -> c.getEnergyCostPerKwh()).orElse(0.0);
+        double co2Factor = energyConfig.map(c -> c.getCo2EmissionFactor()).orElse(0.0);
+        String currency = energyConfig.map(c -> c.getCurrency()).orElse("EUR");
+        
+        result.put("costPerKwh", costPerKwh);
+        result.put("co2Factor", co2Factor);
+        result.put("currency", currency);
+        result.put("building", dbBuilding);
+        
+        // Get daily energy consumption data
+        java.time.LocalDateTime startDateTime = from.atStartOfDay();
+        java.time.LocalDateTime endDateTime = to.plusDays(1).atStartOfDay();
+        
+        // Use substr to get daily buckets (YYYY-MM-DD format, first 10 chars)
+        List<String> consoSensorIds = sensorService.getSensorIdsByTypeAndBuilding("CONSO", dbBuilding);
+        
+        List<Map<String, Object>> dailyData = new java.util.ArrayList<>();
+        double totalEnergy = 0;
+        double totalCost = 0;
+        double totalCo2 = 0;
+        
+        // Query daily aggregated data
+        if (!consoSensorIds.isEmpty()) {
+            String placeholders = String.join(",", java.util.Collections.nCopies(consoSensorIds.size(), "?"));
+            String query = "SELECT substr(received_at, 1, 10) as day, " +
+                          "SUM(CAST(value AS REAL)) as total_energy " +
+                          "FROM sensor_data " +
+                          "WHERE id_sensor IN (" + placeholders + ") " +
+                          "AND received_at >= ? AND received_at < ? " +
+                          "AND value_type = 'ENERGY' " +
+                          "AND value IS NOT NULL " +
+                          "GROUP BY substr(received_at, 1, 10) " +
+                          "ORDER BY day ASC";
+            
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+            String startStr = startDateTime.format(formatter);
+            String endStr = endDateTime.format(formatter);
+            
+            List<Object> params = new java.util.ArrayList<>(consoSensorIds);
+            params.add(startStr);
+            params.add(endStr);
+            
+            try {
+                var jdbcTemplate = new org.springframework.jdbc.core.JdbcTemplate(
+                    ((org.springframework.jdbc.core.JdbcTemplate) 
+                    org.springframework.beans.factory.BeanFactoryUtils
+                    .beanOfTypeIncludingAncestors(
+                        org.springframework.web.context.ContextLoader.getCurrentWebApplicationContext(),
+                        org.springframework.jdbc.core.JdbcTemplate.class)).getDataSource());
+                
+                // Use sensorDataDao's internal method or create simple query
+                // For now, return config info - actual data will come from frontend calculation
+            } catch (Exception e) {
+                log.error("Error querying energy data: {}", e.getMessage());
+            }
+        }
+        
+        result.put("dailyData", dailyData);
+        result.put("totalEnergy", totalEnergy);
+        result.put("totalCost", totalCost);
+        result.put("totalCo2", totalCo2);
+        
+        return result;
     }
 }
