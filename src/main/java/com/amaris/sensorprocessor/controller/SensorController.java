@@ -477,6 +477,12 @@ public class SensorController {
 
         model.addAttribute("buildings", buildingNames);
 
+        record BuildingFloors(String name, int floorsCount) {}
+        List<BuildingFloors> buildingFloors = buildingService.getAllBuildings().stream()
+                .map(b -> new BuildingFloors(b.getName(), b.getFloorsCount()))
+                .collect(Collectors.toList());
+        model.addAttribute("buildingFloors", buildingFloors);
+
         if (!model.containsAttribute(SENSOR_ADD)) {
             model.addAttribute(SENSOR_ADD, new Sensor());
         }
