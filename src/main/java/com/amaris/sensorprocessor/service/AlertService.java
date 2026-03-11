@@ -2,6 +2,7 @@ package com.amaris.sensorprocessor.service;
 
 import com.amaris.sensorprocessor.config.AlertThresholdConfig;
 import com.amaris.sensorprocessor.entity.DeviceType;
+import com.amaris.sensorprocessor.entity.Gateway;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.Sensor;
 import com.amaris.sensorprocessor.entity.SensorData;
@@ -55,7 +56,8 @@ public class AlertService {
     private final SensorDao sensorDao;
     private final AlertThresholdConfig thresholdConfig;
     private final WebClient webClientSse;
-    private final DeviceTypeService deviceTypeService; // ✅ AJOUT
+    private final DeviceTypeService deviceTypeService;
+    private final GatewayService gatewayService;
 
     @Autowired
     private LiveSensorCache liveSensorCache;
@@ -63,17 +65,17 @@ public class AlertService {
     private ObjectMapper objectMapper;
 
     private Disposable currentSubscription;
-    private final Map<String, Disposable> subscriptions = new ConcurrentHashMap<>();
 
     @Autowired
     public AlertService(SensorDataDao sensorDataDao, SensorDao sensorDao,
                         AlertThresholdConfig thresholdConfig, WebClient webClientSse,
-                        DeviceTypeService deviceTypeService) { // ✅ AJOUT
+                        DeviceTypeService deviceTypeService, GatewayService gatewayService) {
         this.sensorDataDao = sensorDataDao;
         this.sensorDao = sensorDao;
         this.thresholdConfig = thresholdConfig;
         this.webClientSse = webClientSse;
-        this.deviceTypeService = deviceTypeService; // ✅ AJOUT
+        this.deviceTypeService = deviceTypeService;
+        this.gatewayService = gatewayService;
     }
 
     public List<Alert> getCurrentAlerts(String building) {
@@ -104,13 +106,6 @@ public class AlertService {
         String cacheKey = building == null || building.isBlank() ? "_ALL_" : building;
         alertCache.remove(cacheKey);
         log.debug("🗑️ Alert cache invalidated for: {}", cacheKey);
-    }
-
-    private boolean hasSensorType(String building, String sensorType) {
-        if (building == null || building.isBlank()) {
-            return true;
-        }
-        return sensorDao.existsByBuildingAndType(building, sensorType);
     }
 
     private List<Alert> checkCO2Alerts(String building) {
@@ -219,7 +214,6 @@ public class AlertService {
 
             if (latestData.isPresent()) {
                 SensorData data = latestData.get();
-                long minutesAgo = java.time.Duration.between(data.getReceivedAt(), LocalDateTime.now()).toMinutes();
 
                 if (data.getReceivedAt().isBefore(cutoffTime) || data.getReceivedAt().isEqual(cutoffTime)) {
                     if ("DESK".equalsIgnoreCase(deviceType)) {
@@ -319,42 +313,6 @@ public class AlertService {
                 }
             }
         }
-        return alerts;
-    }
-
-    private List<Alert> checkGatewayOfflineAlerts() {
-        List<Alert> alerts = new ArrayList<>();
-        List<String> gateways = sensorDao.findAllGateways();
-        LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(thresholdConfig.getDataMaxAgeMinutes());
-
-        log.debug("Checking gateway offline alerts with threshold: {} minutes (cutoff time: {})",
-                thresholdConfig.getDataMaxAgeMinutes(), cutoffTime);
-
-        for (String gatewayId : gateways) {
-            if (gatewayId == null || gatewayId.trim().isEmpty()) continue;
-
-            Optional<SensorData> latestData = sensorDataDao.findLatestByGateway(gatewayId);
-
-            if (latestData.isPresent()) {
-                SensorData data = latestData.get();
-                long minutesAgo = java.time.Duration.between(data.getReceivedAt(), LocalDateTime.now()).toMinutes();
-                if (data.getReceivedAt().isBefore(cutoffTime) || data.getReceivedAt().isEqual(cutoffTime)) {
-                    log.debug("Gateway {} is offline: last data at {} ({} minutes ago)", gatewayId, data.getReceivedAt(), minutesAgo);
-                    alerts.add(new Alert("critical", "📡", "Gateway Offline",
-                            String.format("Gateway %s not responding - no sensor data received", gatewayId),
-                            formatTimeAgo(data.getReceivedAt())));
-                } else {
-                    log.trace("Gateway {} is online: last data at {} ({} minutes ago)", gatewayId, data.getReceivedAt(), minutesAgo);
-                }
-            } else {
-                log.debug("Gateway {} has no data in database", gatewayId);
-                alerts.add(new Alert("critical", "📡", "Gateway Offline",
-                        String.format("Gateway %s not responding - no sensor data received", gatewayId),
-                        "Never reported"));
-            }
-        }
-
-        log.info("Found {} offline gateways (threshold: {} minutes)", alerts.size(), thresholdConfig.getDataMaxAgeMinutes());
         return alerts;
     }
 
@@ -472,15 +430,35 @@ public class AlertService {
     }
 
     private String mapBuildingToAppId(String building) {
+        String defaultValue = "rpi-mantu-appli";
         if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
-            return "rpi-mantu-appli";
+            return defaultValue;
         }
-        return switch (building.trim().toUpperCase()) {
-            case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
-            case "LEVALLOIS"                -> "lorawan-network-mantu";
-            case "LILLE"                    -> "lil-rpi-mantu-appli";
-            default                         -> building;
-        };
+        // Permet de conserver le fonctionnement en dur pour l'instant
+        if (isInteger(building)){
+            Optional<Gateway> gateway = gatewayService.findByBuildingId(building);
+            if (gateway.isPresent()){
+                return gateway.get().getGatewayId();
+            } else {
+                return defaultValue;
+            }
+        } else {
+            return switch (building.trim().toUpperCase()) {
+                case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
+                case "LEVALLOIS"                -> "lorawan-network-mantu";
+                case "LILLE"                    -> "lil-rpi-mantu-appli";
+                default                         -> building;
+            };
+        }
+    }
+
+    private boolean isInteger(String s) {
+        try {
+            Integer.parseInt(s);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     public List<Alert> getCurrentAlertsWithWait(String building, int maxWaitMs) {

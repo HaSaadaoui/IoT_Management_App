@@ -46,6 +46,23 @@ public class GatewayDao {
     }
 
     /**
+     * Recherche une gateway par l'id de son Building.
+     *
+     * @param buildingId ID du building de la gateway à rechercher
+     * @return Optional contenant la gateway si trouvée, sinon Optional.empty()
+     */
+    public Optional<Gateway> findGatewayByBuildingId(String buildingId) {
+        List<Gateway> gateways = jdbcTemplate.query(
+            "SELECT g.* FROM gateways g "
+            +"INNER JOIN building b ON g.BUILDING_NAME = b.NAME "
+            +"WHERE b.ID=?",
+            new BeanPropertyRowMapper<>(Gateway.class),
+            buildingId);
+
+        return gateways.isEmpty() ? Optional.empty() : Optional.of(gateways.get(0));
+    }
+
+    /**
      * Supprime une gateway en base selon son ID.
      *
      * @param gatewayId ID de la gateway à supprimer

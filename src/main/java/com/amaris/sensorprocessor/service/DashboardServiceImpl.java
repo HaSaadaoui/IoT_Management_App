@@ -1,5 +1,6 @@
 package com.amaris.sensorprocessor.service;
 
+import com.amaris.sensorprocessor.entity.Building;
 import com.amaris.sensorprocessor.entity.BuildingMapping;
 import com.amaris.sensorprocessor.entity.DeviceType;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
@@ -26,27 +27,49 @@ public class DashboardServiceImpl implements DashboardService {
     private final SensorDao sensorDao;
     private final SensorDataDao sensorDataDao;
     private final AlertService alertService;
-    private final DeviceTypeService deviceTypeService; // ✅ AJOUT
+    private final DeviceTypeService deviceTypeService;
+    private final BuildingService buildingService;
 
     @Autowired
     public DashboardServiceImpl(SensorDao sensorDao, SensorDataDao sensorDataDao,
-                                AlertService alertService, DeviceTypeService deviceTypeService) { // ✅ AJOUT
+                                AlertService alertService, DeviceTypeService deviceTypeService, BuildingService buildingService) {
         this.sensorDao = sensorDao;
         this.sensorDataDao = sensorDataDao;
         this.alertService = alertService;
-        this.deviceTypeService = deviceTypeService; // ✅ AJOUT
+        this.deviceTypeService = deviceTypeService;
+        this.buildingService = buildingService;
     }
 
     private String mapBuildingName(String building) {
         if (building == null || "all".equalsIgnoreCase(building)) {
             return building;
         }
-        return switch (building.toLowerCase()) {
-            case "levallois" -> "Levallois-Building";
-            case "chateaudun", "châteaudun" -> "Châteaudun-Building";
-            case "lille" -> "Lille";
-            default -> building;
-        };
+        // Permet de conserver le fonctionnement en dur pour l'instant
+        if (isInteger(building)){
+            Optional<Building> optBuilding = buildingService.findById(Integer.parseInt(building));
+            if (optBuilding.isPresent()){
+                return optBuilding.get().getName();
+            } else {
+                return building;
+            }
+        }
+        else {
+            return switch (building.toLowerCase()) {
+                case "levallois"                    -> "Levallois-Building";
+                case "chateaudun", "châteaudun"     -> "Châteaudun-Building";
+                case "lille"                        -> "Lille";
+                default -> building;
+            };
+        }
+    }
+
+    private boolean isInteger(String s) {
+        try {
+            Integer.parseInt(s);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     // ✅ Helper : charge tous les labels en une seule requête
@@ -63,6 +86,9 @@ public class DashboardServiceImpl implements DashboardService {
 
         sensorType = sensorType != null ? sensorType : "DESK";
         String buildingName = BuildingMapping.toDbName(building);
+        if (building.equals("21")){
+            buildingName = "Levallois-Building";
+        }
 
         alertService.startMonitoringForBuilding(building, sensorType, buildingName);
         List<Alert> alerts = alertService.getCurrentAlertsWithWait(buildingName, 500);
