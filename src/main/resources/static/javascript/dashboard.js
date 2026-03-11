@@ -228,7 +228,6 @@ class DashboardManager {
         };
 	}
 
-
     resetConsoMetrics() {
       this.updateMetricValue('live-current-power', '--');
       this.updateMetricValue('live-daily-energy', '--');
@@ -1724,6 +1723,7 @@ class DashboardManager {
 
 		const idUpper = String(buildingId).toUpperCase();
 		let floorsCount = 1;
+		let excludedFloors = [];
 
 		// Priorité au virtuel
 		if (this.virtualBuildings[idUpper]) {
@@ -1737,6 +1737,7 @@ class DashboardManager {
             	}
 				const b = await resp.json();
             	floorsCount = b.floorsCount || 1;
+				excludedFloors = b.excludedFloors || [];
 			} catch (e) {
 				floorsCount = 1;
 			}
@@ -1744,6 +1745,7 @@ class DashboardManager {
 
 		floorSelect.innerHTML = '<option value="">All Floors</option>';
 		for (let i = 0; i < floorsCount; i++) {
+			if (excludedFloors.includes(i)) continue;
 			const opt = document.createElement('option');
 			opt.value = String(i);
 			if (i === 0){

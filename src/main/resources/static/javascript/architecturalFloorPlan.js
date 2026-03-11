@@ -76,7 +76,7 @@ class ArchitecturalFloorPlan {
         // Create SVG element
         this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         this.svg.setAttribute("width", "100%");
-        this.svg.setAttribute("height", "auto");
+        this.svg.setAttribute("height", "100%");
         this.svg.setAttribute("margin", "0");
         this.svg.setAttribute("viewBox", "0 200 1200 800");
         this.svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
@@ -179,7 +179,8 @@ class ArchitecturalFloorPlan {
         }
 
         // On modifie le SVG pour le centrer sur l'écran
-        this.centerSVGContent({ targetWidth: 1200, targetHeight: 1200, padding: 20, fit: true });
+        const vb = this.svg.viewBox.baseVal;
+        this.centerSVGContent({targetX: vb.x, targetY: vb.y, targetWidth: vb.width, targetHeight: vb.height, padding: 20, fit: true });
 
         this.displayContentRoot();
 
@@ -378,7 +379,8 @@ class ArchitecturalFloorPlan {
       switch (mode) {
         case "CO2":
           return payload["co2"] ?? payload["co2 (ppm)"];
-        case "TEMPEX", "TEMP":
+        case "TEMPEX" :
+        case "TEMP":
           return payload["temperature"] ?? payload["temperature (°C)"];
         case "HUMIDITY":
           return payload["humidity"] ?? payload["humidity (%)"];
@@ -1194,7 +1196,7 @@ class ArchitecturalFloorPlan {
      * @param {boolean} options.fit - si true, scale pour faire rentrer le contenu,
      *                                si false, ne fait que centrer sans changer l'échelle
      */
-    centerSVGContent({targetWidth = 1200, targetHeight = 1200, padding = 20, fit = true} = {}) {
+    centerSVGContent({targetX = 0, targetY = 0, targetWidth = 1200, targetHeight = 1200, padding = 20, fit = true} = {}) {
         let root = this.svg.querySelector("#content-root");
         root.removeAttribute("transform");
 
@@ -1218,8 +1220,8 @@ class ArchitecturalFloorPlan {
         const scaledH = bbox.height * scale;
 
         // On ajoute le décalage pour que la bbox soit centrée avec padding
-        const tx = padding + (availW - scaledW) / 2 - bbox.x * scale;
-        const ty = padding + (availH - scaledH) / 2 - bbox.y * scale;
+        const tx = padding + targetX + (availW - scaledW) / 2 - bbox.x * scale;
+        const ty = padding + targetY + (availH - scaledH) / 2 - bbox.y * scale;
 
         // Appliquer la transform
         root.setAttribute("transform", `translate(${tx}, ${ty}) scale(${scale})`);
@@ -1227,6 +1229,8 @@ class ArchitecturalFloorPlan {
 
     _initDragAndDrop() {
         if (!this.svg) return;
+
+        this._removeDragListeners?.(); // nettoyer les anciens listeners
 
         function extractRotation(transform) {
             if (!transform) return 0;
@@ -1609,6 +1613,14 @@ class ArchitecturalFloorPlan {
         this.svg.addEventListener("pointermove", onMove);
         this.svg.addEventListener("pointerup", onUp);
         this.svg.addEventListener("pointercancel", onUp);
+
+        // Mémoriser la fonction de nettoyage
+        this._removeDragListeners = () => {
+        this.svg.removeEventListener("pointerdown",  onDown);
+        this.svg.removeEventListener("pointermove",  onMove);
+        this.svg.removeEventListener("pointerup",    onUp);
+        this.svg.removeEventListener("pointercancel",onUp);
+        };
     }
 
     populateFormFromG(g) {
@@ -1667,26 +1679,43 @@ class ArchitecturalFloorPlan {
         if (sel) sel.value = type;
     }
 
+    _applyTransform() {
+        if (this._rafPending) return;
+        this._rafPending = true;
+        requestAnimationFrame(() => {
+            this.viewport.setAttribute(
+                "transform",
+                `translate(${this.camera.tx}, ${this.camera.ty}) scale(${this.camera.scale})`
+            );
+            this._rafPending = false;
+        });
+    }
+
     enablePan() {
         let dragging = false;
         let last = { x: 0, y: 0 };
 
-        this.svg.addEventListener("mousedown", evt => {
-            dragging = true;
-            last = { x: evt.clientX, y: evt.clientY };
-        });
-
-        window.addEventListener("mousemove", evt => {
+        const onDown = evt => { dragging = true; last = { x: evt.clientX, y: evt.clientY }; };
+        const onMove = evt => {
             if (!dragging) return;
-            const dx = (evt.clientX - last.x);
-            const dy = (evt.clientY - last.y);
-            this.camera.tx += dx;
-            this.camera.ty += dy;
+            this.camera.tx += evt.clientX - last.x;
+            this.camera.ty += evt.clientY - last.y;
             last = { x: evt.clientX, y: evt.clientY };
-            this.viewport.setAttribute("transform", `translate(${this.camera.tx}, ${this.camera.ty}) scale(${this.camera.scale})`);
-        });
+            this._applyTransform();
+        };
+        const onUp = () => { dragging = false; };
 
-        window.addEventListener("mouseup", () => dragging = false);
+        // Garder sur svg + document uniquement pour mouseup
+        this.svg.addEventListener("mousedown", onDown);
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup",   onUp);
+
+        // Nettoyage
+        this._removePanListeners = () => {
+            this.svg.removeEventListener("mousedown", onDown);
+            document.removeEventListener("mousemove", onMove);
+            document.removeEventListener("mouseup",   onUp);
+        };
     }
 
     enableZoom() {
