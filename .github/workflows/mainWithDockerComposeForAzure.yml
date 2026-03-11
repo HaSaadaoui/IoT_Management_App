@@ -32,6 +32,8 @@ jobs:
             echo "GATEWAY_BRANCH=main" >> $GITHUB_ENV
             echo "NSG_NAME=vm-sensorprocessor-1-nsg" >> $GITHUB_ENV
             echo "RESOURCE_GROUP=rg-Smart-Building-Mantu" >> $GITHUB_ENV
+            echo "NSG_NAME_2=" >> $GITHUB_ENV
+            echo "RESOURCE_GROUP_2=" >> $GITHUB_ENV
           else
             echo "SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USER_TEST }}" >> $GITHUB_ENV
             echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASS_TEST }}" >> $GITHUB_ENV
@@ -42,6 +44,8 @@ jobs:
             echo "GATEWAY_BRANCH=develop" >> $GITHUB_ENV
             echo "NSG_NAME=Test-VM-nsg" >> $GITHUB_ENV
             echo "RESOURCE_GROUP=Test-WebApp-Migration" >> $GITHUB_ENV
+            echo "NSG_NAME_2=vm-sensorprocessor-1-nsg" >> $GITHUB_ENV
+            echo "RESOURCE_GROUP_2=rg-Smart-Building-Mantu" >> $GITHUB_ENV
           fi
           echo "BRANCH=${{ env.BRANCH }}" >> $GITHUB_ENV
           echo "DOCKER_REGISTRY=localhost:5000" >> $GITHUB_ENV
@@ -57,6 +61,8 @@ jobs:
         run: |
           RUNNER_IP=$(curl -s https://api.ipify.org)
           echo "RUNNER_IP=$RUNNER_IP" >> $GITHUB_ENV
+
+          # NSG principal (interface réseau)
           az network nsg rule create \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --nsg-name ${{ env.NSG_NAME }} \
@@ -67,6 +73,21 @@ jobs:
             --access Allow \
             --protocol Tcp \
             --direction Inbound
+
+          # NSG secondaire (sous-réseau) — uniquement pour develop
+          if [[ -n "${{ env.NSG_NAME_2 }}" ]]; then
+            az network nsg rule create \
+              --resource-group ${{ env.RESOURCE_GROUP_2 }} \
+              --nsg-name ${{ env.NSG_NAME_2 }} \
+              --name GitHubActionsSSH \
+              --priority 500 \
+              --source-address-prefixes $RUNNER_IP \
+              --destination-port-ranges 22 \
+              --access Allow \
+              --protocol Tcp \
+              --direction Inbound
+          fi
+
           echo "Waiting for NSG rule to propagate..."
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             TARGET_HOST="${{ secrets.AZURE_HOST }}"
@@ -147,7 +168,16 @@ jobs:
       - name: Remove runner IP from NSG
         if: always()
         run: |
+          # NSG principal
           az network nsg rule delete \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --nsg-name ${{ env.NSG_NAME }} \
             --name GitHubActionsSSH
+
+          # NSG secondaire (sous-réseau) — uniquement pour develop
+          if [[ -n "${{ env.NSG_NAME_2 }}" ]]; then
+            az network nsg rule delete \
+              --resource-group ${{ env.RESOURCE_GROUP_2 }} \
+              --nsg-name ${{ env.NSG_NAME_2 }} \
+              --name GitHubActionsSSH
+          fi
