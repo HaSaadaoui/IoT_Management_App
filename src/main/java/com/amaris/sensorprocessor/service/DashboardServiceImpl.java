@@ -85,9 +85,12 @@ public class DashboardServiceImpl implements DashboardService {
                 year, month, building, floor, sensorType, timeSlot);
 
         sensorType = sensorType != null ? sensorType : "DESK";
-        String buildingName = BuildingMapping.toDbName(building);
-        if (building.equals("21")){
-            buildingName = "Levallois-Building";
+        String buildingName = BuildingMapping.toDbName(building); 
+        if (isInteger(building)){
+            Optional<Building> buildingObject = buildingService.findById(Integer.parseInt(building));
+            if (buildingObject.isPresent()){
+                buildingName = buildingObject.get().getName();
+            }
         }
 
         alertService.startMonitoringForBuilding(building, sensorType, buildingName);

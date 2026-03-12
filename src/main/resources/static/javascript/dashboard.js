@@ -284,7 +284,8 @@ class DashboardManager {
 	}
 
 	async loadBuildings() {
-		const select = document.getElementById('filter-building');
+		const select = document.getElementById('filter-building') 
+		const selectHist = document.getElementById('hist-filter-building');
 		if (!select) return;
 
 		try {
@@ -308,6 +309,17 @@ class DashboardManager {
 				if (opt.value === this.filters.building) opt.selected = true;
 				select.appendChild(opt);
 			});
+
+			if (selectHist) {
+				selectHist.innerHTML = '';
+				buildings.forEach(b => {
+					const opt = document.createElement('option');
+					opt.value = b.code || b.id; // valeur "brute" émise par le select
+					opt.textContent = b.name;
+					if (opt.value === this.filters.building) opt.selected = true;
+					selectHist.appendChild(opt);
+				});
+			}
 
 			// Définir le bâtiment actuel (robuste code/id)
 			const current =

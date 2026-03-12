@@ -55,7 +55,9 @@ class ArchitecturalFloorPlan {
         this.createSVG();
         this.elementsManager = new FloorElementsManager(this.svg, this.colors);
         this.enableZoom();
-        this.enablePan();
+        if (this.isDashboard){
+            this.enablePan();
+        }
     }
 
     updateConfig(floorData, sensorMode, svgPath) {
@@ -1440,8 +1442,70 @@ class ArchitecturalFloorPlan {
                 }
             }
 
-            const el = findDraggable(evt.target);
+            const TOLERANCE_PERCENT = 20;
+
+            let el = findDraggable(evt.target);
+
+            if (!el) {
+                const pt = this.svg.createSVGPoint();
+                pt.x = evt.clientX;
+                pt.y = evt.clientY;
+                const viewportPt = pt.matrixTransform(this.viewport.getScreenCTM().inverse());
+
+                const allDraggables = Array.from(
+                    this.viewport.querySelectorAll('[data-draggable="true"]')
+                );
+
+                let bestEl = null;
+                let bestDist = Infinity;
+
+                for (const candidate of allDraggables) {
+                    const bbox = candidate.getBBox();
+                    const ctm = candidate.parentNode.getScreenCTM();
+                    const invViewport = this.viewport.getScreenCTM().inverse();
+                    const toViewport = invViewport.multiply(ctm);
+
+                    // Transformer les 4 coins (pas seulement 2) pour gérer scale négatif
+                    const corners = [
+                        { x: bbox.x,              y: bbox.y },
+                        { x: bbox.x + bbox.width, y: bbox.y },
+                        { x: bbox.x,              y: bbox.y + bbox.height },
+                        { x: bbox.x + bbox.width, y: bbox.y + bbox.height },
+                    ].map(c => {
+                        let p = this.svg.createSVGPoint();
+                        p.x = c.x; p.y = c.y;
+                        return p.matrixTransform(toViewport);
+                    });
+
+                    const xs = corners.map(c => c.x);
+                    const ys = corners.map(c => c.y);
+                    const xMin = Math.min(...xs);
+                    const xMax = Math.max(...xs);
+                    const yMin = Math.min(...ys);
+                    const yMax = Math.max(...ys);
+
+                    const minDim = Math.min(xMax - xMin, yMax - yMin);
+                    const tol = minDim * TOLERANCE_PERCENT / 100;
+
+                    if (viewportPt.x >= xMin - tol && viewportPt.x <= xMax + tol &&
+                        viewportPt.y >= yMin - tol && viewportPt.y <= yMax + tol) {
+
+                        const cx = (xMin + xMax) / 2;
+                        const cy = (yMin + yMax) / 2;
+                        const dist = Math.hypot(viewportPt.x - cx, viewportPt.y - cy);
+                        if (dist < bestDist) {
+                            bestDist = dist;
+                            bestEl = candidate;
+                        }
+                    }
+                }
+
+                el = bestEl;
+                if (el) this.populateFormFromG(el);
+            }
+
             if (!el) return;
+
             evt.preventDefault();
             this.svg.setPointerCapture?.(evt.pointerId);
 
