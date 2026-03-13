@@ -41,7 +41,7 @@ function populateFloors(selectEl, building, currentFloor = null) {
   }
 
   // ✅ UTILISE window.BUILDING_FLOORS au lieu de SENSORS
-  const bf = (window.BUILDING_FLOORS || []).find(b => b.name === building);
+  const bf = (window.BUILDING_FLOORS || []).find(b => String(b.id) === String(building));
   if (!bf || !bf.floorsCount) {
     selectEl.disabled = true;
     return;
@@ -124,16 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // -----------------------
   function populateBuildings() {
     if (!buildingFilter) return;
-    const uniques = Array.from(new Set(
-      (SENSORS || []).map(s => (s.buildingName || '').trim()).filter(Boolean)
-    )).sort();
-    buildingFilter.querySelectorAll('option:not([value=""])').forEach(o => o.remove());
-    for (const b of uniques) {
-      const opt = document.createElement('option');
-      opt.value = b;
-      opt.textContent = b;
-      buildingFilter.appendChild(opt);
-    }
     updateSelectPlaceholderStyle(buildingFilter);
   }
 
@@ -207,6 +197,8 @@ buildingNameInput?.addEventListener('change', () => {
       const editClass = CAN_EDIT_SENSORS ? '' : 'disabled';
       const delClass  = CAN_EDIT_SENSORS ? '' : 'disabled';
 
+    const buildingObj = BUILDING_FLOORS.find(b => b.id === s.buildingId);
+    const buildingDisplay = buildingObj ? buildingObj.name : '';
       row.innerHTML = `
         <td>${s.idSensor ?? ''}</td>
         <td>${s.devEui ?? ''}</td>
@@ -216,7 +208,7 @@ buildingNameInput?.addEventListener('change', () => {
             ${s.status ? 'Active' : 'Inactive'}
           </span>
         </td>
-        <td>${s.buildingName ?? ''}</td>
+        <td>${buildingDisplay}</td>
         <td>${s.location ?? ''}</td>
         <td>${s.idGateway ?? ''}</td>
         <td>
@@ -327,7 +319,7 @@ buildingNameInput?.addEventListener('change', () => {
 
     let rows = (SENSORS || []).slice();
 
-    if (b) rows = rows.filter(x => (x.buildingName || '') === b);
+    if (b) rows = rows.filter(x => String(x.buildingId) === String(b));
     if (s) {
       const boolVal = (s === 'true');
       rows = rows.filter(x => String(x.status) === String(boolVal));

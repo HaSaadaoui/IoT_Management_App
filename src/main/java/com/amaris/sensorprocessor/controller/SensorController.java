@@ -463,23 +463,14 @@ public class SensorController {
         model.addAttribute("gateways", gateways);
         model.addAttribute("protocols", protocolService.findAll());
         model.addAttribute("brands", brandService.findAll());
-        model.addAttribute("deviceTypes", deviceTypeService.findAll()); // ✅ AJOUT
+        model.addAttribute("deviceTypes", deviceTypeService.findAll());
 
-        List<String> buildingNames = buildingService.findAll()
-                .stream()
-                .map(Building::getName)
-                .filter(Objects::nonNull)
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .distinct()
-                .sorted()
-                .collect(Collectors.toList());
+        List<Building> buildings = buildingService.findAll();
+        model.addAttribute("buildings", buildings);
 
-        model.addAttribute("buildings", buildingNames);
-
-        record BuildingFloors(String name, int floorsCount) {}
-        List<BuildingFloors> buildingFloors = buildingService.findAll().stream()
-                .map(b -> new BuildingFloors(b.getName(), b.getFloorsCount()))
+        record BuildingFloors(Integer id, String name, int floorsCount) {}
+        List<BuildingFloors> buildingFloors = buildings.stream()
+                .map(b -> new BuildingFloors(b.getId(), b.getName(), b.getFloorsCount()))
                 .collect(Collectors.toList());
         model.addAttribute("buildingFloors", buildingFloors);
 

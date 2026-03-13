@@ -69,8 +69,8 @@
                             style="padding: 8px 30px 8px 12px; border: 1px solid #662179; border-radius: 6px; font-size: inherit; outline: none; box-shadow: none; width: 100%;">
                         <option value="" disabled selected hidden>Building (all)</option>
                         <option th:each="b : ${buildings}"
-                                th:value="${b}"
-                                th:text="${b}">Building
+                                th:value="${b.id}"
+                                th:text="${b.name}">Building
                         </option>
                     </select>
                     <span id="clearBuilding"
@@ -215,18 +215,19 @@
                         </select>
 
                         <!-- Building Name -->
-                        <select id="buildingNameInput" th:field="*{buildingName}" required
-                                th:classappend="${#fields.hasErrors('buildingName')} ? 'input-error' : ''">
+                        <select id="buildingNameInput" th:field="*{buildingId}" required
+                                th:classappend="${#fields.hasErrors('buildingId')} ? 'input-error' : ''">
                             <option value="" disabled selected>Select a Building</option>
                             <option th:each="b : ${buildings}"
-                                    th:value="${b}"
-                                    th:text="${b}">
+                                    th:value="${b.id}"
+                                    th:text="${b.name}">
                             </option>
                         </select>
+                        <div class="field-error" th:if="${#fields.hasErrors('buildingId')}" th:errors="*{buildingId}"></div>
 
-                        <div class="field-error" th:if="${#fields.hasErrors('buildingName')}" th:errors="*{buildingName}"></div>
+
                         <datalist id="buildingsOptions">
-                            <option th:each="b : ${buildings}" th:value="${b}" th:text="${b}">Building</option>
+                            <option th:each="b : ${buildings}" th:value="${b.id}" th:text="${b.name}"></option>
                         </datalist>
 
                         <!-- Floor -->
@@ -294,8 +295,9 @@
                             </option>
                         </select>
                         <input type="text" class="datepicker" th:field="*{commissioningDate}" placeholder="Commissioning Date"/>
-                        <input type="hidden" id="buildingNameInputEdit" th:field="*{buildingName}"/>
-                        <select id="floorSelectEdit" th:field="*{floor}" required th:attr="data-current=${sensorEdit.floor}, data-building=${sensorEdit.buildingName}">
+                        <input type="hidden" id="buildingIdInputEdit" th:field="*{buildingId}"/>
+                        <select id="floorSelectEdit" th:field="*{floor}" required
+                                th:attr="data-current=${sensorEdit.floor}, data-building=${sensorEdit.buildingId}">
                         </select>
                         <input type="text" th:field="*{location}" placeholder="Location"/>
 
