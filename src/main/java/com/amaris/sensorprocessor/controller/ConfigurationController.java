@@ -265,15 +265,15 @@ public class ConfigurationController {
         return ResponseEntity.ok(configs);
     }
 
-    @GetMapping("/api/configuration/building-energy/{buildingName}")
+    @GetMapping("/api/configuration/building-energy/{buildingId}")
     @ResponseBody
-    public ResponseEntity<?> getBuildingEnergyConfig(@PathVariable String buildingName) {
-        Optional<BuildingEnergyConfig> config = buildingEnergyConfigDao.findByBuildingName(buildingName);
+    public ResponseEntity<?> getBuildingEnergyConfig(@PathVariable Integer buildingId) {
+        Optional<BuildingEnergyConfig> config = buildingEnergyConfigDao.findByBuildingId(buildingId);
         if (config.isPresent()) {
             return ResponseEntity.ok(config.get());
         }
         BuildingEnergyConfig defaultConfig = new BuildingEnergyConfig();
-        defaultConfig.setBuildingName(buildingName);
+        defaultConfig.setBuildingId(buildingId);
         defaultConfig.setEnergyCostPerKwh(0.0);
         defaultConfig.setCurrency("EUR");
         defaultConfig.setCo2EmissionFactor(0.0);
@@ -283,8 +283,8 @@ public class ConfigurationController {
     @PostMapping("/api/configuration/building-energy")
     @ResponseBody
     public ResponseEntity<?> saveBuildingEnergyConfig(@RequestBody BuildingEnergyConfig config) {
-        if (config.getBuildingName() == null || config.getBuildingName().isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Building name is required"));
+        if (config.getBuildingId() == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Building ID is required"));
         }
         if (config.getEnergyCostPerKwh() == null || config.getEnergyCostPerKwh() < 0) {
             return ResponseEntity.badRequest().body(Map.of("error", "Energy cost must be a positive number"));
@@ -293,10 +293,10 @@ public class ConfigurationController {
         return ResponseEntity.ok().body(Map.of("message", "Building energy configuration saved successfully"));
     }
 
-    @DeleteMapping("/api/configuration/building-energy/{buildingName}")
+    @DeleteMapping("/api/configuration/building-energy/{buildingId}")
     @ResponseBody
-    public ResponseEntity<?> deleteBuildingEnergyConfig(@PathVariable String buildingName) {
-        buildingEnergyConfigDao.delete(buildingName);
+    public ResponseEntity<?> deleteBuildingEnergyConfig(@PathVariable Integer buildingId) {
+        buildingEnergyConfigDao.delete(buildingId);
         return ResponseEntity.ok().body(Map.of("message", "Building energy configuration deleted successfully"));
     }
 

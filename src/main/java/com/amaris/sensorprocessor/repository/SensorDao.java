@@ -28,10 +28,10 @@ public class SensorDao {
         return jdbcTemplate.query(BASE_SELECT, new BeanPropertyRowMapper<>(Sensor.class));
     }
 
-    public List<Sensor> findAllByBuilding(String building) {
+    public List<Sensor> findAllByBuildingId(Integer buildingId) {
         return jdbcTemplate.query(
-                BASE_SELECT + "WHERE s.building_name = ?",
-                new BeanPropertyRowMapper<>(Sensor.class), building);
+                BASE_SELECT + "WHERE s.building_id = ?",
+                new BeanPropertyRowMapper<>(Sensor.class), buildingId);
     }
 
     public List<String> findAllGateways() {
@@ -55,7 +55,7 @@ public class SensorDao {
         return jdbcTemplate.update(
                 "INSERT INTO sensors (" +
                         "id_sensor, id_device_type, commissioning_date, status, " +
-                        "building_name, floor, location, id_gateway, " +
+                        "building_id, floor, location, id_gateway, " +  // ✅ building_id
                         "dev_eui, join_eui, app_key, frequency_plan, " +
                         "brand_id, protocol_id" +
                         ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -63,7 +63,7 @@ public class SensorDao {
                 sensor.getIdDeviceType(),
                 sensor.getCommissioningDate(),
                 sensor.getStatus(),
-                sensor.getBuildingName(),
+                sensor.getBuildingId(),  // ✅ getBuildingId()
                 sensor.getFloor(),
                 sensor.getLocation(),
                 sensor.getIdGateway(),
@@ -81,18 +81,18 @@ public class SensorDao {
                 new BeanPropertyRowMapper<>(Sensor.class), deviceType);
     }
 
-    public List<Sensor> findAllByDeviceTypeAndBuilding(String deviceType, String building) {
+    public List<Sensor> findAllByDeviceTypeAndBuilding(String deviceType, Integer buildingId) {
         return jdbcTemplate.query(
-                BASE_SELECT + "WHERE dt.type_name = ? AND s.building_name = ?", // ✅
-                new BeanPropertyRowMapper<>(Sensor.class), deviceType, building);
+                BASE_SELECT + "WHERE dt.type_name = ? AND s.building_id = ?",
+                new BeanPropertyRowMapper<>(Sensor.class), deviceType, buildingId);
     }
 
-    public boolean existsByBuildingAndType(String building, String deviceType) {
+    public boolean existsByBuildingAndType(String deviceType, Integer buildingId) {
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(1) FROM sensors s " +
                         "JOIN device_type dt ON s.id_device_type = dt.id_device_type " +
-                        "WHERE dt.type_name = ? AND s.building_name = ?", // ✅
-                Integer.class, deviceType, building);
+                        "WHERE dt.type_name = ? AND s.building_id = ?",
+                Integer.class, deviceType, buildingId);
         return count != null && count > 0;
     }
 
@@ -108,7 +108,7 @@ public class SensorDao {
                         "id_device_type = ?, " +
                         "commissioning_date = ?, " +
                         "status = ?, " +
-                        "building_name = ?, " +
+                        "building_id  = ?, " +
                         "floor = ?, " +
                         "location = ?, " +
                         "id_gateway = ?, " +
@@ -122,7 +122,7 @@ public class SensorDao {
                 sensor.getIdDeviceType(),
                 sensor.getCommissioningDate(),
                 sensor.getStatus(),
-                sensor.getBuildingName(),
+                sensor.getBuildingId(),
                 sensor.getFloor(),
                 sensor.getLocation(),
                 sensor.getIdGateway(),

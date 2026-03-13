@@ -110,10 +110,10 @@ public class SensorController {
                     "Use lowercase a-z, 0-9 and single '-' (min 3 chars, no leading/trailing '-')"));
         }
 
-        if (sensor.getIdDeviceType() == null) { // ✅ idDeviceType au lieu de deviceType
+        if (sensor.getIdDeviceType() == null) {
             bindingResult.addError(new FieldError(SENSOR_ADD, "idDeviceType", "Device Type is required"));
         }
-        if (isBlank(sensor.getBuildingName())) {
+        if (sensor.getBuildingId() == null) {
             bindingResult.addError(new FieldError(SENSOR_ADD, "buildingName", "Building Name is required"));
         }
         if (sensor.getFloor() == null) {
@@ -465,7 +465,7 @@ public class SensorController {
         model.addAttribute("brands", brandService.findAll());
         model.addAttribute("deviceTypes", deviceTypeService.findAll()); // ✅ AJOUT
 
-        List<String> buildingNames = buildingService.getAllBuildings()
+        List<String> buildingNames = buildingService.findAll()
                 .stream()
                 .map(Building::getName)
                 .filter(Objects::nonNull)
@@ -478,7 +478,7 @@ public class SensorController {
         model.addAttribute("buildings", buildingNames);
 
         record BuildingFloors(String name, int floorsCount) {}
-        List<BuildingFloors> buildingFloors = buildingService.getAllBuildings().stream()
+        List<BuildingFloors> buildingFloors = buildingService.findAll().stream()
                 .map(b -> new BuildingFloors(b.getName(), b.getFloorsCount()))
                 .collect(Collectors.toList());
         model.addAttribute("buildingFloors", buildingFloors);

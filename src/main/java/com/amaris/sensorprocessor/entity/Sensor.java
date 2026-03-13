@@ -4,7 +4,6 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
-
 @Data
 @Table("sensors")
 public class Sensor {
@@ -12,7 +11,7 @@ public class Sensor {
     public Sensor() {}
 
     public Sensor(String idSensor, Integer idDeviceType, String commissioningDate,
-                  Boolean status, String buildingName, Integer floor,
+                  Boolean status, Integer buildingId, Integer floor,
                   String location, String idGateway,
                   String devEui, String joinEui, String appKey, String frequencyPlan,
                   Integer brandId, Integer protocolId) {
@@ -20,7 +19,7 @@ public class Sensor {
         this.idDeviceType = idDeviceType;
         this.commissioningDate = commissioningDate;
         this.status = status;
-        this.buildingName = buildingName;
+        this.buildingId = buildingId;
         this.floor = floor;
         this.location = location;
         this.idGateway = idGateway;
@@ -45,8 +44,8 @@ public class Sensor {
     @Column("status")
     private Boolean status;
 
-    @Column("building_name")
-    private String buildingName;
+    @Column("building_id")
+    private Integer buildingId;
 
     @Column("floor")
     private Integer floor;

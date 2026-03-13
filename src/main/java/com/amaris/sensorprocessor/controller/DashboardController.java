@@ -92,8 +92,8 @@ public class DashboardController {
     @GetMapping("/api/alerts")
     @ResponseBody
     public List<Alert> getAlerts(@RequestParam(required = false) String building) {
-        String dbBuilding = building != null ? mapBuildingToDbName(building) : "";
-        return alertService.getCurrentAlerts(dbBuilding);
+        Integer buildingId = building != null ? mapBuildingToId(building) : null;
+        return alertService.getCurrentAlerts(buildingId);
     }
 
     @GetMapping(value = "/api/alerts/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -101,14 +101,14 @@ public class DashboardController {
     public Flux<ServerSentEvent<String>> streamAlerts(
             @RequestParam(required = false) String building
     ) {
-        final String dbBuilding = building != null ? mapBuildingToDbName(building) : "";
+        Integer buildingId = building != null ? mapBuildingToId(building) : null;
         
         // Periodic alert refresh (every 2 minutes - sensors update on value change or every 10min)
         Flux<ServerSentEvent<String>> alertStream = Flux.interval(Duration.ofMinutes(2))
                 .publishOn(Schedulers.boundedElastic())
                 .map(tick -> {
                     try {
-                        List<Alert> alerts = alertService.getCurrentAlerts(dbBuilding);
+                        List<Alert> alerts = alertService.getCurrentAlerts(buildingId);
                         String json = om.writeValueAsString(alerts);
                         return ServerSentEvent.<String>builder(json)
                                 .event("alert_update")
@@ -130,7 +130,7 @@ public class DashboardController {
         // Initial alerts on connect
         Flux<ServerSentEvent<String>> initialAlerts = Mono.fromCallable(() -> {
             try {
-                List<Alert> alerts = alertService.getCurrentAlerts(dbBuilding);
+                List<Alert> alerts = alertService.getCurrentAlerts(buildingId);
                 String json = om.writeValueAsString(alerts);
                 return ServerSentEvent.<String>builder(json)
                         .event("alert_update")
@@ -144,28 +144,25 @@ public class DashboardController {
         
         return initialAlerts.concatWith(alertStream.mergeWith(keepAlive));
     }
-    
-    private String mapBuildingToDbName(String building) {
+
+    private Integer mapBuildingToId(String building) {
         if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
-            return "";
+            return null; // null = pas de filtre, tous les bâtiments
         }
-        // Permet de conserver le fonctionnement en dur pour l'instant
-        if (isInteger(building)){
-            Optional<Building> optBuilding = buildingService.findById(Integer.parseInt(building));
-            if (optBuilding.isPresent()){
-                return optBuilding.get().getName();
-            } else {
-                return building;
-            }
+
+        // Cas 1 : le frontend envoie déjà un ID numérique → retour direct
+        if (isInteger(building)) {
+            return Integer.parseInt(building);
         }
-        else {
-            return switch (building.trim().toUpperCase()) {
-                case "CHATEAUDUN", "CHÂTEAUDUN"     -> "Châteaudun-Building";
-                case "LEVALLOIS"                    -> "Levallois-Building";
-                case "LILLE"                        -> "Lille";
-                default -> building;
-            };
-        }
+
+        // Cas 2 : le frontend envoie un label texte → résolution via DB
+        return buildingService.findAll().stream()
+                .filter(b -> b.getName().equalsIgnoreCase(building.trim())
+                        || b.getName().toUpperCase().contains(building.trim().toUpperCase()))
+                .map(Building::getId)
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Building not found: " + building));
     }
 
     @GetMapping("/api/dashboard")
@@ -582,11 +579,11 @@ public class DashboardController {
     @ResponseBody
     public Map<String, Object> debugEnvironmentData(@RequestParam(required = false) String building) {
         Map<String, Object> result = new HashMap<>();
-        String dbBuilding = mapBuildingToDbName(building);
+        Integer buildingId = building != null ? mapBuildingToId(building) : null;
         result.put("queryBuilding", building);
-        result.put("dbBuilding", dbBuilding);
+        result.put("buildingId", buildingId);
         
-        List<String> co2SensorIds = sensorService.getSensorIdsByTypeAndBuilding("CO2", dbBuilding);
+        List<String> co2SensorIds = sensorService.getSensorIdsByTypeAndBuilding("CO2", buildingId);
         result.put("co2SensorIds", co2SensorIds);
         
         // Check what data exists for each sensor
@@ -624,18 +621,18 @@ public class DashboardController {
         java.time.LocalDateTime endDateTime = to.plusDays(1).atStartOfDay();
         
         // Get sensor IDs by type for the building
-        String dbBuilding = mapBuildingToDbName(building);
-        log.info("🌡️ Environment history request: from={}, to={}, building={}, dbBuilding={}", from, to, building, dbBuilding);
+        Integer buildingId = building != null ? mapBuildingToId(building) : null;
+        log.info("🌡️ Environment history request: from={}, to={}, building={}, buildingId={}", from, to, building, buildingId);
         
-        List<String> tempSensorIds = new java.util.ArrayList<>(sensorService.getSensorIdsByTypeAndBuilding("CO2", dbBuilding));
-        tempSensorIds.addAll(sensorService.getSensorIdsByTypeAndBuilding("TEMPEX", dbBuilding));
+        List<String> tempSensorIds = new java.util.ArrayList<>(sensorService.getSensorIdsByTypeAndBuilding("CO2", buildingId));
+        tempSensorIds.addAll(sensorService.getSensorIdsByTypeAndBuilding("TEMPEX", buildingId));
         
-        List<String> humiditySensorIds = new java.util.ArrayList<>(sensorService.getSensorIdsByTypeAndBuilding("CO2", dbBuilding));
-        humiditySensorIds.addAll(sensorService.getSensorIdsByTypeAndBuilding("HUMIDITY", dbBuilding));
+        List<String> humiditySensorIds = new java.util.ArrayList<>(sensorService.getSensorIdsByTypeAndBuilding("CO2", buildingId));
+        humiditySensorIds.addAll(sensorService.getSensorIdsByTypeAndBuilding("HUMIDITY", buildingId));
         
-        List<String> co2SensorIds = sensorService.getSensorIdsByTypeAndBuilding("CO2", dbBuilding);
+        List<String> co2SensorIds = sensorService.getSensorIdsByTypeAndBuilding("CO2", buildingId);
         
-        List<String> noiseSensorIds = sensorService.getSensorIdsByTypeAndBuilding("SON", dbBuilding);
+        List<String> noiseSensorIds = sensorService.getSensorIdsByTypeAndBuilding("SON", buildingId);
         
         // Get aggregated data for each type using LocalDateTime
         result.put("temperature", sensorDataDao.findAggregatedDataByPeriodAndType(
@@ -661,10 +658,10 @@ public class DashboardController {
             @RequestParam(required = false) String building) {
         
         Map<String, Object> result = new HashMap<>();
-        String dbBuilding = mapBuildingToDbName(building);
+        Integer buildingId = building != null ? mapBuildingToId(building) : null;
         
         // Get energy config for this building
-        var energyConfig = buildingEnergyConfigDao.findByBuildingName(dbBuilding);
+        var energyConfig = buildingEnergyConfigDao.findByBuildingId(buildingId);
         double costPerKwh = energyConfig.map(c -> c.getEnergyCostPerKwh()).orElse(0.0);
         double co2Factor = energyConfig.map(c -> c.getCo2EmissionFactor()).orElse(0.0);
         String currency = energyConfig.map(c -> c.getCurrency()).orElse("EUR");
@@ -672,14 +669,14 @@ public class DashboardController {
         result.put("costPerKwh", costPerKwh);
         result.put("co2Factor", co2Factor);
         result.put("currency", currency);
-        result.put("building", dbBuilding);
+        result.put("building", buildingId);
         
         // Get daily energy consumption data
         java.time.LocalDateTime startDateTime = from.atStartOfDay();
         java.time.LocalDateTime endDateTime = to.plusDays(1).atStartOfDay();
         
         // Use substr to get daily buckets (YYYY-MM-DD format, first 10 chars)
-        List<String> consoSensorIds = sensorService.getSensorIdsByTypeAndBuilding("CONSO", dbBuilding);
+        List<String> consoSensorIds = sensorService.getSensorIdsByTypeAndBuilding("CONSO", buildingId);
         
         List<Map<String, Object>> dailyData = new java.util.ArrayList<>();
         double totalEnergy = 0;

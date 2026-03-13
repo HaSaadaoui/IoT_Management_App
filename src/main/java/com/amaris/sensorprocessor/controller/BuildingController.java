@@ -129,7 +129,7 @@ public class BuildingController {
 
     @GetMapping
     public ResponseEntity<List<Building>> listBuildings() {
-        return ResponseEntity.ok(buildingService.getAllBuildings());
+        return ResponseEntity.ok(buildingService.findAll());
     }
 
     @GetMapping("/csrf-token")
