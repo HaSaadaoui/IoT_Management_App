@@ -178,21 +178,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const dateInput = document.getElementById('dateFilter');
   const paginationEl = document.getElementById('pagination');
 
-  // === Pagination state ===
   const PAGE_SIZE = 10;
   let currentPage = 1;
   let filteredRows = [];
+  let buildingMap = {}; // ✅ id (number) -> name (string)
 
   function updateBuildingPlaceholderStyle() {
     if (!buildingFilter) return;
-    const isEmpty = !buildingFilter.value;
-    buildingFilter.classList.toggle('empty', isEmpty);
+    buildingFilter.classList.toggle('empty', !buildingFilter.value);
   }
-  updateBuildingPlaceholderStyle();
 
   if (searchInput) {
     searchInput.addEventListener('focus', () => searchInput.style.borderColor = '#440d64');
-    searchInput.addEventListener('blur', () => searchInput.style.borderColor = '#662179');
+    searchInput.addEventListener('blur',  () => searchInput.style.borderColor = '#662179');
   }
 
   function sqlLikeToRegex(pattern) {
@@ -204,30 +202,43 @@ document.addEventListener('DOMContentLoaded', () => {
   function matchesLikeOrIncludes(value, query) {
     if (!query) return true;
     const v = String(value ?? '');
-    if (query.includes('%')) {
-      return sqlLikeToRegex(query).test(v);
-    }
+    if (query.includes('%')) return sqlLikeToRegex(query).test(v);
     return v.toLowerCase().startsWith(query.toLowerCase());
+  }
+
+  // ✅ Charge les buildings depuis l'API puis initialise tout
+  async function loadBuildings() {
+    try {
+      const resp = await fetch('/api/buildings');
+      if (resp.ok) {
+        const buildings = await resp.json();
+        buildingMap = Object.fromEntries(buildings.map(b => [b.id, b.name]));
+      }
+    } catch (e) {
+      console.warn('Could not load buildings', e);
+    }
+    populateBuildings();
+    filteredRows = gateways.slice();
+    renderRowsPaginated();
   }
 
   function populateBuildings() {
     if (!buildingFilter) return;
     const uniques = Array.from(new Set(
-      (gateways || []).map(g => (g.buildingName || '').trim()).filter(Boolean)
-    )).sort();
+      (gateways || []).map(g => g.buildingId).filter(b => b != null)
+    )).sort((a, b) => a - b);
 
     buildingFilter.querySelectorAll('option:not([value=""])').forEach(o => o.remove());
 
-    for (const b of uniques) {
+    for (const id of uniques) {
       const opt = document.createElement('option');
-      opt.value = b;
-      opt.textContent = b;
+      opt.value = id;
+      opt.textContent = buildingMap[id] ?? 'Building ' + id; // ✅ nom réel
       buildingFilter.appendChild(opt);
     }
     updateBuildingPlaceholderStyle();
   }
 
-  // ✅ Construit les lignes : Edit/Delete grisés si pas autorisé
   function renderRows(rows) {
     if (!tableBody) return;
     tableBody.innerHTML = '';
@@ -236,32 +247,35 @@ document.addEventListener('DOMContentLoaded', () => {
       const row = document.createElement('tr');
 
       const freqLabel =
-        gw.frequencyPlan === 'EU_863_870_TTN' ? 'Europe' :
-        gw.frequencyPlan === 'US_902_928_FSB_2' ? 'United States' :
-        gw.frequencyPlan === 'AU_915_928_FSB_2' ? 'Australia' :
+        gw.frequencyPlan === 'EU_863_870_TTN'    ? 'Europe' :
+        gw.frequencyPlan === 'US_902_928_FSB_2'  ? 'United States' :
+        gw.frequencyPlan === 'AU_915_928_FSB_2'  ? 'Australia' :
         gw.frequencyPlan === 'CN_470_510_FSB_11' ? 'China' :
-        gw.frequencyPlan === 'AS_920_923' ? 'Asia' : (gw.frequencyPlan ?? '');
+        gw.frequencyPlan === 'AS_920_923'        ? 'Asia' : (gw.frequencyPlan ?? '');
 
       const disabledClass = CAN_EDIT_GATEWAYS ? '' : 'disabled';
+
+      // ✅ Affiche le nom du building via buildingMap
+      const buildingLabel = gw.buildingId != null
+        ? (buildingMap[gw.buildingId] ?? 'Building ' + gw.buildingId)
+        : '';
 
       row.innerHTML = `
         <td>${gw.gatewayId ?? ''}</td>
         <td>${gw.ipAddress ?? ''}</td>
         <td>${freqLabel}</td>
         <td>${gw.createdAt ?? ''}</td>
-        <td>${gw.buildingName ?? ''}</td>
+        <td>${buildingLabel}</td>
         <td>
           <div class="button-container">
             <a href="/manage-gateways/monitoring/${gw.gatewayId}/view?ip=${encodeURIComponent(gw.ipAddress ?? '')}">
               <img src="/image/monitoring-data.svg" alt="Monitor">
             </a>
-
             <a href="/manage-gateways/edit/${gw.gatewayId}"
                class="${disabledClass}"
                aria-disabled="${!CAN_EDIT_GATEWAYS}">
               <img src="/image/edit-icon.svg" alt="Edit">
             </a>
-
             <a href="#"
                class="openDeletePopup ${disabledClass}"
                aria-disabled="${!CAN_EDIT_GATEWAYS}"
@@ -274,7 +288,6 @@ document.addEventListener('DOMContentLoaded', () => {
       tableBody.appendChild(row);
     });
 
-    // ✅ Listener delete UNIQUEMENT si autorisé
     if (CAN_EDIT_GATEWAYS) {
       tableBody.querySelectorAll('.openDeletePopup').forEach(btn => {
         btn.addEventListener('click', e => {
@@ -291,21 +304,15 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderRowsPaginated() {
     const total = filteredRows.length;
     const start = (currentPage - 1) * PAGE_SIZE;
-    const pageRows = filteredRows.slice(start, start + PAGE_SIZE);
-    renderRows(pageRows);
+    renderRows(filteredRows.slice(start, start + PAGE_SIZE));
     renderPagination(total);
   }
 
   function renderPagination(totalCount) {
     if (!paginationEl) return;
-
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
     currentPage = Math.min(currentPage, totalPages);
-
-    if (totalPages <= 1) {
-      paginationEl.innerHTML = '';
-      return;
-    }
+    if (totalPages <= 1) { paginationEl.innerHTML = ''; return; }
 
     const btn = (label, page, disabled = false, active = false, ariaLabel) => {
       const b = document.createElement('button');
@@ -314,31 +321,22 @@ document.addEventListener('DOMContentLoaded', () => {
       if (ariaLabel) b.setAttribute('aria-label', ariaLabel);
       if (disabled) b.setAttribute('disabled', 'disabled');
       b.addEventListener('click', () => {
-        if (!disabled && currentPage !== page) {
-          currentPage = page;
-          renderRowsPaginated();
-        }
+        if (!disabled && currentPage !== page) { currentPage = page; renderRowsPaginated(); }
       });
       return b;
     };
 
     const totalPagesToShow = 5;
     let startPage = Math.max(1, currentPage - Math.floor(totalPagesToShow / 2));
-    let endPage = Math.min(totalPages, startPage + totalPagesToShow - 1);
-    if (endPage - startPage + 1 < totalPagesToShow) {
-      startPage = Math.max(1, endPage - totalPagesToShow + 1);
-    }
+    let endPage   = Math.min(totalPages, startPage + totalPagesToShow - 1);
+    if (endPage - startPage + 1 < totalPagesToShow) startPage = Math.max(1, endPage - totalPagesToShow + 1);
 
     paginationEl.innerHTML = '';
-    paginationEl.appendChild(btn('«', 1, currentPage === 1, false, 'First page'));
-    paginationEl.appendChild(btn('‹', currentPage - 1, currentPage === 1, false, 'Previous page'));
-
-    for (let p = startPage; p <= endPage; p++) {
-      paginationEl.appendChild(btn(String(p), p, false, p === currentPage));
-    }
-
+    paginationEl.appendChild(btn('«', 1,              currentPage === 1,          false, 'First page'));
+    paginationEl.appendChild(btn('‹', currentPage - 1, currentPage === 1,         false, 'Previous page'));
+    for (let p = startPage; p <= endPage; p++) paginationEl.appendChild(btn(String(p), p, false, p === currentPage));
     paginationEl.appendChild(btn('›', currentPage + 1, currentPage === totalPages, false, 'Next page'));
-    paginationEl.appendChild(btn('»', totalPages, currentPage === totalPages, false, 'Last page'));
+    paginationEl.appendChild(btn('»', totalPages,       currentPage === totalPages, false, 'Last page'));
   }
 
   function applyFilters() {
@@ -346,24 +344,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const q = (searchInput?.value || '').trim();
     const d = (dateInput?.value || '').trim();
 
-    let rows = (gateways || []).slice();
-
-    if (b) rows = rows.filter(g => (g.buildingName || '') === b);
-
-    if (q) {
-      rows = rows.filter(g =>
-        matchesLikeOrIncludes(g.gatewayId, q) ||
-        matchesLikeOrIncludes(g.ipAddress, q)
-      );
-    }
-
+    let rows = gateways.slice();
+    if (b) rows = rows.filter(g => String(g.buildingId) === String(b));
+    if (q) rows = rows.filter(g => matchesLikeOrIncludes(g.gatewayId, q) || matchesLikeOrIncludes(g.ipAddress, q));
     if (d) {
       const dDate = new Date(d);
-      rows = rows.filter(g => {
-        if (!g.createdAt) return false;
-        const gDate = new Date(g.createdAt);
-        return gDate >= dDate;
-      });
+      rows = rows.filter(g => g.createdAt && new Date(g.createdAt) >= dDate);
     }
 
     filteredRows = rows;
@@ -371,10 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRowsPaginated();
   }
 
-  buildingFilter?.addEventListener('change', () => {
-    updateBuildingPlaceholderStyle();
-    applyFilters();
-  });
+  buildingFilter?.addEventListener('change', () => { updateBuildingPlaceholderStyle(); applyFilters(); });
   searchInput?.addEventListener('input', applyFilters);
   dateInput?.addEventListener('input', applyFilters);
 
@@ -385,23 +368,8 @@ document.addEventListener('DOMContentLoaded', () => {
     applyFilters();
   });
 
-  const clearSearch = document.querySelector('#searchInput + span');
-  clearSearch?.addEventListener('click', () => {
-    if (!searchInput) return;
-    searchInput.value = '';
-    applyFilters();
-  });
+  document.querySelector('#searchInput + span')?.addEventListener('click', () => { if (searchInput) { searchInput.value = ''; applyFilters(); } });
+  document.querySelector('#dateFilter + span')?.addEventListener('click',  () => { if (dateInput)   { dateInput.value   = ''; applyFilters(); } });
 
-  const clearDate = document.querySelector('#dateFilter + span');
-  clearDate?.addEventListener('click', () => {
-    if (!dateInput) return;
-    dateInput.value = '';
-    applyFilters();
-  });
-
-  // Init
-  populateBuildings();
-  filteredRows = gateways || [];
-  renderRowsPaginated();
-  applyFilters();
+  loadBuildings();
 });

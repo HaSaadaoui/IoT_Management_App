@@ -89,7 +89,7 @@
                 <th>IP Address</th>
                 <th>Frequency Plan</th>
                 <th>Created At</th>
-                <th>Building Name</th>
+                <th>Building</th>
                 <th>Actions</th>
             </tr>
             </thead>
@@ -144,8 +144,13 @@
                             <option th:value="${plan.description}" th:text="${plan}">Frequency Plan</option>
                         </th:block>
                     </select>
-                    <input type="text" th:field="*{buildingName}" placeholder="Building Name" required
-                           th:classappend="${#fields.hasErrors('buildingName')} ? 'input-error' : ''"/>
+                    <select th:field="*{buildingId}" required
+                            th:classappend="${#fields.hasErrors('buildingId')} ? 'input-error' : ''">
+                        <option value="" disabled selected>Select Building</option>
+                        <th:block th:each="b : ${buildings}">
+                            <option th:value="${b.id}" th:text="${b.name}">Building</option>
+                        </th:block>
+                    </select>
                     <input type="number" th:field="*{floorNumber}" placeholder="Floor Number" required
                            th:classappend="${#fields.hasErrors('floorNumber')} ? 'input-error' : ''"/>
                     <input type="text" th:field="*{locationDescription}" placeholder="Location Description"
@@ -192,8 +197,13 @@
                             <option th:value="${plan.description}" th:text="${plan}">Frequency Plan</option>
                         </th:block>
                     </select>
-                    <input type="text" th:field="*{buildingName}" placeholder="Building Name" required
-                           th:classappend="${#fields.hasErrors('buildingName')} ? 'input-error' : ''"/>
+                    <select th:field="*{buildingId}" required
+                            th:classappend="${#fields.hasErrors('buildingId')} ? 'input-error' : ''">
+                        <option value="" disabled selected>Select Building</option>
+                        <th:block th:each="b : ${buildings}">
+                            <option th:value="${b.id}" th:text="${b.name}">Building</option>
+                        </th:block>
+                    </select>
                     <input type="number" th:field="*{floorNumber}" placeholder="Floor Number" required
                            th:classappend="${#fields.hasErrors('floorNumber')} ? 'input-error' : ''"/>
                     <input type="text" th:field="*{locationDescription}" placeholder="Location Description"

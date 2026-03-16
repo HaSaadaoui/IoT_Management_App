@@ -196,10 +196,12 @@ public class SensorController {
         model.addAttribute("deviceTypeLabel", deviceTypeLabel);
 
         gatewayService.findById(s.getIdGateway()).ifPresent(gw -> {
-            String label = (gw.getBuildingName() != null && !gw.getBuildingName().isBlank())
-                    ? gw.getBuildingName() + " (" + gw.getGatewayId() + ")"
+            String buildingLabel = gw.getBuildingId() != null
+                    ? buildingService.findById(gw.getBuildingId())
+                    .map(b -> b.getName() + " (" + gw.getGatewayId() + ")")
+                    .orElse(gw.getGatewayId())
                     : gw.getGatewayId();
-            model.addAttribute("gatewayName", label);
+            model.addAttribute("gatewayName", buildingLabel);
             model.addAttribute("gatewayIp", gw.getIpAddress());
         });
 
@@ -347,8 +349,17 @@ public class SensorController {
                 .orElse("GENERIC");
 
         String appId = gatewayService.findById(sensor.getIdGateway())
-                .map(Gateway::getGatewayId)
-                .map(gid -> "leva-rpi-mantu".equalsIgnoreCase(gid) ? "lorawan-network-mantu" : gid + "-appli")
+                .map(gw -> {
+                    if (gw.getBuildingId() == null) return "rpi-mantu-appli";
+                    return buildingService.findById(gw.getBuildingId())
+                            .map(b -> switch (b.getName().trim().toUpperCase()) {
+                                case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
+                                case "LEVALLOIS"                -> "lorawan-network-mantu";
+                                case "LILLE"                    -> "lil-rpi-mantu-appli";
+                                default                         -> "rpi-mantu-appli";
+                            })
+                            .orElse("rpi-mantu-appli");
+                })
                 .orElseThrow(() -> new IllegalStateException("Gateway introuvable pour le capteur " + idSensor));
 
         SseEmitter emitter = new SseEmitter(3600000L);

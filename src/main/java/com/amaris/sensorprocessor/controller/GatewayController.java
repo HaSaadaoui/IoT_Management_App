@@ -4,10 +4,7 @@ import com.amaris.sensorprocessor.constant.Constants;
 import com.amaris.sensorprocessor.constant.FrequencyPlan;
 import com.amaris.sensorprocessor.entity.Gateway;
 import com.amaris.sensorprocessor.entity.User;
-import com.amaris.sensorprocessor.service.GatewayLorawanService;
-import com.amaris.sensorprocessor.service.GatewayService;
-import com.amaris.sensorprocessor.service.InputValidationService;
-import com.amaris.sensorprocessor.service.UserService;
+import com.amaris.sensorprocessor.service.*;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -32,6 +29,7 @@ public class GatewayController {
     private final InputValidationService inputValidationService;
     private final GatewayLorawanService gatewayLorawanService;
     private final UserService userService;
+    private final BuildingService buildingService;
 
     private static final String ERROR_ADD = "errorAdd";
     private static final String GATEWAY_ADD = "gatewayAdd";
@@ -43,11 +41,13 @@ public class GatewayController {
     public GatewayController(GatewayService gatewayService,
                              InputValidationService inputValidationService,
                              GatewayLorawanService gatewayLorawanService,
-                             UserService userService) {
+                             UserService userService,
+                             BuildingService buildingService) {
         this.gatewayService = gatewayService;
         this.inputValidationService = inputValidationService;
         this.gatewayLorawanService = gatewayLorawanService;
         this.userService = userService;
+        this.buildingService = buildingService;
     }
 
     @GetMapping("/manage-gateways")
@@ -306,6 +306,8 @@ public class GatewayController {
         model.addAttribute("frequencyPlans", FrequencyPlan.values());
         List<Gateway> gateways = gatewayService.getAllGateways();
         model.addAttribute("gateways", gateways);
+        model.addAttribute("buildings", buildingService.findAll()); // ✅ indispensable
+
         if (!model.containsAttribute(GATEWAY_ADD)) {
             model.addAttribute(GATEWAY_ADD, new Gateway());
         }

@@ -12,14 +12,14 @@ public class Gateway {
     public Gateway() {}
 
     public Gateway(String gatewayId, String gatewayEui, String ipAddress, String frequencyPlan,
-                   String createdAt, String buildingName, Integer floorNumber, String locationDescription,
+                   String createdAt, Integer buildingId, Integer floorNumber, String locationDescription,
                    Double antennaLatitude, Double antennaLongitude, Double antennaAltitude) {
         this.gatewayId = gatewayId;
         this.gatewayEui = gatewayEui;
         this.ipAddress = ipAddress;
         this.frequencyPlan = frequencyPlan;
         this.createdAt = createdAt;
-        this.buildingName = buildingName;
+        this.buildingId = buildingId;
         this.floorNumber = floorNumber;
         this.locationDescription = locationDescription;
         this.antennaLatitude = antennaLatitude;
@@ -43,8 +43,8 @@ public class Gateway {
     @Column("created_at")
     private String createdAt;
 
-    @Column("building_name")
-    private String buildingName;
+    @Column("building_id")
+    private Integer buildingId;
 
     @Column("floor_number")
     private Integer floorNumber;

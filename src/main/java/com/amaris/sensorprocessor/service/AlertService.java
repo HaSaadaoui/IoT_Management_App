@@ -418,40 +418,54 @@ public class AlertService {
         }
     }
 
-    public void startMonitoringForBuilding(String building, String sensorType, Integer dbBuildingName) {
+    public void startMonitoringForBuilding(String building, String sensorType, Integer dbBuildingId) {
         if (currentSubscription != null && !currentSubscription.isDisposed()) {
             currentSubscription.dispose();
         }
 
-        String appId = mapBuildingToAppId(building);
-        List<Sensor> sensors = sensorDao.findAllByDeviceTypeAndBuilding(sensorType, dbBuildingName);
+        List<Gateway> gateways = gatewayService.findByBuildingId(dbBuildingId);
+        String appId = gateways.isEmpty()
+                ? "rpi-mantu-appli"
+                : resolveAppIdFromGateway(gateways.get(0), "rpi-mantu-appli");
+
+        List<Sensor> sensors = sensorDao.findAllByDeviceTypeAndBuilding(sensorType, dbBuildingId);
         List<String> deviceIds = sensors.stream().map(Sensor::getIdSensor).toList();
 
         currentSubscription = getMonitoringMany(appId, deviceIds).subscribe();
     }
 
-    private String mapBuildingToAppId(String building) {
-        String defaultValue = "rpi-mantu-appli";
-        if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
-            return defaultValue;
-        }
-        // Permet de conserver le fonctionnement en dur pour l'instant
-        if (isInteger(building)){
-            Optional<Gateway> gateway = gatewayService.findByBuildingId(building);
-            if (gateway.isPresent()){
-                return gateway.get().getGatewayId();
-            } else {
-                return defaultValue;
-            }
-        } else {
-            return switch (building.trim().toUpperCase()) {
-                case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
-                case "LEVALLOIS"                -> "lorawan-network-mantu";
-                case "LILLE"                    -> "lil-rpi-mantu-appli";
-                default                         -> building;
-            };
-        }
+    private String resolveAppIdFromGateway(Gateway gw, String defaultValue) {
+        if (gw.getBuildingId() == null) return defaultValue;
+        return switch (gw.getGatewayId().toLowerCase()) {
+            case "leva-rpi-mantu" -> "lorawan-network-mantu";
+            default               -> gw.getGatewayId() + "-appli";
+        };
     }
+
+
+private String mapBuildingToAppId(String building) {
+    String defaultValue = "rpi-mantu-appli";
+    if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
+        return defaultValue;
+    }
+
+    if (isInteger(building)) {
+        List<Gateway> gateways = gatewayService.findByBuildingId(Integer.parseInt(building)); // ✅ Integer, pas String
+        if (!gateways.isEmpty()) {
+            Gateway gw = gateways.get(0);
+            // Résolution via buildingId → nom du building pour mapper l'appId
+            return resolveAppIdFromGateway(gw, defaultValue);
+        }
+        return defaultValue;
+    } else {
+        return switch (building.trim().toUpperCase()) {
+            case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
+            case "LEVALLOIS"                -> "lorawan-network-mantu";
+            case "LILLE"                    -> "lil-rpi-mantu-appli";
+            default                         -> building;
+        };
+    }
+}
 
     private boolean isInteger(String s) {
         try {
