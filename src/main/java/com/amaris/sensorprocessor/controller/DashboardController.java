@@ -217,27 +217,35 @@ public class DashboardController {
                 .mergeWith(keepAlive);
     }
 
+
     private String mapBuildingToAppId(String building) {
         String defaultValue = "rpi-mantu-appli";
         if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
             return defaultValue;
         }
-        // Permet de conserver le fonctionnement en dur pour l'instant
-        if (isInteger(building)){
-            Optional<Gateway> gateway = gatewayService.findByBuildingId(building);
-            if (gateway.isPresent()){
-                return gateway.get().getGatewayId();
-            } else {
-                return defaultValue;
-            }
-        } else {
-            return switch (building.trim().toUpperCase()) {
+
+        if (isInteger(building)) {
+            Integer buildingId = Integer.parseInt(building);
+            Optional<Building> b = buildingService.findById(buildingId);
+            if (b.isEmpty()) return defaultValue;
+
+            String buildingName = b.get().getName().trim().toUpperCase();
+
+            return switch (buildingName) {
                 case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
                 case "LEVALLOIS"                -> "lorawan-network-mantu";
                 case "LILLE"                    -> "lil-rpi-mantu-appli";
-                default                         -> building;
+                default                         -> defaultValue;
             };
         }
+
+        // ✅ Cas où building est un String non numérique (legacy)
+        return switch (building.trim().toUpperCase()) {
+            case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
+            case "LEVALLOIS"                -> "lorawan-network-mantu";
+            case "LILLE"                    -> "lil-rpi-mantu-appli";
+            default                         -> building;
+        };
     }
 
     private boolean isInteger(String s) {
@@ -254,7 +262,12 @@ public class DashboardController {
     public Flux<ServerSentEvent<ConsoLiveAggregate>> streamConsoAggregate(@RequestParam String building) {
         final String appId = mapBuildingToAppId(building);
 
-        List<SensorInfo> sensors = dashboardService.getSensorsList(building, null, "CONSO");
+        List<SensorInfo> sensors = dashboardService.getSensorsList(
+                String.valueOf(mapBuildingToId(building)),
+                null,
+                "CONSO"
+        );
+
         List<String> consoDeviceIds = sensors.stream()
                 .map(SensorInfo::getIdSensor)
                 .filter(Objects::nonNull)
@@ -265,9 +278,24 @@ public class DashboardController {
                 .toList();
 
         if (consoDeviceIds.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    "No conso device found for building=" + building);
+            log.warn("[Conso SSE] No conso device found for building={}", building);
+            return Flux.interval(Duration.ofSeconds(15))
+                    .map(t -> {
+                        ConsoLiveAggregate dto = new ConsoLiveAggregate(
+                                building,               // String
+                                0d,                     // powerTotalW      (double)
+                                0d,                     // powerTotalkW     (double)
+                                0d,                     // todayEnergyWh    (double)
+                                0d,                     // todayEnergykWh   (double)
+                                0,                      // deviceCount      (int)
+                                System.currentTimeMillis() // updatedAtEpochMs (long)
+                        );
+                        return ServerSentEvent.<ConsoLiveAggregate>builder(dto)
+                                .event("keepalive")
+                                .build();
+                    });
         }
+
 
         // store for DB energy calc
         consoDevicesByBuilding.put(building, consoDeviceIds);
