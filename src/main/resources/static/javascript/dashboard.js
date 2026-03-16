@@ -18,12 +18,6 @@ class DashboardManager {
 				code: 'CHATEAUDUN',
 				name: 'Châteaudun',
 				floors: 7
-			},
-			LEVALLOIS: {
-				id: 'LEVALLOIS',
-				code: 'LEVALLOIS',
-				name: 'Levallois',
-				floors: 1
 			}
 		};
 
@@ -292,7 +286,7 @@ class DashboardManager {
 			const resp = await fetch('/api/buildings');
 			let buildings = resp.ok ? await resp.json() : [];
 
-			// Injecter CHATEAUDUN & LEVALLOIS si absents
+			// Injecter CHATEAUDUN si absent
 			Object.keys(this.virtualBuildings).forEach(key => {
 				const exists = buildings.find(b => b.code === key || String(b.id) === String(key));
 				if (!exists) buildings.push(this.virtualBuildings[key]);

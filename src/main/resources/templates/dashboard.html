@@ -209,8 +209,6 @@
                 <div class="filter-card">
                     <label>📍 Building</label>
                     <select id="filter-building" class="form-select">
-                        <option value="CHATEAUDUN" selected>Châteaudun</option>
-                        <option value="LEVALLOIS">Levallois</option>
                     </select>
                 </div>
                 <div class="filter-card">
@@ -528,8 +526,6 @@
                 <div class="filter-item">
                     <label for="hist-filter-building">📍 Building</label>
                     <select id="hist-filter-building" class="form-select">
-                        <option value="LEVALLOIS" selected>Levallois</option>
-                        <option value="CHATEAUDUN">Châteaudun</option>
                     </select>
                 </div>
                 <div class="filter-item" style="align-self:end;">
@@ -2423,7 +2419,7 @@
     async function loadEnergyCostData() {
         const fromDate = document.getElementById('hist-from')?.value;
         const toDate = document.getElementById('hist-to')?.value;
-        const building = document.getElementById('hist-filter-building')?.value || 'LEVALLOIS';
+        const building = document.getElementById('hist-filter-building')?.value;
 
         if (!fromDate || !toDate) return;
 
