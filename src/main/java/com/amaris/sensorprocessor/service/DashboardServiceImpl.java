@@ -1,7 +1,6 @@
 package com.amaris.sensorprocessor.service;
 
 import com.amaris.sensorprocessor.entity.Building;
-import com.amaris.sensorprocessor.entity.BuildingMapping;
 import com.amaris.sensorprocessor.entity.DeviceType;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.Sensor;
@@ -44,23 +43,13 @@ public class DashboardServiceImpl implements DashboardService {
         if (building == null || "all".equalsIgnoreCase(building)) {
             return building;
         }
-        // Permet de conserver le fonctionnement en dur pour l'instant
         if (isInteger(building)){
             Optional<Building> optBuilding = buildingService.findById(Integer.parseInt(building));
             if (optBuilding.isPresent()){
                 return optBuilding.get().getName();
-            } else {
-                return building;
             }
         }
-        else {
-            return switch (building.toLowerCase()) {
-                case "levallois"                    -> "Levallois-Building";
-                case "chateaudun", "châteaudun"     -> "Châteaudun-Building";
-                case "lille"                        -> "Lille";
-                default -> building;
-            };
-        }
+        return building;
     }
 
     private boolean isInteger(String s) {
@@ -85,7 +74,7 @@ public class DashboardServiceImpl implements DashboardService {
                 year, month, building, floor, sensorType, timeSlot);
 
         sensorType = sensorType != null ? sensorType : "DESK";
-        String buildingName = BuildingMapping.toDbName(building); 
+        String buildingName = ""; 
         if (isInteger(building)){
             Optional<Building> buildingObject = buildingService.findById(Integer.parseInt(building));
             if (buildingObject.isPresent()){

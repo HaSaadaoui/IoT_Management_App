@@ -154,18 +154,9 @@ public class DashboardController {
             Optional<Building> optBuilding = buildingService.findById(Integer.parseInt(building));
             if (optBuilding.isPresent()){
                 return optBuilding.get().getName();
-            } else {
-                return building;
             }
         }
-        else {
-            return switch (building.trim().toUpperCase()) {
-                case "CHATEAUDUN", "CHÂTEAUDUN"     -> "Châteaudun-Building";
-                case "LEVALLOIS"                    -> "Levallois-Building";
-                case "LILLE"                        -> "Lille";
-                default -> building;
-            };
-        }
+        return building;
     }
 
     @GetMapping("/api/dashboard")
@@ -221,26 +212,23 @@ public class DashboardController {
     }
 
     private String mapBuildingToAppId(String building) {
-        String defaultValue = "rpi-mantu-appli";
+        String appId = "";
         if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
-            return defaultValue;
+            return "rpi-mantu-appli";
         }
-        // Permet de conserver le fonctionnement en dur pour l'instant
         if (isInteger(building)){
             Optional<Gateway> gateway = gatewayService.findByBuildingId(building);
             if (gateway.isPresent()){
-                return gateway.get().getGatewayId();
-            } else {
-                return defaultValue;
+                String gatewayId = gateway.get().getGatewayId();
+                // Cas particulier de Levallois
+                if (gatewayId.equals("leva-rpi-mantu")){
+                    appId = "lorawan-network-mantu";
+                } else {
+                    appId = gatewayId + "-appli";
+                }
             }
-        } else {
-            return switch (building.trim().toUpperCase()) {
-                case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
-                case "LEVALLOIS"                -> "lorawan-network-mantu";
-                case "LILLE"                    -> "lil-rpi-mantu-appli";
-                default                         -> building;
-            };
         }
+        return appId;
     }
 
     private boolean isInteger(String s) {
