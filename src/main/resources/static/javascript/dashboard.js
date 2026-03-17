@@ -3,12 +3,12 @@ class DashboardManager {
 		this.buildings = [];
 		this.currentBuilding = null;
 		this.consoSse = null;
-        // power par device (en W typiquement)
-        this.consoPowerByDevice = new Map();
-        // last-seen par device pour purge (anti “valeur figée”)
-        this.consoLastSeenByDevice = new Map();
-        // TTL (ms) : si un device ne remonte plus, on l’enlève du total
-        this.consoTtlMs = 2 * 60 * 1000; // 2 minutes
+		// power par device (en W typiquement)
+		this.consoPowerByDevice = new Map();
+		// last-seen par device pour purge (anti “valeur figée”)
+		this.consoLastSeenByDevice = new Map();
+		// TTL (ms) : si un device ne remonte plus, on l’enlève du total
+		this.consoTtlMs = 2 * 60 * 1000; // 2 minutes
 
 
 		// Bâtiments "hors base"
@@ -43,7 +43,7 @@ class DashboardManager {
 			LAEQ:      { sensorType: ['SON', 'NOISE'], unit: 'dB' },
 			CURRENT_POWER: { sensorType: 'CONSO', metricType: 'POWER_TOTAL', unit: 'kW' },
 			DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' },
-        };
+		};
 
 
 		this.currentData = null;
@@ -154,8 +154,8 @@ class DashboardManager {
 			const filterKey = filterId.replace('-', '');
 			const mappedKey =
 				filterKey === 'sensortype' ? 'sensorType' :
-				filterKey === 'time' ? 'timeSlot' :
-				filterKey;
+					filterKey === 'time' ? 'timeSlot' :
+						filterKey;
 
 			if (this.filters[mappedKey] !== undefined && this.filters[mappedKey] !== null) {
 				element.value = this.filters[mappedKey];
@@ -177,7 +177,7 @@ class DashboardManager {
 
 		// Stop ancien SSE si existant
 		this.stopConsoAggregateSse();
-        this.resetConsoMetrics();   // toujours reset au switch
+		this.resetConsoMetrics();   // toujours reset au switch
 
 		const floor = this.getEffectiveFloorParam(); // '' si All Floors
 		const qs = new URLSearchParams({ building });
@@ -200,7 +200,7 @@ class DashboardManager {
 				if (kw != null && !Number.isNaN(kw)) {
 					this.updateMetricValue('live-current-power', kw.toFixed(2));
 				} else{
-				    this.updateMetricValue('live-current-power', '--');
+					this.updateMetricValue('live-current-power', '--');
 				}
 
 				const kwh = (payload.todayEnergykWh != null)
@@ -210,25 +210,25 @@ class DashboardManager {
 				if (kwh != null && !Number.isNaN(kwh)) {
 					this.updateMetricValue('live-daily-energy', kwh.toFixed(2));
 				} else{
-                    this.updateMetricValue('live-daily-energy', '--');
+					this.updateMetricValue('live-daily-energy', '--');
 				}
 			} catch (e) {
 				console.warn('[CONSO SSE] parse error', e);
-                this.resetConsoMetrics();
+				this.resetConsoMetrics();
 			}
 		});
 
 		es.addEventListener('keepalive', () => {});
-        es.onerror = (err) => {
-            console.warn('[CONSO SSE] error', err);
-            this.resetConsoMetrics();
-        };
+		es.onerror = (err) => {
+			console.warn('[CONSO SSE] error', err);
+			this.resetConsoMetrics();
+		};
 	}
 
-    resetConsoMetrics() {
-      this.updateMetricValue('live-current-power', '--');
-      this.updateMetricValue('live-daily-energy', '--');
-    }
+	resetConsoMetrics() {
+		this.updateMetricValue('live-current-power', '--');
+		this.updateMetricValue('live-daily-energy', '--');
+	}
 
 	stopConsoAggregateSse() {
 		if (this.consoSse) {
@@ -281,7 +281,7 @@ class DashboardManager {
 	}
 
 	async loadBuildings() {
-		const select = document.getElementById('filter-building') 
+		const select = document.getElementById('filter-building')
 		const selectHist = document.getElementById('hist-filter-building');
 		if (!select) return;
 
@@ -325,7 +325,7 @@ class DashboardManager {
 
 			this.currentBuilding = current;
 			this.filters.building = this.getBuildingKey(current); // normalisation filtre
-            this.startConsoAggregateSse();
+			this.startConsoAggregateSse();
 
 			// Charger les étages
 			const floorsLookupId = current.code ? current.code : current.id;
@@ -338,13 +338,13 @@ class DashboardManager {
 	}
 
 	async handleFilterChange(filterId, value) {
-  		console.log(`=== Filter Change: ${filterId} ===`, value);
+		console.log(`=== Filter Change: ${filterId} ===`, value);
 
 		const filterKey = filterId.replace('filter-', '').replace('-', '');
 		const mappedKey =
 			filterKey === 'sensortype' ? 'sensorType' :
-			filterKey === 'time' ? 'timeSlot' :
-			filterKey;
+				filterKey === 'time' ? 'timeSlot' :
+					filterKey;
 
 		// =========================
 		// ✅ Cas spécial BUILDING
@@ -377,16 +377,16 @@ class DashboardManager {
 
 			// 6) 3D
 			if (window.building3D?.loadBuilding) {
-			console.log('Mise à jour du modèle 3D pour:', building.name);
-			window.building3D.loadBuilding(building);
+				console.log('Mise à jour du modèle 3D pour:', building.name);
+				window.building3D.loadBuilding(building);
 			}
 
 			// 6.5) Regenerate stat cards for the new building
 			if (window.ChartUtils?.generateStatCardsForBuilding) {
-			window.ChartUtils.generateStatCardsForBuilding(this.filters.building);
+				window.ChartUtils.generateStatCardsForBuilding(this.filters.building);
 			}
 
-    		// ✅ 7) Restart CONSO SSE (building + floor='')
+			// ✅ 7) Restart CONSO SSE (building + floor='')
 			this.startConsoAggregateSse();
 
 			// ✅ 8) Update alert filters locally (instant, no API call)
@@ -395,6 +395,11 @@ class DashboardManager {
 			// 9) Reload data
 			await this.loadDashboardData();
 			this.applyBuildingStatVisibility();
+
+			//10 Others metrics stats
+			updateEnvironmentChartsVisibility(this.filters.building);
+			startEnvironmentSSE(this.filters.building);
+
 			return;
 		}
 
@@ -549,7 +554,7 @@ class DashboardManager {
 			this.currentData = data;
 
 			console.log('Updating dashboard visualizations...');
-            await this.updateDashboard(data);   // ✅ important
+			await this.updateDashboard(data);   // ✅ important
 			this.updateRefreshTime();
 		} catch (error) {
 			console.error('Error Loading Dashboard Data', error);
@@ -707,10 +712,10 @@ class DashboardManager {
 			};
 
 			const getAvg = async ({
-				sensorType,
-				metricType,
-				excludeSensorType
-			}) => {
+									  sensorType,
+									  metricType,
+									  excludeSensorType
+								  }) => {
 				const { avg } = await this.fetchHistogramAvg({
 					building,
 					floor,
@@ -861,12 +866,12 @@ class DashboardManager {
 			data: {
 				labels: dates,
 				datasets: [{
-						label: 'Used',
-						data: usedData,
-						backgroundColor: typeof notOkColor !== 'undefined' ? notOkColor : '#ef4444',
-						borderRadius: 4,
-						barPercentage: 0.8
-					},
+					label: 'Used',
+					data: usedData,
+					backgroundColor: typeof notOkColor !== 'undefined' ? notOkColor : '#ef4444',
+					borderRadius: 4,
+					barPercentage: 0.8
+				},
 					{
 						label: 'Free',
 						data: freeData,
@@ -1527,45 +1532,45 @@ class DashboardManager {
 	}
 
 	async fetchHistogramAvg({
-      building,
-      floor,
-      sensorType,
-      metricType,
-      timeRange,
-      granularity,
-      timeSlot,
-      excludeSensorType // <= AJOUT
-    }) {
-      if (!building) throw new Error('fetchHistogramAvg: "building" is required');
-      if (!sensorType) throw new Error('fetchHistogramAvg: "sensorType" is required');
-      if (!metricType) throw new Error('fetchHistogramAvg: "metricType" is required');
+								building,
+								floor,
+								sensorType,
+								metricType,
+								timeRange,
+								granularity,
+								timeSlot,
+								excludeSensorType // <= AJOUT
+							}) {
+		if (!building) throw new Error('fetchHistogramAvg: "building" is required');
+		if (!sensorType) throw new Error('fetchHistogramAvg: "sensorType" is required');
+		if (!metricType) throw new Error('fetchHistogramAvg: "metricType" is required');
 
-      const params = new URLSearchParams({
-        building,
-        sensorType: String(sensorType).toUpperCase(),
-        metricType: String(metricType).toUpperCase(),
-        timeRange: String(timeRange).toUpperCase(),
-        granularity: String(granularity).toUpperCase(),
-        timeSlot: String(timeSlot || this.filters.timeSlot || '').toUpperCase()
-      });
+		const params = new URLSearchParams({
+			building,
+			sensorType: String(sensorType).toUpperCase(),
+			metricType: String(metricType).toUpperCase(),
+			timeRange: String(timeRange).toUpperCase(),
+			granularity: String(granularity).toUpperCase(),
+			timeSlot: String(timeSlot || this.filters.timeSlot || '').toUpperCase()
+		});
 
-      if (floor) params.set('floor', String(floor));
-      if (excludeSensorType) params.set('excludeSensorType', String(excludeSensorType).toUpperCase()); // <= AJOUT
+		if (floor) params.set('floor', String(floor));
+		if (excludeSensorType) params.set('excludeSensorType', String(excludeSensorType).toUpperCase()); // <= AJOUT
 
-      const r = await fetch(`/api/dashboard/histogram?${params.toString()}`);
-      if (!r.ok) throw new Error(`Histogram fetch failed (${r.status})`);
+		const r = await fetch(`/api/dashboard/histogram?${params.toString()}`);
+		if (!r.ok) throw new Error(`Histogram fetch failed (${r.status})`);
 
-      const data = await r.json();
+		const data = await r.json();
 
-      const avgFromSummary = data?.summary?.avgValue;
-      if (avgFromSummary !== null && avgFromSummary !== undefined) {
-        return { avg: avgFromSummary, data };
-      }
+		const avgFromSummary = data?.summary?.avgValue;
+		if (avgFromSummary !== null && avgFromSummary !== undefined) {
+			return { avg: avgFromSummary, data };
+		}
 
-      const pts = data?.dataPoints || data?.data || [];
-      const last = Array.isArray(pts) && pts.length ? (pts[pts.length - 1]?.value ?? null) : null;
-      return { avg: last, data };
-    }
+		const pts = data?.dataPoints || data?.data || [];
+		const last = Array.isArray(pts) && pts.length ? (pts[pts.length - 1]?.value ?? null) : null;
+		return { avg: last, data };
+	}
 
 	renderHistogramChart(data) {
 		console.log('Rendering Histogram Chart');
@@ -1742,10 +1747,10 @@ class DashboardManager {
 			try {
 				const resp = await fetch(`/api/buildings/${buildingId}`);
 				if (!resp.ok) {
-                	throw new Error(`HTTP ${resp.status}`);
-            	}
+					throw new Error(`HTTP ${resp.status}`);
+				}
 				const b = await resp.json();
-            	floorsCount = b.floorsCount || 1;
+				floorsCount = b.floorsCount || 1;
 				excludedFloors = b.excludedFloors || [];
 			} catch (e) {
 				floorsCount = 1;
@@ -1786,37 +1791,37 @@ class DashboardManager {
 		return arr.reduce((a, b) => a + b, 0) / arr.length;
 	}
 
-    async fetchLiveMetric(metricKey) {
-      const src = this.metricSources[metricKey];
-      if (!src) return null;
+	async fetchLiveMetric(metricKey) {
+		const src = this.metricSources[metricKey];
+		if (!src) return null;
 
-      const building = this.filters.building;
-      const floor = this.getEffectiveFloorParam();
+		const building = this.filters.building;
+		const floor = this.getEffectiveFloorParam();
 
-      const sensorTypes = Array.isArray(src.sensorType) ? src.sensorType : [src.sensorType];
-      const effectiveMetricType = (src.metricType || metricKey); // ✅
+		const sensorTypes = Array.isArray(src.sensorType) ? src.sensorType : [src.sensorType];
+		const effectiveMetricType = (src.metricType || metricKey); // ✅
 
-      for (const sensorType of sensorTypes) {
-        try {
-          const { avg, data } = await this.fetchHistogramAvg({
-            building,
-            floor,
-            sensorType,
-            metricType: effectiveMetricType,          // ✅
-            timeRange: 'LAST_7_DAYS',
-            granularity: 'DAILY',
-            timeSlot: this.filters.timeSlot,
-            excludeSensorType: src.excludeSensorType  // ✅ si tu veux supporter ça partout
-          });
+		for (const sensorType of sensorTypes) {
+			try {
+				const { avg, data } = await this.fetchHistogramAvg({
+					building,
+					floor,
+					sensorType,
+					metricType: effectiveMetricType,          // ✅
+					timeRange: 'LAST_7_DAYS',
+					granularity: 'DAILY',
+					timeSlot: this.filters.timeSlot,
+					excludeSensorType: src.excludeSensorType  // ✅ si tu veux supporter ça partout
+				});
 
-          if (avg !== null && avg !== undefined) return avg;
-        } catch (e) {
-          console.warn(`fetchLiveMetric(${metricKey}) failed for sensorType=${sensorType}`, e?.message || e);
-        }
-      }
+				if (avg !== null && avg !== undefined) return avg;
+			} catch (e) {
+				console.warn(`fetchLiveMetric(${metricKey}) failed for sensorType=${sensorType}`, e?.message || e);
+			}
+		}
 
-      return null;
-    }
+		return null;
+	}
 
 	// =========================
 	// ===== LABELS / UNITS =====
@@ -1871,10 +1876,10 @@ class DashboardManager {
 const envRealtimeCharts = {};
 const ENV_MAX_POINTS = 50;
 const metricUnits = {
-  temperature: "°C",
-  humidity: "%",
-  co2: "ppm",
-  sound: "dB"
+	temperature: "°C",
+	humidity: "%",
+	co2: "ppm",
+	sound: "dB"
 };
 
 const rtEnvChartColors = {
@@ -1907,6 +1912,16 @@ const ENV_CONFIG = {
 	}
 };
 
+const BUILDING_ENV_CONFIG = {
+	23: {
+		deviceIds: ["desk-01-02"],
+		metrics: ["temperature", "humidity", "co2"] // pas de sound
+	},
+	LEVALLOIS: {
+		21: ["co2-03-02", "son-03-03"],
+		metrics: ["temperature", "humidity", "co2", "sound"]
+	}
+};
 
 function initEnvironmentCharts() {
 	Object.entries(ENV_CONFIG).forEach(([key, cfg]) => {
@@ -2011,21 +2026,21 @@ const envMaxValues = {};
 
 function updateEnvStats(metric) {
 
-  const chart = envCharts[metric];
-  if (!chart) return;
+	const chart = envCharts[metric];
+	if (!chart) return;
 
-  const data = chart.data.datasets[0].data;
+	const data = chart.data.datasets[0].data;
 
-  if (!data.length) return;
+	if (!data.length) return;
 
-  const avg = data.reduce((a,b)=>a+b,0) / data.length;
-  const max = Math.max(...data);
+	const avg = data.reduce((a,b)=>a+b,0) / data.length;
+	const max = Math.max(...data);
 
-  const avgEl = document.getElementById(`env-${metric}-avg`);
-  const maxEl = document.getElementById(`env-${metric}-max`);
+	const avgEl = document.getElementById(`env-${metric}-avg`);
+	const maxEl = document.getElementById(`env-${metric}-max`);
 
-  if (avgEl) avgEl.textContent = avg.toFixed(2);
-  if (maxEl) maxEl.textContent = max.toFixed(2);
+	if (avgEl) avgEl.textContent = avg.toFixed(2);
+	if (maxEl) maxEl.textContent = max.toFixed(2);
 
 }
 
@@ -2033,49 +2048,49 @@ function updateEnvStats(metric) {
 
 function updateEnvAverage(metric) {
 
-  const chart = envRealtimeCharts[metric];
-  if (!chart) return;
+	const chart = envRealtimeCharts[metric];
+	if (!chart) return;
 
-  const values = chart.data.datasets[0].data;
+	const values = chart.data.datasets[0].data;
 
-  if (values.length < 2) {
-	return; // pas assez de données
-  }
+	if (values.length < 2) {
+		return; // pas assez de données
+	}
 
-  const sum = values.reduce((a, b) => a + b, 0);
-  const avg = sum / values.length;
+	const sum = values.reduce((a, b) => a + b, 0);
+	const avg = sum / values.length;
 
-  const map = {
-	temperature: "env-temp-avg",
-	humidity: "env-humidity-avg",
-	co2: "env-co2-avg",
-	sound: "env-sound-avg"
-  };
+	const map = {
+		temperature: "env-temp-avg",
+		humidity: "env-humidity-avg",
+		co2: "env-co2-avg",
+		sound: "env-sound-avg"
+	};
 
-  const el = document.getElementById(map[metric]);
-  if (el) el.textContent = avg.toFixed(2);
+	const el = document.getElementById(map[metric]);
+	if (el) el.textContent = avg.toFixed(2);
 }
 
 function updateEnvMax(metric) {
 
-  const chart = envRealtimeCharts[metric];
-  if (!chart) return;
+	const chart = envRealtimeCharts[metric];
+	if (!chart) return;
 
-  const data = chart.data.datasets[0].data;
+	const data = chart.data.datasets[0].data;
 
-  if (!data || data.length === 0) return;
+	if (!data || data.length === 0) return;
 
-  const max = Math.max(...data);
+	const max = Math.max(...data);
 
-  const map = {
-    temperature: "env-temp-max",
-    humidity: "env-humidity-max",
-    co2: "env-co2-max",
-    sound: "env-sound-max"
-  };
+	const map = {
+		temperature: "env-temp-max",
+		humidity: "env-humidity-max",
+		co2: "env-co2-max",
+		sound: "env-sound-max"
+	};
 
-  const el = document.getElementById(map[metric]);
-  if (el) el.textContent = max.toFixed(2);
+	const el = document.getElementById(map[metric]);
+	if (el) el.textContent = max.toFixed(2);
 }
 
 
@@ -2084,72 +2099,110 @@ const environmentState = {};
 
 function startEnvironmentSSE(building) {
 
-  console.log("🌡️ startEnvironmentSSE called:", building);
+	console.log("🌡️ startEnvironmentSSE called:", building);
 
-  if (environmentUnsub) {
-	console.log("🔁 Unsub previous environment SSE");
-	environmentUnsub();
-	environmentUnsub = null;
-  }
-
-  if (!window.SSEManager?.subscribeEnvironment) {
-	console.warn("❌ SSEManager.subscribeEnvironment not available");
-	return;
-  }
-
-  environmentUnsub = window.SSEManager.subscribeEnvironment(building, (msg) => {
-	console.log("🌡️ ENV MESSAGE", msg);
-
-	try {
-
-	  const decoded =
-		msg?.uplink_message?.decoded_payload ??
-		msg?.decoded_payload ??
-		msg?.payload ??
-		{};
-
-	  const temperature = decoded?.temperature;
-	  const humidity = decoded?.humidity;
-	  const co2 = decoded?.co2;
-	  const sound = decoded?.LAeq;
-
-	  if (temperature != null) {
-		updateEnvChart("temperature", temperature);
-		updateEnvAverage("temperature", temperature);
-		updateEnvMax("temperature");
-	  }
-
-	  if (humidity != null) {
-		updateEnvChart("humidity", humidity);
-		updateEnvAverage("humidity", humidity);
-		updateEnvMax("humidity");
-	  }
-
-	  if (co2 != null) {
-		updateEnvChart("co2", co2);
-		updateEnvAverage("co2", co2);
-		updateEnvMax("co2");
-	  }
-
-	  if (sound != null) {
-		updateEnvChart("sound", sound);
-		updateEnvAverage("sound", sound);
-		updateEnvMax("sound");
-	  }
-
-	} catch (err) {
-	  console.warn("[SSEManager][environment] handler error", err);
+	if (environmentUnsub) {
+		console.log("🔁 Unsub previous environment SSE");
+		environmentUnsub();
+		environmentUnsub = null;
 	}
 
-  });
+	// reset graphique + stats
+	resetEnvironmentCharts();
+	resetEnvironmentStats();
+
+	if (!window.SSEManager?.subscribeEnvironment) {
+		console.warn("❌ SSEManager.subscribeEnvironment not available");
+		return;
+	}
+
+	environmentUnsub = window.SSEManager.subscribeEnvironment(building, (msg) => {
+
+		const decoded =
+			msg?.uplink_message?.decoded_payload ??
+			msg?.decoded_payload ??
+			msg?.payload ??
+			{};
+
+		const temperature = decoded?.temperature;
+		const humidity = decoded?.humidity;
+		const co2 = decoded?.co2;
+		const sound = decoded?.LAeq;
+
+		if (temperature != null) {
+			updateEnvChart("temperature", temperature);
+			updateEnvAverage("temperature");
+			updateEnvMax("temperature");
+		}
+
+		if (humidity != null) {
+			updateEnvChart("humidity", humidity);
+			updateEnvAverage("humidity");
+			updateEnvMax("humidity");
+		}
+
+		if (co2 != null) {
+			updateEnvChart("co2", co2);
+			updateEnvAverage("co2");
+			updateEnvMax("co2");
+		}
+
+		if (sound != null) {
+			updateEnvChart("sound", sound);
+			updateEnvAverage("sound");
+			updateEnvMax("sound");
+		}
+
+	});
 }
 
 function closeEnvironmentSSE() {
-  if (environmentUnsub) {
-	console.log("🔒 Unsubscribe environment SSE");
-	environmentUnsub();
-	environmentUnsub = null;
-  }
+	if (environmentUnsub) {
+		console.log("🔒 Unsubscribe environment SSE");
+		environmentUnsub();
+		environmentUnsub = null;
+	}
+}
+
+function updateEnvironmentChartsVisibility(building) {
+	const cfg = BUILDING_ENV_CONFIG[building];
+	if (!cfg) return;
+
+	const metrics = ["temperature", "humidity", "co2", "sound"];
+
+	metrics.forEach(metric => {
+		const card = document.querySelector(`[data-chart="${metric}"]`)?.closest(".chart-card");
+
+		if (!card) return;
+
+		if (cfg.metrics.includes(metric)) {
+			card.style.display = "block";
+		} else {
+			card.style.display = "none";
+		}
+	});
+}
+
+
+function resetEnvironmentCharts() {
+	Object.values(envRealtimeCharts).forEach(chart => {
+
+		chart.data.labels = [];
+		chart.data.datasets[0].data = [];
+		chart.update();
+	});
+}
+
+function resetEnvironmentStats() {
+	const metrics = ["temperature","humidity","co2","sound"];
+	metrics.forEach(metric => {
+		const avg = document.getElementById(`env-${metric}-avg`);
+		const max = document.getElementById(`env-${metric}-max`);
+
+		if (avg) avg.textContent = "--";
+		if (max) max.textContent = "--";
+
+	});
 }
 
 const filters = {
@@ -2158,14 +2211,14 @@ const filters = {
 };
 
 window.addEventListener("beforeunload", () => {
-  closeOccupancySSE();
-  closeEnvironmentSSE();
+	closeOccupancySSE();
+	closeEnvironmentSSE();
 });
 
 document.addEventListener('DOMContentLoaded', () => {
 	console.log('Initializing Dashboard Manager...');
 
-    filters.building = document.getElementById('filter-building')?.value;
+	filters.building = document.getElementById('filter-building')?.value;
 	filters.floor  = document.getElementById('filter-floor')?.value;
 	window.dashboardManager = new DashboardManager();
 });
