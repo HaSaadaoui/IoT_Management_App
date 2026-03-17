@@ -179,7 +179,7 @@
                             <option th:each="g : ${gateways}"
                                     th:value="${g.gatewayId}"
                                     th:text="${g.gatewayId}"
-                                    th:attr="data-freq=${g.frequencyPlan},data-building=${g.buildingName}">
+                                    th:attr="data-freq=${g.frequencyPlan},data-building=${g.buildingId}">
                                 GATEWAY_ID
                             </option>
                         </select>
@@ -335,18 +335,15 @@
 
     <!-- Flatpickr -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
-    <script th:inline="javascript">
-        /*<![CDATA[*/
-        window.SENSORS  = /*[[${sensors}]]*/ [];
-        window.GATEWAYS = /*[[${gateways}]]*/ [];
-        window.BUILDING_FLOORS = /*[[${buildingFloors}]]*/ [];
-        window.CAN_EDIT_SENSORS =
-            /*[[${#authorization.expression("hasAnyRole('ADMIN','SUPERUSER')")}]]*/ false;
-        /*]]>*/
-    </script>
-
     <!-- JS -->
     <script th:src="@{/javascript/manageSensors.js}" defer></script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        window.SENSORS          = /*[[${sensors}]]*/        [];
+        window.GATEWAYS         = /*[[${gateways}]]*/       [];
+        window.BUILDING_FLOORS  = /*[[${buildingFloors}]]*/ [];
+        window.CAN_EDIT_SENSORS = /*[[${#authorization.expression('hasAnyRole(''ADMIN'',''SUPERUSER'')')}]]*/ false;
+        /*]]>*/
+    </script>
     </body>
     </html>

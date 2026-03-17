@@ -479,9 +479,14 @@ public class SensorController {
         List<Building> buildings = buildingService.findAll();
         model.addAttribute("buildings", buildings);
 
-        record BuildingFloors(Integer id, String name, int floorsCount) {}
-        List<BuildingFloors> buildingFloors = buildings.stream()
-                .map(b -> new BuildingFloors(b.getId(), b.getName(), b.getFloorsCount()))
+        List<Map<String, Object>> buildingFloors = buildings.stream()
+                .map(b -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", b.getId());
+                    m.put("name", b.getName());
+                    m.put("floorsCount", b.getFloorsCount());
+                    return m;
+                })
                 .collect(Collectors.toList());
         model.addAttribute("buildingFloors", buildingFloors);
 
