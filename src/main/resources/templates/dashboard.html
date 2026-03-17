@@ -275,126 +275,126 @@
             <div class="analytics-grid" id="desk-avg-cards"></div>
         </div>
 
-            <div class="live-data-section">
-                <h3 class="section-title">📊 Live Building Data</h3>
-                <div class="live-metrics-grid">
-                    <!-- Temperature Average -->
-                    <div class="metric-card">
-                        <div class="metric-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
-                            🌡️
-                        </div>
+        <div class="live-data-section">
+            <h3 class="section-title">📊 Live Building Data</h3>
+            <div class="live-metrics-grid">
+                <!-- Temperature Average -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                        🌡️
+                    </div>
 
-                        <div class="metric-content metric-split">
-                            <div class="metric-label">Avg Temperature</div>
+                    <div class="metric-content metric-split">
+                        <div class="metric-label">Avg Temperature</div>
 
-                            <div class="metric-split-values">
-                                <div class="metric-scope">
-                                    <span class="scope-label">INT</span>
-                                    <span class="metric-value" id="live-avg-temperature-int">--</span>
-                                </div>
-
-                                <div class="metric-divider"></div>
-
-                                <div class="metric-scope">
-                                    <span class="scope-label">EXT</span>
-                                    <span class="metric-value" id="live-avg-temperature-ext">--</span>
-                                </div>
+                        <div class="metric-split-values">
+                            <div class="metric-scope">
+                                <span class="scope-label">INT</span>
+                                <span class="metric-value" id="live-avg-temperature-int">--</span>
                             </div>
 
-                            <div class="metric-unit">°C</div>
+                            <div class="metric-divider"></div>
+
+                            <div class="metric-scope">
+                                <span class="scope-label">EXT</span>
+                                <span class="metric-value" id="live-avg-temperature-ext">--</span>
+                            </div>
                         </div>
+
+                        <div class="metric-unit">°C</div>
+                    </div>
+                </div>
+
+
+                <!-- Humidity Average -->
+                <!-- Humidity Average -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                        💧
                     </div>
 
+                    <div class="metric-content metric-split">
+                        <div class="metric-label">Avg Humidity</div>
 
-                    <!-- Humidity Average -->
-                    <!-- Humidity Average -->
-                    <div class="metric-card">
-                        <div class="metric-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
-                            💧
-                        </div>
-
-                        <div class="metric-content metric-split">
-                            <div class="metric-label">Avg Humidity</div>
-
-                            <div class="metric-split-values">
-                                <div class="metric-scope">
-                                    <span class="scope-label">INT</span>
-                                    <span class="metric-value" id="live-avg-humidity-int">--</span>
-                                </div>
-
-                                <div class="metric-divider"></div>
-
-                                <div class="metric-scope">
-                                    <span class="scope-label">EXT</span>
-                                    <span class="metric-value" id="live-avg-humidity-ext">--</span>
-                                </div>
+                        <div class="metric-split-values">
+                            <div class="metric-scope">
+                                <span class="scope-label">INT</span>
+                                <span class="metric-value" id="live-avg-humidity-int">--</span>
                             </div>
 
-                            <div class="metric-unit">%</div>
-                        </div>
-                    </div>
+                            <div class="metric-divider"></div>
 
-                    <!-- Sound Average -->
-                    <div class="metric-card">
-                        <div class="metric-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</div>
-                        <div class="metric-content">
-                            <div class="metric-label">Avg Sound Level</div>
-                            <div class="metric-value" id="live-avg-sound">--</div>
-                            <div class="metric-unit">dB</div>
+                            <div class="metric-scope">
+                                <span class="scope-label">EXT</span>
+                                <span class="metric-value" id="live-avg-humidity-ext">--</span>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- CO2 Average -->
-                    <div class="metric-card">
-                        <div class="metric-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💨</div>
-                        <div class="metric-content">
-                            <div class="metric-label">Avg CO₂ Level</div>
-                            <div class="metric-value" id="live-avg-co2">--</div>
-                            <div class="metric-unit">ppm</div>
-                        </div>
+                        <div class="metric-unit">%</div>
                     </div>
+                </div>
 
-                    <!-- Real-time Energy -->
-                    <div class="metric-card">
-                        <div class="metric-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">⚡</div>
-                        <div class="metric-content">
-                            <div class="metric-label">Power Now</div>
-                            <div class="metric-value" id="live-current-power">--</div>
-                            <div class="metric-unit">kW</div>
-                        </div>
+                <!-- Sound Average -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</div>
+                    <div class="metric-content">
+                        <div class="metric-label">Avg Sound Level</div>
+                        <div class="metric-value" id="live-avg-sound">--</div>
+                        <div class="metric-unit">dB</div>
                     </div>
+                </div>
 
-                    <!-- Daily Energy Accumulation -->
-                    <div class="metric-card metric-card--highlight">
-                        <div class="metric-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">⚡</div>
-                        <div class="metric-content">
-                            <div class="metric-label">Today's Energy</div>
-                            <div class="metric-value" id="live-daily-energy">--</div>
-                            <div class="metric-unit">kWh</div>
-                        </div>
+                <!-- CO2 Average -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💨</div>
+                    <div class="metric-content">
+                        <div class="metric-label">Avg CO₂ Level</div>
+                        <div class="metric-value" id="live-avg-co2">--</div>
+                        <div class="metric-unit">ppm</div>
                     </div>
+                </div>
 
-                    <!-- Desk Usage Percentage -->
-                    <div class="metric-card">
-                        <div class="metric-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">💡</div>
-                        <div class="metric-content">
-                            <div class="metric-label">Desk Usage</div>
-                            <div class="metric-value" id="live-desk-usage">--</div>
-                            <div class="metric-unit">desks</div>
-                        </div>
+                <!-- Real-time Energy -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">⚡</div>
+                    <div class="metric-content">
+                        <div class="metric-label">Power Now</div>
+                        <div class="metric-value" id="live-current-power">--</div>
+                        <div class="metric-unit">kW</div>
                     </div>
+                </div>
 
-                    <!-- Light Level Average -->
-                    <div class="metric-card">
-                        <div class="metric-icon" style="background: linear-gradient(135deg, #fbbf24, #f59e0b);">🔆</div>
-                        <div class="metric-content">
-                            <div class="metric-label">Avg Light Level</div>
-                            <div class="metric-value" id="live-avg-light">--</div>
-                            <div class="metric-unit">lux</div>
-                        </div>
+                <!-- Daily Energy Accumulation -->
+                <div class="metric-card metric-card--highlight">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">⚡</div>
+                    <div class="metric-content">
+                        <div class="metric-label">Today's Energy</div>
+                        <div class="metric-value" id="live-daily-energy">--</div>
+                        <div class="metric-unit">kWh</div>
+                    </div>
+                </div>
+
+                <!-- Desk Usage Percentage -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">💡</div>
+                    <div class="metric-content">
+                        <div class="metric-label">Desk Usage</div>
+                        <div class="metric-value" id="live-desk-usage">--</div>
+                        <div class="metric-unit">desks</div>
+                    </div>
+                </div>
+
+                <!-- Light Level Average -->
+                <div class="metric-card">
+                    <div class="metric-icon" style="background: linear-gradient(135deg, #fbbf24, #f59e0b);">🔆</div>
+                    <div class="metric-content">
+                        <div class="metric-label">Avg Light Level</div>
+                        <div class="metric-value" id="live-avg-light">--</div>
+                        <div class="metric-unit">lux</div>
                     </div>
                 </div>
             </div>
+        </div>
         <!-- Sensor List Container -->
         <div
                 class="sensor-list-container"
@@ -504,6 +504,146 @@
                 <div id="sensor-stats-container" class="office-stats">
                     <!-- Stats cards will be dynamically generated by JavaScript based on building zones -->
                 </div>
+
+                <!-- ============================= -->
+                <!-- REALTIME ENVIRONMENT CHARTS -->
+                <!-- ============================= -->
+
+                <section class="realtime-charts">
+                    <div class="charts-grid charts-grid--2col">
+                        <!-- ================= CO2 ================= -->
+                        <div class="chart-card">
+                            <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div class="chart-title">
+                                        <span class="chart-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💨</span>
+                                        <span>CO₂</span>
+                                    </div>
+                                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                        Avg: <span class="kpi-value" id="env-co2-avg" style="font-weight: 600; color: #10b981;">--</span> ppm
+                                    </div>
+                                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                        Max: <span id="env-co2-max" class="kpi-value" style="font-weight: 600; color: #10b981;">--</span> ppm
+                                    </div>
+                                </div>
+                                <div class="env-chart-toggle" data-chart="co2" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+                                    <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                        📈 Line
+                                    </button>
+                                    <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                        📊 Bar
+                                    </button>
+                                    <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                        🍩 Donut
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="rt-chart-container" style="height: 280px; position: relative;">
+                                <canvas id="rt-co2-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- ================= TEMPERATURE ================= -->
+                        <div class="chart-card">
+                            <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div class="chart-title">
+                                        <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🌡️</span>
+                                        <span>Temperature</span>
+                                    </div>
+                                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                        Avg: <span class="kpi-value" id="env-temp-avg" style="font-weight: 600; color: #ef4444;">--</span> °C
+                                    </div>
+
+                                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                        Max: <span id="env-temp-max" class="kpi-value" style="font-weight: 600; color: #10b981;">--</span> °C
+                                    </div>
+                                </div>
+                                <div class="env-chart-toggle" data-chart="temperature" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+                                    <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                        📈 Line
+                                    </button>
+                                    <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                        📊 Bar
+                                    </button>
+                                    <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                        🍩 Donut
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="rt-chart-container" style="height: 280px; position: relative;">
+                                <canvas id="rt-temperature-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- ================= HUMIDITY ================= -->
+                        <div class="chart-card">
+                            <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div class="chart-title">
+                                        <span class="chart-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">💧</span>
+                                        <span>Humidity</span>
+                                    </div>
+                                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                        Avg: <span class="kpi-value" id="env-humidity-avg" style="font-weight: 600; color: #3b82f6;">--</span> %
+                                    </div>
+                                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                        Max: <span id="env-humidity-max" class="kpi-value" style="font-weight: 600; color: #10b981;">--</span> %
+                                    </div>
+                                </div>
+                                <div class="env-chart-toggle" data-chart="humidity" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+                                    <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                        📈 Line
+                                    </button>
+                                    <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                        📊 Bar
+                                    </button>
+                                    <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                        🍩 Donut
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="rt-chart-container" style="height: 280px; position: relative;">
+                                <canvas id="rt-humidity-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- ================= SOUND ================= -->
+                        <div class="chart-card">
+
+                            <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div class="chart-title">
+                                        <span class="chart-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</span>
+                                        <span>Sound Level</span>
+                                    </div>
+                                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                        Avg: <span class="kpi-value" id="env-sound-avg" style="font-weight: 600; color: #f59e0b;">--</span> dB
+                                    </div>
+
+                                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                        Max: <span id="env-sound-max" class="kpi-value" style="font-weight: 600; color: #10b981;">--</span> dB
+                                    </div>
+                                </div>
+                                <div class="env-chart-toggle" data-chart="sound" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+                                    <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                        📈 Line
+                                    </button>
+                                    <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                        📊 Bar
+                                    </button>
+                                    <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                        🍩 Donut
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="rt-chart-container" style="height: 280px; position: relative;">
+                                <canvas id="rt-sound-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
         </section>
     </section>
@@ -561,348 +701,348 @@
             <h3 class="section-title">📊 Occupation Rate Analytics</h3>
 
             <!-- 1. Desk-Bureau-Standard Section -->
-        <div class="chart-card full-width" style="margin-bottom: 2rem;">
-            <div class="section-header" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
-                <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                    <span>💼</span>
-                    <span>1. Desk-Standard</span>
-                </h4>
-            </div>
-            <div style="padding: 1.5rem;">
-                <!-- Statistiques Globales (NOUVEAU: 4 cartes pour Desk-Standard) -->
-                <div class="stats-summary" id="desk-global-stats" style="margin-bottom: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                    <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">📊 Global Occupancy Rate</span>
-                        <span class="stat-value" id="desk-global-rate" style="font-size: 2.5rem;">--</span>
-                        <span class="stat-info" id="desk-global-period" style="font-size: 0.85rem; color: #666; display: block; margin-top: 0.3rem;">--</span>
-                        <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Working hours: 9h→12h30 / 14h→18h30</span>
-                    </div>
-                    <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">🔢 Number of Sensors</span>
-                        <span class="stat-value" id="desk-total-sensors" style="font-size: 2.5rem;">--</span>
-                        <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
-                    </div>
-                    <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">📉 Avg Low Usage Rate</span>
-                        <span class="stat-value" id="desk-low-usage-avg" style="font-size: 2.5rem; color: #f59e0b;">--</span>
-                        <span class="stat-info" style="font-size: 0.85rem; color: #666;">Average of desks ≤12.5%</span>
-                        <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Over selected period</span>
-                    </div>
-                    <div class="stat-card performance-stat" style="flex: 1;">
-                        <span class="stat-label">📈 Performance Distribution</span>
-                        <div>
-                            <div class="performance-item excellent">
-                                <span class="performance-number" style="color: #10b981;" id="desk-perf-excellent">--</span>
-                                <span class="performance-label" style="color: #059669;">
+            <div class="chart-card full-width" style="margin-bottom: 2rem;">
+                <div class="section-header" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
+                    <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <span>💼</span>
+                        <span>1. Desk-Standard</span>
+                    </h4>
+                </div>
+                <div style="padding: 1.5rem;">
+                    <!-- Statistiques Globales (NOUVEAU: 4 cartes pour Desk-Standard) -->
+                    <div class="stats-summary" id="desk-global-stats" style="margin-bottom: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <div class="stat-card" style="flex: 1;">
+                            <span class="stat-label">📊 Global Occupancy Rate</span>
+                            <span class="stat-value" id="desk-global-rate" style="font-size: 2.5rem;">--</span>
+                            <span class="stat-info" id="desk-global-period" style="font-size: 0.85rem; color: #666; display: block; margin-top: 0.3rem;">--</span>
+                            <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Working hours: 9h→12h30 / 14h→18h30</span>
+                        </div>
+                        <div class="stat-card" style="flex: 1;">
+                            <span class="stat-label">🔢 Number of Sensors</span>
+                            <span class="stat-value" id="desk-total-sensors" style="font-size: 2.5rem;">--</span>
+                            <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
+                        </div>
+                        <div class="stat-card" style="flex: 1;">
+                            <span class="stat-label">📉 Avg Low Usage Rate</span>
+                            <span class="stat-value" id="desk-low-usage-avg" style="font-size: 2.5rem; color: #f59e0b;">--</span>
+                            <span class="stat-info" style="font-size: 0.85rem; color: #666;">Average of desks ≤12.5%</span>
+                            <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Over selected period</span>
+                        </div>
+                        <div class="stat-card performance-stat" style="flex: 1;">
+                            <span class="stat-label">📈 Performance Distribution</span>
+                            <div>
+                                <div class="performance-item excellent">
+                                    <span class="performance-number" style="color: #10b981;" id="desk-perf-excellent">--</span>
+                                    <span class="performance-label" style="color: #059669;">
                                     <span>🟢 Excellent</span>
                                     <span class="performance-badge" style="color: #059669;">≥70%</span>
                                 </span>
-                            </div>
-                            <div class="performance-item good">
-                                <span class="performance-number" style="color: #f59e0b;" id="desk-perf-good">--</span>
-                                <span class="performance-label" style="color: #d97706;">
+                                </div>
+                                <div class="performance-item good">
+                                    <span class="performance-number" style="color: #f59e0b;" id="desk-perf-good">--</span>
+                                    <span class="performance-label" style="color: #d97706;">
                                     <span>🟡 Good</span>
                                     <span class="performance-badge" style="color: #d97706;">30-69%</span>
                                 </span>
-                            </div>
-                            <div class="performance-item poor">
-                                <span class="performance-number" style="color: #ef4444;" id="desk-perf-poor">--</span>
-                                <span class="performance-label" style="color: #dc2626;">
+                                </div>
+                                <div class="performance-item poor">
+                                    <span class="performance-number" style="color: #ef4444;" id="desk-perf-poor">--</span>
+                                    <span class="performance-label" style="color: #dc2626;">
                                     <span>🔴 Poor</span>
                                     <span class="performance-badge" style="color: #dc2626;"><30%</span>
                                 </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Pagination Controls -->
-                <div class="pagination-controls">
-                    <button id="desk-prev-btn" disabled>
-                        ◄ Previous
-                    </button>
-                    <span id="desk-page-info">Page 1/1</span>
-                    <button id="desk-next-btn" disabled>
-                        Next ►
-                    </button>
-                </div>
+                    <!-- Pagination Controls -->
+                    <div class="pagination-controls">
+                        <button id="desk-prev-btn" disabled>
+                            ◄ Previous
+                        </button>
+                        <span id="desk-page-info">Page 1/1</span>
+                        <button id="desk-next-btn" disabled>
+                            Next ►
+                        </button>
+                    </div>
 
-                <!-- Tableau des capteurs (NOUVEAU: colonnes par jour) -->
-                <div class="history-table-container" style="overflow-x: auto; overflow-y: auto; max-height: 600px; position: relative;">
-                    <table class="history-table analytics-table" id="desk-daily-table" style="position: relative;">
-                        <thead id="desk-table-head">
-                        <tr>
-                            <th>Sensor</th>
-                            <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
-                        </tr>
-                        </thead>
-                        <tbody id="desk-analytics-tbody">
-                        <tr>
-                            <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
-                                🔄 Waiting for data loading...
-                            </td>
-                        </tr>
-                        </tbody>
-                        <tfoot id="desk-table-foot" style="position: sticky; bottom: 0; z-index: 10;">
-                        </tfoot>
-                    </table>
-                </div>
+                    <!-- Tableau des capteurs (NOUVEAU: colonnes par jour) -->
+                    <div class="history-table-container" style="overflow-x: auto; overflow-y: auto; max-height: 600px; position: relative;">
+                        <table class="history-table analytics-table" id="desk-daily-table" style="position: relative;">
+                            <thead id="desk-table-head">
+                            <tr>
+                                <th>Sensor</th>
+                                <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
+                            </tr>
+                            </thead>
+                            <tbody id="desk-analytics-tbody">
+                            <tr>
+                                <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
+                                    🔄 Waiting for data loading...
+                                </td>
+                            </tr>
+                            </tbody>
+                            <tfoot id="desk-table-foot" style="position: sticky; bottom: 0; z-index: 10;">
+                            </tfoot>
+                        </table>
+                    </div>
 
-                <!-- Graphique Taux par Capteur -->
-                <div class="chart-container" style="margin-top: 2rem; height: 400px;">
-                    <canvas id="desk-chart-overall"></canvas>
+                    <!-- Graphique Taux par Capteur -->
+                    <div class="chart-container" style="margin-top: 2rem; height: 400px;">
+                        <canvas id="desk-chart-overall"></canvas>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- 2. Salle de Réunion Section -->
-        <div class="chart-card full-width" style="margin-bottom: 2rem;">
-            <div class="section-header" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
-                <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                    <span>🏢</span>
-                    <span>2. Meeting Room</span>
-                </h4>
-            </div>
-            <div style="padding: 1.5rem;">
-                <div class="stats-summary" id="meeting-global-stats" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
-                    <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">📊 Global Occupancy Rate</span>
-                        <span class="stat-value" id="meeting-global-rate" style="font-size: 2.5rem;">--</span>
-                        <span class="stat-info" id="meeting-global-period" style="font-size: 0.85rem; color: #666; display: block; margin-top: 0.3rem;">--</span>
-                        <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Working hours: 9h→12h30 / 14h→18h30</span>
-                    </div>
-                    <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">🔢 Number of Sensors</span>
-                        <span class="stat-value" id="meeting-total-sensors" style="font-size: 2.5rem;">--</span>
-                        <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
-                    </div>
-                    <div class="stat-card performance-stat" style="flex: 1;">
-                        <span class="stat-label">📈 Performance Distribution</span>
-                        <div>
-                            <div class="performance-item excellent">
-                                <span class="performance-number" style="color: #10b981;" id="meeting-perf-excellent">--</span>
-                                <span class="performance-label" style="color: #059669;">
+            <!-- 2. Salle de Réunion Section -->
+            <div class="chart-card full-width" style="margin-bottom: 2rem;">
+                <div class="section-header" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
+                    <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <span>🏢</span>
+                        <span>2. Meeting Room</span>
+                    </h4>
+                </div>
+                <div style="padding: 1.5rem;">
+                    <div class="stats-summary" id="meeting-global-stats" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+                        <div class="stat-card" style="flex: 1;">
+                            <span class="stat-label">📊 Global Occupancy Rate</span>
+                            <span class="stat-value" id="meeting-global-rate" style="font-size: 2.5rem;">--</span>
+                            <span class="stat-info" id="meeting-global-period" style="font-size: 0.85rem; color: #666; display: block; margin-top: 0.3rem;">--</span>
+                            <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Working hours: 9h→12h30 / 14h→18h30</span>
+                        </div>
+                        <div class="stat-card" style="flex: 1;">
+                            <span class="stat-label">🔢 Number of Sensors</span>
+                            <span class="stat-value" id="meeting-total-sensors" style="font-size: 2.5rem;">--</span>
+                            <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
+                        </div>
+                        <div class="stat-card performance-stat" style="flex: 1;">
+                            <span class="stat-label">📈 Performance Distribution</span>
+                            <div>
+                                <div class="performance-item excellent">
+                                    <span class="performance-number" style="color: #10b981;" id="meeting-perf-excellent">--</span>
+                                    <span class="performance-label" style="color: #059669;">
                                     <span>🟢 Excellent</span>
                                     <span class="performance-badge" style="color: #059669;">≥70%</span>
                                 </span>
-                            </div>
-                            <div class="performance-item good">
-                                <span class="performance-number" style="color: #f59e0b;" id="meeting-perf-good">--</span>
-                                <span class="performance-label" style="color: #d97706;">
+                                </div>
+                                <div class="performance-item good">
+                                    <span class="performance-number" style="color: #f59e0b;" id="meeting-perf-good">--</span>
+                                    <span class="performance-label" style="color: #d97706;">
                                     <span>🟡 Good</span>
                                     <span class="performance-badge" style="color: #d97706;">30-69%</span>
                                 </span>
-                            </div>
-                            <div class="performance-item poor">
-                                <span class="performance-number" style="color: #ef4444;" id="meeting-perf-poor">--</span>
-                                <span class="performance-label" style="color: #dc2626;">
+                                </div>
+                                <div class="performance-item poor">
+                                    <span class="performance-number" style="color: #ef4444;" id="meeting-perf-poor">--</span>
+                                    <span class="performance-label" style="color: #dc2626;">
                                     <span>🔴 Poor</span>
                                     <span class="performance-badge" style="color: #dc2626;"><30%</span>
                                 </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="pagination-controls">
-                    <button id="meeting-prev-btn" disabled>
-                        ◄ Previous
-                    </button>
-                    <span id="meeting-page-info">Page 1/1</span>
-                    <button id="meeting-next-btn" disabled>
-                        Next ►
-                    </button>
-                </div>
+                    <div class="pagination-controls">
+                        <button id="meeting-prev-btn" disabled>
+                            ◄ Previous
+                        </button>
+                        <span id="meeting-page-info">Page 1/1</span>
+                        <button id="meeting-next-btn" disabled>
+                            Next ►
+                        </button>
+                    </div>
 
-                <div class="history-table-container" style="overflow-x: auto;">
-                    <table class="history-table analytics-table" id="meeting-daily-table">
-                        <thead id="meeting-table-head">
-                        <tr>
-                            <th>Room</th>
-                            <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
-                        </tr>
-                        </thead>
-                        <tbody id="meeting-analytics-tbody">
-                        <tr>
-                            <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
-                                🔄 Waiting for data loading...
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
+                    <div class="history-table-container" style="overflow-x: auto;">
+                        <table class="history-table analytics-table" id="meeting-daily-table">
+                            <thead id="meeting-table-head">
+                            <tr>
+                                <th>Room</th>
+                                <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
+                            </tr>
+                            </thead>
+                            <tbody id="meeting-analytics-tbody">
+                            <tr>
+                                <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
+                                    🔄 Waiting for data loading...
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
 
-                <div class="chart-container" style="margin-top: 2rem; height: 300px;">
-                    <canvas id="meeting-chart-overall"></canvas>
+                    <div class="chart-container" style="margin-top: 2rem; height: 300px;">
+                        <canvas id="meeting-chart-overall"></canvas>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- 3. Phone Booth Section -->
-        <div class="chart-card full-width" style="margin-bottom: 2rem;">
-            <div class="section-header" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
-                <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                    <span>📞</span>
-                    <span>3. Phone Booth</span>
-                </h4>
-            </div>
-            <div style="padding: 1.5rem;">
-                <div class="stats-summary" id="phone-global-stats" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
-                    <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">📊 Global Occupancy Rate</span>
-                        <span class="stat-value" id="phone-global-rate" style="font-size: 2.5rem;">--</span>
-                        <span class="stat-info" id="phone-global-period" style="font-size: 0.85rem; color: #666; display: block; margin-top: 0.3rem;">--</span>
-                        <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Working hours: 9h→12h30 / 14h→18h30</span>
-                    </div>
-                    <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">🔢 Number of Sensors</span>
-                        <span class="stat-value" id="phone-total-sensors" style="font-size: 2.5rem;">--</span>
-                        <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
-                    </div>
-                    <div class="stat-card performance-stat" style="flex: 1;">
-                        <span class="stat-label">📈 Performance Distribution</span>
-                        <div>
-                            <div class="performance-item excellent">
-                                <span class="performance-number" style="color: #10b981;" id="phone-perf-excellent">--</span>
-                                <span class="performance-label" style="color: #059669;">
+            <!-- 3. Phone Booth Section -->
+            <div class="chart-card full-width" style="margin-bottom: 2rem;">
+                <div class="section-header" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
+                    <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <span>📞</span>
+                        <span>3. Phone Booth</span>
+                    </h4>
+                </div>
+                <div style="padding: 1.5rem;">
+                    <div class="stats-summary" id="phone-global-stats" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+                        <div class="stat-card" style="flex: 1;">
+                            <span class="stat-label">📊 Global Occupancy Rate</span>
+                            <span class="stat-value" id="phone-global-rate" style="font-size: 2.5rem;">--</span>
+                            <span class="stat-info" id="phone-global-period" style="font-size: 0.85rem; color: #666; display: block; margin-top: 0.3rem;">--</span>
+                            <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Working hours: 9h→12h30 / 14h→18h30</span>
+                        </div>
+                        <div class="stat-card" style="flex: 1;">
+                            <span class="stat-label">🔢 Number of Sensors</span>
+                            <span class="stat-value" id="phone-total-sensors" style="font-size: 2.5rem;">--</span>
+                            <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
+                        </div>
+                        <div class="stat-card performance-stat" style="flex: 1;">
+                            <span class="stat-label">📈 Performance Distribution</span>
+                            <div>
+                                <div class="performance-item excellent">
+                                    <span class="performance-number" style="color: #10b981;" id="phone-perf-excellent">--</span>
+                                    <span class="performance-label" style="color: #059669;">
                                     <span>🟢 Excellent</span>
                                     <span class="performance-badge" style="color: #059669;">≥70%</span>
                                 </span>
-                            </div>
-                            <div class="performance-item good">
-                                <span class="performance-number" style="color: #f59e0b;" id="phone-perf-good">--</span>
-                                <span class="performance-label" style="color: #d97706;">
+                                </div>
+                                <div class="performance-item good">
+                                    <span class="performance-number" style="color: #f59e0b;" id="phone-perf-good">--</span>
+                                    <span class="performance-label" style="color: #d97706;">
                                     <span>🟡 Good</span>
                                     <span class="performance-badge" style="color: #d97706;">30-69%</span>
                                 </span>
-                            </div>
-                            <div class="performance-item poor">
-                                <span class="performance-number" style="color: #ef4444;" id="phone-perf-poor">--</span>
-                                <span class="performance-label" style="color: #dc2626;">
+                                </div>
+                                <div class="performance-item poor">
+                                    <span class="performance-number" style="color: #ef4444;" id="phone-perf-poor">--</span>
+                                    <span class="performance-label" style="color: #dc2626;">
                                     <span>🔴 Poor</span>
                                     <span class="performance-badge" style="color: #dc2626;"><30%</span>
                                 </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="pagination-controls">
-                    <button id="phone-prev-btn" disabled>
-                        ◄ Previous
-                    </button>
-                    <span id="phone-page-info">Page 1/1</span>
-                    <button id="phone-next-btn" disabled>
-                        Next ►
-                    </button>
-                </div>
+                    <div class="pagination-controls">
+                        <button id="phone-prev-btn" disabled>
+                            ◄ Previous
+                        </button>
+                        <span id="phone-page-info">Page 1/1</span>
+                        <button id="phone-next-btn" disabled>
+                            Next ►
+                        </button>
+                    </div>
 
-                <div class="history-table-container" style="overflow-x: auto;">
-                    <table class="history-table analytics-table" id="phone-daily-table">
-                        <thead id="phone-table-head">
-                        <tr>
-                            <th>Booth</th>
-                            <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
-                        </tr>
-                        </thead>
-                        <tbody id="phone-analytics-tbody">
-                        <tr>
-                            <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
-                                🔄 Waiting for data loading...
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
+                    <div class="history-table-container" style="overflow-x: auto;">
+                        <table class="history-table analytics-table" id="phone-daily-table">
+                            <thead id="phone-table-head">
+                            <tr>
+                                <th>Booth</th>
+                                <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
+                            </tr>
+                            </thead>
+                            <tbody id="phone-analytics-tbody">
+                            <tr>
+                                <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
+                                    🔄 Waiting for data loading...
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
 
-                <div class="chart-container" style="margin-top: 2rem; height: 300px;">
-                    <canvas id="phone-chart-overall"></canvas>
+                    <div class="chart-container" style="margin-top: 2rem; height: 300px;">
+                        <canvas id="phone-chart-overall"></canvas>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- 4. Interview Room Section -->
-        <div class="chart-card full-width" style="margin-bottom: 2rem;">
-            <div class="section-header" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
-                <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                    <span>🎯</span>
-                    <span>4. Interview Room</span>
-                </h4>
-            </div>
-            <div style="padding: 1.5rem;">
-                <div class="stats-summary" id="interview-global-stats" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
-                    <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">📊 Global Occupancy Rate</span>
-                        <span class="stat-value" id="interview-global-rate" style="font-size: 2.5rem;">--</span>
-                        <span class="stat-info" id="interview-global-period" style="font-size: 0.85rem; color: #666; display: block; margin-top: 0.3rem;">--</span>
-                        <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Working hours: 9h→12h30 / 14h→18h30</span>
-                    </div>
-                    <div class="stat-card" style="flex: 1;">
-                        <span class="stat-label">🔢 Number of Sensors</span>
-                        <span class="stat-value" id="interview-total-sensors" style="font-size: 2.5rem;">--</span>
-                        <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
-                    </div>
-                    <div class="stat-card performance-stat" style="flex: 1;">
-                        <span class="stat-label">📈 Performance Distribution</span>
-                        <div>
-                            <div class="performance-item excellent">
-                                <span class="performance-number" style="color: #10b981;" id="interview-perf-excellent">--</span>
-                                <span class="performance-label" style="color: #059669;">
+            <!-- 4. Interview Room Section -->
+            <div class="chart-card full-width" style="margin-bottom: 2rem;">
+                <div class="section-header" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
+                    <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <span>🎯</span>
+                        <span>4. Interview Room</span>
+                    </h4>
+                </div>
+                <div style="padding: 1.5rem;">
+                    <div class="stats-summary" id="interview-global-stats" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+                        <div class="stat-card" style="flex: 1;">
+                            <span class="stat-label">📊 Global Occupancy Rate</span>
+                            <span class="stat-value" id="interview-global-rate" style="font-size: 2.5rem;">--</span>
+                            <span class="stat-info" id="interview-global-period" style="font-size: 0.85rem; color: #666; display: block; margin-top: 0.3rem;">--</span>
+                            <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Working hours: 9h→12h30 / 14h→18h30</span>
+                        </div>
+                        <div class="stat-card" style="flex: 1;">
+                            <span class="stat-label">🔢 Number of Sensors</span>
+                            <span class="stat-value" id="interview-total-sensors" style="font-size: 2.5rem;">--</span>
+                            <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
+                        </div>
+                        <div class="stat-card performance-stat" style="flex: 1;">
+                            <span class="stat-label">📈 Performance Distribution</span>
+                            <div>
+                                <div class="performance-item excellent">
+                                    <span class="performance-number" style="color: #10b981;" id="interview-perf-excellent">--</span>
+                                    <span class="performance-label" style="color: #059669;">
                                     <span>🟢 Excellent</span>
                                     <span class="performance-badge" style="color: #059669;">≥70%</span>
                                 </span>
-                            </div>
-                            <div class="performance-item good">
-                                <span class="performance-number" style="color: #f59e0b;" id="interview-perf-good">--</span>
-                                <span class="performance-label" style="color: #d97706;">
+                                </div>
+                                <div class="performance-item good">
+                                    <span class="performance-number" style="color: #f59e0b;" id="interview-perf-good">--</span>
+                                    <span class="performance-label" style="color: #d97706;">
                                     <span>🟡 Good</span>
                                     <span class="performance-badge" style="color: #d97706;">30-69%</span>
                                 </span>
-                            </div>
-                            <div class="performance-item poor">
-                                <span class="performance-number" style="color: #ef4444;" id="interview-perf-poor">--</span>
-                                <span class="performance-label" style="color: #dc2626;">
+                                </div>
+                                <div class="performance-item poor">
+                                    <span class="performance-number" style="color: #ef4444;" id="interview-perf-poor">--</span>
+                                    <span class="performance-label" style="color: #dc2626;">
                                     <span>🔴 Poor</span>
                                     <span class="performance-badge" style="color: #dc2626;"><30%</span>
                                 </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="pagination-controls">
-                    <button id="interview-prev-btn" disabled>
-                        ◄ Previous
-                    </button>
-                    <span id="interview-page-info">Page 1/1</span>
-                    <button id="interview-next-btn" disabled>
-                        Next ►
-                    </button>
-                </div>
+                    <div class="pagination-controls">
+                        <button id="interview-prev-btn" disabled>
+                            ◄ Previous
+                        </button>
+                        <span id="interview-page-info">Page 1/1</span>
+                        <button id="interview-next-btn" disabled>
+                            Next ►
+                        </button>
+                    </div>
 
-                <div class="history-table-container" style="overflow-x: auto;">
-                    <table class="history-table analytics-table" id="interview-daily-table">
-                        <thead id="interview-table-head">
-                        <tr>
-                            <th>Room</th>
-                            <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
-                        </tr>
-                        </thead>
-                        <tbody id="interview-analytics-tbody">
-                        <tr>
-                            <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
-                                🔄 Waiting for data loading...
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
+                    <div class="history-table-container" style="overflow-x: auto;">
+                        <table class="history-table analytics-table" id="interview-daily-table">
+                            <thead id="interview-table-head">
+                            <tr>
+                                <th>Room</th>
+                                <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
+                            </tr>
+                            </thead>
+                            <tbody id="interview-analytics-tbody">
+                            <tr>
+                                <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
+                                    🔄 Waiting for data loading...
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
 
-                <div class="chart-container" style="margin-top: 2rem; height: 300px;">
-                    <canvas id="interview-chart-overall"></canvas>
+                    <div class="chart-container" style="margin-top: 2rem; height: 300px;">
+                        <canvas id="interview-chart-overall"></canvas>
+                    </div>
                 </div>
             </div>
-        </div>
         </div>
         <!-- End Occupancy Section -->
 
@@ -963,36 +1103,36 @@
                     <div class="history-table-container">
                         <table class="history-table" id="energy-table">
                             <thead>
-                                <tr>
-                                    <th style="position: sticky; left: 0; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; z-index: 10; font-weight: 600;">Category</th>
-                                    <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
-                                </tr>
+                            <tr>
+                                <th style="position: sticky; left: 0; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; z-index: 10; font-weight: 600;">Category</th>
+                                <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
+                            </tr>
                             </thead>
                             <tbody id="energy-analytics-tbody">
-                                <tr>
-                                    <td style="font-weight: 600; background: linear-gradient(135deg, #ef444420, #dc262620);">🔴 Red Outlets</td>
-                                    <td colspan="10" style="text-align: center; color: #999; padding: 1rem;">
-                                        🔄 Waiting for data loading...
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="font-weight: 600; background: linear-gradient(135deg, #3b82f620, #2563eb20);">⚪ White Outlets & Lighting</td>
-                                    <td colspan="10" style="text-align: center; color: #999; padding: 1rem;">
-                                        🔄 Waiting for data loading...
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="font-weight: 600; background: linear-gradient(135deg, #10b98120, #05966920);">💨 Ventilation & Heaters</td>
-                                    <td colspan="10" style="text-align: center; color: #999; padding: 1rem;">
-                                        🔄 Waiting for data loading...
-                                    </td>
-                                </tr>
-                                <tr style="font-weight: 700; background: #f9fafb; border-top: 2px solid #e5e7eb;">
-                                    <td style="font-weight: 700;">⚡ Total Power</td>
-                                    <td colspan="10" style="text-align: center; color: #999; padding: 1rem;">
-                                        🔄 Waiting for data loading...
-                                    </td>
-                                </tr>
+                            <tr>
+                                <td style="font-weight: 600; background: linear-gradient(135deg, #ef444420, #dc262620);">🔴 Red Outlets</td>
+                                <td colspan="10" style="text-align: center; color: #999; padding: 1rem;">
+                                    🔄 Waiting for data loading...
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: 600; background: linear-gradient(135deg, #3b82f620, #2563eb20);">⚪ White Outlets & Lighting</td>
+                                <td colspan="10" style="text-align: center; color: #999; padding: 1rem;">
+                                    🔄 Waiting for data loading...
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: 600; background: linear-gradient(135deg, #10b98120, #05966920);">💨 Ventilation & Heaters</td>
+                                <td colspan="10" style="text-align: center; color: #999; padding: 1rem;">
+                                    🔄 Waiting for data loading...
+                                </td>
+                            </tr>
+                            <tr style="font-weight: 700; background: #f9fafb; border-top: 2px solid #e5e7eb;">
+                                <td style="font-weight: 700;">⚡ Total Power</td>
+                                <td colspan="10" style="text-align: center; color: #999; padding: 1rem;">
+                                    🔄 Waiting for data loading...
+                                </td>
+                            </tr>
                             </tbody>
                         </table>
                     </div>
@@ -1031,33 +1171,33 @@
                     <!-- Header Table (fixed) -->
                     <table class="history-table" style="width: 100%; table-layout: fixed; margin-bottom: 0;">
                         <thead>
-                            <tr>
-                                <th style="background: linear-gradient(135deg, #662179, #8b2fa3); color: white; padding: 0.75rem 1rem; width: 33.33%;">Date</th>
-                                <th style="background: linear-gradient(135deg, #662179, #8b2fa3); color: white; padding: 0.75rem 1rem; width: 33.33%;">Energy (kWh)</th>
-                                <th style="background: linear-gradient(135deg, #662179, #8b2fa3); color: white; padding: 0.75rem 1rem; width: 33.34%;">Cost/Day</th>
-                            </tr>
+                        <tr>
+                            <th style="background: linear-gradient(135deg, #662179, #8b2fa3); color: white; padding: 0.75rem 1rem; width: 33.33%;">Date</th>
+                            <th style="background: linear-gradient(135deg, #662179, #8b2fa3); color: white; padding: 0.75rem 1rem; width: 33.33%;">Energy (kWh)</th>
+                            <th style="background: linear-gradient(135deg, #662179, #8b2fa3); color: white; padding: 0.75rem 1rem; width: 33.34%;">Cost/Day</th>
+                        </tr>
                         </thead>
                     </table>
                     <!-- Scrollable Body -->
                     <div style="max-height: 250px; overflow-y: auto; border: 1px solid #e5e7eb; border-top: none; border-bottom: none;">
                         <table class="history-table" id="energy-cost-table" style="width: 100%; table-layout: fixed; margin: 0;">
                             <tbody id="energy-cost-tbody">
-                                <tr>
-                                    <td colspan="3" style="text-align: center; color: #999; padding: 2rem;">
-                                        Select a period and click "Load Data" to view energy costs
-                                    </td>
-                                </tr>
+                            <tr>
+                                <td colspan="3" style="text-align: center; color: #999; padding: 2rem;">
+                                    Select a period and click "Load Data" to view energy costs
+                                </td>
+                            </tr>
                             </tbody>
                         </table>
                     </div>
                     <!-- Footer Table (fixed) -->
                     <table class="history-table" style="width: 100%; table-layout: fixed; margin-top: 0;">
                         <tfoot>
-                            <tr style="font-weight: 700; background: linear-gradient(135deg, #662179, #8b2fa3); color: white;">
-                                <td style="font-weight: 700; padding: 0.75rem 1rem; text-align: left; width: 33.33%;">Total</td>
-                                <td id="energy-cost-total-kwh" style="padding: 0.75rem 1rem; text-align: center; width: 33.33%;">--</td>
-                                <td id="energy-cost-total-cost" style="padding: 0.75rem 1rem; text-align: center; width: 33.34%;">--</td>
-                            </tr>
+                        <tr style="font-weight: 700; background: linear-gradient(135deg, #662179, #8b2fa3); color: white;">
+                            <td style="font-weight: 700; padding: 0.75rem 1rem; text-align: left; width: 33.33%;">Total</td>
+                            <td id="energy-cost-total-kwh" style="padding: 0.75rem 1rem; text-align: center; width: 33.33%;">--</td>
+                            <td id="energy-cost-total-cost" style="padding: 0.75rem 1rem; text-align: center; width: 33.34%;">--</td>
+                        </tr>
                         </tfoot>
                     </table>
                 </div>
