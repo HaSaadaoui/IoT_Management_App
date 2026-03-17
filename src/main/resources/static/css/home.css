@@ -1,0 +1,681 @@
+/* ============================================================
+   HOME.CSS — Modern SaaS Home Page
+   Consistent with Auth Page Design Language
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* --- CSS Variables (matching auth.css) --- */
+:root {
+    --home-primary: #662179;
+    --home-primary-dark: #4b0c68;
+    --home-primary-light: #8b2fa3;
+    --home-accent: #9b59b6;
+    --home-blue: #3a7bd5;
+    --home-text: #2d3436;
+    --home-text-secondary: #636e72;
+    --home-text-muted: #b2bec3;
+    --home-white: #ffffff;
+    --home-bg: #f8f9fd;
+    --home-border: #e1e5ee;
+    --home-radius: 24px;
+    --home-radius-md: 16px;
+    --home-radius-sm: 12px;
+    --home-radius-xs: 8px;
+    --home-shadow: 0 25px 80px rgba(102, 33, 121, 0.15);
+    --home-shadow-card: 0 4px 20px rgba(102, 33, 121, 0.08);
+    --home-shadow-card-hover: 0 12px 40px rgba(102, 33, 121, 0.18);
+    --home-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --home-font: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+}
+
+/* ============================================================
+   PAGE BACKGROUND — Matches Auth Page
+   ============================================================ */
+body {
+    font-family: var(--home-font);
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background:
+        linear-gradient(135deg,
+            rgba(15, 5, 33, 0.82) 0%,
+            rgba(26, 10, 46, 0.78) 25%,
+            rgba(45, 18, 69, 0.75) 50%,
+            rgba(26, 16, 64, 0.80) 75%,
+            rgba(15, 5, 33, 0.85) 100%),
+        url('/image/mantu-background.jpg') center / cover no-repeat fixed;
+    background-size: 400% 400%, cover;
+    animation: homeGradientShift 20s ease infinite;
+    background-attachment: fixed;
+    overflow: hidden;
+}
+
+@keyframes homeGradientShift {
+    0%   { background-position: 0% 50%, center; }
+    50%  { background-position: 100% 50%, center; }
+    100% { background-position: 0% 50%, center; }
+}
+
+/* --- Ambient Background Particles (same as auth) --- */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+        radial-gradient(2px 2px at 20% 30%, rgba(155, 89, 182, 0.3), transparent),
+        radial-gradient(2px 2px at 80% 20%, rgba(58, 123, 213, 0.25), transparent),
+        radial-gradient(2px 2px at 40% 70%, rgba(155, 89, 182, 0.2), transparent),
+        radial-gradient(2px 2px at 70% 80%, rgba(58, 123, 213, 0.3), transparent),
+        radial-gradient(1px 1px at 10% 90%, rgba(255, 255, 255, 0.15), transparent),
+        radial-gradient(1px 1px at 90% 50%, rgba(255, 255, 255, 0.1), transparent),
+        radial-gradient(1px 1px at 50% 10%, rgba(155, 89, 182, 0.2), transparent),
+        radial-gradient(1px 1px at 30% 50%, rgba(255, 255, 255, 0.08), transparent);
+    animation: homeParticlesDrift 30s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes homeParticlesDrift {
+    0%   { transform: translateY(0) translateX(0); }
+    50%  { transform: translateY(-20px) translateX(10px); }
+    100% { transform: translateY(0) translateX(0); }
+}
+
+/* ============================================================
+   HEADER OVERRIDE — Glass Header on Dark Background
+   ============================================================ */
+.app-header {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+    z-index: 100;
+}
+
+.app-header .back-btn svg circle {
+    stroke: rgba(255, 255, 255, 0.6) !important;
+}
+.app-header .back-btn svg path,
+.app-header .back-btn svg line {
+    stroke: rgba(255, 255, 255, 0.6) !important;
+}
+
+.header-user {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.header-avatar {
+    border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.menu-btn svg {
+    fill: rgba(255, 255, 255, 0.8) !important;
+}
+
+.menu-btn svg path {
+    stroke: rgba(255, 255, 255, 0.8) !important;
+}
+
+.menu-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Dropdown stays white with proper contrast */
+.dropdown-content {
+    background-color: var(--home-white) !important;
+    border: 1px solid var(--home-border);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.dropdown-content a,
+.dropdown-content .logout-link {
+    color: #662179 !important;
+}
+
+.dropdown-content a svg path,
+.dropdown-content .logout-link svg path {
+    fill: #662179 !important;
+}
+
+/* ============================================================
+   MAIN LAYOUT — Centered, Full Viewport
+   ============================================================ */
+.main-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 60px);
+    height: auto;
+    padding: 20px 24px 80px;
+    padding-right: 24px;
+    overflow: visible;
+    position: relative;
+    z-index: 1;
+}
+
+/* ============================================================
+   HERO SECTION
+   ============================================================ */
+.home-hero {
+    text-align: center;
+    margin-bottom: 0px;
+    max-width: 640px;
+    animation: heroEntrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes heroEntrance {
+    0%   { opacity: 0; transform: translateY(30px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+.home-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(10px);
+    padding: 8px 18px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 24px;
+    letter-spacing: 0.3px;
+    animation: heroBadgeEntrance 0.6s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes heroBadgeEntrance {
+    0%   { opacity: 0; transform: translateY(10px) scale(0.95); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.home-hero-badge .badge-dot {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50%      { opacity: 1;   transform: scale(1.3); }
+}
+
+.home-hero h1 {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--home-white);
+    line-height: 1.1;
+    margin: 0 0 8px;
+    letter-spacing: -1.5px;
+    animation: heroTitleEntrance 0.7s 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes heroTitleEntrance {
+    0%   { opacity: 0; transform: translateY(25px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+.home-hero h1 span {
+    background: linear-gradient(135deg, #a78bfa, #818cf8, #3a7bd5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.home-hero p {
+    font-size: 17px;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.7;
+    margin: 16px 0 0;
+    font-weight: 400;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+    animation: heroSubEntrance 0.7s 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes heroSubEntrance {
+    0%   { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   DASHBOARD CONTAINER — Glass Card
+   ============================================================ */
+.dashboard-container {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--home-radius);
+    box-shadow: 0 8px 60px rgba(0, 0, 0, 0.2);
+    padding: 48px 56px;
+    margin: 0;
+    max-width: 800px;
+    width: 100%;
+    animation: containerEntrance 0.8s 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes containerEntrance {
+    0%   { opacity: 0; transform: translateY(25px) scale(0.97); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.dashboard-container h1 {
+    display: none; /* Hero section replaces this */
+}
+
+/* ============================================================
+   SECTION TITLE INSIDE CONTAINER
+   ============================================================ */
+.dashboard-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 32px;
+    animation: sectionTitleEntrance 0.6s 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes sectionTitleEntrance {
+    0%   { opacity: 0; transform: translateY(15px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+.dashboard-section-title h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+.dashboard-section-title .title-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.15), transparent);
+    max-width: 80px;
+}
+
+/* ============================================================
+   DASHBOARD GRID — Upgraded Cards
+   ============================================================ */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    justify-content: center;
+}
+
+.dashboard-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--home-radius-md);
+    padding: 32px 20px 28px;
+    text-align: center;
+    color: var(--home-white);
+    text-decoration: none;
+    transition: all var(--home-transition);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: none;
+}
+
+/* Glow effect on hover */
+.dashboard-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: var(--home-radius-md);
+    background: linear-gradient(135deg,
+        rgba(102, 33, 121, 0.15),
+        rgba(58, 123, 213, 0.1));
+    opacity: 0;
+    transition: opacity var(--home-transition);
+    z-index: 0;
+}
+
+.dashboard-card:hover::before {
+    opacity: 1;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(155, 89, 182, 0.3);
+    box-shadow: 0 12px 40px rgba(102, 33, 121, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.dashboard-card:active {
+    transform: translateY(-2px);
+}
+
+/* Card icon container */
+.dashboard-card .card-icon {
+    position: relative;
+    z-index: 1;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(102, 33, 121, 0.3), rgba(58, 123, 213, 0.2));
+    border-radius: var(--home-radius-sm);
+    margin-bottom: 12px;
+    transition: all var(--home-transition);
+}
+
+.dashboard-card:hover .card-icon {
+    transform: scale(1.08);
+    background: linear-gradient(135deg, rgba(102, 33, 121, 0.45), rgba(58, 123, 213, 0.3));
+    box-shadow: 0 4px 20px rgba(102, 33, 121, 0.3);
+}
+
+.dashboard-card .card-icon svg {
+    width: 28px;
+    height: 28px;
+    stroke: var(--home-white);
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Hide old standalone img icons (not inside .card-icon) */
+.dashboard-card > img {
+    display: none;
+}
+
+/* Show img inside card-icon container — centered like SVG icons */
+.dashboard-card .card-icon img {
+    display: block;
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+}
+
+/* Card title */
+.dashboard-card span {
+    position: relative;
+    z-index: 1;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--home-white);
+    letter-spacing: -0.2px;
+}
+
+/* Card description */
+.dashboard-card .card-desc {
+    position: relative;
+    z-index: 1;
+    font-size: 12.5px;
+    color: rgba(255, 255, 255, 0.45);
+    font-weight: 400;
+    line-height: 1.4;
+    margin-top: 2px;
+}
+
+/* Staggered entrance animations */
+.dashboard-card:nth-child(1) { animation: cardEntrance 0.5s 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.dashboard-card:nth-child(2) { animation: cardEntrance 0.5s 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.dashboard-card:nth-child(3) { animation: cardEntrance 0.5s 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.dashboard-card:nth-child(4) { animation: cardEntrance 0.5s 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.dashboard-card:nth-child(5) { animation: cardEntrance 0.5s 1.0s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.dashboard-card:nth-child(6) { animation: cardEntrance 0.5s 1.1s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.dashboard-card:nth-child(7) { animation: cardEntrance 0.5s 1.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@keyframes cardEntrance {
+    0%   { opacity: 0; transform: translateY(20px) scale(0.95); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ============================================================
+   DISABLED CARD STATE
+   ============================================================ */
+.dashboard-card.disabled {
+    opacity: 0.3;
+    filter: grayscale(60%);
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.dashboard-card.disabled:hover {
+    transform: none;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: none;
+}
+
+/* ============================================================
+   FOOTER — Minimal Glass Footer
+   ============================================================ */
+.footer-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: none;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.footer-bar .footer-text {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.3);
+    font-weight: 400;
+    letter-spacing: 0.2px;
+}
+
+.footer-bar .footer-text a {
+    color: rgba(155, 89, 182, 0.6);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.footer-bar .footer-text a:hover {
+    color: rgba(155, 89, 182, 0.9);
+}
+
+/* ============================================================
+   FLOATING PARTICLES (decorative)
+   ============================================================ */
+.home-particles {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.home-particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+    animation: homeFloat linear infinite;
+}
+
+.home-particle:nth-child(1) { left: 8%;  animation-duration: 14s; animation-delay: 0s;   width: 3px; height: 3px; }
+.home-particle:nth-child(2) { left: 22%; animation-duration: 18s; animation-delay: 2s;   width: 5px; height: 5px; }
+.home-particle:nth-child(3) { left: 42%; animation-duration: 12s; animation-delay: 4s; }
+.home-particle:nth-child(4) { left: 62%; animation-duration: 16s; animation-delay: 1s;   width: 3px; height: 3px; }
+.home-particle:nth-child(5) { left: 78%; animation-duration: 13s; animation-delay: 3s;   width: 6px; height: 6px; }
+.home-particle:nth-child(6) { left: 32%; animation-duration: 20s; animation-delay: 5s;   width: 2px; height: 2px; }
+.home-particle:nth-child(7) { left: 55%; animation-duration: 15s; animation-delay: 6s; }
+.home-particle:nth-child(8) { left: 88%; animation-duration: 11s; animation-delay: 1.5s; width: 3px; height: 3px; }
+.home-particle:nth-child(9) { left: 15%; animation-duration: 17s; animation-delay: 7s;   width: 2px; height: 2px; }
+.home-particle:nth-child(10){ left: 70%; animation-duration: 19s; animation-delay: 8s;   width: 4px; height: 4px; }
+
+@keyframes homeFloat {
+    0%   { transform: translateY(100vh) rotate(0deg);   opacity: 0; }
+    10%  { opacity: 0.5; }
+    90%  { opacity: 0.5; }
+    100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+}
+
+/* ============================================================
+   RESPONSIVE DESIGN
+   ============================================================ */
+
+/* --- Tablet --- */
+@media (max-width: 900px) {
+    .home-hero h1 {
+        font-size: 38px;
+    }
+
+    .home-hero p {
+        font-size: 15px;
+    }
+
+    .dashboard-container {
+        padding: 36px 32px;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+
+    .dashboard-card {
+        padding: 28px 16px 24px;
+    }
+}
+
+/* --- Small Tablet / Large Phone --- */
+@media (max-width: 680px) {
+    .main-container {
+        padding: 24px 16px 70px;
+    }
+
+    .home-hero {
+        margin-bottom: 32px;
+    }
+
+    .home-hero h1 {
+        font-size: 32px;
+        letter-spacing: -1px;
+    }
+
+    .home-hero p {
+        font-size: 14px;
+    }
+
+    .dashboard-container {
+        padding: 28px 20px;
+        border-radius: 18px;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+    }
+
+    .dashboard-card {
+        padding: 24px 14px 20px;
+    }
+
+    .dashboard-card .card-icon {
+        width: 48px;
+        height: 48px;
+    }
+
+    .dashboard-card .card-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .dashboard-card span {
+        font-size: 13.5px;
+    }
+
+    .dashboard-card .card-desc {
+        font-size: 11.5px;
+    }
+}
+
+/* --- Mobile --- */
+@media (max-width: 480px) {
+    .main-container {
+        padding: 16px 12px 60px;
+    }
+
+    .home-hero h1 {
+        font-size: 28px;
+    }
+
+    .home-hero-badge {
+        font-size: 12px;
+        padding: 6px 14px;
+    }
+
+    .dashboard-container {
+        padding: 24px 16px;
+        border-radius: 16px;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .dashboard-card {
+        padding: 20px 12px 18px;
+        border-radius: var(--home-radius-sm);
+    }
+
+    .dashboard-card .card-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--home-radius-xs);
+    }
+
+    .dashboard-card .card-desc {
+        display: none;
+    }
+
+    .footer-bar {
+        height: 40px;
+    }
+
+    .footer-bar .footer-text {
+        font-size: 11px;
+    }
+}
+
+/* --- Very Small Mobile --- */
+@media (max-width: 360px) {
+    .home-hero h1 {
+        font-size: 24px;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+}

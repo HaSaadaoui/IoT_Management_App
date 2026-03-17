@@ -26,15 +26,15 @@
             <!-- Error / Logout / Success Messages -->
             <div class="auth-message auth-message-error" th:if="${param.error}">
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                <span>Invalid username or password.</span>
+                <span>Invalid username or password</span>
             </div>
             <div class="auth-message auth-message-info" th:if="${param.logout}">
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                <span>You have been logged out.</span>
+                <span>You have been logged out</span>
             </div>
             <div class="auth-message auth-message-success" th:if="${param.registered}">
                 <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                <span>Account created! Please sign in.</span>
+                <span>Account created! Please sign in</span>
             </div>
 
             <!-- Login Form -->
@@ -147,7 +147,7 @@
                         </span>
                         <input class="auth-input" type="password" id="reg-confirm-password" placeholder="Confirm your password" required autocomplete="new-password">
                     </div>
-                    <div class="auth-field-error" id="confirmPasswordError">Passwords do not match.</div>
+                    <div class="auth-field-error" id="confirmPasswordError">Passwords do not match</div>
                 </div>
 
                 <input type="hidden" name="role" value="USER" />
@@ -219,7 +219,7 @@
                     </svg>
                 </div>
                 <h2 class="overlay-title">Welcome Back!</h2>
-                <p class="overlay-text">Sign in to access your Smart Building dashboard and monitor your IoT devices.</p>
+                <p class="overlay-text">Sign in to access your Smart Building dashboard and monitor your IoT devices</p>
                 <button class="auth-btn-ghost" id="overlayGoToLogin">Sign In</button>
             </div>
 
@@ -261,8 +261,8 @@
                         <line x1="30" y1="170" x2="170" y2="170" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="4 4"/>
                     </svg>
                 </div>
-                <h2 class="overlay-title">Hello, Friend!</h2>
-                <p class="overlay-text">Create an account to start managing your Smart Building IoT devices in real time.</p>
+                <h2 class="overlay-title">Hello!</h2>
+                <p class="overlay-text">Create an account to start managing your Smart Building Platform in real time</p>
                 <button class="auth-btn-ghost" id="overlayGoToRegister">Create Account</button>
             </div>
 
