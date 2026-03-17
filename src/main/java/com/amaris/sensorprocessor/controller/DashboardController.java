@@ -49,6 +49,8 @@ public class DashboardController {
     private final SensorDataDao sensorDataDao;
     private final BuildingEnergyConfigDao buildingEnergyConfigDao;
 
+    private static final String DEFAULT_APP_ID = "rpi-mantu-appli";
+
     private final ObjectMapper om = new ObjectMapper();
 
     // POWER (W) : building -> device -> channel(0..11) -> lastW
@@ -227,7 +229,7 @@ public class DashboardController {
         if (isInteger(building)) {
             Integer buildingId = Integer.parseInt(building);
             Optional<Building> b = buildingService.findById(buildingId);
-            if (b.isEmpty()) return defaultValue;
+            if (b.isEmpty()) return DEFAULT_APP_ID ;
 
             String buildingName = b.get().getName().trim().toUpperCase();
 
@@ -235,7 +237,7 @@ public class DashboardController {
                 case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
                 case "LEVALLOIS"                -> "lorawan-network-mantu";
                 case "LILLE"                    -> "lil-rpi-mantu-appli";
-                default                         -> defaultValue;
+                default                         -> DEFAULT_APP_ID ;
             };
         }
 
