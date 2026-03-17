@@ -1917,8 +1917,8 @@ const BUILDING_ENV_CONFIG = {
 		deviceIds: ["desk-01-02"],
 		metrics: ["temperature", "humidity", "co2"] // pas de sound
 	},
-	LEVALLOIS: {
-		21: ["co2-03-02", "son-03-03"],
+	21: {
+		deviceIds: ["co2-03-02", "son-03-03"],
 		metrics: ["temperature", "humidity", "co2", "sound"]
 	}
 };
