@@ -49,7 +49,7 @@ public class SensorService {
     private final SensorLorawanService lorawanService;
     private final WebClient webClient;
     private final WebClient webClientSse;
-    private final DeviceTypeService deviceTypeService; // ✅ AJOUT
+    private final DeviceTypeService deviceTypeService;
 
     @Value("${api.base.url}")
     private String baseUrl;
@@ -145,9 +145,9 @@ public class SensorService {
      * @param building Building name (empty string for all buildings)
      * @return List of sensor IDs
      */
-    public List<String> getSensorIdsByTypeAndBuilding(String deviceType, String building) {
+    public List<String> getSensorIdsByTypeAndBuilding(String deviceType, Integer building) {
         List<Sensor> sensors;
-        if (building == null || building.isBlank()) {
+        if (building == null) {
             sensors = sensorDao.findAllByDeviceType(deviceType);
         } else {
             sensors = sensorDao.findAllByDeviceTypeAndBuilding(deviceType, building);
@@ -361,7 +361,7 @@ public class SensorService {
         if (patch.getCommissioningDate() != null) existing.setCommissioningDate(patch.getCommissioningDate());
         if (patch.getFloor() != null)             existing.setFloor(patch.getFloor());
         if (patch.getLocation() != null)          existing.setLocation(patch.getLocation());
-        if (patch.getBuildingName() != null)      existing.setBuildingName(patch.getBuildingName());
+        if (patch.getBuildingId() != null)      existing.setBuildingId(patch.getBuildingId());
 
         int rows = sensorDao.updateSensor(existing);
         if (rows != 1) throw new IllegalStateException("DB update failed for sensor " + idSensor);

@@ -164,20 +164,6 @@ public class SensorSyncService {
                 }
                 newSensor.setIdDeviceType(idDeviceType); // ✅ FK directe
 
-                if ("leva-rpi-mantu".equals(gatewayId)) {
-                    newSensor.setBuildingName("Levallois-Building");
-                    newSensor.setFloor(3);
-                    newSensor.setLocation("Floor 3");
-                } else if ("rpi-mantu".equals(gatewayId)) {
-                    newSensor.setBuildingName("Châteaudun-Building");
-                    newSensor.setFloor(2);
-                    newSensor.setLocation("Floor 2");
-                } else {
-                    newSensor.setBuildingName("Unknown-Building");
-                    newSensor.setFloor(1);
-                    newSensor.setLocation("Floor 1");
-                }
-
                 try {
                     sensorDao.insertSensor(newSensor);
                     log.info("[SensorSync] Created sensor {} from TTN (DevEUI: {}, type: {})",

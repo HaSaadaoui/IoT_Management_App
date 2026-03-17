@@ -110,10 +110,10 @@ public class SensorController {
                     "Use lowercase a-z, 0-9 and single '-' (min 3 chars, no leading/trailing '-')"));
         }
 
-        if (sensor.getIdDeviceType() == null) { // ✅ idDeviceType au lieu de deviceType
+        if (sensor.getIdDeviceType() == null) {
             bindingResult.addError(new FieldError(SENSOR_ADD, "idDeviceType", "Device Type is required"));
         }
-        if (isBlank(sensor.getBuildingName())) {
+        if (sensor.getBuildingId() == null) {
             bindingResult.addError(new FieldError(SENSOR_ADD, "buildingName", "Building Name is required"));
         }
         if (sensor.getFloor() == null) {
@@ -196,10 +196,12 @@ public class SensorController {
         model.addAttribute("deviceTypeLabel", deviceTypeLabel);
 
         gatewayService.findById(s.getIdGateway()).ifPresent(gw -> {
-            String label = (gw.getBuildingName() != null && !gw.getBuildingName().isBlank())
-                    ? gw.getBuildingName() + " (" + gw.getGatewayId() + ")"
+            String buildingLabel = gw.getBuildingId() != null
+                    ? buildingService.findById(gw.getBuildingId())
+                    .map(b -> b.getName() + " (" + gw.getGatewayId() + ")")
+                    .orElse(gw.getGatewayId())
                     : gw.getGatewayId();
-            model.addAttribute("gatewayName", label);
+            model.addAttribute("gatewayName", buildingLabel);
             model.addAttribute("gatewayIp", gw.getIpAddress());
         });
 
@@ -347,8 +349,17 @@ public class SensorController {
                 .orElse("GENERIC");
 
         String appId = gatewayService.findById(sensor.getIdGateway())
-                .map(Gateway::getGatewayId)
-                .map(gid -> "leva-rpi-mantu".equalsIgnoreCase(gid) ? "lorawan-network-mantu" : gid + "-appli")
+                .map(gw -> {
+                    if (gw.getBuildingId() == null) return "rpi-mantu-appli";
+                    return buildingService.findById(gw.getBuildingId())
+                            .map(b -> switch (b.getName().trim().toUpperCase()) {
+                                case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
+                                case "LEVALLOIS"                -> "lorawan-network-mantu";
+                                case "LILLE"                    -> "lil-rpi-mantu-appli";
+                                default                         -> "rpi-mantu-appli";
+                            })
+                            .orElse("rpi-mantu-appli");
+                })
                 .orElseThrow(() -> new IllegalStateException("Gateway introuvable pour le capteur " + idSensor));
 
         SseEmitter emitter = new SseEmitter(3600000L);
@@ -463,23 +474,19 @@ public class SensorController {
         model.addAttribute("gateways", gateways);
         model.addAttribute("protocols", protocolService.findAll());
         model.addAttribute("brands", brandService.findAll());
-        model.addAttribute("deviceTypes", deviceTypeService.findAll()); // ✅ AJOUT
+        model.addAttribute("deviceTypes", deviceTypeService.findAll());
 
-        List<String> buildingNames = buildingService.getAllBuildings()
-                .stream()
-                .map(Building::getName)
-                .filter(Objects::nonNull)
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .distinct()
-                .sorted()
-                .collect(Collectors.toList());
+        List<Building> buildings = buildingService.findAll();
+        model.addAttribute("buildings", buildings);
 
-        model.addAttribute("buildings", buildingNames);
-
-        record BuildingFloors(String name, int floorsCount) {}
-        List<BuildingFloors> buildingFloors = buildingService.getAllBuildings().stream()
-                .map(b -> new BuildingFloors(b.getName(), b.getFloorsCount()))
+        List<Map<String, Object>> buildingFloors = buildings.stream()
+                .map(b -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", b.getId());
+                    m.put("name", b.getName());
+                    m.put("floorsCount", b.getFloorsCount());
+                    return m;
+                })
                 .collect(Collectors.toList());
         model.addAttribute("buildingFloors", buildingFloors);
 

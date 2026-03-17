@@ -10,26 +10,14 @@ class DashboardManager {
 		// TTL (ms) : si un device ne remonte plus, on l’enlève du total
 		this.consoTtlMs = 2 * 60 * 1000; // 2 minutes
 
-
-		// Bâtiments "hors base"
-		this.virtualBuildings = {
-			CHATEAUDUN: {
-				id: 'CHATEAUDUN',
-				code: 'CHATEAUDUN',
-				name: 'Châteaudun',
-				floors: 7
-			}
-		};
-
-		this.filters = {
-			year: '2025',
-			month: '11',
-			building: 'CHATEAUDUN',
-			floor: '',
-			sensorType: 'DESK',
-			timeSlot: 'afternoon'
-		};
-
+    this.filters = {
+        year: new Date().getFullYear(),
+        month: new Date().getMonth() + 1,
+        building: null,   // sera défini après loadBuildings()
+        floor: '',
+        sensorType: 'DESK',
+        timeSlot: 'afternoon'
+    };
 		this.metricSources = {
 			TEMPERATURE_INT: { sensorType: 'ALL', excludeSensorType: 'TEMPEX', unit: '°C' },
 			TEMPERATURE_EXT: { sensorType: 'TEMPEX', unit: '°C' },
@@ -95,12 +83,10 @@ class DashboardManager {
 		// Initialize alert cache for instant filtering
 		this.initAlertCache();
 
-		this.loadBuildings();
-		this.loadDashboardData();
-		this.scheduleNextRefresh();
-
-		initEnvironmentCharts();
-		startEnvironmentSSE(this.filters.building);
+    this.loadBuildings().then(() => {
+        this.scheduleNextRefresh();
+    });
+	this.scheduleNextRefresh();
 	}
 
 	async initAlertCache() {
@@ -133,39 +119,33 @@ class DashboardManager {
 	// ===== BUILDING UTILS =====
 	// =========================
 
-	getBuildingKey(building) {
-		return building?.code || String(building?.id || '');
-	}
+getBuildingKey(building) {
+    if (!building?.id) return null;
+    return String(building.id);
+}
 
 	// =========================
 	// ===== FILTERS =====
 	// =========================
 
-	initializeFilters() {
-		const filterIds = ['building', 'floor', 'sensor-type'];
+initializeFilters() {
+    const filterIds = ['building', 'floor', 'sensor-type'];
+    filterIds.forEach(filterId => {
+        const element = document.getElementById(`filter-${filterId}`);
+        if (!element) return;
 
-		filterIds.forEach(filterId => {
-			const element = document.getElementById(`filter-${filterId}`);
-			if (!element) {
-				console.warn(`Filter element not found: filter-${filterId}`);
-				return;
-			}
+        const filterKey = filterId.replace('-', '');
+        const mappedKey = filterKey === 'sensortype' ? 'sensorType'
+                        : filterKey === 'time'       ? 'timeSlot'
+                        : filterKey;
 
-			const filterKey = filterId.replace('-', '');
-			const mappedKey =
-				filterKey === 'sensortype' ? 'sensorType' :
-					filterKey === 'time' ? 'timeSlot' :
-						filterKey;
+        if (this.filters[mappedKey] !== undefined && this.filters[mappedKey] !== null) {
+            element.value = this.filters[mappedKey];
+        }
 
-			if (this.filters[mappedKey] !== undefined && this.filters[mappedKey] !== null) {
-				element.value = this.filters[mappedKey];
-			}
-
-			element.addEventListener('change', (e) =>
-				this.handleFilterChange(filterId, e.target.value)
-			);
-		});
-	}
+        element.addEventListener('change', e => this.handleFilterChange(filterId, e.target.value));
+    });
+}
 
 // =========================
 // ===== CONSO SSE (aggregate)
@@ -280,62 +260,56 @@ class DashboardManager {
 		});
 	}
 
-	async loadBuildings() {
-		const select = document.getElementById('filter-building')
-		const selectHist = document.getElementById('hist-filter-building');
-		if (!select) return;
+async loadBuildings() {
+    const select = document.getElementById('filter-building');
+    const selectHist = document.getElementById('hist-filter-building'); // ✅ ajout
+    if (!select) return;
 
-		try {
-			const resp = await fetch('/api/buildings');
-			let buildings = resp.ok ? await resp.json() : [];
+    try {
+        const resp = await fetch('/api/buildings');
+        const buildings = resp.ok ? await resp.json() : [];
+        this.buildings = buildings;
 
-			// Injecter CHATEAUDUN si absent
-			Object.keys(this.virtualBuildings).forEach(key => {
-				const exists = buildings.find(b => b.code === key || String(b.id) === String(key));
-				if (!exists) buildings.push(this.virtualBuildings[key]);
-			});
+        if (!buildings.length) {
+            select.innerHTML = '<option value="" disabled selected>No building found</option>';
+            if (selectHist) selectHist.innerHTML = '<option value="" disabled selected>No building found</option>';
+            return;
+        }
 
-			this.buildings = buildings;
+        // Remplir les deux selects
+        const buildOptions = buildings.map(b => {
+            const opt = document.createElement('option');
+            opt.value = b.id;
+            opt.textContent = b.name;
+            return opt;
+        });
 
-			// Remplissage du select
-			select.innerHTML = '';
-			buildings.forEach(b => {
-				const opt = document.createElement('option');
-				opt.value = b.code || b.id; // valeur "brute" émise par le select
-				opt.textContent = b.name;
-				if (opt.value === this.filters.building) opt.selected = true;
-				select.appendChild(opt);
-			});
+        select.innerHTML = '';
+        buildOptions.forEach(opt => select.appendChild(opt.cloneNode(true)));
 
-			if (selectHist) {
-				selectHist.innerHTML = '';
-				buildings.forEach(b => {
-					const opt = document.createElement('option');
-					opt.value = b.code || b.id; // valeur "brute" émise par le select
-					opt.textContent = b.name;
-					if (opt.value === this.filters.building) opt.selected = true;
-					selectHist.appendChild(opt);
-				});
-			}
+        // ✅ Remplir aussi le select History
+        if (selectHist) {
+            selectHist.innerHTML = '';
+            buildOptions.forEach(opt => selectHist.appendChild(opt.cloneNode(true)));
+        }
 
-			// Définir le bâtiment actuel (robuste code/id)
-			const current =
-				buildings.find(b => (b.code && b.code === this.filters.building) || String(b.id) === String(this.filters.building)) ||
-				buildings[0];
+        const current = buildings[0];
+        select.value = String(current.id);
+        if (selectHist) selectHist.value = String(current.id);
 
-			this.currentBuilding = current;
-			this.filters.building = this.getBuildingKey(current); // normalisation filtre
-			this.startConsoAggregateSse();
+        this.currentBuilding = current;
+        this.filters.building = String(current.id);
 
-			// Charger les étages
-			const floorsLookupId = current.code ? current.code : current.id;
-			await this.loadBuildingFloors(floorsLookupId);
+        this.startConsoAggregateSse();
+        await this.loadBuildingFloors(current.id);
+        await this.loadDashboardData();
 
-			await this.loadDashboardData();
-		} catch (e) {
-			console.error('Error loading buildings', e);
-		}
-	}
+    } catch (e) {
+        console.error('Error loading buildings', e);
+        select.innerHTML = '<option value="" disabled selected>Error loading</option>';
+        if (selectHist) selectHist.innerHTML = '<option value="" disabled selected>Error loading</option>';
+    }
+}
 
 	async handleFilterChange(filterId, value) {
 		console.log(`=== Filter Change: ${filterId} ===`, value);
@@ -350,7 +324,7 @@ class DashboardManager {
 		// ✅ Cas spécial BUILDING
 		// =========================
 		if (filterId === 'building') {
-			const building = this.buildings.find(b => String(b.id) === String(value) || b.code === value);
+            const building = this.buildings.find(b => String(b.id) === String(value));
 
 			if (!building) {
 				console.warn('Building not found for value:', value);
@@ -560,6 +534,9 @@ class DashboardManager {
 			console.error('Error Loading Dashboard Data', error);
 			this.showError('Failed to load dashboard data. Using sample data.');
 		}
+		finally {
+                this.hideLoading(); // ✅ toujours appelé, succès ou erreur
+            }
 	}
 
 	scheduleNextRefresh() {
@@ -1444,13 +1421,15 @@ class DashboardManager {
 		if (element) element.textContent = formatted;
 	}
 
-	showLoading() {
-		console.log('⏳ Loading data...');
-	}
+showLoading() {
+    const el = document.getElementById('global-loading-indicator');
+    if (el) el.style.display = 'flex';
+}
 
-	hideLoading() {
-		console.log('✅ Data loaded');
-	}
+hideLoading() {
+    const el = document.getElementById('global-loading-indicator');
+    if (el) el.style.display = 'none';
+}
 
 	showError(message) {
 		console.error('❌ Error:', message);
@@ -1728,50 +1707,41 @@ class DashboardManager {
 	// ===== FLOORS =====
 	// =========================
 
-	async loadBuildingFloors(buildingId) {
-		const floorSelect = document.getElementById('filter-floor');
-		if (!floorSelect) {
-			console.warn('Floor select not found (#filter-floor). Skipping floors update.');
-			return;
-		}
 
-		const idUpper = String(buildingId).toUpperCase();
-		let floorsCount = 1;
-		let excludedFloors = [];
+    async loadBuildingFloors(buildingId) {
+        const floorSelect = document.getElementById('filter-floor');
+        const selectHist = document.getElementById('hist-filter-building');
 
-		// Priorité au virtuel
-		if (this.virtualBuildings[idUpper]) {
-			console.log(`🛠️ Forçage virtuel pour ${idUpper}: ${this.virtualBuildings[idUpper].floors} étages`);
-			floorsCount = this.virtualBuildings[idUpper].floors;
-		} else {
-			try {
-				const resp = await fetch(`/api/buildings/${buildingId}`);
-				if (!resp.ok) {
-					throw new Error(`HTTP ${resp.status}`);
-				}
-				const b = await resp.json();
-				floorsCount = b.floorsCount || 1;
-				excludedFloors = b.excludedFloors || [];
-			} catch (e) {
-				floorsCount = 1;
-			}
-		}
+        if (!floorSelect) {
+            console.warn('Floor select not found (#filter-floor). Skipping floors update.');
+            return;
+        }
 
-		floorSelect.innerHTML = '<option value="">All Floors</option>';
-		for (let i = 0; i < floorsCount; i++) {
-			if (excludedFloors.includes(i)) continue;
-			const opt = document.createElement('option');
-			opt.value = String(i);
-			if (i === 0){
-				opt.textContent = `Ground Floor`;
-			} else {
-				opt.textContent = `Floor ${i}`;
-			}
-			floorSelect.appendChild(opt);
-		}
+        let floorsCount = 1;
+        let excludedFloors = [];
 
-		this.filters.floor = '';
-	}
+        try {
+            const resp = await fetch(`/api/buildings/${buildingId}`);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const b = await resp.json();
+            floorsCount = b.floorsCount ?? 1;
+            excludedFloors = b.excludedFloors ?? [];
+        } catch (e) {
+            console.warn(`loadBuildingFloors: failed to fetch floors for building ${buildingId}`, e);
+            floorsCount = 1;
+        }
+
+        floorSelect.innerHTML = '<option value="">All Floors</option>';
+        for (let i = 0; i < floorsCount; i++) {
+            if (excludedFloors.includes(i)) continue;
+            const opt = document.createElement('option');
+            opt.value = String(i);
+            opt.textContent = i === 0 ? 'Ground Floor' : `Floor ${i}`;
+            floorSelect.appendChild(opt);
+        }
+
+        this.filters.floor = '';
+    }
 
 	getEffectiveFloorParam() {
 		const f = this.filters.floor;

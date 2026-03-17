@@ -53,13 +53,8 @@ public class GatewayService {
         }
     }
 
-    public Optional<Gateway> findByBuildingId(String buildingId) {
-        try {
-            return gatewayDao.findGatewayByBuildingId(buildingId);
-        } catch (Exception e) {
-            LoggerUtil.logError(e, buildingId);
-            return Optional.empty();
-        }
+    public List<Gateway> findByBuildingId(Integer buildingId) {
+        return gatewayDao.findGatewaysByBuildingId(buildingId);
     }
 
     public void saveGatewayInDatabase(Gateway gateway, BindingResult bindingResult) {
@@ -67,7 +62,6 @@ public class GatewayService {
             if (gatewayDao.findGatewayById(gateway.getGatewayId()).isPresent()) {
                 LoggerUtil.logWithBindingObject(bindingResult, Constants.GATEWAY_ID_EXISTS, gateway.getGatewayId(), Constants.BINDING_GATEWAY_ID);
             }
-//            gateway.setCreatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))); // UNIQUEMENT POUR LES TESTS SANS LORAWAN
             gatewayDao.insertGatewayInDatabase(gateway);
         } catch (Exception e) {
             LoggerUtil.logWithBindingObjectError(bindingResult, e, Constants.DATABASE_PROBLEM, null, Constants.BINDING_DATABASE_PROBLEM);

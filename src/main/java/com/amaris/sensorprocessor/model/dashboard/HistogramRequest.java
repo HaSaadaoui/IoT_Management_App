@@ -19,7 +19,7 @@ import java.util.Date;
 public class HistogramRequest {
 
     // Filters
-    private String building;        // Building filter (e.g., "Mantu", "all")
+    private String building;
     private String floor;           // Floor filter (e.g., "1", "all")
     private String sensorType;      // Sensor type (e.g., "DESK", "TEMPERATURE")
     private String sensorId;        // Specific sensor ID (optional, for single sensor queries)

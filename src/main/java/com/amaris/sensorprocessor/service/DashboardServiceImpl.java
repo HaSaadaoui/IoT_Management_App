@@ -10,6 +10,7 @@ import com.amaris.sensorprocessor.repository.SensorDao;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.relational.core.sql.In;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -39,17 +40,14 @@ public class DashboardServiceImpl implements DashboardService {
         this.buildingService = buildingService;
     }
 
-    private String mapBuildingName(String building) {
-        if (building == null || "all".equalsIgnoreCase(building)) {
-            return building;
-        }
-        if (isInteger(building)){
-            Optional<Building> optBuilding = buildingService.findById(Integer.parseInt(building));
-            if (optBuilding.isPresent()){
-                return optBuilding.get().getName();
-            }
-        }
-        return building;
+    private Integer mapBuildingToId(String building) {
+        if (building == null || "all".equalsIgnoreCase(building)) return null;
+        if (isInteger(building)) return Integer.parseInt(building);
+        return buildingService.findAll().stream()
+                .filter(b -> b.getName().equalsIgnoreCase(building.trim()))
+                .map(Building::getId)
+                .findFirst()
+                .orElse(null);
     }
 
     private boolean isInteger(String s) {
@@ -70,27 +68,18 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public DashboardData getDashboardData(String year, String month, String building,
                                           String floor, String sensorType, String timeSlot) {
-        log.info("Fetching dashboard data: year={}, month={}, building={}, floor={}, sensorType={}, timeSlot={}",
-                year, month, building, floor, sensorType, timeSlot);
-
         sensorType = sensorType != null ? sensorType : "DESK";
-        String buildingName = ""; 
-        if (isInteger(building)){
-            Optional<Building> buildingObject = buildingService.findById(Integer.parseInt(building));
-            if (buildingObject.isPresent()){
-                buildingName = buildingObject.get().getName();
-            }
-        }
+        Integer buildingId = mapBuildingToId(building);
 
-        alertService.startMonitoringForBuilding(building, sensorType, buildingName);
-        List<Alert> alerts = alertService.getCurrentAlertsWithWait(buildingName, 500);
+        alertService.startMonitoringForBuilding(building, sensorType, buildingId);
+        List<Alert> alerts = alertService.getCurrentAlertsWithWait(buildingId, 500);
         List<LiveSensorData> liveSensorData = getLiveSensorData(building, floor, sensorType);
         HistoricalData historicalData = getHistoricalData(year, month, building, floor, sensorType, timeSlot);
 
         return new DashboardData(alerts, liveSensorData, historicalData);
     }
 
-    private List<Alert> getAlerts(String building) {
+    private List<Alert> getAlerts(Integer building) {
         return alertService.getCurrentAlerts(building);
     }
 
@@ -98,10 +87,10 @@ public class DashboardServiceImpl implements DashboardService {
         List<LiveSensorData> liveSensorData = new ArrayList<>();
         List<Sensor> filteredSensors = sensorDao.findAllByDeviceType(sensorType);
 
-        if (building != null && !building.equals("all")) {
-            String mappedBuilding = mapBuildingName(building);
+        if (building != null && !"all".equalsIgnoreCase(building)) {
+            Integer buildingId = mapBuildingToId(building); // ✅ Integer
             filteredSensors = filteredSensors.stream()
-                    .filter(sensor -> mappedBuilding.equalsIgnoreCase(sensor.getBuildingName()))
+                    .filter(s -> buildingId != null && buildingId.equals(s.getBuildingId())) // ✅
                     .collect(Collectors.toList());
         }
 
@@ -174,9 +163,9 @@ public class DashboardServiceImpl implements DashboardService {
         List<Sensor> deskSensors = sensorDao.findAllByDeviceTypes(List.of("DESK", "OCCUP", "COUNT"));
 
         if (building != null && !"all".equalsIgnoreCase(building) && !building.isBlank()) {
-            String mappedBuilding = mapBuildingName(building);
+            Integer buildingId = mapBuildingToId(building); // ✅
             deskSensors = deskSensors.stream()
-                    .filter(s -> mappedBuilding.equalsIgnoreCase(s.getBuildingName()))
+                    .filter(s -> buildingId != null && buildingId.equals(s.getBuildingId())) // ✅
                     .collect(Collectors.toList());
         }
 
@@ -239,7 +228,6 @@ public class DashboardServiceImpl implements DashboardService {
                 })
                 .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
     }
-
     @Override
     public List<SensorInfo> getSensorsList(String building, String floor, String sensorType) {
         log.info("Fetching sensors list: building={}, floor={}, sensorType={}", building, floor, sensorType);
@@ -249,9 +237,9 @@ public class DashboardServiceImpl implements DashboardService {
         List<Sensor> sensors = sensorDao.findAllByDeviceType(sensorType);
 
         if (building != null && !"all".equalsIgnoreCase(building)) {
-            String mappedBuilding = mapBuildingName(building);
+            Integer buildingId = mapBuildingToId(building); // ✅ résolution ici
             sensors = sensors.stream()
-                    .filter(s -> mappedBuilding.equalsIgnoreCase(s.getBuildingName()))
+                    .filter(s -> buildingId != null && buildingId.equals(s.getBuildingId())) // ✅ Integer.equals()
                     .collect(Collectors.toList());
         }
 
@@ -261,15 +249,14 @@ public class DashboardServiceImpl implements DashboardService {
                     .collect(Collectors.toList());
         }
 
-        // ✅ Charger les labels en une seule requête
         Map<Integer, String> deviceTypeMap = loadDeviceTypeMap();
 
         return sensors.stream()
                 .map(s -> new SensorInfo(
                         s.getIdSensor(),
-                        deviceTypeMap.getOrDefault(s.getIdDeviceType(), "UNKNOWN"), // ✅ label via map
+                        deviceTypeMap.getOrDefault(s.getIdDeviceType(), "UNKNOWN"),
                         s.getLocation(),
-                        s.getBuildingName(),
+                        s.getBuildingId() != null ? String.valueOf(s.getBuildingId()) : null,
                         s.getFloor(),
                         true
                 ))
@@ -384,9 +371,9 @@ public class DashboardServiceImpl implements DashboardService {
         }
 
         if (hasText(request.getBuilding()) && !"all".equalsIgnoreCase(request.getBuilding())) {
-            String mappedBuilding = mapBuildingName(request.getBuilding());
+            Integer buildingId = mapBuildingToId(request.getBuilding());
             sensors = sensors.stream()
-                    .filter(s -> mappedBuilding.equalsIgnoreCase(s.getBuildingName()))
+                    .filter(s -> buildingId != null && buildingId.equals(s.getBuildingId()))
                     .collect(Collectors.toList());
         }
 
@@ -425,19 +412,19 @@ public class DashboardServiceImpl implements DashboardService {
         LocalDateTime start;
 
         switch (request.getTimeRange()) {
-            case TODAY        -> start = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS);
-            case LAST_7_DAYS  -> start = end.minusDays(6).truncatedTo(ChronoUnit.DAYS);
+            case TODAY -> start = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS);
+            case LAST_7_DAYS -> start = end.minusDays(6).truncatedTo(ChronoUnit.DAYS);
             case LAST_30_DAYS -> start = end.minusDays(29).truncatedTo(ChronoUnit.DAYS);
-            case THIS_MONTH   -> start = end.withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
-            case LAST_MONTH   -> {
+            case THIS_MONTH -> start = end.withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
+            case LAST_MONTH -> {
                 start = end.minusMonths(1).withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
-                end   = end.withDayOfMonth(1).minusDays(1).truncatedTo(ChronoUnit.DAYS).plusDays(1).minusSeconds(1);
+                end = end.withDayOfMonth(1).minusDays(1).truncatedTo(ChronoUnit.DAYS).plusDays(1).minusSeconds(1);
             }
             case CUSTOM -> {
                 if (request.getCustomStartDate() != null && request.getCustomEndDate() != null) {
                     start = LocalDateTime.ofInstant(request.getCustomStartDate().toInstant(),
                             java.time.ZoneId.systemDefault()).truncatedTo(ChronoUnit.DAYS);
-                    end   = LocalDateTime.ofInstant(request.getCustomEndDate().toInstant(),
+                    end = LocalDateTime.ofInstant(request.getCustomEndDate().toInstant(),
                             java.time.ZoneId.systemDefault()).truncatedTo(ChronoUnit.DAYS).plusDays(1).minusSeconds(1);
                 } else {
                     start = end.minusDays(6).truncatedTo(ChronoUnit.DAYS);

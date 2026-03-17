@@ -16,8 +16,9 @@ public class BuildingEnergyConfig {
     @Id
     private Long id;
     
-    @Column("building_name")
-    private String buildingName;
+    @Column("building_id")
+    private Integer buildingId;
+
     
     @Column("energy_cost_per_kwh")
     private Double energyCostPerKwh;
@@ -28,8 +29,8 @@ public class BuildingEnergyConfig {
     @Column("co2_emission_factor")
     private Double co2EmissionFactor;
     
-    public BuildingEnergyConfig(String buildingName, Double energyCostPerKwh, String currency, Double co2EmissionFactor) {
-        this.buildingName = buildingName;
+    public BuildingEnergyConfig(Integer buildingId, Double energyCostPerKwh, String currency, Double co2EmissionFactor) {
+        this.buildingId = buildingId;
         this.energyCostPerKwh = energyCostPerKwh;
         this.currency = currency;
         this.co2EmissionFactor = co2EmissionFactor;

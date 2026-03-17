@@ -1,20 +1,78 @@
-// Popups
+// ========================
+// Manage Gateways (JS)
+// ========================
+
+const CAN_EDIT_GATEWAYS = !!window.CAN_EDIT_GATEWAYS;
+const BUILDING_FLOORS   = Array.isArray(window.BUILDING_FLOORS) ? window.BUILDING_FLOORS : [];
+
+// ── Popups ──
 var modalCreate = document.getElementById("createGatewayPopup");
-var modalEdit = document.getElementById("editGatewayPopup");
+var modalEdit   = document.getElementById("editGatewayPopup");
 var modalDelete = document.getElementById("deleteGatewayPopup");
 
-// Permissions (injectées par Thymeleaf)
-const CAN_EDIT_GATEWAYS = !!window.CAN_EDIT_GATEWAYS;
-
-// Bouton ouvrir Create
-var btnCreate = document.getElementById("openCreateBtn");
-
-// Éléments fermeture popups
+// ── Boutons ──
+var btnCreate  = document.getElementById("openCreateBtn");
 var exitCreate = document.getElementById("closeCreate");
-var exitEdit = document.getElementById("closeEdit");
+var exitEdit   = document.getElementById("closeEdit");
 var exitDelete = document.getElementById("closeDelete");
 
-// Ouvrir la popup Create (uniquement si autorisé)
+// ── Selects floors ──
+const floorSelectCreate    = document.getElementById('floorSelectCreate');
+const buildingSelectCreate = document.getElementById('buildingSelectCreate');
+const floorSelectEdit      = document.getElementById('floorSelectEdit');
+const buildingSelectEdit   = document.getElementById('buildingSelectEdit');
+
+// -----------------------
+// Populate Floors
+// -----------------------
+function populateFloors(selectEl, buildingId, currentFloor = null) {
+    if (!selectEl) return;
+    selectEl.innerHTML = '<option value="" disabled selected>Select a Floor</option>';
+
+    if (!buildingId) {
+        selectEl.disabled = true;
+        return;
+    }
+
+    const bf = BUILDING_FLOORS.find(b => String(b.id) === String(buildingId));
+    if (!bf || !bf.floorsCount) {
+        selectEl.disabled = true;
+        return;
+    }
+
+    for (let i = 1; i <= bf.floorsCount; i++) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = 'Floor ' + i;
+        selectEl.appendChild(opt);
+    }
+    selectEl.disabled = false;
+
+    if (currentFloor != null) {
+        selectEl.value = String(currentFloor);
+    }
+}
+
+// CREATE : building change → peuple floors
+buildingSelectCreate?.addEventListener('change', () => {
+    populateFloors(floorSelectCreate, buildingSelectCreate.value);
+});
+
+// EDIT : pré-peuple les floors au chargement si le modal est présent
+if (floorSelectEdit) {
+    const buildingId   = floorSelectEdit.dataset.building || '';
+    const currentFloor = floorSelectEdit.dataset.current  || null;
+    populateFloors(floorSelectEdit, buildingId, currentFloor);
+}
+
+// EDIT : building change → repeuple floors
+buildingSelectEdit?.addEventListener('change', () => {
+    populateFloors(floorSelectEdit, buildingSelectEdit.value);
+});
+
+// -----------------------
+// Ouvrir / Fermer modals
+// -----------------------
 if (btnCreate && modalCreate) {
     if (!CAN_EDIT_GATEWAYS) {
         btnCreate.classList.add("disabled");
@@ -23,13 +81,10 @@ if (btnCreate && modalCreate) {
         btnCreate.addEventListener("click", () => {
             refreshCsrfToken();
             modalCreate.style.display = "block";
-            const select = modalCreate.querySelector("select[name='frequencyPlan']");
-            if (select) select.value = "";
         });
     }
 }
 
-// Fermer la popup Create
 if (exitCreate && modalCreate) {
     exitCreate.addEventListener("click", () => {
         resetCreateModalFields();
@@ -38,7 +93,6 @@ if (exitCreate && modalCreate) {
     });
 }
 
-// Fermer la popup Edit
 if (exitEdit && modalEdit) {
     exitEdit.addEventListener("click", () => {
         resetEditModalFields();
@@ -47,7 +101,6 @@ if (exitEdit && modalEdit) {
     });
 }
 
-// Fermer la popup Delete
 if (exitDelete && modalDelete) {
     exitDelete.addEventListener("click", () => {
         resetDeleteError();
@@ -55,28 +108,25 @@ if (exitDelete && modalDelete) {
     });
 }
 
-// Fermer popup au clic extérieur
 window.onclick = function(event) {
     [modalCreate, modalEdit, modalDelete].forEach(modal => {
         if (modal && event.target === modal) {
             modal.style.display = "none";
-            if (modal === modalCreate) {
-                resetCreateModalFields();
-                resetCreateError();
-            } else if (modal === modalEdit) {
-                resetEditModalFields();
-                resetEditError();
-            } else if (modal === modalDelete) {
-                resetDeleteError();
-            }
+            if (modal === modalCreate) { resetCreateModalFields(); resetCreateError(); }
+            else if (modal === modalEdit)   { resetEditModalFields();   resetEditError();   }
+            else if (modal === modalDelete) { resetDeleteError(); }
         }
     });
 };
 
-// Ouvre la popup si erreur détectée
+// Ouvre le modal si erreur serveur détectée
 document.addEventListener("DOMContentLoaded", function () {
     if (document.querySelector('.error-message-create') && modalCreate) {
         modalCreate.style.display = "block";
+        // Re-peuple le floor select Create si un building était sélectionné
+        if (buildingSelectCreate?.value) {
+            populateFloors(floorSelectCreate, buildingSelectCreate.value);
+        }
     }
     if (document.querySelector('.error-message-edit') && modalEdit) {
         modalEdit.style.display = "block";
@@ -88,66 +138,64 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
-// Réinitialiser les champs du formulaire Create
+// -----------------------
+// Reset modals
+// -----------------------
 function resetCreateModalFields() {
     if (!modalCreate) return;
-    const inputs = modalCreate.querySelectorAll("input");
-    inputs.forEach(input => input.value = "");
-    const select = modalCreate.querySelector("select");
-    if (select) select.value = "";
+    modalCreate.querySelectorAll("input").forEach(i => i.value = "");
+    modalCreate.querySelectorAll("select").forEach(s => { s.value = ""; });
+    // Réinitialise le floor select
+    if (floorSelectCreate) {
+        floorSelectCreate.innerHTML = '<option value="" disabled selected>Select a Floor</option>';
+        floorSelectCreate.disabled = true;
+    }
 }
 
-// Réinitialiser l'affichage de l'erreur dans Create
 function resetCreateError() {
     if (!modalCreate) return;
     const errorDiv = modalCreate.querySelector(".alert-danger");
     if (errorDiv) errorDiv.style.display = "none";
-    const errorInputs = modalCreate.querySelectorAll(".input-error");
-    errorInputs.forEach(input => input.classList.remove("input-error"));
+    modalCreate.querySelectorAll(".input-error").forEach(el => el.classList.remove("input-error"));
 }
 
-// Réinitialiser les champs du formulaire Edit
 function resetEditModalFields() {
     if (!modalEdit) return;
-    const inputs = modalEdit.querySelectorAll("input");
-    inputs.forEach(input => input.value = "");
-    const select = modalEdit.querySelector("select");
-    if (select) select.value = "";
+    modalEdit.querySelectorAll("input").forEach(i => i.value = "");
+    modalEdit.querySelectorAll("select").forEach(s => { s.value = ""; });
 }
 
-// Réinitialiser l'affichage de l'erreur dans Edit
 function resetEditError() {
     if (!modalEdit) return;
     const errorDiv = modalEdit.querySelector(".alert-danger");
     if (errorDiv) errorDiv.style.display = "none";
-    const errorInputs = modalEdit.querySelectorAll(".input-error");
-    errorInputs.forEach(input => input.classList.remove("input-error"));
+    modalEdit.querySelectorAll(".input-error").forEach(el => el.classList.remove("input-error"));
 }
 
-// Réinitialiser l'affichage de l'erreur dans Delete
 function resetDeleteError() {
     const errorDiv = document.querySelector('.error-message-delete');
-    if (errorDiv) {
-        errorDiv.style.display = 'none';
-        errorDiv.textContent = '';
-    }
+    if (errorDiv) { errorDiv.style.display = 'none'; errorDiv.textContent = ''; }
     if (modalDelete) {
         const deleteBtn = modalDelete.querySelector('button[type="submit"]');
         if (deleteBtn) deleteBtn.style.display = 'inline-block';
     }
 }
 
-// Pour renvoyer les champs date sous le format YYYY-MM-DD
+// -----------------------
+// Flatpickr
+// -----------------------
 if (typeof flatpickr === "function") {
     flatpickr(".datepicker", { dateFormat: "Y-m-d" });
 }
 
-// === Navigation back/reload ===
+// -----------------------
+// Navigation back/reload
+// -----------------------
 window.addEventListener('pageshow', function(event) {
     const navType = performance.getEntriesByType('navigation')[0]?.type;
     if (document.querySelector('.error-message-create')
-      || document.querySelector('.error-message-edit')
-      || document.querySelector('.error-message-delete')) {
+     || document.querySelector('.error-message-edit')
+     || document.querySelector('.error-message-delete')) {
         history.replaceState(null, null, window.location.href);
     }
     if (event.persisted || navType === 'back_forward' || navType === 'reload') {
@@ -160,248 +208,212 @@ window.addEventListener('pageshow', function(event) {
     }
 });
 
+// -----------------------
+// CSRF
+// -----------------------
 function refreshCsrfToken() {
     fetch('/csrf-token')
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
             const input = document.querySelector('form#myForm input[name="' + data.parameterName + '"]');
             if (input) input.value = data.token;
         });
 }
 
+// -----------------------
+// Table / Pagination / Filtres
+// -----------------------
 document.addEventListener('DOMContentLoaded', () => {
-  const gateways = Array.isArray(window.GATEWAYS) ? window.GATEWAYS : [];
+    const gateways    = Array.isArray(window.GATEWAYS) ? window.GATEWAYS : [];
+    const tableBody   = document.getElementById('gatewayTableBody');
+    const buildingFilter = document.getElementById('buildingFilter');
+    const searchInput = document.getElementById('searchInput');
+    const dateInput   = document.getElementById('dateFilter');
+    const paginationEl = document.getElementById('pagination');
 
-  const tableBody = document.getElementById('gatewayTableBody');
-  const buildingFilter = document.getElementById('buildingFilter');
-  const searchInput = document.getElementById('searchInput');
-  const dateInput = document.getElementById('dateFilter');
-  const paginationEl = document.getElementById('pagination');
+    const PAGE_SIZE = 10;
+    let currentPage = 1;
+    let filteredRows = [];
+    let buildingMap  = {};
 
-  // === Pagination state ===
-  const PAGE_SIZE = 10;
-  let currentPage = 1;
-  let filteredRows = [];
-
-  function updateBuildingPlaceholderStyle() {
-    if (!buildingFilter) return;
-    const isEmpty = !buildingFilter.value;
-    buildingFilter.classList.toggle('empty', isEmpty);
-  }
-  updateBuildingPlaceholderStyle();
-
-  if (searchInput) {
-    searchInput.addEventListener('focus', () => searchInput.style.borderColor = '#440d64');
-    searchInput.addEventListener('blur', () => searchInput.style.borderColor = '#662179');
-  }
-
-  function sqlLikeToRegex(pattern) {
-    let escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-    escaped = escaped.replace(/%/g, '.*');
-    return new RegExp('^' + escaped + '$', 'i');
-  }
-
-  function matchesLikeOrIncludes(value, query) {
-    if (!query) return true;
-    const v = String(value ?? '');
-    if (query.includes('%')) {
-      return sqlLikeToRegex(query).test(v);
+    function updateBuildingPlaceholderStyle() {
+        if (!buildingFilter) return;
+        buildingFilter.classList.toggle('empty', !buildingFilter.value);
     }
-    return v.toLowerCase().startsWith(query.toLowerCase());
-  }
 
-  function populateBuildings() {
-    if (!buildingFilter) return;
-    const uniques = Array.from(new Set(
-      (gateways || []).map(g => (g.buildingName || '').trim()).filter(Boolean)
-    )).sort();
-
-    buildingFilter.querySelectorAll('option:not([value=""])').forEach(o => o.remove());
-
-    for (const b of uniques) {
-      const opt = document.createElement('option');
-      opt.value = b;
-      opt.textContent = b;
-      buildingFilter.appendChild(opt);
+    if (searchInput) {
+        searchInput.addEventListener('focus', () => searchInput.style.borderColor = '#440d64');
+        searchInput.addEventListener('blur',  () => searchInput.style.borderColor = '#662179');
     }
-    updateBuildingPlaceholderStyle();
-  }
 
-  // ✅ Construit les lignes : Edit/Delete grisés si pas autorisé
-  function renderRows(rows) {
-    if (!tableBody) return;
-    tableBody.innerHTML = '';
+    function sqlLikeToRegex(pattern) {
+        let escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+        escaped = escaped.replace(/%/g, '.*');
+        return new RegExp('^' + escaped + '$', 'i');
+    }
 
-    rows.forEach(gw => {
-      const row = document.createElement('tr');
+    function matchesLikeOrIncludes(value, query) {
+        if (!query) return true;
+        const v = String(value ?? '');
+        if (query.includes('%')) return sqlLikeToRegex(query).test(v);
+        return v.toLowerCase().startsWith(query.toLowerCase());
+    }
 
-      const freqLabel =
-        gw.frequencyPlan === 'EU_863_870_TTN' ? 'Europe' :
-        gw.frequencyPlan === 'US_902_928_FSB_2' ? 'United States' :
-        gw.frequencyPlan === 'AU_915_928_FSB_2' ? 'Australia' :
-        gw.frequencyPlan === 'CN_470_510_FSB_11' ? 'China' :
-        gw.frequencyPlan === 'AS_920_923' ? 'Asia' : (gw.frequencyPlan ?? '');
+    async function loadBuildings() {
+        try {
+            const resp = await fetch('/api/buildings');
+            if (resp.ok) {
+                const buildings = await resp.json();
+                buildingMap = Object.fromEntries(buildings.map(b => [b.id, b.name]));
+            }
+        } catch (e) {
+            // Fallback sur BUILDING_FLOORS si l'API échoue
+            BUILDING_FLOORS.forEach(b => { buildingMap[b.id] = b.name; });
+            console.warn('Could not load buildings from API, using BUILDING_FLOORS', e);
+        }
+        populateBuildings();
+        filteredRows = gateways.slice();
+        renderRowsPaginated();
+    }
 
-      const disabledClass = CAN_EDIT_GATEWAYS ? '' : 'disabled';
+    function populateBuildings() {
+        if (!buildingFilter) return;
+        const uniques = Array.from(new Set(
+            (gateways || []).map(g => g.buildingId).filter(b => b != null)
+        )).sort((a, b) => a - b);
 
-      row.innerHTML = `
-        <td>${gw.gatewayId ?? ''}</td>
-        <td>${gw.ipAddress ?? ''}</td>
-        <td>${freqLabel}</td>
-        <td>${gw.createdAt ?? ''}</td>
-        <td>${gw.buildingName ?? ''}</td>
-        <td>
-          <div class="button-container">
-            <a href="/manage-gateways/monitoring/${gw.gatewayId}/view?ip=${encodeURIComponent(gw.ipAddress ?? '')}">
-              <img src="/image/monitoring-data.svg" alt="Monitor">
-            </a>
+        buildingFilter.querySelectorAll('option:not([value=""])').forEach(o => o.remove());
+        for (const id of uniques) {
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.textContent = buildingMap[id] ?? 'Building ' + id;
+            buildingFilter.appendChild(opt);
+        }
+        updateBuildingPlaceholderStyle();
+    }
 
-            <a href="/manage-gateways/edit/${gw.gatewayId}"
-               class="${disabledClass}"
-               aria-disabled="${!CAN_EDIT_GATEWAYS}">
-              <img src="/image/edit-icon.svg" alt="Edit">
-            </a>
+    function renderRows(rows) {
+        if (!tableBody) return;
+        tableBody.innerHTML = '';
 
-            <a href="#"
-               class="openDeletePopup ${disabledClass}"
-               aria-disabled="${!CAN_EDIT_GATEWAYS}"
-               data-id="${gw.gatewayId}">
-              <img src="/image/delete-icon.svg" alt="Delete">
-            </a>
-          </div>
-        </td>
-      `;
-      tableBody.appendChild(row);
+        rows.forEach(gw => {
+            const row = document.createElement('tr');
+            const freqLabel =
+                gw.frequencyPlan === 'EU_863_870_TTN'    ? 'Europe' :
+                gw.frequencyPlan === 'US_902_928_FSB_2'  ? 'United States' :
+                gw.frequencyPlan === 'AU_915_928_FSB_2'  ? 'Australia' :
+                gw.frequencyPlan === 'CN_470_510_FSB_11' ? 'China' :
+                gw.frequencyPlan === 'AS_920_923'        ? 'Asia' : (gw.frequencyPlan ?? '');
+
+            const disabledClass  = CAN_EDIT_GATEWAYS ? '' : 'disabled';
+            const buildingLabel  = gw.buildingId != null
+                ? (buildingMap[gw.buildingId] ?? 'Building ' + gw.buildingId) : '';
+
+            row.innerHTML = `
+                <td>${gw.gatewayId ?? ''}</td>
+                <td>${gw.ipAddress ?? ''}</td>
+                <td>${freqLabel}</td>
+                <td>${gw.createdAt ?? ''}</td>
+                <td>${buildingLabel}</td>
+                <td>
+                  <div class="button-container">
+                    <a href="/manage-gateways/monitoring/${gw.gatewayId}/view?ip=${encodeURIComponent(gw.ipAddress ?? '')}">
+                      <img src="/image/monitoring-data.svg" alt="Monitor">
+                    </a>
+                    <a href="/manage-gateways/edit/${gw.gatewayId}"
+                       class="${disabledClass}"
+                       aria-disabled="${!CAN_EDIT_GATEWAYS}">
+                      <img src="/image/edit-icon.svg" alt="Edit">
+                    </a>
+                    <a href="#"
+                       class="openDeletePopup ${disabledClass}"
+                       aria-disabled="${!CAN_EDIT_GATEWAYS}"
+                       data-id="${gw.gatewayId}">
+                      <img src="/image/delete-icon.svg" alt="Delete">
+                    </a>
+                  </div>
+                </td>`;
+            tableBody.appendChild(row);
+        });
+
+        if (CAN_EDIT_GATEWAYS) {
+            tableBody.querySelectorAll('.openDeletePopup').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    e.preventDefault();
+                    const id = btn.getAttribute('data-id');
+                    const form = document.getElementById('deleteForm');
+                    if (form) form.action = `/manage-gateways/delete/${id}`;
+                    if (modalDelete) modalDelete.style.display = 'block';
+                });
+            });
+        }
+    }
+
+    function renderRowsPaginated() {
+        const total = filteredRows.length;
+        const start = (currentPage - 1) * PAGE_SIZE;
+        renderRows(filteredRows.slice(start, start + PAGE_SIZE));
+        renderPagination(total);
+    }
+
+    function renderPagination(totalCount) {
+        if (!paginationEl) return;
+        const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+        currentPage = Math.min(currentPage, totalPages);
+        if (totalPages <= 1) { paginationEl.innerHTML = ''; return; }
+
+        const btn = (label, page, disabled = false, active = false, ariaLabel) => {
+            const b = document.createElement('button');
+            b.className = 'page-btn' + (active ? ' active' : '');
+            b.textContent = label;
+            if (ariaLabel) b.setAttribute('aria-label', ariaLabel);
+            if (disabled) b.setAttribute('disabled', 'disabled');
+            b.addEventListener('click', () => {
+                if (!disabled && currentPage !== page) { currentPage = page; renderRowsPaginated(); }
+            });
+            return b;
+        };
+
+        const totalPagesToShow = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(totalPagesToShow / 2));
+        let endPage   = Math.min(totalPages, startPage + totalPagesToShow - 1);
+        if (endPage - startPage + 1 < totalPagesToShow) startPage = Math.max(1, endPage - totalPagesToShow + 1);
+
+        paginationEl.innerHTML = '';
+        paginationEl.appendChild(btn('«', 1,              currentPage === 1,           false, 'First page'));
+        paginationEl.appendChild(btn('‹', currentPage - 1, currentPage === 1,          false, 'Previous page'));
+        for (let p = startPage; p <= endPage; p++) paginationEl.appendChild(btn(String(p), p, false, p === currentPage));
+        paginationEl.appendChild(btn('›', currentPage + 1, currentPage === totalPages,  false, 'Next page'));
+        paginationEl.appendChild(btn('»', totalPages,       currentPage === totalPages,  false, 'Last page'));
+    }
+
+    function applyFilters() {
+        const b = buildingFilter?.value || '';
+        const q = (searchInput?.value || '').trim();
+        const d = (dateInput?.value || '').trim();
+
+        let rows = gateways.slice();
+        if (b) rows = rows.filter(g => String(g.buildingId) === String(b));
+        if (q) rows = rows.filter(g => matchesLikeOrIncludes(g.gatewayId, q) || matchesLikeOrIncludes(g.ipAddress, q));
+        if (d) {
+            const dDate = new Date(d);
+            rows = rows.filter(g => g.createdAt && new Date(g.createdAt) >= dDate);
+        }
+        filteredRows = rows;
+        currentPage = 1;
+        renderRowsPaginated();
+    }
+
+    buildingFilter?.addEventListener('change', () => { updateBuildingPlaceholderStyle(); applyFilters(); });
+    searchInput?.addEventListener('input', applyFilters);
+    dateInput?.addEventListener('input', applyFilters);
+
+    document.getElementById('clearBuilding')?.addEventListener('click', () => {
+        if (!buildingFilter) return;
+        buildingFilter.value = '';
+        updateBuildingPlaceholderStyle();
+        applyFilters();
     });
 
-    // ✅ Listener delete UNIQUEMENT si autorisé
-    if (CAN_EDIT_GATEWAYS) {
-      tableBody.querySelectorAll('.openDeletePopup').forEach(btn => {
-        btn.addEventListener('click', e => {
-          e.preventDefault();
-          const id = btn.getAttribute('data-id');
-          const form = document.getElementById('deleteForm');
-          if (form) form.action = `/manage-gateways/delete/${id}`;
-          if (modalDelete) modalDelete.style.display = 'block';
-        });
-      });
-    }
-  }
-
-  function renderRowsPaginated() {
-    const total = filteredRows.length;
-    const start = (currentPage - 1) * PAGE_SIZE;
-    const pageRows = filteredRows.slice(start, start + PAGE_SIZE);
-    renderRows(pageRows);
-    renderPagination(total);
-  }
-
-  function renderPagination(totalCount) {
-    if (!paginationEl) return;
-
-    const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-    currentPage = Math.min(currentPage, totalPages);
-
-    if (totalPages <= 1) {
-      paginationEl.innerHTML = '';
-      return;
-    }
-
-    const btn = (label, page, disabled = false, active = false, ariaLabel) => {
-      const b = document.createElement('button');
-      b.className = 'page-btn' + (active ? ' active' : '');
-      b.textContent = label;
-      if (ariaLabel) b.setAttribute('aria-label', ariaLabel);
-      if (disabled) b.setAttribute('disabled', 'disabled');
-      b.addEventListener('click', () => {
-        if (!disabled && currentPage !== page) {
-          currentPage = page;
-          renderRowsPaginated();
-        }
-      });
-      return b;
-    };
-
-    const totalPagesToShow = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(totalPagesToShow / 2));
-    let endPage = Math.min(totalPages, startPage + totalPagesToShow - 1);
-    if (endPage - startPage + 1 < totalPagesToShow) {
-      startPage = Math.max(1, endPage - totalPagesToShow + 1);
-    }
-
-    paginationEl.innerHTML = '';
-    paginationEl.appendChild(btn('«', 1, currentPage === 1, false, 'First page'));
-    paginationEl.appendChild(btn('‹', currentPage - 1, currentPage === 1, false, 'Previous page'));
-
-    for (let p = startPage; p <= endPage; p++) {
-      paginationEl.appendChild(btn(String(p), p, false, p === currentPage));
-    }
-
-    paginationEl.appendChild(btn('›', currentPage + 1, currentPage === totalPages, false, 'Next page'));
-    paginationEl.appendChild(btn('»', totalPages, currentPage === totalPages, false, 'Last page'));
-  }
-
-  function applyFilters() {
-    const b = buildingFilter?.value || '';
-    const q = (searchInput?.value || '').trim();
-    const d = (dateInput?.value || '').trim();
-
-    let rows = (gateways || []).slice();
-
-    if (b) rows = rows.filter(g => (g.buildingName || '') === b);
-
-    if (q) {
-      rows = rows.filter(g =>
-        matchesLikeOrIncludes(g.gatewayId, q) ||
-        matchesLikeOrIncludes(g.ipAddress, q)
-      );
-    }
-
-    if (d) {
-      const dDate = new Date(d);
-      rows = rows.filter(g => {
-        if (!g.createdAt) return false;
-        const gDate = new Date(g.createdAt);
-        return gDate >= dDate;
-      });
-    }
-
-    filteredRows = rows;
-    currentPage = 1;
-    renderRowsPaginated();
-  }
-
-  buildingFilter?.addEventListener('change', () => {
-    updateBuildingPlaceholderStyle();
-    applyFilters();
-  });
-  searchInput?.addEventListener('input', applyFilters);
-  dateInput?.addEventListener('input', applyFilters);
-
-  document.getElementById('clearBuilding')?.addEventListener('click', () => {
-    if (!buildingFilter) return;
-    buildingFilter.value = '';
-    updateBuildingPlaceholderStyle();
-    applyFilters();
-  });
-
-  const clearSearch = document.querySelector('#searchInput + span');
-  clearSearch?.addEventListener('click', () => {
-    if (!searchInput) return;
-    searchInput.value = '';
-    applyFilters();
-  });
-
-  const clearDate = document.querySelector('#dateFilter + span');
-  clearDate?.addEventListener('click', () => {
-    if (!dateInput) return;
-    dateInput.value = '';
-    applyFilters();
-  });
-
-  // Init
-  populateBuildings();
-  filteredRows = gateways || [];
-  renderRowsPaginated();
-  applyFilters();
+    loadBuildings();
 });

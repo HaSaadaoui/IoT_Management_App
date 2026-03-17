@@ -22,10 +22,11 @@ public class BuildingEnergyConfigDao {
         String sql = """
             CREATE TABLE IF NOT EXISTS building_energy_config (
                 id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                building_name VARCHAR(255) UNIQUE NOT NULL,
+                building_id INT UNIQUE NOT NULL,
                 energy_cost_per_kwh DOUBLE DEFAULT 0.0,
                 currency VARCHAR(10) DEFAULT 'EUR',
-                co2_emission_factor DOUBLE DEFAULT 0.0
+                co2_emission_factor DOUBLE DEFAULT 0.0,
+                FOREIGN KEY (building_id) REFERENCES building(id_building)
             )
         """;
         jdbcTemplate.execute(sql);
@@ -34,7 +35,7 @@ public class BuildingEnergyConfigDao {
     private final RowMapper<BuildingEnergyConfig> rowMapper = (rs, rowNum) -> {
         BuildingEnergyConfig config = new BuildingEnergyConfig();
         config.setId(rs.getLong("id"));
-        config.setBuildingName(rs.getString("building_name"));
+        config.setBuildingId(rs.getInt("building_id")); // ✅
         config.setEnergyCostPerKwh(rs.getDouble("energy_cost_per_kwh"));
         config.setCurrency(rs.getString("currency"));
         config.setCo2EmissionFactor(rs.getDouble("co2_emission_factor"));
@@ -42,52 +43,54 @@ public class BuildingEnergyConfigDao {
     };
 
     public List<BuildingEnergyConfig> findAll() {
-        String sql = "SELECT * FROM building_energy_config ORDER BY building_name";
-        return jdbcTemplate.query(sql, rowMapper);
+        return jdbcTemplate.query(
+                "SELECT * FROM building_energy_config ORDER BY building_id", rowMapper);
     }
 
-    public Optional<BuildingEnergyConfig> findByBuildingName(String buildingName) {
-        String sql = "SELECT * FROM building_energy_config WHERE building_name = ?";
-        List<BuildingEnergyConfig> results = jdbcTemplate.query(sql, rowMapper, buildingName);
+    // ✅ findByBuildingName → findByBuildingId
+    public Optional<BuildingEnergyConfig> findByBuildingId(Integer buildingId) {
+        if (buildingId == null) return Optional.empty();
+        List<BuildingEnergyConfig> results = jdbcTemplate.query(
+                "SELECT * FROM building_energy_config WHERE building_id = ?", rowMapper, buildingId);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
     public void save(BuildingEnergyConfig config) {
         String sql = """
-            INSERT INTO building_energy_config (building_name, energy_cost_per_kwh, currency, co2_emission_factor)
+            INSERT INTO building_energy_config (building_id, energy_cost_per_kwh, currency, co2_emission_factor)
             VALUES (?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 energy_cost_per_kwh = VALUES(energy_cost_per_kwh),
                 currency = VALUES(currency),
                 co2_emission_factor = VALUES(co2_emission_factor)
         """;
-        jdbcTemplate.update(sql, 
-            config.getBuildingName(), 
-            config.getEnergyCostPerKwh(), 
-            config.getCurrency(),
-            config.getCo2EmissionFactor()
+        jdbcTemplate.update(sql,
+                config.getBuildingId(),
+                config.getEnergyCostPerKwh(),
+                config.getCurrency(),
+                config.getCo2EmissionFactor()
         );
     }
 
-    public void delete(String buildingName) {
-        String sql = "DELETE FROM building_energy_config WHERE building_name = ?";
-        jdbcTemplate.update(sql, buildingName);
+    public void delete(Integer buildingId) {
+        jdbcTemplate.update(
+                "DELETE FROM building_energy_config WHERE building_id = ?", buildingId);
     }
 
-    public Double getEnergyCostPerKwh(String buildingName) {
-        return findByBuildingName(buildingName)
+    public Double getEnergyCostPerKwh(Integer buildingId) {
+        return findByBuildingId(buildingId)
                 .map(BuildingEnergyConfig::getEnergyCostPerKwh)
                 .orElse(0.0);
     }
 
-    public Double getCo2EmissionFactor(String buildingName) {
-        return findByBuildingName(buildingName)
+    public Double getCo2EmissionFactor(Integer buildingId) {
+        return findByBuildingId(buildingId)
                 .map(BuildingEnergyConfig::getCo2EmissionFactor)
                 .orElse(0.0);
     }
 
-    public String getCurrency(String buildingName) {
-        return findByBuildingName(buildingName)
+    public String getCurrency(Integer buildingId) {
+        return findByBuildingId(buildingId)
                 .map(BuildingEnergyConfig::getCurrency)
                 .orElse("EUR");
     }

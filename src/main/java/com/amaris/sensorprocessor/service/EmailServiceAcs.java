@@ -1,5 +1,6 @@
 package com.amaris.sensorprocessor.service;
 
+import com.amaris.sensorprocessor.entity.Building;
 import com.amaris.sensorprocessor.entity.Sensor;
 import com.amaris.sensorprocessor.model.dashboard.Alert;
 import com.amaris.sensorprocessor.repository.SensorDao;
@@ -32,13 +33,16 @@ public class EmailServiceAcs implements EmailService {
     private EmailClient emailClient;
     private final String fromAddress;
     private final SensorDao sensorDao;
+    private final BuildingService buildingService;
+
 
     @Autowired
     public EmailServiceAcs(@Value("${app.mail.acs.connectionString:}") String connectionString,
                           @Value("${app.mail.acs.from:}") String fromAddress,
-                          SensorDao sensorDao) {
+                          SensorDao sensorDao, BuildingService buildingService) {
         this.fromAddress = fromAddress;
         this.sensorDao = sensorDao;
+        this.buildingService = buildingService;
 
         // Allow empty connection string for tests, but log warning
         if (connectionString == null || connectionString.isEmpty() || connectionString.contains("PASTE_PRIMARY_KEY_HERE")) {
@@ -545,10 +549,17 @@ public class EmailServiceAcs implements EmailService {
             Optional<Sensor> sensorOpt = sensorDao.findByIdOfSensor(sensorId);
             if (sensorOpt.isPresent()) {
                 Sensor sensor = sensorOpt.get();
-                String building = sensor.getBuildingName() != null ? sensor.getBuildingName() : "Unknown Building";
                 String floor = sensor.getFloor() != null ? "Floor " + sensor.getFloor() : "Unknown Floor";
                 String location = sensor.getLocation() != null ? sensor.getLocation() : "";
-                
+
+                // ✅ Résoudre le nom du bâtiment via buildingId
+                String building = "Unknown Building";
+                if (sensor.getBuildingId() != null) {
+                    building = buildingService.findById(sensor.getBuildingId())
+                            .map(Building::getName)
+                            .orElse("Unknown Building");
+                }
+
                 if (!location.isEmpty()) {
                     return String.format("%s, %s - %s", building, floor, location);
                 } else {
