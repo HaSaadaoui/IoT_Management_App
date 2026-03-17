@@ -164,6 +164,7 @@ textarea {
     margin-top: 10px;
 }
 
+
 .form-control:hover,
 .form-select:hover {
     border-color: rgba(102, 33, 121, 0.3);
@@ -809,8 +810,13 @@ textarea {
 
 .floor-checkbox-wrapper {
     position: relative;
-    width: 100%;
-    font-family: 'Inter', -apple-system, sans-serif;
+    display: inline-block; 
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    width: auto;
+    max-width: 500px;
+    margin-top: 10px;
 }
 
 .floor-checkbox-header {
@@ -857,12 +863,6 @@ textarea {
 @keyframes dropdownIn {
     from { opacity: 0; transform: translateY(-6px); }
     to   { opacity: 1; transform: translateY(0); }
-}
-
-.floor-checkbox-select-all {
-    padding: 6px 8px 4px;
-    border-bottom: 1px solid var(--border);
-    background: #f8fafc;
 }
 
 .floor-checkbox-list {
@@ -963,14 +963,5 @@ textarea {
 
 .floor-checkbox-item.floor-excluded .floor-checkbox-label {
     color: var(--danger);
-}
-
-.floor-excluded-badge {
-    font-size: 0.7rem;
-    padding: 1px 7px;
-    border-radius: 20px;
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--danger);
-    font-weight: 500;
 }
 

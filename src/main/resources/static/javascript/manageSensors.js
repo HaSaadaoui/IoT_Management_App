@@ -47,10 +47,15 @@ function populateFloors(selectEl, building, currentFloor = null) {
     return;
   }
 
-  for (let i = 1; i <= bf.floorsCount; i++) {
+  for (let i = 0; i < bf.floorsCount; i++) {
     const opt = document.createElement('option');
     opt.value = i;
-    opt.textContent = `Floor ${i}`;
+    if (i == 0){
+      opt.textContent = `Ground Floor`;
+    } else {
+      opt.textContent = `Floor ${i}`;
+    }
+    
     selectEl.appendChild(opt);
   }
 

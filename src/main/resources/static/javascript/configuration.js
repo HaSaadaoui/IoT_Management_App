@@ -349,7 +349,6 @@ function populateFloorSelect() {
                 <span class="floor-custom-checkbox ${isExcluded ? 'checked' : ''}"></span>
                 <input type="checkbox" value="${i}" ${isExcluded ? 'checked' : ''} onchange="onFloorCheckboxChange(this)">
                 <span class="floor-checkbox-label">${label}</span>
-                ${isExcluded ? '<span class="floor-excluded-badge">excluded</span>' : ''}
             `;
             checkboxList.prepend(item); // prepend so highest floor is at top
         }
@@ -376,35 +375,19 @@ function toggleFloorCheckboxPanel() {
 function onFloorCheckboxChange(cb) {
     const item = cb.closest('.floor-checkbox-item');
     const customCb = item?.querySelector('.floor-custom-checkbox');
-    const badge = item?.querySelector('.floor-excluded-badge');
 
     if (cb.checked) {
         item?.classList.add('floor-excluded');
         customCb?.classList.add('checked');
-        if (!badge) {
-            const b = document.createElement('span');
-            b.className = 'floor-excluded-badge';
-            b.textContent = 'excluded';
-            item?.appendChild(b);
-        }
     } else {
         item?.classList.remove('floor-excluded');
         customCb?.classList.remove('checked');
-        badge?.remove();
     }
 
     updateFloorCheckboxSummary();
-    this.applyFormUpdate();
-}
-
-function toggleAllFloors(masterCb) {
-    const checked = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]:checked');
-    const all = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]');
-    all.forEach(cb => {
-        cb.checked = checked.length === all.length ? false : true;
-        onFloorCheckboxChange(cb);
-    });
-    updateMasterCheckboxUI();
+    if (window.building3D.dbBuildingConfig && window.building3D.dbBuildingConfig.svgUrl){
+        this.applyFormUpdate();
+    }
 }
 
 function updateFloorCheckboxSummary() {
@@ -772,7 +755,7 @@ async function initBuildingConfig() {
 }
 
 function refresh3DConfig(){
-    const selectBuilding = document.getElementById('filter-building');
+    const selectBuilding = document.getElementById("filter-building");
     const floorsEl = document.getElementById("building-floors");
     const scaleEl  = document.getElementById("building-scale");
 

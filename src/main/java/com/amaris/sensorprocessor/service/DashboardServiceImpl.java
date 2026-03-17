@@ -1,7 +1,6 @@
 package com.amaris.sensorprocessor.service;
 
 import com.amaris.sensorprocessor.entity.Building;
-import com.amaris.sensorprocessor.entity.BuildingMapping;
 import com.amaris.sensorprocessor.entity.DeviceType;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.Sensor;

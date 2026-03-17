@@ -219,9 +219,9 @@ public class DashboardController {
 
 
     private String mapBuildingToAppId(String building) {
-        String defaultValue = "rpi-mantu-appli";
+        String appId = "";
         if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
-            return defaultValue;
+            return "rpi-mantu-appli";
         }
 
         if (isInteger(building)) {
