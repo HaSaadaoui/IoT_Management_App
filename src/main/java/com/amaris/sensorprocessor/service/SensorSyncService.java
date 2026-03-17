@@ -206,12 +206,8 @@ public class SensorSyncService {
             final String appId;
             if ("leva-rpi-mantu".equalsIgnoreCase(gatewayId)) {
                 appId = "lorawan-network-mantu";
-            } else if ("lil-rpi-mantu".equals(gatewayId)) {
-                appId = "lil-rpi-mantu-appli";
-            } else if ("rpi-mantu".equals(gatewayId)) {
-                appId = "rpi-mantu-appli";
             } else {
-                appId = gatewayId + "-mantu-appli";
+                appId = gatewayId + "-appli";
             }
 
             sensorService.getGatewayDevices(appId, after)

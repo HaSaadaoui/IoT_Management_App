@@ -29,13 +29,17 @@ public class SensorLorawanService {
         if (g.endsWith("-appli") || g.endsWith("-app")) {
             return g;
         }
+        if ("leva-rpi-mantu".equals(g)){
+            return "lorawan-network-mantu";
+        } else {
+            return g + "-appli";
+        }
+    }
 
-        return switch (g) {
-            case "rpi-mantu" -> "rpi-mantu-appli";
-            case "leva-rpi-mantu" -> "lorawan-network-mantu";
-            case "lil-rpi-mantu" -> "lil-rpi-mantu-appli";
-            default -> g + "-appli";
-        };
+    public void pushPayloadFormatter(String idGateway, String sensorId, String decoderJs) {
+        String applicationId = getApplicationIdForGateway(idGateway);
+        sensorLorawanDao.pushPayloadFormatter(applicationId, sensorId, decoderJs);
+        log.info("[LoRaWAN] pushed payload formatter for device {} in application {}", sensorId, applicationId);
     }
 
 

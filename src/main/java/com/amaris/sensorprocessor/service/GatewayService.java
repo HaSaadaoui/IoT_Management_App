@@ -53,6 +53,15 @@ public class GatewayService {
         }
     }
 
+    public Optional<Gateway> findByBuildingId(String buildingId) {
+        try {
+            return gatewayDao.findGatewayByBuildingId(buildingId);
+        } catch (Exception e) {
+            LoggerUtil.logError(e, buildingId);
+            return Optional.empty();
+        }
+    }
+
     public void saveGatewayInDatabase(Gateway gateway, BindingResult bindingResult) {
         try {
             if (gatewayDao.findGatewayById(gateway.getGatewayId()).isPresent()) {

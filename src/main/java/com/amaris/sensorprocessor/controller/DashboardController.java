@@ -1,11 +1,14 @@
 package com.amaris.sensorprocessor.controller;
 
-import com.amaris.sensorprocessor.entity.BuildingMapping;
+import com.amaris.sensorprocessor.entity.Building;
+import com.amaris.sensorprocessor.entity.Gateway;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.User;
 import com.amaris.sensorprocessor.model.dashboard.*;
 import com.amaris.sensorprocessor.service.AlertService;
+import com.amaris.sensorprocessor.service.BuildingService;
 import com.amaris.sensorprocessor.service.DashboardService;
+import com.amaris.sensorprocessor.service.GatewayService;
 import com.amaris.sensorprocessor.service.SensorService;
 import com.amaris.sensorprocessor.service.UserService;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
@@ -17,7 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -33,7 +35,6 @@ import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.time.Duration;
 
 @Slf4j
 @Controller
@@ -43,6 +44,8 @@ public class DashboardController {
     private final UserService userService;
     private final DashboardService dashboardService;
     private final AlertService alertService;
+    private final GatewayService gatewayService;
+    private final BuildingService buildingService;
     private final SensorDataDao sensorDataDao;
     private final BuildingEnergyConfigDao buildingEnergyConfigDao;
 
@@ -63,6 +66,8 @@ public class DashboardController {
             DashboardService dashboardService,
             AlertService alertService,
             SensorService sensorService,
+            GatewayService gatewayService,
+            BuildingService buildingService,
             SensorDataDao sensorDataDao,
             BuildingEnergyConfigDao buildingEnergyConfigDao
     ) {
@@ -70,6 +75,8 @@ public class DashboardController {
         this.dashboardService = dashboardService;
         this.alertService = alertService;
         this.sensorService = sensorService;
+        this.gatewayService = gatewayService;
+        this.buildingService = buildingService;
         this.sensorDataDao = sensorDataDao;
         this.buildingEnergyConfigDao = buildingEnergyConfigDao;
     }
@@ -142,12 +149,14 @@ public class DashboardController {
         if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
             return "";
         }
-        return switch (building.trim().toUpperCase()) {
-            case "CHATEAUDUN", "CHÂTEAUDUN" -> "Châteaudun-Building";
-            case "LEVALLOIS" -> "Levallois-Building";
-            case "LILLE" -> "Lille";
-            default -> building;
-        };
+        // Permet de conserver le fonctionnement en dur pour l'instant
+        if (isInteger(building)){
+            Optional<Building> optBuilding = buildingService.findById(Integer.parseInt(building));
+            if (optBuilding.isPresent()){
+                return optBuilding.get().getName();
+            }
+        }
+        return building;
     }
 
     @GetMapping("/api/dashboard")
@@ -180,7 +189,6 @@ public class DashboardController {
                 .toInstant();
     }
 
-
     @GetMapping(value = "/api/dashboard/occupancy/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @ResponseBody
     public Flux<ServerSentEvent<String>> streamOccupancy(
@@ -204,15 +212,32 @@ public class DashboardController {
     }
 
     private String mapBuildingToAppId(String building) {
+        String appId = "";
         if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
             return "rpi-mantu-appli";
         }
-        return switch (building.trim().toUpperCase()) {
-            case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
-            case "LEVALLOIS" -> "lorawan-network-mantu";
-            case "LILLE" -> "lil-rpi-mantu-appli";
-            default -> building;
-        };
+        if (isInteger(building)){
+            Optional<Gateway> gateway = gatewayService.findByBuildingId(building);
+            if (gateway.isPresent()){
+                String gatewayId = gateway.get().getGatewayId();
+                // Cas particulier de Levallois
+                if (gatewayId.equals("leva-rpi-mantu")){
+                    appId = "lorawan-network-mantu";
+                } else {
+                    appId = gatewayId + "-appli";
+                }
+            }
+        }
+        return appId;
+    }
+
+    private boolean isInteger(String s) {
+        try {
+            Integer.parseInt(s);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     @GetMapping(value = "/api/dashboard/conso/live/aggregate/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

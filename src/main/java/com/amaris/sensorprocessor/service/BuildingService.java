@@ -110,6 +110,7 @@ public class BuildingService {
                                           int floors,
                                           double scale,
                                           MultipartFile svgFile,
+                                          List<Integer> excludedFloors,
                                           BindingResult bindingResult) throws IOException {
 
         if (svgFile == null || svgFile.isEmpty()) {
@@ -145,6 +146,7 @@ public class BuildingService {
         building.setFloorsCount(floors);
         building.setScale(scale);
         building.setSvgPlan(publicSvgPath);
+        building.setExcludedFloors(excludedFloors);
 
         // 6) Persister en base
         try {
@@ -171,6 +173,7 @@ public class BuildingService {
                                           int floors,
                                           double scale,
                                           MultipartFile svgFile,
+                                          List<Integer> excludedFloors,
                                           BindingResult bindingResult) throws IOException {
 
         // 1) Sécuriser le nom de fichier
@@ -204,6 +207,7 @@ public class BuildingService {
         building.setFloorsCount(floors);
         building.setScale(scale);
         building.setSvgPlan(publicSvgPath);
+        building.setExcludedFloors(excludedFloors);
 
         // 7) Persister en base
         try {
@@ -231,6 +235,7 @@ public class BuildingService {
                                           String name,
                                           int floors,
                                           double scale,
+                                          List<Integer> excludedFloors,
                                           BindingResult bindingResult) throws IOException {
 
         // Construire l'entité Building
@@ -239,6 +244,7 @@ public class BuildingService {
         building.setName(name);
         building.setFloorsCount(floors);
         building.setScale(scale);
+        building.setExcludedFloors(excludedFloors);
 
         // Persister en base
         try {

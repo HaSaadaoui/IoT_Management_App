@@ -23,23 +23,6 @@ function buildOccupancyZones() {
     };
 
     const zones = {
-        LEVALLOIS: {
-            3: {
-                OPEN_SPACE: { title: "Open_03_01", match: (id) => /^desk-03-(0[1-9]|[1-7][0-9]|8[0-2])$/.test(id) },
-                VALUEMENT: { title: "Valuement", match: (id) => /^desk-03-(8[3-9]|9[0-2])$/.test(id) },
-                MEETING_ROOM: { title: "Meeting Room", match: (id) => /^occup-vs70-03-0[1-2]$/.test(id) || id === "count-03-01" },
-                INTERVIEW_ROOM: { title: "Interview Room", match: (id) => /^desk-vs41-03-0[1-2]$/.test(id) },
-                PHONE_BOOTH: { title: "Phone Booth", match: (id) => [
-                    "desk-vs41-03-03",
-                    "desk-vs41-03-04",
-                    "occup-vs30-03-01",
-                    "occup-vs30-03-02",
-                    "desk-vs40-03-01",
-                    "occup-vs70-03-03",
-                    "occup-vs70-03-04"
-                ].includes(id) }
-            }
-        },
         CHATEAUDUN: {
             0: {
                 FLOOR_0: {
@@ -102,7 +85,24 @@ function buildOccupancyZones() {
                     free: 0, used: 0, invalid: 0, expectedCount: 16
                 }
             }
-        }
+        },
+        21: {
+            0: {
+                OPEN_SPACE: { title: "Open_03_01", match: (id) => /^desk-03-(0[1-9]|[1-7][0-9]|8[0-2])$/.test(id) },
+                VALUEMENT: { title: "Valuement", match: (id) => /^desk-03-(8[3-9]|9[0-2])$/.test(id) },
+                MEETING_ROOM: { title: "Meeting Room", match: (id) => /^occup-vs70-03-0[1-2]$/.test(id) || id === "count-03-01" },
+                INTERVIEW_ROOM: { title: "Interview Room", match: (id) => /^desk-vs41-03-0[1-2]$/.test(id) },
+                PHONE_BOOTH: { title: "Phone Booth", match: (id) => [
+                    "desk-vs41-03-03",
+                    "desk-vs41-03-04",
+                    "occup-vs30-03-01",
+                    "occup-vs30-03-02",
+                    "desk-vs40-03-01",
+                    "occup-vs70-03-03",
+                    "occup-vs70-03-04"
+                ].includes(id) }
+            }
+        },
     };
 
     // fallback dynamique pour CHATEAUDUN si jamais la config côté serveur existe
@@ -198,7 +198,6 @@ function openOccupancySSE(building, floor) {
     }
   });
 }
-
 
 function closeOccupancySSE() {
   if (occupancyUnsub) {
@@ -543,7 +542,7 @@ function generateStatCardsForBuilding(building, selectedFloor = null) {
             });
 
         }
-        // 🏢 LEVALLOIS TYPE (flat structure)
+        // Flat structure
         else {
 
             const allZones = new Map();

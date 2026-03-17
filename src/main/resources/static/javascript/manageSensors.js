@@ -21,13 +21,48 @@ const exitDelete  = document.getElementById("closeDelete");
 // Données injectées par Thymeleaf
 const SENSORS  = Array.isArray(window.SENSORS)  ? window.SENSORS  : [];
 const GATEWAYS = Array.isArray(window.GATEWAYS) ? window.GATEWAYS : [];
-
+const BUILDING_FLOORS = Array.isArray(window.BUILDING_FLOORS) ? window.BUILDING_FLOORS : [];
 // -----------------------
 // Helpers UI
 // -----------------------
 function updateSelectPlaceholderStyle(select) {
   if (!select) return;
   select.classList.toggle('empty', !select.value);
+}
+
+function populateFloors(selectEl, building, currentFloor = null) {
+  if (!selectEl) return;
+
+  selectEl.innerHTML = '<option value="" disabled selected>Select a Floor</option>';
+
+  if (!building) {
+    selectEl.disabled = true;
+    return;
+  }
+
+  // ✅ UTILISE window.BUILDING_FLOORS au lieu de SENSORS
+  const bf = (window.BUILDING_FLOORS || []).find(b => b.name === building);
+  if (!bf || !bf.floorsCount) {
+    selectEl.disabled = true;
+    return;
+  }
+
+  for (let i = 0; i < bf.floorsCount; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    if (i == 0){
+      opt.textContent = `Ground Floor`;
+    } else {
+      opt.textContent = `Floor ${i}`;
+    }
+    
+    selectEl.appendChild(opt);
+  }
+
+  selectEl.disabled = false;
+  if (currentFloor != null) {
+    selectEl.value = String(currentFloor);
+  }
 }
 
 function sqlLikeToRegex(pattern) {
@@ -64,8 +99,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const openCreateBtn      = document.getElementById('openCreateBtn');
   const closeCreateBtn     = document.getElementById('closeCreateSensor') || document.getElementById('closeCreate');
   const gatewaySelect      = document.getElementById('gatewaySelect');
-  const protocolSelect     = document.getElementById('protocolSelect');       // ✅
-  const frequencyPlanWrapper = document.getElementById('frequencyPlanWrapper'); // ✅
+  const protocolSelect     = document.getElementById('protocolSelect');
+  const frequencyPlanWrapper = document.getElementById('frequencyPlanWrapper');
+  const floorSelect       = document.getElementById('floorSelect');
   const frequencyPlanInput = document.getElementById('frequencyPlanInput');
   const buildingNameInput  = document.getElementById('buildingNameInput');
   const devEuiInput        = document.getElementById('devEuiInput');
@@ -77,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const gatewaySelectEdit      = document.getElementById('gatewaySelectEdit');
   const frequencyPlanInputEdit = document.getElementById('frequencyPlanInputEdit');
   const buildingNameInputEdit  = document.getElementById('buildingNameInputEdit');
+  const floorSelectEdit   = document.getElementById('floorSelectEdit');
 
   // État pagination
   const PAGE_SIZE = 10;
@@ -130,20 +167,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const freq = opt.getAttribute('data-freq')     || '';
     const bldg = opt.getAttribute('data-building') || '';
 
-    // Frequency : uniquement si le wrapper LoRaWAN est visible
     if (frequencyPlanInput && frequencyPlanWrapper?.style.display !== 'none') {
       const match = Array.from(frequencyPlanInput.options).find(o => o.value === freq);
       if (match) frequencyPlanInput.value = freq;
     }
 
-    // Building
     if (buildingNameInput) {
       const match = Array.from(buildingNameInput.options).find(o => o.value === bldg);
       buildingNameInput.value = match ? bldg : '';
     }
+
+    populateFloors(floorSelect, buildingNameInput?.value || '');
   }
 
   gatewaySelect?.addEventListener('change', applyGatewayHintsCreate);
+
+// Floor dynamique selon building (Add)
+buildingNameInput?.addEventListener('change', () => {
+  populateFloors(floorSelect, buildingNameInput.value);
+});
 
   // -----------------------
   // Formatage HEX
@@ -358,13 +400,20 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // EDIT
-  if (modalEdit) modalEdit.style.display = 'block';
-  if (closeEditBtn && modalEdit) {
-    closeEditBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      modalEdit.style.display = 'none';
-    });
-  }
+if (modalEdit && floorSelectEdit) {
+  // ✅ Building récupéré depuis data-building (pas depuis un select)
+  const buildingEdit  = floorSelectEdit.dataset.building || '';
+  const currentFloor  = floorSelectEdit.dataset.current  || '';
+  populateFloors(floorSelectEdit, buildingEdit, currentFloor);
+  // Pas d'event change building : on ne change pas le building en Edit
+}
+
+if (closeEditBtn && modalEdit) {
+  closeEditBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    modalEdit.style.display = 'none';
+  });
+}
 
   // DELETE
   if (exitDelete && modalDelete) {

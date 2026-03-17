@@ -74,6 +74,26 @@
             </div>
         </div>
     </header>
+    <script>
+        function toggleMenu() {
+            document.getElementById("dropdownMenu").classList.toggle("show");
+        }
+
+        window.onclick = function (event) {
+            if (!event.target.closest('.dropdown')) {
+                document.getElementById("dropdownMenu").classList.remove("show");
+            }
+        }
+        const isHomePage = window.location.pathname.endsWith("/home");
+
+        if (!isHomePage) {
+            document.querySelector('.back-btn').style.visibility = 'visible';
+            document.querySelector('.back-btn').style.pointerEvents = 'auto';
+        } else {
+            document.querySelector('.back-btn').style.visibility = 'hidden';
+            document.querySelector('.back-btn').style.pointerEvents = 'none';
+        }
+    </script>
 </th:block>
 </body>
 </html>

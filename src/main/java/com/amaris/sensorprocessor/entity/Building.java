@@ -1,5 +1,11 @@
 package com.amaris.sensorprocessor.entity;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -18,14 +24,19 @@ public class Building {
     @Column(name = "floors_count")
     private int floorsCount;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "excluded_floors", columnDefinition = "json")
+    private List<Integer> excludedFloors = new ArrayList<>();
+
     private double scale;
 
     public Building() {}
 
-    public Building(String name, String svgPlan, int floorsCount, double scale) {
+    public Building(String name, String svgPlan, int floorsCount, List<Integer> excludedFloors, double scale) {
         this.name = name;
         this.svgPlan = svgPlan;
         this.floorsCount = floorsCount;
+        this.excludedFloors = excludedFloors;
         this.scale = scale;
     }
 
@@ -45,6 +56,10 @@ public class Building {
 
     public int getFloorsCount() {
         return floorsCount;
+    }
+
+    public List<Integer> getExcludedFloors() {
+        return excludedFloors;
     }
 
     public double getScale() {
@@ -69,6 +84,10 @@ public class Building {
         this.floorsCount = floorsCount;
     }
 
+    public void setExcludedFloors(List<Integer> excludedFloors) {
+        this.excludedFloors = excludedFloors != null ? excludedFloors : new ArrayList<>();
+    }
+
     public void setScale(double scale) {
         this.scale = scale;
     }
@@ -82,6 +101,7 @@ public class Building {
                 ", name='" + name + '\'' +
                 ", svgPlan='" + svgPlan + '\'' +
                 ", floorsCount=" + floorsCount +
+                ", excludedFloors=" + excludedFloors +
                 ", scale=" + scale +
                 '}';
     }

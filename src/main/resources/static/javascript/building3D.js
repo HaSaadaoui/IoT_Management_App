@@ -18,52 +18,6 @@ function createChateaudunShape(scale = 0.01) {
     return { shape, centerX, centerZ };
 }
 
-function createLevalloisShape(scale = 1) {
-    const shape = new THREE.Shape();
-
-    // Dimensions de base
-    const bodyLength    = 55 * scale;
-    const rectRightLen  = 20 * scale;
-    const halfDepth     = 10 * scale;
-    const extraTop      = 10 * scale;
-
-    const radiusLeft = halfDepth;
-    const xBodyLeft   = -bodyLength / 2;
-    const xBodyRight  =  bodyLength / 2;
-    const xHeadRight  =  xBodyRight + rectRightLen;
-
-    const yBottom     = -halfDepth;
-    const yTop        =  halfDepth;
-    const yHeadTop    =  yTop + extraTop;
-    shape.moveTo(xHeadRight, yBottom);
-
-    // 2) Bas bloc → bas corps
-    shape.lineTo(xBodyRight, yBottom);
-
-    shape.lineTo(xBodyLeft, yBottom);
-    shape.absarc(
-        xBodyLeft,      // centre X
-        0,              // centre Y
-        radiusLeft,     // rayon
-        -Math.PI / 2,   // départ en bas
-        Math.PI / 2,    // fin en haut
-        true            // sens horaire
-    );
-    shape.lineTo(xBodyRight, yTop);
-    shape.lineTo(xBodyRight, yHeadTop);
-    shape.lineTo(xHeadRight, yHeadTop);
-    shape.lineTo(xHeadRight, yBottom);
-    const minX = xBodyLeft;
-    const maxX = xHeadRight;
-    const minY = yBottom;
-    const maxY = yHeadTop;
-
-    const centerX = (minX + maxX) / 2;
-    const centerZ = (minY + maxY) / 2;
-
-    return { shape, centerX, centerZ };
-}
-
 // ================== HELPER SVG (bâtiments DB) ==================
 
 // Charge un SVG via URL et renvoie { shape, centerX, centerZ }
@@ -155,17 +109,6 @@ const CHATEAUDUN_BASE_FLOOR_DATA = {
     }
 };
 
-const LEVALLOIS_BASE_FLOOR_DATA = {
-    0: {
-        name: 'Floor 3',
-        desks: window.DeskSensorConfig.getFloorDesks(3, 'invalid', 'LEVALLOIS')
-    },
-    3: {
-        name: 'Floor 3',
-        desks: window.DeskSensorConfig.getFloorDesks(3, 'invalid', 'LEVALLOIS')
-    }
-};
-
 // ================== CONFIG BUILDINGS ==================
 
 const BUILDINGS = {
@@ -174,14 +117,8 @@ const BUILDINGS = {
         floors: 7,
         scale: 0.01,
         createShape: createChateaudunShape,
-        floorData: JSON.parse(JSON.stringify(CHATEAUDUN_BASE_FLOOR_DATA))
-    },
-    LEVALLOIS: {
-        id: 'LEVALLOIS',
-        floors: 1,
-        scale: 0.06,
-        createShape: createLevalloisShape,
-        floorData: JSON.parse(JSON.stringify(LEVALLOIS_BASE_FLOOR_DATA))
+        floorData: JSON.parse(JSON.stringify(CHATEAUDUN_BASE_FLOOR_DATA)),
+        excludedFloors: [] 
     }
 };
 
@@ -307,10 +244,9 @@ class Building3D {
     startOccupancySSE() {
         this.stopOccupancySSE();
 
-        const building = this.getSseBuildingKey();
-        if (!building || !window.SSEManager?.subscribeOccupancy) return;
+        if (!this.buildingKey || !window.SSEManager?.subscribeOccupancy) return;
 
-        this.occupancyUnsub = window.SSEManager.subscribeOccupancy(building, (msg) => {
+        this.occupancyUnsub = window.SSEManager.subscribeOccupancy(this.buildingKey, (msg) => {
             try {
                 const deviceId =
                     msg?.end_device_ids?.device_id ||
@@ -332,13 +268,6 @@ class Building3D {
                 console.warn('[Building3D][SSE] error', e);
             }
         });
-    }
-
-    getSseBuildingKey() {
-        // si DB:4 -> envoie "4" (ou l’ID attendu par le backend)
-        const b = String(this.buildingKey || '');
-        if (b.toUpperCase().startsWith('DB:')) return b.split(':')[1];
-        return b;
     }
 
     stopOccupancySSE() {
@@ -604,6 +533,7 @@ class Building3D {
 
         const floorHeight = 2;
         const floorsCount = this.config.floors || 1;
+        const excludedFloors = this.config.excludedFloors || [];
         let buildingShape, centerX, centerZ, dbScale;
 
         if (this.isDbBuilding && this.dbBuildingConfig) {
@@ -644,7 +574,7 @@ class Building3D {
             floor.position.set(-centerX, i * floorHeight, -centerZ);
             floor.castShadow = true;
             floor.receiveShadow = true;
-            floor.userData = { floorNumber: i, type: 'floor', clickable: true };
+            floor.userData = { floorNumber: i, type: 'floor', clickable: excludedFloors.includes(String(i)) ? false : true };
             floorGroup.add(floor);
             this.floors.push(floor);
 
@@ -782,49 +712,21 @@ class Building3D {
         if (intersects.length > 0) {
             const floor = intersects[0].object;
             if (floor.userData.clickable) {
-                let actualFloor = floor.userData.floorNumber;
-                if (this.buildingKey === "LEVALLOIS"){
-                    // Cas particulier pour Levallois où le floor 0 de la 3D correspond au floor 3 de la config
-                    actualFloor = actualFloor === 0 ? 3 : actualFloor;
-                }
-                this.enterFloor(floor.userData.floorNumber, actualFloor);
+                this.enterFloor(floor.userData.floorNumber);
             }
         }
     }
 
     showFloorInfo(floorNumber) {
-        const desksToExclude = [
-                  { id: 'PB5', sensor: 'desk-vs40-03-01' },
-                  { id: 'IR1', sensor: 'desk-vs41-03-01' },
-                  { id: 'IR2', sensor: 'desk-vs41-03-02' },
-                  { id: 'PB1', sensor: 'desk-vs41-03-03' },
-                  { id: 'PB2', sensor: 'desk-vs41-03-04' },
-                  { id: 'PB3', sensor: 'occup-vs30-03-01' },
-                  { id: 'PB4', sensor: 'occup-vs30-03-02' },
-                  { id: 'SR1', sensor: 'occup-vs70-03-01' },
-                  { id: 'SR2', sensor: 'occup-vs70-03-02' },
-                  { id: 'PB6', sensor: 'occup-vs70-03-03' },
-                  { id: 'PB7', sensor: 'occup-vs70-03-04' }
-              ];
-
         const overlay = document.getElementById('floor-info-overlay');
         if (!overlay) return;
 
-        let actualFloor = floorNumber;
-        if (this.buildingKey === "LEVALLOIS"){
-            actualFloor = 3;
-        }
-        const data = this.floorData[actualFloor];
+        const data = this.floorData[floorNumber];
+        if (!data) return;
 
-        let desks = data.desks;
-        if (this.buildingKey === 'LEVALLOIS') {
-            const excludedIds = new Set(desksToExclude.map(d => d.id));
-            desks = desks.filter(desk => !excludedIds.has(desk.id));
-        }
-
-        const freeDesks = desks.filter(d => d.status === 'free').length;
-        const usedDesks = desks.filter(d => d.status === 'used').length;
-        const invalidDesks = desks.filter(d => d.status === 'invalid').length;
+        const freeDesks = data.desks.filter(d => d.status === 'free').length;
+        const usedDesks = data.desks.filter(d => d.status === 'used').length;
+        const invalidDesks = data.desks.filter(d => d.status === 'invalid').length;
         const floorTotalDesks = freeDesks + usedDesks + invalidDesks;
 
         overlay.innerHTML = `
@@ -844,8 +746,8 @@ class Building3D {
         overlay.classList.remove('active');
     }
 
-    enterFloor(floorNumber, actualFloor) {
-        this.currentFloorNumber = actualFloor;
+    enterFloor(floorNumber) {
+        this.currentFloorNumber = floorNumber;
 
         const roof = this.roofs[floorNumber];
         const targetY = floorNumber * 3 + 1.5;
@@ -871,7 +773,7 @@ class Building3D {
             z: 0,
             duration: 1.5,
             ease: 'power2.inOut',
-            onComplete: () => this.switch2DFloorView(actualFloor)
+            onComplete: () => this.switch2DFloorView(floorNumber)
         });
 
         gsap.to(this.controls.target, {
@@ -884,7 +786,7 @@ class Building3D {
 
         const floorSelect = document.getElementById('filter-floor');
         if (floorSelect) {
-            floorSelect.value = actualFloor;
+            floorSelect.value = floorNumber;
         }
     }
 
@@ -1025,9 +927,7 @@ class Building3D {
         
         const upper = this.buildingKey.toUpperCase();
         let dbId = null;
-        if (upper.startsWith('DB:')) {
-            dbId = parseInt(this.buildingKey.split(':')[1], 10);
-        } else if (/^\d+$/.test(this.buildingKey)) {
+        if (/^\d+$/.test(this.buildingKey)) {
             dbId = parseInt(this.buildingKey, 10);
         }
 
@@ -1041,19 +941,21 @@ class Building3D {
                 }
                 const b = await resp.json();
 
-                this.buildingKey = `DB:${dbId}`;
+                this.buildingKey = String(dbId);
                 this.isDbBuilding = true;
                 this.dbBuildingConfig = {
                     id: b.id,
                     name: b.name,
                     floors: b.floorsCount || 1,
                     scale: b.scale || 0.01,
-                    svgUrl: b.svgPlan
+                    svgUrl: b.svgPlan,
+                    excludedFloors: b.excludedFloors ? b.excludedFloors.map(String) : [] 
                 };
                 this.config = {
                     id: b.id,
                     floors: b.floorsCount || 1,
-                    scale: b.scale || 0.01
+                    scale: b.scale || 0.01,
+                    excludedFloors: b.excludedFloors ? b.excludedFloors.map(String) : [] 
                 };
 
                 this.floorData = [];
@@ -1279,11 +1181,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const buildingSelect = document.getElementById('filter-building');
     if (buildingSelect) {
         buildingSelect.addEventListener('change', async () => {
-            let val = buildingSelect.value; // "chateaudun", "levallois", "lille", "all", "DB:4" ...
-
-            if (val.toUpperCase() === 'ALL') {
-                val = 'CHATEAUDUN';
-            }
+            const val = buildingSelect.value; // ID
 
             if (window.building3D && typeof window.building3D.setBuilding === 'function') {
                 window.building3D.buildingKey = val.toUpperCase();
@@ -1291,20 +1189,35 @@ document.addEventListener('DOMContentLoaded', function () {
                 window.building3D.setBuilding();
             }
 
-            const labels = {
-                CHATEAUDUN: 'Châteaudun Office',
-                LEVALLOIS: 'Levallois Office'
-            };
-            const upperVal = val ? val.toUpperCase() : '';
-            const label = labels[upperVal] || 'Office';
-
-            const liveTitle     = document.getElementById('live-section-title');
-            const histTitle     = document.getElementById('historical-section-title');
+            const buildingName = buildingSelect.selectedOptions[0].text;
+        
             const buildingTitle = document.getElementById('building-title');
+            if (buildingTitle) buildingTitle.textContent = `🏢 ${buildingName} Office Building`;
 
-            if (liveTitle)     liveTitle.textContent     = `📊 Live Desk Occupancy - ${label}`;
-            if (histTitle)     histTitle.textContent     = `📈 Historical Sensor Data - ${label}`;
-            if (buildingTitle) buildingTitle.textContent = `🏢 ${label} Building`;
+            const sensorSelect = document.getElementById('filter-sensor-type');
+            if (sensorSelect) {
+                const sensorType = sensorSelect.value;
+
+                const sensorInfo = {
+                    DESK: {icon: '📊', name: 'Desk Occupancy'},
+                    CO2: {icon: '🌫️', name: 'CO₂ Air Quality'},
+                    TEMP: {icon: '🌡️', name: 'Temperature'},
+                    LIGHT: {icon: '💡', name: 'Light Levels'},
+                    MOTION: {icon: '👁️',name: 'Motion Detection'},
+                    NOISE: { icon: '🔉',name: 'Noise Levels'},
+                    HUMIDITY: {icon: '💧', name: 'Humidity'},
+                    TEMPEX: {icon: '🌀', name: 'HVAC Flow (TEMPex)'},
+                    PR: {icon: '👤',name: 'Presence & Light'},
+                    SECURITY: {icon: '🚨',name: 'Security Alerts'}
+                };
+
+                const info = sensorInfo[sensorType] || sensorInfo.DESK;
+                const liveTitle     = document.getElementById('live-section-title');
+                const histTitle     = document.getElementById('historical-section-title');
+                if (liveTitle)     liveTitle.textContent     = `${info.icon} Live ${info.name} - ${buildingName} Office`;
+                if (histTitle)     histTitle.textContent     = `📈 Historical ${info.name} Data - ${buildingName} Office`;
+            }
+
         });
     }
 });

@@ -304,7 +304,7 @@ function populateFloorSelect() {
         return;
     }
 
-    const floorValue = floorSelect.value;
+    const previousfloorValue = floorSelect.value;
 
     floorSelect.innerHTML = '';
     if(!floorsEl || isNaN(floorsEl.value)) {
@@ -315,18 +315,120 @@ function populateFloorSelect() {
     if (elementSelect && elementSelect.value && elementSelect.value !== "Sensor") {
         floorSelect.innerHTML = '<option value="">All Floors</option>';
     }
-    for (let i = 0; i < floorsEl.value; i++) {
-        const opt = document.createElement('option');
-        opt.value = String(i);
-        if (i === 0) {
-            opt.textContent = `Ground Floor`;
-        } else {
-            opt.textContent = `Floor ${i}`;
+
+    // Keep track of previously excluded floors
+    const previouslyExcluded = (window._pendingExcludedFloors !== undefined)
+        ? window._pendingExcludedFloors.map(String)
+        : getExcludedFloors();
+    // On consomme la valeur une seule fois
+    window._pendingExcludedFloors = undefined;
+
+    // Clear hidden select and checkbox list
+    const checkboxList = document.getElementById('floor-checkbox-list');
+    if (checkboxList) checkboxList.innerHTML = '';
+
+    const totalFloors = parseInt(floorsEl.value, 10) || 0;
+
+    for (let i = 0; i < totalFloors; i++) {
+        const isExcluded = previouslyExcluded.includes(String(i));
+        const label = i === 0 ? 'Ground Floor' : `Floor ${i}`;
+
+        // Populate filter-floor select
+        if (!isExcluded){
+            const opt = document.createElement('option');
+            opt.value = String(i);
+            opt.textContent = label;
+            floorSelect.appendChild(opt);
         }
-        floorSelect.appendChild(opt);
+
+        // Populate custom checkbox list
+        if (checkboxList) {
+            const item = document.createElement('label');
+            item.className = 'floor-checkbox-item' + (isExcluded ? ' floor-excluded' : '');
+            item.innerHTML = `
+                <span class="floor-custom-checkbox ${isExcluded ? 'checked' : ''}"></span>
+                <input type="checkbox" value="${i}" ${isExcluded ? 'checked' : ''} onchange="onFloorCheckboxChange(this)">
+                <span class="floor-checkbox-label">${label}</span>
+            `;
+            checkboxList.prepend(item); // prepend so highest floor is at top
+        }
     }
 
-    floorSelect.value = floorValue;
+    floorSelect.value = previousfloorValue;
+    updateFloorCheckboxSummary();
+}
+
+function getExcludedFloors() {
+    const checkboxes = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function toggleFloorCheckboxPanel() {
+    const panel = document.getElementById('floor-checkbox-panel');
+    const chevron = document.getElementById('floor-checkbox-chevron');
+    if (!panel) return;
+    const isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    if (chevron) chevron.textContent = isOpen ? '▾' : '▴';
+}
+
+function onFloorCheckboxChange(cb) {
+    const item = cb.closest('.floor-checkbox-item');
+    const customCb = item?.querySelector('.floor-custom-checkbox');
+
+    if (cb.checked) {
+        item?.classList.add('floor-excluded');
+        customCb?.classList.add('checked');
+    } else {
+        item?.classList.remove('floor-excluded');
+        customCb?.classList.remove('checked');
+    }
+
+    updateFloorCheckboxSummary();
+    if (window.building3D.dbBuildingConfig && window.building3D.dbBuildingConfig.svgUrl){
+        this.applyFormUpdate();
+    }
+}
+
+function updateFloorCheckboxSummary() {
+    const all = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]');
+    const checked = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]:checked');
+    const summary = document.getElementById('floor-checkbox-summary');
+    if (!summary) return;
+
+    const total = all.length;
+    const excluded = checked.length;
+
+    if (excluded === 0) {
+        summary.textContent = 'All floors visible';
+    } else if (excluded === total) {
+        summary.textContent = 'All floors excluded';
+    } else {
+        summary.textContent = `${excluded} floor${excluded > 1 ? 's' : ''} excluded`;
+    }
+
+    updateMasterCheckboxUI();
+}
+
+function updateMasterCheckboxUI() {
+    const all = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]');
+    const checked = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]:checked');
+    const masterUI = document.getElementById('master-checkbox-ui');
+    const masterInput = document.getElementById('floor-select-all');
+    if (!masterUI) return;
+
+    if (checked.length === 0) {
+        masterUI.classList.remove('checked', 'indeterminate');
+        if (masterInput) masterInput.checked = false;
+    } else if (checked.length === all.length) {
+        masterUI.classList.add('checked');
+        masterUI.classList.remove('indeterminate');
+        if (masterInput) masterInput.checked = true;
+    } else {
+        masterUI.classList.remove('checked');
+        masterUI.classList.add('indeterminate');
+        if (masterInput) masterInput.checked = false;
+    }
 }
 
 function updateInputSizeLabel() {
@@ -597,7 +699,6 @@ async function populateBuildingSelect() {
     try {
         const resp = await fetch('/api/buildings');
         let buildings = resp.ok ? await resp.json() : [];
-
         // Remplissage du select
         select.innerHTML = '';
 
@@ -638,6 +739,7 @@ async function initBuildingConfig() {
             floorsEl.value = b.floorsCount || 1;
             scaleEl.value  = b.scale || 0.01;
             defaultSVGFile = b.svgPlan || "";
+            window._pendingExcludedFloors = b.excludedFloors || [];
         } catch (e) {
             console.error("Erreur lors du chargement du bâtiment :", e);
         }
@@ -646,23 +748,27 @@ async function initBuildingConfig() {
         floorsEl.value = 1;
         scaleEl.value  = 0.01;
         defaultSVGFile = "";
+        window._pendingExcludedFloors = [];
     }
     svgInput.value = "";
     this.refresh3DConfig()
 }
 
 function refresh3DConfig(){
-    const selectBuilding = document.getElementById('filter-building');
+    const selectBuilding = document.getElementById("filter-building");
     const floorsEl = document.getElementById("building-floors");
     const scaleEl  = document.getElementById("building-scale");
 
     const buildingId = selectBuilding.value || "tempKeyConfig";
+    const previouslyExcluded = (window._pendingExcludedFloors !== undefined)
+        ? window._pendingExcludedFloors.map(String)
+        : getExcludedFloors();
 
     window.building3D.buildingKey = buildingId;
     window.building3D.isDbBuilding = true;
     window.building3D.dbShapeCache = null;
-    window.building3D.dbBuildingConfig = {floors: floorsEl.value, scale: scaleEl.value, svgUrl: defaultSVGFile};
-    window.building3D.config = {id: buildingId, floors: floorsEl.value, scale: scaleEl.value};
+    window.building3D.dbBuildingConfig = {floors: floorsEl.value, scale: scaleEl.value, excludedFloors: previouslyExcluded, svgUrl: defaultSVGFile};
+    window.building3D.config = {id: buildingId, floors: floorsEl.value, excludedFloors: previouslyExcluded, scale: scaleEl.value};
 
     this.populateFloorSelect();
 
@@ -734,6 +840,7 @@ async function deleteBuildingConfig() {
         floorsEl.value = 3;
         scaleEl.value  = 0.01;
         defaultSVGFile = "";
+        window._pendingExcludedFloors = [];
 
         this.refresh3DConfig();
         window.building3D.setBuilding();
@@ -753,6 +860,10 @@ async function saveBuildingConfig() {
     const floors  = parseInt(floorsEl.value, 10) || 1;
     const scale   = parseFloat(scaleEl.value) || 0.01;
     svgFile = svgInput.files[0];
+
+    const excludedFloors = Array.from(
+        document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]:checked')
+    ).map(cb => parseInt(cb.value, 10));
 
     if (!name) {
         alert("Merci de saisir un nom de bâtiment.");
@@ -807,6 +918,7 @@ async function saveBuildingConfig() {
     formData.append("scale", scale);
     formData.append("svgFile", svgFile);
     formData.append(csrf.parameterName, csrf.token);
+    excludedFloors.forEach(f => formData.append("excludedFloors", f));
 
     // Si aucun bâtiment sélectionné, on appelle la méthode createBuildingConfig sinon updateBuildingConfig
     if (!isNaN(selectBuilding.value) && selectBuilding.value !== null && selectBuilding.value !== "") {

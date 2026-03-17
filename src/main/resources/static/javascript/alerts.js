@@ -291,18 +291,22 @@ function updatePageTitles(sensorType) {
             globalTitle: 'Alert Summary'
         }
     };
-    
+    const buildingSelect = document.getElementById('filter-building');
+    let buildingName = "Châteaudun";
+    if (buildingSelect) {
+        buildingName = buildingSelect.selectedOptions[0].text;
+    }
     const info = sensorInfo[sensorType] || sensorInfo['DESK'];
     
     // Update section titles
     const liveTitle = document.getElementById('live-section-title');
     if (liveTitle) {
-        liveTitle.textContent = `${info.icon} ${info.liveTitle} - Châteaudun Office`;
+        liveTitle.textContent = `${info.icon} ${info.liveTitle} - ${buildingName} Office`;
     }
     
     const historicalTitle = document.getElementById('historical-section-title');
     if (historicalTitle) {
-        historicalTitle.textContent = `📈 ${info.historicalTitle} - Châteaudun Office`;
+        historicalTitle.textContent = `📈 ${info.historicalTitle} - ${buildingName} Office`;
     }
     
     const chartTitle = document.getElementById('historical-chart-title');
