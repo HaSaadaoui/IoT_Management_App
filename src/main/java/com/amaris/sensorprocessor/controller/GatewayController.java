@@ -2,6 +2,7 @@ package com.amaris.sensorprocessor.controller;
 
 import com.amaris.sensorprocessor.constant.Constants;
 import com.amaris.sensorprocessor.constant.FrequencyPlan;
+import com.amaris.sensorprocessor.entity.Building;
 import com.amaris.sensorprocessor.entity.Gateway;
 import com.amaris.sensorprocessor.entity.User;
 import com.amaris.sensorprocessor.service.*;
@@ -302,14 +303,33 @@ public class GatewayController {
         );
     }
 
+
     private void prepareModel(Model model) {
         model.addAttribute("frequencyPlans", FrequencyPlan.values());
+
         List<Gateway> gateways = gatewayService.getAllGateways();
         model.addAttribute("gateways", gateways);
-        model.addAttribute("buildings", buildingService.findAll()); // ✅ indispensable
+
+        List<Building> buildings = buildingService.findAll();
+        model.addAttribute("buildings", buildings);
+
+        List<Map<String, Object>> buildingFloors = buildings.stream()
+                .map(b -> {
+                    Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("id", b.getId());
+                    m.put("name", b.getName());
+                    m.put("floorsCount", b.getFloorsCount());
+                    return m;
+                })
+                .collect(java.util.stream.Collectors.toList());
+        model.addAttribute("buildingFloors", buildingFloors);
 
         if (!model.containsAttribute(GATEWAY_ADD)) {
             model.addAttribute(GATEWAY_ADD, new Gateway());
+        }
+
+        if (!model.containsAttribute(GATEWAY_EDIT)) {
+            model.addAttribute(GATEWAY_EDIT, null);
         }
     }
 

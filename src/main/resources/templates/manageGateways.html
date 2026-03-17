@@ -9,7 +9,6 @@
     <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}"/>
     <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
     <link rel="stylesheet" type="text/css" th:href="@{/css/manageGateways.css}"/>
-    <!-- Flatpickr CSS for Date/Calendar -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 </head>
 
@@ -21,6 +20,7 @@
     <div class="manageGateways-container">
         <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
 
+        <!-- Filtres -->
         <div class="filters-container"
              style="width: 95%; margin: 20px auto 0 auto; padding: 12px 15px; background-color: white; border: 2px solid #662179; border-radius: 8px; display: flex; gap: 15px; align-items: center; box-sizing: border-box; overflow-x: auto">
 
@@ -29,7 +29,8 @@
                 <img src="/image/calendar-icon.svg" alt="Calendar Icon"
                      style="position: absolute; left: 10px; width: 18px; height: 18px; pointer-events: none;"/>
                 <input type="text" name="dateFilter" id="dateFilter"
-                       title="Select a date to filter gateways created from this date" placeholder="Filter by date"
+                       title="Select a date to filter gateways created from this date"
+                       placeholder="Filter by date"
                        class="datepicker"
                        style="padding: 8px 30px 8px 36px; border: 1px solid #662179; border-radius: 6px; font-size: inherit; outline: none; box-shadow: none; width: 100%;"/>
                 <span onclick="document.getElementById('dateFilter').value='';"
@@ -38,50 +39,30 @@
 
             <!-- Building filter -->
             <div style="position: relative; display: flex; align-items: center; width: 200px;">
-                <div style="position: relative; display: flex; align-items: center; width: 200px;">
-                    <select id="buildingFilter" title="Select a building to filter gateways by building name"
-                            aria-label="Filter by building"
-                            style="padding: 8px 30px 8px 12px; border: 1px solid #662179; border-radius: 6px; font-size: inherit; outline: none; box-shadow: none; width: 100%;">
-                        <option value="" disabled selected hidden>Building (all)</option>
-                    </select>
-                    <span id="clearBuilding"
-                          style="position: absolute; right: 25px; cursor: pointer; font-size: 16px; color: #000; user-select: none;">&#10005;</span>
-                </div>
+                <select id="buildingFilter"
+                        title="Select a building to filter gateways by building name"
+                        aria-label="Filter by building"
+                        style="padding: 8px 30px 8px 12px; border: 1px solid #662179; border-radius: 6px; font-size: inherit; outline: none; box-shadow: none; width: 100%;">
+                    <option value="" disabled selected hidden>Building (all)</option>
+                </select>
+                <span id="clearBuilding"
+                      style="position: absolute; right: 25px; cursor: pointer; font-size: 16px; color: #000; user-select: none;">&#10005;</span>
             </div>
 
             <!-- Search input -->
             <div style="position: relative; display: flex; align-items: center; width: 220px;">
-                <input type="text" id="searchInput" title="Enter a Gateway ID or IP address to filter the results"
+                <input type="text" id="searchInput"
+                       title="Enter a Gateway ID or IP address to filter the results"
                        placeholder="Search by ID or IP"
-                       style="
-                      padding: 8px 30px 8px 36px;
-                      border: 1px solid #662179;
-                      font-size: inherit;
-                      border-radius: 6px;
-                      background: url('/image/search-icon.svg') no-repeat 10px center;
-                      background-size: 18px 18px;
-                      outline: none;
-                      transition: border-color 0.3s ease;
-                      width: 100%;
-                      box-sizing: border-box;"
+                       style="padding: 8px 30px 8px 36px; border: 1px solid #662179; font-size: inherit; border-radius: 6px; background: url('/image/search-icon.svg') no-repeat 10px center; background-size: 18px 18px; outline: none; transition: border-color 0.3s ease; width: 100%; box-sizing: border-box;"
                        onfocus="this.style.borderColor='#440d64'"
                        onblur="this.style.borderColor='#662179'"/>
                 <span onclick="document.getElementById('searchInput').value='';"
-                      style="
-                      position: absolute;
-                      right: 8px;
-                      top: 50%;
-                      transform: translateY(-50%);
-                      cursor: pointer;
-                      font-size: 16px;
-                      color: #000;
-                      user-select: none;">
-                &#10005;
-            </span>
+                      style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 16px; color: #000; user-select: none;">&#10005;</span>
             </div>
         </div>
 
-        <!-- table en js -->
+        <!-- Table -->
         <table id="gatewayTable">
             <thead>
             <tr>
@@ -96,10 +77,10 @@
             <tbody id="gatewayTableBody"></tbody>
         </table>
 
-        <!-- Pagination controls -->
+        <!-- Pagination -->
         <div id="pagination" class="pagination"></div>
 
-        <!-- Popup de confirmation suppression -->
+        <!-- ===== MODAL DELETE ===== -->
         <div id="deleteGatewayPopup"
              class="modal"
              style="display:none;"
@@ -120,7 +101,7 @@
             </div>
         </div>
 
-        <!-- Formulaire pour modifier une gateway -->
+        <!-- ===== MODAL EDIT (uniquement si gatewayEdit != null) ===== -->
         <div id="editGatewayPopup"
              class="modal"
              th:if="${gatewayEdit != null}"
@@ -133,26 +114,36 @@
                 </div>
                 <form th:action="@{/manage-gateways/edit}" th:object="${gatewayEdit}" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
                     <input type="text" th:field="*{gatewayId}" placeholder="Gateway ID" required readonly
                            th:classappend="${#fields.hasErrors('gatewayId')} ? 'input-error' : ''"/>
+
                     <input type="text" th:field="*{ipAddress}" placeholder="IP Address" required
                            th:classappend="${#fields.hasErrors('ipAddress')} ? 'input-error' : ''"/>
+
                     <select th:field="*{frequencyPlan}" required
                             th:classappend="${#fields.hasErrors('frequencyPlan')} ? 'input-error' : ''">
                         <option value="" disabled selected>Frequency Plan</option>
                         <th:block th:each="plan : ${frequencyPlans}">
-                            <option th:value="${plan.description}" th:text="${plan}">Frequency Plan</option>
+                            <option th:value="${plan.description}" th:text="${plan}"></option>
                         </th:block>
                     </select>
-                    <select th:field="*{buildingId}" required
+
+                    <select th:field="*{buildingId}" id="buildingSelectEdit" required
                             th:classappend="${#fields.hasErrors('buildingId')} ? 'input-error' : ''">
                         <option value="" disabled selected>Select Building</option>
                         <th:block th:each="b : ${buildings}">
-                            <option th:value="${b.id}" th:text="${b.name}">Building</option>
+                            <option th:value="${b.id}" th:text="${b.name}"></option>
                         </th:block>
                     </select>
-                    <input type="number" th:field="*{floorNumber}" placeholder="Floor Number" required
-                           th:classappend="${#fields.hasErrors('floorNumber')} ? 'input-error' : ''"/>
+
+                    <!-- ✅ Floor select Edit : data-current et data-building depuis gatewayEdit -->
+                    <select id="floorSelectEdit" name="floorNumber" required
+                            th:classappend="${#fields.hasErrors('floorNumber')} ? 'input-error' : ''"
+                            th:attr="data-current=${gatewayEdit.floorNumber}, data-building=${gatewayEdit.buildingId}">
+                        <option value="" disabled selected>Select a Floor</option>
+                    </select>
+
                     <input type="text" th:field="*{locationDescription}" placeholder="Location Description"
                            th:classappend="${#fields.hasErrors('locationDescription')} ? 'input-error' : ''"/>
 
@@ -164,14 +155,14 @@
             </div>
         </div>
 
-        <!-- Bouton pour ouvrir la popup Create : visible mais grisé -->
+        <!-- Bouton Add Gateway -->
         <button id="openCreateBtn"
                 th:classappend="${!canEdit} ? ' disabled' : ''"
                 th:attr="aria-disabled=${!canEdit}">
             Add Gateway
         </button>
 
-        <!-- Formulaire pour ajouter une Gateway -->
+        <!-- ===== MODAL CREATE ===== -->
         <div id="createGatewayPopup"
              class="modal modalCreate"
              style="display:none;"
@@ -184,28 +175,39 @@
                 </div>
                 <form id="myForm" th:action="@{/manage-gateways/add}" th:object="${gatewayAdd}" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
                     <input type="text" th:field="*{gatewayId}" placeholder="Gateway ID" required
                            th:classappend="${#fields.hasErrors('gatewayId')} ? 'input-error' : ''"/>
+
                     <input type="text" th:field="*{gatewayEui}" placeholder="Gateway EUI" required
                            th:classappend="${#fields.hasErrors('gatewayEui')} ? 'input-error' : ''"/>
+
                     <input type="text" th:field="*{ipAddress}" placeholder="IP Address" required
                            th:classappend="${#fields.hasErrors('ipAddress')} ? 'input-error' : ''"/>
+
                     <select th:field="*{frequencyPlan}" required
                             th:classappend="${#fields.hasErrors('frequencyPlan')} ? 'input-error' : ''">
                         <option value="" disabled selected>Frequency Plan</option>
                         <th:block th:each="plan : ${frequencyPlans}">
-                            <option th:value="${plan.description}" th:text="${plan}">Frequency Plan</option>
+                            <option th:value="${plan.description}" th:text="${plan}"></option>
                         </th:block>
                     </select>
-                    <select th:field="*{buildingId}" required
+
+                    <select th:field="*{buildingId}" id="buildingSelectCreate" required
                             th:classappend="${#fields.hasErrors('buildingId')} ? 'input-error' : ''">
                         <option value="" disabled selected>Select Building</option>
                         <th:block th:each="b : ${buildings}">
-                            <option th:value="${b.id}" th:text="${b.name}">Building</option>
+                            <option th:value="${b.id}" th:text="${b.name}"></option>
                         </th:block>
                     </select>
-                    <input type="number" th:field="*{floorNumber}" placeholder="Floor Number" required
-                           th:classappend="${#fields.hasErrors('floorNumber')} ? 'input-error' : ''"/>
+
+                    <!-- ✅ Floor select Create : pas de th:attr gatewayEdit, désactivé par défaut -->
+                    <select id="floorSelectCreate" name="floorNumber" required
+                            th:classappend="${#fields.hasErrors('floorNumber')} ? 'input-error' : ''"
+                            disabled>
+                        <option value="" disabled selected>Select a Floor</option>
+                    </select>
+
                     <input type="text" th:field="*{locationDescription}" placeholder="Location Description"
                            th:classappend="${#fields.hasErrors('locationDescription')} ? 'input-error' : ''"/>
 
@@ -216,20 +218,21 @@
                 </form>
             </div>
         </div>
-    </div>
 
-    <!-- Flatpickr JS for Date/Calendar -->
+    </div><!-- fin manageGateways-container -->
+
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
     <script th:inline="javascript">
         /*<![CDATA[*/
-        window.GATEWAYS = /*[[${gateways}]]*/ [];
-        window.CAN_EDIT_GATEWAYS =
-            /*[[${#authorization.expression("hasAnyRole('ADMIN','SUPERUSER')")}]]*/ false;
+        window.GATEWAYS          = /*[[${gateways}]]*/        [];
+        window.BUILDING_FLOORS   = /*[[${buildingFloors}]]*/  [];
+        window.CAN_EDIT_GATEWAYS = /*[[${#authorization.expression("hasAnyRole('ADMIN','SUPERUSER')")}]]*/ false;
         /*]]>*/
     </script>
 
     <script th:src="@{/javascript/manageGateways.js}" defer></script>
+
 </th:block>
 </body>
 </html>
