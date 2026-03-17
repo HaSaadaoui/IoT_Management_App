@@ -195,6 +195,11 @@ public class SensorController {
                 .orElse("GENERIC");
         model.addAttribute("deviceTypeLabel", deviceTypeLabel);
 
+        if (s.getBuildingId() != null) {
+            buildingService.findById(s.getBuildingId())
+                    .ifPresent(b -> model.addAttribute("sensorBuildingName", b.getName()));
+        }
+
         gatewayService.findById(s.getIdGateway()).ifPresent(gw -> {
             String buildingLabel = gw.getBuildingId() != null
                     ? buildingService.findById(gw.getBuildingId())
