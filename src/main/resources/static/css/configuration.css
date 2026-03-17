@@ -1,55 +1,59 @@
 /* ============================================================
-   GLOBAL PAGE STYLE
+   CONFIGURATION PAGE — MODERN SAAS SETTINGS DESIGN
    ============================================================ */
 
-/* ===== CONFIGURATION PAGE - ULTRA MODERN DESIGN ===== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-    --primary: #662179;
-    --primary-light: #8b2fa3;
-    --primary-dark: #4a1857;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --info: #3b82f6;
-    
-    --bg-main: #f8fafc;
-    --bg-card: #ffffff;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --border: #e2e8f0;
-    
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
-    --shadow-glow: 0 0 20px rgba(102, 33, 121, 0.15);
+    --cfg-primary: #662179;
+    --cfg-primary-light: #8b2fa3;
+    --cfg-primary-dark: #4a1857;
+    --cfg-primary-subtle: rgba(102, 33, 121, 0.06);
+    --cfg-primary-ring: rgba(102, 33, 121, 0.18);
+    --cfg-success: #10b981;
+    --cfg-success-bg: #ecfdf5;
+    --cfg-warning: #f59e0b;
+    --cfg-warning-bg: #fffbeb;
+    --cfg-danger: #ef4444;
+    --cfg-danger-bg: #fef2f2;
+    --cfg-info: #3b82f6;
+    --cfg-info-bg: #eff6ff;
+
+    --cfg-bg: #f4f6f9;
+    --cfg-bg-card: #ffffff;
+    --cfg-text: #1a1d23;
+    --cfg-text-secondary: #5f6b7a;
+    --cfg-text-muted: #94a3b8;
+    --cfg-border: #e3e8ef;
+    --cfg-border-hover: #cbd2dc;
+    --cfg-divider: #f0f2f5;
+
+    --cfg-radius-sm: 8px;
+    --cfg-radius-md: 12px;
+    --cfg-radius-lg: 16px;
+    --cfg-radius-xl: 20px;
+
+    --cfg-shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+    --cfg-shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+    --cfg-shadow-md: 0 4px 16px rgba(0,0,0,0.07);
+    --cfg-shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
+    --cfg-shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+
+    --cfg-sidebar-w: 250px;
+    --cfg-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ============================================================
+   BASE
+   ============================================================ */
 body {
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    background: var(--cfg-bg);
     min-height: 100vh;
     margin: 0;
     padding: 0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    color: var(--text-primary);
-}
-
-main.config-page {
-    max-width: 1400px;
-    margin: 2rem auto;
-    padding: 0 2rem 2rem 2rem;
-    animation: fadeIn 0.5s ease-out;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    color: var(--cfg-text);
+    -webkit-font-smoothing: antialiased;
 }
 
 .header-title-gateway {
@@ -57,383 +61,827 @@ main.config-page {
     text-align: center;
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--primary);
+    color: var(--cfg-primary);
     letter-spacing: 0.5px;
+}
+
+/* ============================================================
+   PAGE HEADER
+   ============================================================ */
+.cfg-page-header {
+    padding: 24px 40px 16px;
+    max-width: 1440px;
+    margin: 0 auto;
+}
+.cfg-page-header h1 {
+    font-size: 1.65rem;
+    font-weight: 700;
+    color: var(--cfg-text);
+    margin: 0 0 4px 0;
+    letter-spacing: -0.5px;
+}
+.cfg-page-header p {
+    color: var(--cfg-text-secondary);
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ============================================================
+   LAYOUT: SIDEBAR + MAIN
+   ============================================================ */
+.cfg-layout {
+    display: flex;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 40px 60px;
+    gap: 28px;
+    align-items: flex-start;
+}
+
+/* --- SIDEBAR --- */
+.cfg-sidebar {
+    width: var(--cfg-sidebar-w);
+    flex-shrink: 0;
+    position: sticky;
+    top: 80px;
+}
+.cfg-sidebar-nav {
+    background: var(--cfg-bg-card);
+    border-radius: var(--cfg-radius-lg);
+    border: 1px solid var(--cfg-border);
+    box-shadow: var(--cfg-shadow-card);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.cfg-sidebar-nav a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: var(--cfg-radius-sm);
+    color: var(--cfg-text-secondary);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all var(--cfg-transition);
+    cursor: pointer;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+.cfg-sidebar-nav a:hover {
+    background: var(--cfg-primary-subtle);
+    color: var(--cfg-primary);
+}
+.cfg-sidebar-nav a.active {
+    background: var(--cfg-primary-subtle);
+    color: var(--cfg-primary);
+    font-weight: 600;
+    border-color: var(--cfg-primary-ring);
+}
+.cfg-sidebar-nav a .nav-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.cfg-sidebar-nav a .nav-icon svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.cfg-sidebar-nav .nav-divider {
+    height: 1px;
+    background: var(--cfg-divider);
+    margin: 6px 8px;
+}
+
+/* mobile sidebar toggle button */
+.cfg-sidebar-toggle {
+    display: none;
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--cfg-primary);
+    color: #fff;
+    border: none;
+    box-shadow: var(--cfg-shadow-lg);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+/* --- MAIN CONTENT --- */
+.cfg-main {
+    flex: 1;
+    min-width: 0;
+}
+
+/* hide old config-page main wrapper */
+main.config-page {
+    display: contents;
+}
+
+/* ============================================================
+   CONFIG SECTIONS (tab-like navigation)
+   ============================================================ */
+.cfg-section {
+    display: none;
+    animation: cfgFadeIn 0.3s ease-out;
+}
+.cfg-section.active {
+    display: block;
+}
+@keyframes cfgFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ============================================================
    CARDS
    ============================================================ */
-
 .config-card {
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border-radius: 20px;
-    padding: 2.5rem;
-    margin-bottom: 2.5rem;
-    box-shadow: var(--shadow-md), 0 0 0 1px rgba(102, 33, 121, 0.08);
-    border: 1px solid var(--border);
+    background: var(--cfg-bg-card);
+    border-radius: var(--cfg-radius-lg);
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: var(--cfg-shadow-card);
+    border: 1px solid var(--cfg-border);
+    transition: box-shadow var(--cfg-transition);
     position: relative;
-    overflow: hidden;
-    backdrop-filter: blur(10px);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: visible;
 }
-
-.config-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--primary), var(--primary-light));
+.config-card:hover {
+    box-shadow: var(--cfg-shadow-md);
 }
 
 .config-card h2 {
-    color: var(--text-primary);
-    font-size: 1.75rem;
+    color: var(--cfg-text);
+    font-size: 1.15rem;
     font-weight: 700;
-    margin-top: 0;
-    margin-bottom: 0.5rem;
+    margin: 0 0 4px 0;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 10px;
+    letter-spacing: -0.3px;
+}
+.config-card h2 .card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--cfg-radius-sm);
+    background: var(--cfg-primary-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.config-card h2 .card-icon svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--cfg-primary);
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
-.config-card > p {
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-    margin-bottom: 2rem;
+.config-card > p,
+.config-card > .card-desc {
+    color: var(--cfg-text-secondary);
+    font-size: 0.85rem;
+    margin: 0 0 24px 0;
     line-height: 1.6;
 }
 
-.config-mini-table-wrapper {
-    max-height: 200px;
-    overflow-y: auto;
-    border-radius: 6px;
-    margin-top: 8px;
+.card-divider {
+    border: none;
+    height: 1px;
+    background: var(--cfg-divider);
+    margin: 24px 0;
 }
 
-.config-mini-table thead th {
-    position: sticky;
-    top: 0;
-    background: #fff;
-    z-index: 1;
-}
-.config-mini-table-wrapper::-webkit-scrollbar {
-    width: 6px;
-}
-
-.config-mini-table-wrapper::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-.config-mini-table-wrapper::-webkit-scrollbar-thumb {
-    background: var(--primary);
-    border-radius: 4px;
-}
-
-.config-mini-table-wrapper::-webkit-scrollbar-thumb:hover {
-    background: var(--primary-dark);
+/* Section description block */
+.section-description {
+    color: var(--cfg-text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 24px;
+    padding: 12px 16px;
+    background: var(--cfg-primary-subtle);
+    border-radius: var(--cfg-radius-sm);
+    border-left: 3px solid var(--cfg-primary);
+    line-height: 1.6;
 }
 
 /* ============================================================
-   FORMS
+   SENSOR MANAGEMENT — 3-column sub-cards
    ============================================================ */
-
-label {
+.config-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 16px;
+}
+.config-subcard {
+    background: var(--cfg-bg);
+    border: 1px solid var(--cfg-border);
+    border-radius: var(--cfg-radius-md);
+    padding: 16px;
+    transition: border-color var(--cfg-transition), box-shadow var(--cfg-transition);
+}
+.config-subcard:hover {
+    border-color: var(--cfg-border-hover);
+    box-shadow: var(--cfg-shadow-sm);
+}
+.config-subcard h3 {
+    margin: 0 0 12px 0;
+    font-size: 0.95rem;
     font-weight: 600;
-    color: var(--text-secondary);
+    color: var(--cfg-text);
+}
+.config-inline-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.config-inline-form .form-control {
+    flex: 1;
+    max-width: none;
+}
+
+/* ============================================================
+   MINI TABLES (sensor types, brands, protocols)
+   ============================================================ */
+.config-mini-table-wrapper {
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: var(--cfg-radius-sm);
+    margin-top: 8px;
+}
+.config-mini-table-wrapper::-webkit-scrollbar { width: 4px; }
+.config-mini-table-wrapper::-webkit-scrollbar-track { background: transparent; }
+.config-mini-table-wrapper::-webkit-scrollbar-thumb { background: var(--cfg-border-hover); border-radius: 2px; }
+
+.config-mini-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+.config-mini-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--cfg-bg);
+    z-index: 1;
+    text-align: left;
+    padding: 8px;
+    font-weight: 600;
+    color: var(--cfg-text-secondary);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--cfg-border);
+}
+.config-mini-table td {
+    padding: 8px;
+    border-bottom: 1px solid var(--cfg-divider);
+    color: var(--cfg-text);
+}
+.config-mini-table tr:last-child td {
+    border-bottom: none;
+}
+
+.muted {
+    text-align: center;
+    font-style: italic;
+    color: var(--cfg-text-muted);
+    font-size: 0.85rem;
+}
+
+/* ============================================================
+   FORMS — Inputs, Selects, Labels
+   ============================================================ */
+label,
+.form-label {
+    font-weight: 500;
+    color: var(--cfg-text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+    display: block;
 }
 
 .form-control,
 .form-select,
 textarea {
-    border-radius: 12px;
-    border: 2px solid var(--border);
-    padding: 0.75rem 1rem;
-    font-size: 0.95rem;
+    display: block;
+    width: 100%;
+    max-width: none;
+    padding: 9px 12px;
+    font-size: 0.875rem;
     font-weight: 500;
-    color: var(--text-primary);
-    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    width: auto;
-    max-width: 300px;
-    height: 20px;
-    margin-top: 10px;
+    font-family: inherit;
+    color: var(--cfg-text);
+    background: var(--cfg-bg-card);
+    border: 1px solid var(--cfg-border);
+    border-radius: var(--cfg-radius-sm);
+    transition: border-color var(--cfg-transition), box-shadow var(--cfg-transition);
+    box-shadow: var(--cfg-shadow-xs);
+    height: auto;
+    margin-top: 0;
+    outline: none;
+    box-sizing: border-box;
 }
-
+.form-control::placeholder { color: var(--cfg-text-muted); }
 
 .form-control:hover,
 .form-select:hover {
-    border-color: rgba(102, 33, 121, 0.3);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: var(--cfg-border-hover);
 }
-
 .form-control:focus,
 .form-select:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(102, 33, 121, 0.15);
-    transform: translateY(-1px);
+    border-color: var(--cfg-primary);
+    box-shadow: 0 0 0 3px var(--cfg-primary-ring);
 }
 
-/* Input Groups with Units */
+/* Input with unit badge */
 .input-with-unit {
     position: relative;
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    width: auto;
-    max-width: 300px;
-    padding-bottom: 10px;
-    padding-right: 5px;
-    margin-left: 10px;
+    max-width: none;
+    padding: 0;
+    margin: 0;
 }
-
 .input-with-unit .form-control {
-    padding-right: 3.5rem;
+    padding-right: 52px;
     flex: 1;
-    width: 100%;
 }
-
 .input-unit {
     position: absolute;
-    right: 0.75rem;
+    right: 8px;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--primary);
-    font-weight: 700;
-    font-size: 0.8rem;
+    color: var(--cfg-primary);
+    font-weight: 600;
+    font-size: 0.75rem;
     pointer-events: none;
-    background: rgba(102, 33, 121, 0.15);
-    padding: 0.2rem 0.4rem;
+    background: var(--cfg-primary-subtle);
+    padding: 3px 8px;
     border-radius: 4px;
-    border: 1px solid rgba(102, 33, 121, 0.3);
     line-height: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 30px;
-    height: 20px;
+    min-width: 28px;
+    height: 22px;
 }
 
-/* Smooth scrolling for select dropdowns */
-.form-select {
-    max-height: 200px;
-    overflow-y: auto;
-    min-height: 40px;
+/* Input groups (Bootstrap-like) */
+.input-group {
+    display: flex;
+    align-items: stretch;
+}
+.input-group .form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    flex: 1;
+}
+.input-group .form-select {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left: none;
+    width: auto;
+    min-width: 80px;
+}
+.input-group-text {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--cfg-text-secondary);
+    background: var(--cfg-bg);
+    border: 1px solid var(--cfg-border);
+    border-left: none;
+    border-radius: 0 var(--cfg-radius-sm) var(--cfg-radius-sm) 0;
+    white-space: nowrap;
 }
 
-/* Special styling for sensor select dropdowns */
+/* Fix specific selects */
 #sensor-select, #threshold-parameter, #notif-parameter {
-    width: 100% !important;
-    max-width: none !important;
-    height: 45px;
+    width: 100%;
+    max-width: none;
+    height: auto;
+}
+#energy-config-building {
+    width: 100%;
+    max-width: 360px;
+    height: auto;
 }
 
-.config-grid-3{
-  display:grid;
-  grid-template-columns: repeat(3, minmax(260px, 1fr));
-  gap: 18px;
-  margin-top: 12px;
+/* Row grid helper */
+.row { display: flex; flex-wrap: wrap; gap: 16px; }
+.row > [class*="col-"] { flex: 1; min-width: 0; }
+.col-md-3 { flex: 0 0 calc(25% - 12px); }
+.col-md-4 { flex: 0 0 calc(33.333% - 11px); }
+.col-md-5 { flex: 0 0 calc(41.667% - 10px); }
+.col-md-6 { flex: 0 0 calc(50% - 8px); }
+
+/* Spacing helpers */
+.mb-3 { margin-bottom: 16px; }
+.mb-4 { margin-bottom: 20px; }
+.mt-2 { margin-top: 8px; }
+.mt-4 { margin-top: 20px; }
+.mt-5 { margin-top: 32px; }
+.my-5 { margin-top: 32px; margin-bottom: 32px; }
+.ms-3 { margin-left: 12px; }
+.g-3 { gap: 16px; }
+.fw-semibold { font-weight: 600; }
+.fw-bold { font-weight: 700; }
+.text-center { text-align: center; }
+.text-muted {
+    font-size: 0.8rem;
+    color: var(--cfg-text-muted);
+    margin-top: 4px;
+    display: block;
 }
 
-.config-subcard{
-  background: #fff;
-  border: 2px solid #e8e1ef;
-  border-radius: 12px;
-  padding: 14px;
-}
-
-.config-subcard h3{
-  margin: 0 0 10px 0;
-  font-size: 18px;
-}
-
-.config-inline-form{
-  display:flex;
-  gap: 10px;
-  align-items:center;
-  margin-bottom: 12px;
-}
-
-.config-inline-form .form-control{
-  flex: 1;
-}
-
-.config-mini-table{
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.config-mini-table th,
-.config-mini-table td{
-  border-bottom: 1px solid #eee;
-  padding: 10px 8px;
-}
-
-.btn-danger-mini{
-  background: #dc2626;
-  border: none;
-  color: white;
-  padding: 7px 10px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn-danger-mini:hover{
-  background: #b91c1c;
-}
-
-.muted{
-  text-align:center;
-  font-style: italic;
-  color: #6b7280;
-}
-
-/* Fix specific dropdowns that show partial text */
-#sensor-type, #formatter-lang {
-    width: auto !important;
-    max-width: 400px !important;
-    height: 45px !important;
-    margin-top: 10px !important;
-    margin-left: 20px !important;
-}
-
-.form-select option {
-    padding: 0.7rem;
-    background: white;
-    color: var(--text-primary);
-}
-
-.form-select option:hover {
-    background: rgba(102, 33, 121, 0.1);
-}
-
-/* Custom scrollbar for select */
-.form-select::-webkit-scrollbar {
-    width: 8px;
-}
-
-.form-select::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-.form-select::-webkit-scrollbar-thumb {
-    background: var(--primary);
-    border-radius: 4px;
-}
-
-.form-select::-webkit-scrollbar-thumb:hover {
-    background: var(--primary-dark);
-}
-
-/* Inline checkbox spacing */
-.form-check-inline {
-    margin-right: 15px;
-}
+.d-flex { display: flex; }
+.justify-content-end { justify-content: flex-end; }
+.align-items-center { align-items: center; }
+.flex-wrap { flex-wrap: wrap; }
 
 /* ============================================================
    BUTTONS
    ============================================================ */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 18px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: inherit;
+    border-radius: var(--cfg-radius-sm);
+    border: none;
+    cursor: pointer;
+    transition: all var(--cfg-transition);
+    white-space: nowrap;
+    text-decoration: none;
+    line-height: 1.4;
+}
 
 .btn-violet {
-    background: var(--primary);
-    color: white;
-    border: none;
-    padding: 1rem 1.2rem;
-    border-radius: 8px;
-    transition: all 0.25s ease;
-    font-weight: 600;
-    font-size: 0.95rem;
+    background: var(--cfg-primary);
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(102,33,121,0.25);
 }
-
 .btn-violet:hover {
-    background: var(--primary-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 33, 121, 0.25);
+    background: var(--cfg-primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102,33,121,0.3);
+}
+.btn-violet:active {
+    transform: translateY(0);
 }
 
-/* ============================================================
-   PAYLOAD EDITOR
-   ============================================================ */
-
-#payload-editor {
-    width: 100%;
-    height: 300px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    padding: 1rem;
-    font-size: 0.9rem;
-    font-family: monospace;
-    background: #0f172a;
-    color: #e5e7eb;
+.btn-danger-mini {
+    background: var(--cfg-danger);
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all var(--cfg-transition);
+}
+.btn-danger-mini:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
 }
 
 .btn-decoder-mini {
-    background: #662179;
+    background: var(--cfg-primary);
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
     border: none;
-    color: white;
-    padding: 7px 10px;
-    border-radius: 8px;
+    cursor: pointer;
+    transition: all var(--cfg-transition);
+}
+.btn-decoder-mini:hover {
+    background: var(--cfg-primary-dark);
+}
+
+.btn-outline-primary {
+    background: transparent;
+    color: var(--cfg-primary);
+    border: 1px solid var(--cfg-primary);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
+    transition: all var(--cfg-transition);
+}
+.btn-outline-primary:hover {
+    background: var(--cfg-primary-subtle);
 }
 
-.btn-decoder-mini:hover {
-    background: #4a1857;
+.btn-outline-danger {
+    background: transparent;
+    color: var(--cfg-danger);
+    border: 1px solid var(--cfg-danger);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--cfg-transition);
+}
+.btn-outline-danger:hover {
+    background: var(--cfg-danger-bg);
 }
 
-#test-decoded {
-    background: #f0f0f0;
-    padding: 10px;
-    border-radius: 8px;
-    min-height: 50px;
-    margin-top: 10px;
-    white-space: pre-wrap;
-    font-family: monospace;
+.btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+.btn-lg { padding: 11px 22px; font-size: 0.9rem; }
+
+.btn-danger {
+    background: var(--cfg-danger);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: all var(--cfg-transition);
+}
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+
+.btn-edit, .btn-delete {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all var(--cfg-transition);
+}
+.btn-edit {
+    background: var(--cfg-info-bg);
+    color: var(--cfg-info);
+    border: 1px solid rgba(59,130,246,0.2);
+}
+.btn-edit:hover {
+    background: #dbeafe;
+    transform: translateY(-1px);
+}
+.btn-delete {
+    background: var(--cfg-danger-bg);
+    color: var(--cfg-danger);
+    border: 1px solid rgba(239,68,68,0.2);
+}
+.btn-delete:hover {
+    background: #fee2e2;
+    transform: translateY(-1px);
+}
+
+/* ============================================================
+   ALERTS / THRESHOLDS SECTION
+   ============================================================ */
+.subsection-title {
+    color: var(--cfg-text);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-top: 24px;
+    margin-bottom: 8px;
+}
+.subsection-description {
+    color: var(--cfg-text-secondary);
+    font-size: 0.825rem;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.threshold-form {
+    padding: 20px;
+    background: var(--cfg-bg);
+    border-radius: var(--cfg-radius-md);
+    border: 1px solid var(--cfg-border);
+}
+.threshold-group {
+    padding: 16px;
+    background: var(--cfg-bg-card);
+    border-radius: var(--cfg-radius-md);
+    border: 1px solid var(--cfg-border);
+    transition: border-color var(--cfg-transition);
+}
+.threshold-group:hover {
+    border-color: var(--cfg-border-hover);
+}
+
+.parameter-title {
+    color: var(--cfg-primary);
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--cfg-divider);
+}
+
+/* Sensor threshold section */
+.sensor-threshold-section {
+    padding: 20px;
+    background: var(--cfg-bg);
+    border-radius: var(--cfg-radius-md);
+    border: 1px solid var(--cfg-border);
+}
+.threshold-inputs {
+    padding: 16px;
+    background: var(--cfg-bg-card);
+    border-radius: var(--cfg-radius-md);
+    border: 1px solid var(--cfg-border);
+    margin-top: 12px;
+}
+#sensor-threshold-form {
+    padding: 16px;
+    background: var(--cfg-bg-card);
+    border-radius: var(--cfg-radius-sm);
+    margin-top: 12px;
+}
+
+/* Threshold/Notification lists */
+.thresholds-list,
+.threshold-list,
+.notification-list {
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 8px;
+    background: var(--cfg-bg);
+    border-radius: var(--cfg-radius-sm);
+    border: 1px solid var(--cfg-border);
+}
+.threshold-item,
+.notification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    margin-bottom: 6px;
+    background: var(--cfg-bg-card);
+    border-radius: var(--cfg-radius-sm);
+    border: 1px solid var(--cfg-border);
+    transition: all var(--cfg-transition);
+}
+.threshold-item:hover,
+.notification-item:hover {
+    border-color: var(--cfg-border-hover);
+    box-shadow: var(--cfg-shadow-sm);
+}
+.threshold-info, .notification-info { flex: 1; min-width: 0; }
+.threshold-label, .notification-label {
+    font-weight: 600;
+    color: var(--cfg-text);
+    font-size: 0.875rem;
+    margin-bottom: 2px;
+}
+.threshold-values, .notification-details {
+    font-size: 0.8rem;
+    color: var(--cfg-text-secondary);
+}
+.threshold-actions, .notification-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+    margin-left: 12px;
+}
+
+/* ============================================================
+   NOTIFICATION CHANNELS
+   ============================================================ */
+.notification-config {
+    background: var(--cfg-bg);
+    padding: 20px;
+    border-radius: var(--cfg-radius-md);
+    border: 1px solid var(--cfg-border);
+}
+.channel-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.channel-option {
+    display: flex;
+    align-items: center;
+    padding: 14px;
+    background: var(--cfg-bg-card);
+    border-radius: var(--cfg-radius-sm);
+    border: 1.5px solid var(--cfg-border);
+    transition: all var(--cfg-transition);
+    cursor: pointer;
+}
+.channel-option:hover {
+    border-color: var(--cfg-primary);
+    box-shadow: 0 0 0 3px var(--cfg-primary-ring);
+}
+.channel-option input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    margin-right: 12px;
+    accent-color: var(--cfg-primary);
+}
+.channel-option label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    flex: 1;
+    font-size: 0.875rem;
+}
+.channel-icon { font-size: 1.25rem; }
+.channel-name {
     font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--cfg-text);
+}
+
+/* ============================================================
+   TABLES (energy config, etc)
+   ============================================================ */
+.table-responsive { overflow-x: auto; }
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+.table thead th {
+    text-align: left;
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--cfg-text-secondary);
+    background: var(--cfg-bg);
+    border-bottom: 2px solid var(--cfg-border);
+}
+.table tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--cfg-divider);
+    color: var(--cfg-text);
+    vertical-align: middle;
+}
+.table tbody tr:hover {
+    background: var(--cfg-primary-subtle);
+}
+.table-striped tbody tr:nth-child(even) {
+    background: rgba(0,0,0,0.015);
 }
 
 /* ============================================================
    3D / 2D VIEWERS
    ============================================================ */
-
 .building-3d-container {
     position: relative;
     width: 100%;
     height: 600px;
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-    border-radius: 12px;
+    border-radius: var(--cfg-radius-md);
     overflow: hidden;
     box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);
     margin-top: 20px;
 }
-
 .building-3d-container canvas,
 #three-container canvas {
     width: 100%;
     height: 100%;
     display: block;
 }
-
-#plan2D {
-    width: 100%;
-    height: 400px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    margin-top: 20px;
-    background-color: #e0e0e0;
-    display: none;
+.building-3d-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
 }
-
-/* ============================================================
-   CONTROL HINT (Optional, comme page 3D)
-   ============================================================ */
 
 .building-controls {
     position: absolute;
@@ -441,430 +889,130 @@ textarea {
     left: 50%;
     transform: translateX(-50%);
     background: rgba(255, 255, 255, 0.95);
-    padding: 0.8rem 1.3rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    padding: 8px 16px;
+    border-radius: var(--cfg-radius-md);
+    box-shadow: var(--cfg-shadow-md);
     backdrop-filter: blur(10px);
     z-index: 10;
 }
-
 .control-hint {
     display: flex;
-    gap: 1.2rem;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
+    gap: 16px;
+    font-size: 0.8rem;
+    color: var(--cfg-text-secondary);
 }
-
 .control-hint span {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 4px;
 }
-
-/* ============================================================
-   FLOOR INFO OVERLAY (same design as dashboard)
-   ============================================================ */
 
 .floor-info-overlay {
     position: absolute;
     top: 20px;
     right: 20px;
     background: rgba(255,255,255,0.95);
-    padding: 1rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    padding: 14px;
+    border-radius: var(--cfg-radius-md);
+    box-shadow: var(--cfg-shadow-md);
     backdrop-filter: blur(10px);
     min-width: 200px;
     display: none;
 }
-
 .floor-info-overlay.active {
     display: block;
-    animation: slideInRight 0.3s ease;
+    animation: cfgSlideInRight 0.3s ease;
+}
+@keyframes cfgSlideInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
 }
 
-@keyframes slideInRight {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
+.floor-plan-2d { margin-top: 16px; }
+.floor-plan-header h4 { margin: 0 0 12px 0; font-size: 1rem; font-weight: 600; }
+
+.floor-plan-card {
+    background: var(--cfg-bg);
+    border-radius: var(--cfg-radius-md);
+    border: 1px solid var(--cfg-border);
+    padding: 16px;
+    margin-bottom: 16px;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .threshold-group {
-        padding: 1rem;
-    }
-    
-    .notification-config {
-        padding: 1.25rem;
-    }
-    
-    .parameter-title {
-        font-size: 1rem;
-    }
-}
-
-/* Style appliqué APRÈS qu'Ace ait initialisé l'éditeur */
-#payload-editor.ace_editor {
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: #0f172a;
-    color: #e5e7eb;
-    font-size: 0.9rem;
-}
-
-/* Curseur, numéros de lignes, etc. */
-#payload-editor .ace_gutter {
-    background: #111827;
-    color: #9ca3af;
-}
-
-#payload-editor .ace_content {
-    background: transparent;
-}
-
-/* Pour éviter que Ace colle au bord de la card */
-#payload-editor {
-    width: 100%;
-    height: 300px;
-}
-
-/* ============================================================
-   ALERTS & NOTIFICATIONS STYLING
-   ============================================================ */
-
-.section-description {
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-    margin-bottom: 2rem;
-    padding: 1rem 1.25rem;
-    background: rgba(102, 33, 121, 0.05);
-    border-radius: 8px;
-    border-left: 4px solid var(--primary);
-    line-height: 1.6;
-}
-
-.subsection-title {
-    color: var(--primary);
-    font-size: 1.3rem;
-    font-weight: 600;
-    margin-top: 2rem;
-    margin-bottom: 1rem;
-}
-
-.subsection-description {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    margin-bottom: 1.5rem;
-    line-height: 1.5;
-}
-
-/* Threshold Form Styling */
-.threshold-form {
-    padding: 1.5rem;
-    background: rgba(248, 250, 252, 0.5);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-}
-
-.threshold-group {
-    padding: 1.5rem;
-    background: white;
-    border-radius: 10px;
-    border: 1px solid rgba(102, 33, 121, 0.1);
-    transition: all 0.3s ease;
-}
-
-.threshold-group:hover {
-    border-color: rgba(102, 33, 121, 0.2);
-    box-shadow: 0 2px 8px rgba(102, 33, 121, 0.05);
-}
-
-.parameter-title {
-    color: #662179;
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid rgba(102, 33, 121, 0.1);
-}
-
-.form-label {
-    font-weight: 500;
-    color: #374151;
-    margin-bottom: 0.5rem;
-    font-size: 0.9rem;
-}
-
-.form-control {
-    padding: 0.6rem 1rem;
-    border-radius: 6px;
-    border: 1px solid #d1d5db;
-    transition: all 0.2s ease;
-}
-
-.form-control:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(102, 33, 121, 0.1);
-}
-
-.text-muted {
-    font-size: 0.85rem;
-    color: #6b7280;
-    margin-top: 0.25rem;
-    display: block;
-}
-
-/* Sensor Threshold Section */
-.sensor-threshold-section {
-    padding: 1.5rem;
-    background: rgba(248, 250, 252, 0.5);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-}
-
-.threshold-inputs {
-    padding: 1.5rem;
-    background: white;
-    border-radius: 10px;
-    border: 1px solid rgba(102, 33, 121, 0.1);
-    margin-top: 1rem;
-}
-
-/* Notification Channels Styling */
-.notification-config {
-    background: white;
-    padding: 2rem;
-    border-radius: 10px;
-    border: 1px solid rgba(102, 33, 121, 0.1);
-}
-
-.channel-options {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.channel-option {
+/* 2D element parameter controls */
+.filter-card {
     display: flex;
     align-items: center;
-    padding: 1.2rem;
-    background: rgba(248, 250, 252, 0.5);
-    border-radius: 8px;
-    border: 2px solid #e5e7eb;
-    transition: all 0.3s ease;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
 }
-
-.channel-option:hover {
-    border-color: var(--primary);
-    background: white;
-    box-shadow: 0 2px 12px rgba(102, 33, 121, 0.1);
-}
-
-.channel-option input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    margin-right: 1rem;
-}
-
-.channel-option label {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+.filter-card label {
     margin: 0;
-    flex: 1;
-}
-
-.channel-icon {
-    font-size: 1.5rem;
-}
-
-.channel-name {
-    font-size: 1rem;
     font-weight: 600;
-    color: var(--text-primary);
-}
-
-/* Threshold List */
-.threshold-list,
-.notification-list {
-    max-height: 300px;
-    overflow-y: auto;
-    padding: 1rem;
-    background: var(--bg-main);
-    border-radius: 8px;
-    border: 1px solid var(--border);
-}
-
-.threshold-item,
-.notification-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem;
-    margin-bottom: 0.5rem;
-    background: white;
-    border-radius: 6px;
-    border-left: 3px solid var(--primary);
-    transition: all 0.2s ease;
-}
-
-.threshold-item:hover,
-.notification-item:hover {
-    transform: translateX(4px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.threshold-info,
-.notification-info {
-    flex: 1;
-}
-
-.threshold-label,
-.notification-label {
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 0.25rem;
-}
-
-.threshold-values,
-.notification-details {
     font-size: 0.85rem;
-    color: var(--text-secondary);
+    white-space: nowrap;
 }
-
-.threshold-actions,
-.notification-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.btn-sm {
-    padding: 0.25rem 0.75rem;
-    font-size: 0.85rem;
-    border-radius: 4px;
-}
-
-.btn-danger {
-    background: #ef4444;
-    color: white;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.btn-danger:hover {
-    background: #dc2626;
-    transform: translateY(-1px);
-}
-
-/* Sensor Threshold Section */
-.sensor-threshold-section {
-    background: rgba(59, 130, 246, 0.02);
-    padding: 1.5rem;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-}
-
-#sensor-threshold-form {
-    padding: 1rem;
-    background: white;
-    border-radius: 8px;
-    margin-top: 1rem;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .channel-options {
-        gap: 0.75rem;
-    }
-    
-    .channel-option {
-        padding: 0.75rem;
-    }
-    
-    .threshold-item,
-    .notification-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-    
-    .threshold-actions,
-    .notification-actions {
-        width: 100%;
-        justify-content: flex-end;
-    }
+.filter-card .form-select,
+.filter-card .form-control {
+    width: auto;
+    min-width: 140px;
 }
 
 /* ============================================================
    FLOOR CHECKBOX SELECTOR
    ============================================================ */
-
 .floor-checkbox-wrapper {
     position: relative;
-    display: inline-block; 
-    font-size: 0.95rem;
+    display: inline-block;
+    font-size: 0.875rem;
     font-weight: 500;
-    color: var(--text-primary);
+    color: var(--cfg-text);
     width: auto;
     max-width: 500px;
-    margin-top: 10px;
+    margin-top: 6px;
 }
-
 .floor-checkbox-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 14px;
-    height: 45px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: #fff;
+    height: 40px;
+    border: 1px solid var(--cfg-border);
+    border-radius: var(--cfg-radius-sm);
+    background: var(--cfg-bg-card);
     cursor: pointer;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    transition: border-color 0.2s, box-shadow 0.2s;
+    font-size: 0.85rem;
+    color: var(--cfg-text-secondary);
+    transition: border-color var(--cfg-transition), box-shadow var(--cfg-transition);
     user-select: none;
 }
-
 .floor-checkbox-header:hover {
-    border-color: var(--primary-light);
-    box-shadow: 0 0 0 3px rgba(102, 33, 121, 0.08);
+    border-color: var(--cfg-primary-light);
+    box-shadow: 0 0 0 3px var(--cfg-primary-ring);
 }
-
 .floor-checkbox-chevron {
     font-size: 1rem;
-    color: var(--primary);
+    color: var(--cfg-primary);
     transition: transform 0.2s;
 }
-
 .floor-checkbox-panel {
     position: absolute;
-    top: calc(100% + 6px);
+    top: calc(100% + 4px);
     left: 0;
     right: 0;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    box-shadow: var(--shadow-lg);
+    background: var(--cfg-bg-card);
+    border: 1px solid var(--cfg-border);
+    border-radius: var(--cfg-radius-md);
+    box-shadow: var(--cfg-shadow-lg);
     z-index: 100;
     overflow: hidden;
-    animation: dropdownIn 0.15s ease-out;
+    animation: cfgDropdownIn 0.15s ease-out;
 }
-
-@keyframes dropdownIn {
+@keyframes cfgDropdownIn {
     from { opacity: 0; transform: translateY(-6px); }
     to   { opacity: 1; transform: translateY(0); }
 }
-
 .floor-checkbox-list {
     max-height: 220px;
     overflow-y: auto;
@@ -873,57 +1021,46 @@ textarea {
     flex-direction: column;
     gap: 2px;
 }
-
 .floor-checkbox-list::-webkit-scrollbar { width: 4px; }
 .floor-checkbox-list::-webkit-scrollbar-track { background: transparent; }
-.floor-checkbox-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.floor-checkbox-list::-webkit-scrollbar-thumb { background: var(--cfg-border); border-radius: 2px; }
 
 .floor-checkbox-item {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 8px 10px;
-    border-radius: 8px;
+    border-radius: var(--cfg-radius-sm);
     cursor: pointer;
     transition: background 0.12s;
-    font-size: 0.875rem;
-    color: var(--text-primary);
+    font-size: 0.85rem;
+    color: var(--cfg-text);
     border: 1px solid transparent;
 }
-
-.floor-checkbox-item:hover {
-    background: rgba(102, 33, 121, 0.04);
-}
-
+.floor-checkbox-item:hover { background: var(--cfg-primary-subtle); }
 .floor-checkbox-item.floor-excluded {
-    background: rgba(239, 68, 68, 0.04);
+    background: var(--cfg-danger-bg);
     border-color: rgba(239, 68, 68, 0.12);
 }
+.floor-checkbox-item input[type="checkbox"] { display: none; }
 
-.floor-checkbox-item input[type="checkbox"] {
-    display: none;
-}
-
-/* Custom checkbox box */
 .floor-custom-checkbox {
     width: 18px;
     height: 18px;
     border-radius: 5px;
-    border: 2px solid #cbd5e1;
+    border: 2px solid var(--cfg-border);
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.15s;
     position: relative;
-    background: #fff;
+    background: var(--cfg-bg-card);
 }
-
 .floor-custom-checkbox.checked {
-    background: var(--danger);
-    border-color: var(--danger);
+    background: var(--cfg-danger);
+    border-color: var(--cfg-danger);
 }
-
 .floor-custom-checkbox.checked::after {
     content: '✕';
     color: #fff;
@@ -931,37 +1068,286 @@ textarea {
     font-weight: 700;
     line-height: 1;
 }
-
-/* Indeterminate state for master checkbox */
 .floor-custom-checkbox.indeterminate {
-    border-color: var(--primary);
+    border-color: var(--cfg-primary);
     background: #fff;
 }
-
 .floor-custom-checkbox.indeterminate::after {
     content: '';
     width: 8px;
     height: 2px;
-    background: var(--primary);
+    background: var(--cfg-primary);
     border-radius: 1px;
 }
-
 .floor-checkbox-master .floor-custom-checkbox.checked {
-    background: var(--primary);
-    border-color: var(--primary);
+    background: var(--cfg-primary);
+    border-color: var(--cfg-primary);
 }
-
 .floor-checkbox-master .floor-custom-checkbox.checked::after {
     content: '✓';
     font-size: 11px;
 }
-
 .floor-checkbox-label {
     flex: 1;
-    font-size: 0.875rem;
+    font-size: 0.85rem;
 }
-
 .floor-checkbox-item.floor-excluded .floor-checkbox-label {
-    color: var(--danger);
+    color: var(--cfg-danger);
 }
 
+/* ============================================================
+   PAYLOAD EDITOR
+   ============================================================ */
+#payload-editor {
+    width: 100%;
+    height: 300px;
+    border-radius: var(--cfg-radius-sm);
+    border: 1px solid var(--cfg-border);
+    padding: 1rem;
+    font-size: 0.875rem;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    background: #0f172a;
+    color: #e5e7eb;
+}
+#payload-editor.ace_editor {
+    border-radius: var(--cfg-radius-sm);
+    border: 1px solid var(--cfg-border);
+    background: #0f172a;
+    color: #e5e7eb;
+}
+#payload-editor .ace_gutter {
+    background: #111827;
+    color: #9ca3af;
+}
+
+/* ============================================================
+   TOAST NOTIFICATION SYSTEM
+   ============================================================ */
+.cfg-toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+.cfg-toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border-radius: var(--cfg-radius-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: inherit;
+    box-shadow: var(--cfg-shadow-lg);
+    pointer-events: auto;
+    animation: cfgToastIn 0.3s ease-out;
+    max-width: 400px;
+    backdrop-filter: blur(10px);
+}
+.cfg-toast.success {
+    background: var(--cfg-success-bg);
+    color: #065f46;
+    border: 1px solid rgba(16,185,129,0.2);
+}
+.cfg-toast.error {
+    background: var(--cfg-danger-bg);
+    color: #991b1b;
+    border: 1px solid rgba(239,68,68,0.2);
+}
+.cfg-toast.info {
+    background: var(--cfg-info-bg);
+    color: #1e40af;
+    border: 1px solid rgba(59,130,246,0.2);
+}
+.cfg-toast.warning {
+    background: var(--cfg-warning-bg);
+    color: #92400e;
+    border: 1px solid rgba(245,158,11,0.2);
+}
+.cfg-toast.removing {
+    animation: cfgToastOut 0.3s ease-in forwards;
+}
+@keyframes cfgToastIn {
+    from { opacity: 0; transform: translateX(60px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes cfgToastOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(60px); }
+}
+.cfg-toast .toast-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+.cfg-toast .toast-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    opacity: 0.6;
+    padding: 0 0 0 8px;
+    color: inherit;
+}
+.cfg-toast .toast-close:hover { opacity: 1; }
+
+/* ============================================================
+   SUCCESS/ERROR ALERT BANNERS (Thymeleaf messages)
+   ============================================================ */
+.alert {
+    padding: 12px 16px;
+    border-radius: var(--cfg-radius-sm);
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.alert-success {
+    background: var(--cfg-success-bg);
+    color: #065f46;
+    border: 1px solid rgba(16,185,129,0.2);
+}
+.alert-danger {
+    background: var(--cfg-danger-bg);
+    color: #991b1b;
+    border: 1px solid rgba(239,68,68,0.2);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 1100px) {
+    .config-grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .cfg-layout {
+        flex-direction: column;
+        padding: 0 20px 40px;
+    }
+    .cfg-sidebar {
+        width: 100%;
+        position: static;
+    }
+    .cfg-sidebar-nav {
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 4px;
+        padding: 6px;
+        -webkit-overflow-scrolling: touch;
+    }
+    .cfg-sidebar-nav a {
+        padding: 8px 14px;
+        font-size: 0.8rem;
+        flex-shrink: 0;
+    }
+    .cfg-sidebar-nav .nav-divider {
+        width: 1px;
+        height: 24px;
+        margin: 0 4px;
+    }
+    .cfg-page-header {
+        padding: 20px 20px 12px;
+    }
+    .config-card {
+        padding: 20px;
+    }
+    .config-grid-3 {
+        grid-template-columns: 1fr;
+    }
+    .row {
+        flex-direction: column;
+    }
+    .col-md-3, .col-md-4, .col-md-5, .col-md-6 {
+        flex: 0 0 100%;
+    }
+    .threshold-actions, .notification-actions {
+        margin-left: 0;
+        margin-top: 8px;
+    }
+    .threshold-item, .notification-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .control-hint {
+        flex-direction: column;
+        gap: 4px;
+        font-size: 0.75rem;
+    }
+    .building-3d-container {
+        height: 400px;
+    }
+}
+
+@media (max-width: 600px) {
+    .cfg-page-header h1 {
+        font-size: 1.3rem;
+    }
+    .cfg-layout {
+        padding: 0 12px 32px;
+    }
+    .config-card {
+        padding: 16px;
+        border-radius: var(--cfg-radius-md);
+    }
+    .cfg-sidebar-nav a span:not(.nav-icon) {
+        display: none;
+    }
+    .cfg-sidebar-nav a {
+        padding: 10px;
+        justify-content: center;
+    }
+    .building-3d-container {
+        height: 320px;
+    }
+}
+
+/* ============================================================
+   DECODER MODAL OVERRIDES
+   ============================================================ */
+#decoder-modal {
+    backdrop-filter: blur(4px);
+}
+
+/* ============================================================
+   SCROLLBAR GLOBAL
+   ============================================================ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--cfg-border-hover); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--cfg-text-muted); }
+
+/* ============================================================
+   FORM CHECK (checkboxes)
+   ============================================================ */
+.form-check-input {
+    accent-color: var(--cfg-primary);
+}
+.form-check-label {
+    display: inline;
+    margin: 0;
+}
+
+/* ============================================================
+   MISC COMPATIBILITY
+   ============================================================ */
+.form-select option {
+    padding: 8px;
+    background: white;
+    color: var(--cfg-text);
+}
+hr {
+    border: none;
+    height: 1px;
+    background: var(--cfg-divider);
+    margin: 24px 0;
+}
