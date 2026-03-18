@@ -1181,10 +1181,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const buildingSelect = document.getElementById('filter-building');
     if (buildingSelect) {
         buildingSelect.addEventListener('change', async () => {
-            const val = buildingSelect.value; // ID
+            const val = buildingSelect.value;
 
             if (window.building3D && typeof window.building3D.setBuilding === 'function') {
-                window.building3D.buildingKey = val.toUpperCase();
+                window.building3D.buildingKey = val;
                 await window.building3D.loadConfig();
                 window.building3D.setBuilding();
             }

@@ -2186,11 +2186,35 @@ window.addEventListener("beforeunload", () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-	console.log('Initializing Dashboard Manager...');
+    console.log('Initializing Dashboard Manager...');
+    filters.building = document.getElementById('filter-building')?.value;
+    filters.floor = document.getElementById('filter-floor')?.value;
 
-	filters.building = document.getElementById('filter-building')?.value;
-	filters.floor  = document.getElementById('filter-floor')?.value;
-	window.dashboardManager = new DashboardManager();
+    // ✅ 1. Initialiser les instances Chart.js sur les canvas dès le départ
+    initEnvironmentCharts();
+
+    // ✅ 2. Initialiser les boutons Line/Bar/Donut
+    initEnvChartToggles();
+
+    window.dashboardManager = new DashboardManager();
+    window.DashboardManager = DashboardManager;
+
+    // ✅ 3. Démarrer le SSE après que le DashboardManager a chargé le bâtiment par défaut
+    //    On attend que loadBuildings() soit terminé pour avoir le bon building ID
+    window.dashboardManager._buildingsLoaded = window.dashboardManager._buildingsLoaded
+        ?? new Promise(resolve => {
+            const original = window.dashboardManager.loadBuildings.bind(window.dashboardManager);
+            // Alternative simple : attendre un court délai post-init
+        });
+
+    // Délai court pour laisser loadBuildings() finir et définir filters.building
+    setTimeout(() => {
+        const building = document.getElementById('filter-building')?.value;
+        if (building) {
+            updateEnvironmentChartsVisibility(building);
+            startEnvironmentSSE(building);
+        }
+    }, 1500);
 });
 
 window.DashboardManager = DashboardManager;
