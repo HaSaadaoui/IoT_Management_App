@@ -244,25 +244,30 @@
                         <div class="field-error" th:if="${#fields.hasErrors('location')}" th:errors="*{location}"></div>
 
                         <!-- DevEUI -->
-                        <input type="text" id="devEuiInput" th:field="*{devEui}" placeholder="DevEUI" required
-                               pattern="^[A-Fa-f0-9]{16}$" title="16 hex characters (0-9, A-F)"
-                               th:classappend="${#fields.hasErrors('devEui')} ? 'input-error' : ''"/>
-                        <div class="field-error" th:if="${#fields.hasErrors('devEui')}" th:errors="*{devEui}"></div>
+                        <div id="devEuiWrapper">
+                            <input type="text" id="devEuiInput" th:field="*{devEui}" placeholder="DevEUI"
+                                   pattern="^[A-Fa-f0-9]{16}$" title="16 hex characters (0-9, A-F)"
+                                   th:classappend="${#fields.hasErrors('devEui')} ? 'input-error' : ''"/>
+                            <div class="field-error" th:if="${#fields.hasErrors('devEui')}" th:errors="*{devEui}"></div>
+                        </div>
 
                         <!-- JoinEUI -->
-                        <input type="text" id="joinEuiInput" th:field="*{joinEui}" placeholder="JoinEUI" required
-                               pattern="^[A-Fa-f0-9]{16}$" title="16 hex characters (0-9, A-F)"
-                               th:classappend="${#fields.hasErrors('joinEui')} ? 'input-error' : ''"/>
-                        <div class="field-error" th:if="${#fields.hasErrors('joinEui')}" th:errors="*{joinEui}"></div>
+                        <div id="joinEuiWrapper">
+                            <input type="text" id="joinEuiInput" th:field="*{joinEui}" placeholder="JoinEUI"
+                                   pattern="^[A-Fa-f0-9]{16}$" title="16 hex characters (0-9, A-F)"
+                                   th:classappend="${#fields.hasErrors('joinEui')} ? 'input-error' : ''"/>
+                            <div class="field-error" th:if="${#fields.hasErrors('joinEui')}" th:errors="*{joinEui}"></div>
+                        </div>
 
                         <!-- AppKey -->
-                        <input type="password" id="appKeyInput" th:field="*{appKey}" placeholder="AppKey" required
-                               pattern="^[A-Fa-f0-9]{32}$" title="32 hex characters (0-9, A-F)"
-                               th:classappend="${#fields.hasErrors('appKey')} ? 'input-error' : ''"/>
-                        <div class="field-error" th:if="${#fields.hasErrors('appKey')}" th:errors="*{appKey}"></div>
+                        <div id="appKeyWrapper">
+                            <input type="password" id="appKeyInput" th:field="*{appKey}" placeholder="AppKey"
+                                   pattern="^[A-Fa-f0-9]{32}$" title="32 hex characters (0-9, A-F)"
+                                   th:classappend="${#fields.hasErrors('appKey')} ? 'input-error' : ''"/>
+                            <div class="field-error" th:if="${#fields.hasErrors('appKey')}" th:errors="*{appKey}"></div>
+                        </div>
 
-                        <div class="form-buttons">
-                            <button type="submit">Add</button>
+                        <button type="submit">Add</button>
                             <button type="button" id="closeCreateSensor">Cancel</button>
 
                         </div>

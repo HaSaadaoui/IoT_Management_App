@@ -135,15 +135,39 @@ document.addEventListener('DOMContentLoaded', () => {
   // -----------------------
   // Toggle Frequency Plan selon protocole
   // -----------------------
-  function toggleFrequencyPlan() {
+function toggleFrequencyPlan() {
     if (!protocolSelect || !frequencyPlanWrapper) return;
+
     const selectedText = protocolSelect.selectedOptions[0]?.text?.toLowerCase() ?? '';
     const isLorawan = selectedText.includes('lora');
+
+    // Frequency plan
     frequencyPlanWrapper.style.display = isLorawan ? 'block' : 'none';
-    if (!isLorawan && frequencyPlanInput) {
-      frequencyPlanInput.value = '';
-    }
-  }
+    if (!isLorawan && frequencyPlanInput) frequencyPlanInput.value = '';
+
+    // DevEUI / JoinEUI / AppKey : cachés si non-LoRaWAN
+    const euiConfig = [
+        { field: devEuiInput,  wrapperId: 'devEuiWrapper'  },
+        { field: joinEuiInput, wrapperId: 'joinEuiWrapper' },
+        { field: appKeyInput,  wrapperId: 'appKeyWrapper'  },
+    ];
+
+    euiConfig.forEach(({ field, wrapperId }) => {
+        if (!field) return;
+        const wrapper = document.getElementById(wrapperId);
+        if (isLorawan) {
+            field.required = true;
+            field.disabled = false;
+            if (wrapper) wrapper.style.display = 'block';
+        } else {
+            field.required = false;
+            field.disabled = true;
+            field.value = '';
+            if (wrapper) wrapper.style.display = 'none';
+        }
+    });
+}
+
 
   protocolSelect?.addEventListener('change', toggleFrequencyPlan);
 
