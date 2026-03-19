@@ -1,23 +1,3 @@
-// ================== SHAPES ==================
-
-function createChateaudunShape(scale = 0.01) {
-    const shape = new THREE.Shape();
-
-    // SVG coordinates: x: 50-1050, y: 50-450
-    shape.moveTo(50 * scale, 50 * scale);
-    shape.lineTo(950 * scale, 50 * scale);
-    shape.lineTo(1050 * scale, 50 * scale);
-    shape.lineTo(1050 * scale, 450 * scale);
-    shape.lineTo(200 * scale, 280 * scale);
-    shape.lineTo(50 * scale, 200 * scale);
-    shape.lineTo(50 * scale, 50 * scale);
-
-    const centerX = (50 + 1050) * scale / 2;
-    const centerZ = (50 + 450) * scale / 2;
-
-    return { shape, centerX, centerZ };
-}
-
 // ================== HELPER SVG (bâtiments DB) ==================
 
 // Charge un SVG via URL et renvoie { shape, centerX, centerZ }
@@ -75,52 +55,6 @@ async function loadSVGShapeFromUrl(url) {
         );
     });
 }
-
-// ================== FLOOR DATA ==================
-
-const CHATEAUDUN_BASE_FLOOR_DATA = {
-    0: {
-        name: 'Ground Floor',
-        desks: window.DeskSensorConfig.getFloorDesks(0, 'invalid', 'CHATEAUDUN')
-    },
-    1: {
-        name: 'Floor 1',
-        desks: window.DeskSensorConfig.getFloorDesks(1, 'invalid', 'CHATEAUDUN')
-    },
-    2: {
-        name: 'Floor 2',
-        desks: window.DeskSensorConfig.getFloorDesks(2, 'invalid', 'CHATEAUDUN')
-    },
-    3: {
-        name: 'Floor 3',
-        desks: window.DeskSensorConfig.getFloorDesks(3, 'invalid', 'CHATEAUDUN')
-    },
-    4: {
-        name: 'Floor 4',
-        desks: window.DeskSensorConfig.getFloorDesks(4, 'invalid', 'CHATEAUDUN')
-    },
-    5: {
-        name: 'Floor 5',
-        desks: window.DeskSensorConfig.getFloorDesks(5, 'invalid', 'CHATEAUDUN')
-    },
-    6: {
-        name: 'Floor 6',
-        desks: window.DeskSensorConfig.getFloorDesks(6, 'invalid', 'CHATEAUDUN')
-    }
-};
-
-// ================== CONFIG BUILDINGS ==================
-
-const BUILDINGS = {
-    CHATEAUDUN: {
-        id: 'CHATEAUDUN',
-        floors: 7,
-        scale: 0.01,
-        createShape: createChateaudunShape,
-        floorData: JSON.parse(JSON.stringify(CHATEAUDUN_BASE_FLOOR_DATA)),
-        excludedFloors: [] 
-    }
-};
 
 // ================== CLASS BUILDING3D ==================
 
@@ -536,21 +470,14 @@ class Building3D {
         const excludedFloors = this.config.excludedFloors || [];
         let buildingShape, centerX, centerZ, dbScale;
 
-        if (this.isDbBuilding && this.dbBuildingConfig) {
-            if (!this.dbShapeCache) {
-                console.log("Loading DB building SVG from:", this.dbBuildingConfig.svgUrl);
-                this.dbShapeCache = await loadSVGShapeFromUrl(this.dbBuildingConfig.svgUrl);
-            }
-            dbScale       = this.dbBuildingConfig.scale || 1;
-            buildingShape = this.dbShapeCache.shape;
-            centerX       = this.dbShapeCache.centerX * dbScale;
-            centerZ       = this.dbShapeCache.centerZ * dbScale;
-        } else {
-            const result  = this.config.createShape(this.config.scale);
-            buildingShape = result.shape;
-            centerX       = result.centerX;
-            centerZ       = result.centerZ;
+        if (!this.dbShapeCache) {
+            console.log("Loading DB building SVG from:", this.dbBuildingConfig.svgUrl);
+            this.dbShapeCache = await loadSVGShapeFromUrl(this.dbBuildingConfig.svgUrl);
         }
+        dbScale       = this.dbBuildingConfig.scale || 1;
+        buildingShape = this.dbShapeCache.shape;
+        centerX       = this.dbShapeCache.centerX * dbScale;
+        centerZ       = this.dbShapeCache.centerZ * dbScale;
 
         for (let i = 0; i < floorsCount; i++) {
             const floorGroup = new THREE.Group();
@@ -968,13 +895,6 @@ class Building3D {
             } catch (e) {
                 console.error("Erreur lors du chargement du bâtiment DB:", e);
             }
-        } else {
-            this.buildingKey = upper;
-            this.isDbBuilding = false;
-            this.dbBuildingConfig = null;
-
-            this.config = BUILDINGS[this.buildingKey];
-            this.floorData = JSON.parse(JSON.stringify(this.config.floorData));
         }
     }
 
