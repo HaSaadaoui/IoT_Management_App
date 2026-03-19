@@ -1107,7 +1107,26 @@ class ArchitecturalFloorPlan {
                         if (chairLeft) chairLeft.value = "0";
                         if (chairRight) chairRight.value = "0";   
                     }
-                }
+
+                    // Charger les options de location + pré-sélectionner la valeur courante
+                    const buildingId = document.getElementById("filter-building")?.value || "";
+                    const floor = document.getElementById("filter-floor")?.value ?? "";
+
+                    fetch(`/api/sensors/${encodeURIComponent(inputId.value)}`)
+                        .then(r => r.ok ? r.json() : null)
+                        .then(data => {
+                            const currentLocation = data?.location || "";
+                            // loadLocationOptions est défini dans configuration.js
+                            if (window.loadLocationOptions) {
+                                window.loadLocationOptions(buildingId, floor, currentLocation);
+                            }
+                        })
+                        .catch(() => {
+                            if (window.loadLocationOptions) {
+                                window.loadLocationOptions(buildingId, floor, "");
+                            }
+                        });
+                    }
             }
 
             const TOLERANCE_PERCENT = 20;

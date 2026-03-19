@@ -157,6 +157,14 @@ public class SensorService {
                 .collect(java.util.stream.Collectors.toList());
     }
 
+    public List<Sensor> findAllByBuildingId(String buildingId) {
+        return sensorDao.findAllByBuildingId(Integer.parseInt(buildingId));
+    }
+
+    public List<Sensor> findAllByBuildingAndFloor(String buildingId, Integer floorNumber) {
+        return sensorDao.findAllByBuildingAndFloor(buildingId, floorNumber);
+    }
+
 
     public Sensor getOrThrow(String idSensor) {
         return findByIdSensor(idSensor)

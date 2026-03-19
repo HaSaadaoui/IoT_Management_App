@@ -825,6 +825,26 @@
                 <input type="text" id="input_label" class="form-control" onchange="updateElementSVG()">
             </div>
 
+            <div id="input-location-container" class="filter-card">
+                <label for="select_location">Location</label>
+                <!-- Select des locations existantes -->
+
+                <select id="select_location" class="form-select" onchange="onLocationChange()">
+                    <option value="">None</option>
+                    <!-- options chargées dynamiquement -->
+                    <option value="__NEW__">✏️ New location...</option>
+                </select>
+
+                <!-- Input libre, masqué par défaut -->
+                <div id="new-location-input-wrapper" style="display: none;">
+                    <input type="text" class="form-control" id="input_location_new" placeholder="New location..." maxlength="100" onchange="onLocationInputChange()"/>
+                </div>
+
+                <!-- Champ caché qui contient la valeur finale -->
+                <input type="hidden" id="input_location" />
+
+            </div>
+
             <div class="col-md-4">
                 <label>Size</label>
                 <input type="number" id="input_size" min="0" max="1000" step="10" value="20" class="form-control"

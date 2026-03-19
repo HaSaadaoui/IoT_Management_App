@@ -3,7 +3,7 @@ package com.amaris.sensorprocessor.controller;
 import com.amaris.sensorprocessor.constant.Constants;
 import com.amaris.sensorprocessor.entity.*;
 import com.amaris.sensorprocessor.service.*;
-import com.amaris.sensorprocessor.service.BrandService;
+
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -92,6 +92,42 @@ public class SensorController {
     @PostMapping("/manage-sensors")
     public String handleManageSensorsPost(Model model) {
         return redirectWithTimestamp();
+    }
+
+    /* ===================== GET ===================== */
+
+    @GetMapping("/api/sensors/locations")
+    @ResponseBody
+    public ResponseEntity<List<String>> getDistinctLocations(
+            @RequestParam(required = false) String buildingId,
+            @RequestParam(required = false) String floor) {
+
+        List<Sensor> sensors = new ArrayList<Sensor>();
+
+        if (hasText(buildingId) && hasText(floor)) {
+            sensors = sensorService.findAllByBuildingAndFloor(buildingId, Integer.parseInt(floor));
+        } else if (hasText(buildingId)) {
+            sensors = sensorService.findAllByBuildingId(buildingId);
+        } else {
+            sensors = sensorService.findAll();
+        }
+
+        List<String> locations = sensors.stream()
+                .map(Sensor::getLocation)
+                .filter(loc -> loc != null && !loc.isBlank())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(locations);
+    }
+
+    @GetMapping("/api/sensors/{idSensor}")
+    @ResponseBody
+    public ResponseEntity<?> getSensor(@PathVariable String idSensor) {
+        return sensorService.findByIdSensor(idSensor)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 
     /* ===================== ADD ===================== */
@@ -283,6 +319,41 @@ public class SensorController {
         return redirectWithTimestamp();
     }
 
+    @PostMapping("/api/sensors/{idSensor}/location")
+    @ResponseBody
+    public ResponseEntity<?> updateSensorLocation(
+            @PathVariable String idSensor,
+            @RequestBody Map<String, String> body) {
+        
+        String location = body.get("location");
+        
+        if (location == null) {
+            return ResponseEntity
+                .badRequest()
+                .body(Map.of("error", "Location field is required"));
+        }
+        
+        try {
+            Sensor existing = sensorService.getOrThrow(idSensor);
+            existing.setLocation(location.trim());
+            sensorService.update(idSensor, existing);
+            return ResponseEntity.ok(Map.of(
+                "message", "Location updated successfully",
+                "sensorId", idSensor,
+                "location", location.trim()
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("[API] Error updating sensor location for {}: {}", idSensor, e.getMessage());
+            return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to update location"));
+        }
+    }
+
     /* ===================== DELETE ===================== */
 
     @PostMapping("/manage-sensors/delete/{idSensor}")
@@ -353,19 +424,9 @@ public class SensorController {
                 .map(DeviceType::getLabel)
                 .orElse("GENERIC");
 
-        String appId = gatewayService.findById(sensor.getIdGateway())
-                .map(gw -> {
-                    if (gw.getBuildingId() == null) return "rpi-mantu-appli";
-                    return buildingService.findById(gw.getBuildingId())
-                            .map(b -> switch (b.getName().trim().toUpperCase()) {
-                                case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
-                                case "LEVALLOIS"                -> "lorawan-network-mantu";
-                                case "LILLE"                    -> "lil-rpi-mantu-appli";
-                                default                         -> "rpi-mantu-appli";
-                            })
-                            .orElse("rpi-mantu-appli");
-                })
-                .orElseThrow(() -> new IllegalStateException("Gateway introuvable pour le capteur " + idSensor));
+        String appId = sensor.getIdGateway().equals("leva-rpi-mantu")
+                ? "lorawan-network-mantu"
+                : sensor.getIdGateway() + "-appli";
 
         SseEmitter emitter = new SseEmitter(3600000L);
 
@@ -506,6 +567,10 @@ public class SensorController {
 
     private static boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
+    }
+
+    private static boolean hasText(String s) {
+        return s != null && !s.isBlank();
     }
 
     /* ===================== NORMALIZER ===================== */
