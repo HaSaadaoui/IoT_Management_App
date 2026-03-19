@@ -22,8 +22,9 @@ function buildOccupancyZones() {
         };
     };
 
+    // TODO récupérer les zones à partir du champ "Location" de la table "Sensor"
     const zones = {
-        CHATEAUDUN: {
+        23: {
             0: {
                 FLOOR_0: {
                     title: "Floor 0",
@@ -105,30 +106,6 @@ function buildOccupancyZones() {
         },
     };
 
-    // fallback dynamique pour CHATEAUDUN si jamais la config côté serveur existe
-    if (window.DeskSensorConfig?.mappings?.CHATEAUDUN) {
-        const chateaudunConfig = window.DeskSensorConfig.mappings.CHATEAUDUN;
-        Object.keys(chateaudunConfig).forEach(floorNum => {
-            const floorDesks = chateaudunConfig[floorNum] || [];
-            const sensorIds = floorDesks.filter(d => d.sensor).map(d => d.sensor);
-
-            zones.CHATEAUDUN[floorNum] = zones.CHATEAUDUN[floorNum] || {};
-            const floorZones = zones.CHATEAUDUN[floorNum][`FLOOR_${floorNum}`] || {
-                title: `Floor ${floorNum}`,
-                expectedCount: floorDesks.length,
-            };
-
-            // Assure que toutes les sous-zones ont un match
-            Object.keys(floorZones).forEach(zoneKey => {
-                if (typeof floorZones[zoneKey].match !== "function") {
-                    floorZones[zoneKey].match = () => false;
-                }
-            });
-
-            zones.CHATEAUDUN[floorNum][`FLOOR_${floorNum}`] = floorZones;
-        });
-    }
-
     console.log("ZONES:", zones);
     return zones;
 }
@@ -138,7 +115,7 @@ console.log("OCCUPANCY_ZONES:", OCCUPANCY_ZONES);
 // ============================================
 // DASHBOARD CONTEXT
 // ============================================
-const DASHBOARD_CTX = { building: "CHATEAUDUN", floor: null };
+const DASHBOARD_CTX = { building: "", floor: null };
 
 // ============================================
 // GLOBAL STATE
