@@ -59,6 +59,16 @@ class DashboardManager {
 			costScatter: null
 		};
 
+		// Bâtiments "hors base"
+		this.virtualBuildings = {
+			CHATEAUDUN: {
+				id: 'CHATEAUDUN',
+				code: 'CHATEAUDUN',
+				name: 'Châteaudun',
+				floors: 7
+			}
+		};
+
 		this.histogramConfig = {
 			timeRange: 'LAST_7_DAYS',
 			granularity: 'DAILY',
@@ -269,6 +279,12 @@ async loadBuildings() {
         const resp = await fetch('/api/buildings');
         const buildings = resp.ok ? await resp.json() : [];
         this.buildings = buildings;
+
+		// Injecter CHATEAUDUN si absent
+		Object.keys(this.virtualBuildings).forEach(key => {
+			const exists = buildings.find(b => b.code === key || String(b.id) === String(key));
+			if (!exists) buildings.push(this.virtualBuildings[key]);
+		});
 
         if (!buildings.length) {
             select.innerHTML = '<option value="" disabled selected>No building found</option>';
