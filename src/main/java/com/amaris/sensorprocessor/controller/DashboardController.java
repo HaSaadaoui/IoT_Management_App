@@ -219,35 +219,24 @@ public class DashboardController {
                 .mergeWith(keepAlive);
     }
 
-
     private String mapBuildingToAppId(String building) {
         String appId = "";
         if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
             return "rpi-mantu-appli";
         }
-
-        if (isInteger(building)) {
-            Integer buildingId = Integer.parseInt(building);
-            Optional<Building> b = buildingService.findById(buildingId);
-            if (b.isEmpty()) return DEFAULT_APP_ID ;
-
-            String buildingName = b.get().getName().trim().toUpperCase();
-
-            return switch (buildingName) {
-                case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
-                case "LEVALLOIS"                -> "lorawan-network-mantu";
-                case "LILLE"                    -> "lil-rpi-mantu-appli";
-                default                         -> DEFAULT_APP_ID ;
-            };
+        if (isInteger(building)){
+            List<Gateway> gateway = gatewayService.findByBuildingId(Integer.parseInt(building));
+            if (!gateway.isEmpty()){
+                String gatewayId = gateway.get(0).getGatewayId();
+                // Cas particulier de Levallois
+                if (gatewayId.equals("leva-rpi-mantu")){
+                    appId = "lorawan-network-mantu";
+                } else {
+                    appId = gatewayId + "-appli";
+                }
+            }
         }
-
-        // ✅ Cas où building est un String non numérique (legacy)
-        return switch (building.trim().toUpperCase()) {
-            case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
-            case "LEVALLOIS"                -> "lorawan-network-mantu";
-            case "LILLE"                    -> "lil-rpi-mantu-appli";
-            default                         -> building;
-        };
+        return appId;
     }
 
     private boolean isInteger(String s) {

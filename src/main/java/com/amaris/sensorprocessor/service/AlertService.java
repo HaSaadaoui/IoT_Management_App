@@ -442,40 +442,6 @@ public class AlertService {
         };
     }
 
-
-private String mapBuildingToAppId(String building) {
-    String defaultValue = "rpi-mantu-appli";
-    if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
-        return defaultValue;
-    }
-
-    if (isInteger(building)) {
-        List<Gateway> gateways = gatewayService.findByBuildingId(Integer.parseInt(building)); // ✅ Integer, pas String
-        if (!gateways.isEmpty()) {
-            Gateway gw = gateways.get(0);
-            // Résolution via buildingId → nom du building pour mapper l'appId
-            return resolveAppIdFromGateway(gw, defaultValue);
-        }
-        return defaultValue;
-    } else {
-        return switch (building.trim().toUpperCase()) {
-            case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
-            case "LEVALLOIS"                -> "lorawan-network-mantu";
-            case "LILLE"                    -> "lil-rpi-mantu-appli";
-            default                         -> building;
-        };
-    }
-}
-
-    private boolean isInteger(String s) {
-        try {
-            Integer.parseInt(s);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
     public List<Alert> getCurrentAlertsWithWait(Integer buildingId, int maxWaitMs) {
         int intervalMs = 100;
         int waited = 0;
