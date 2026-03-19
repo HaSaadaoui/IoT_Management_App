@@ -191,9 +191,11 @@ public class ConfigurationController {
     }
 
     @PostMapping("/configuration/protocols/add")
-    public String addProtocol(@RequestParam("name") String name, Model model, Principal principal) {
+    public String addProtocol(@RequestParam("name") String name,
+                              @RequestParam(value = "available", required = false) Boolean available,
+                              Model model, Principal principal) {
         try {
-            protocolService.createByName(name);
+            protocolService.createByName(name, available);
             model.addAttribute("configMessage", "Protocol added successfully");
         } catch (Exception e) {
             model.addAttribute("configError", e.getMessage());

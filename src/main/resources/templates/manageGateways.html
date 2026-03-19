@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <title>Manage Gateways</title>
     <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}"/>
-    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
+    <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}"/>
     <link rel="stylesheet" type="text/css" th:href="@{/css/manageGateways.css}"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 </head>
@@ -68,6 +68,7 @@
             <tr>
                 <th>Gateway ID</th>
                 <th>IP Address</th>
+                <th>Protocol</th>
                 <th>Frequency Plan</th>
                 <th>Created At</th>
                 <th>Building</th>
@@ -121,14 +122,24 @@
                     <input type="text" th:field="*{ipAddress}" placeholder="IP Address" required
                            th:classappend="${#fields.hasErrors('ipAddress')} ? 'input-error' : ''"/>
 
-                    <select th:field="*{frequencyPlan}" required
-                            th:classappend="${#fields.hasErrors('frequencyPlan')} ? 'input-error' : ''">
-                        <option value="" disabled selected>Frequency Plan</option>
-                        <th:block th:each="plan : ${frequencyPlans}">
-                            <option th:value="${plan.description}" th:text="${plan}"></option>
+
+                    <select id="protocolSelectEdit" name="protocolId" required>
+                        <option value="" disabled selected>Select Protocol</option>
+                        <th:block th:each="p : ${protocolsAvailable}">
+                            <option th:value="${p.id}" th:text="${p.name}"
+                                    th:selected="${p.id == gatewayEdit.protocolId}"></option>
                         </th:block>
                     </select>
 
+                    <div id="frequencyPlanRowEdit" class="form-row">
+                        <select th:field="*{frequencyPlan}" required
+                                th:classappend="${#fields.hasErrors('frequencyPlan')} ? 'input-error' : ''">
+                            <option value="" disabled selected>Frequency Plan</option>
+                            <th:block th:each="plan : ${frequencyPlans}">
+                                <option th:value="${plan.description}" th:text="${plan}"></option>
+                            </th:block>
+                        </select>
+                    </div>
                     <select th:field="*{buildingId}" id="buildingSelectEdit" required
                             th:classappend="${#fields.hasErrors('buildingId')} ? 'input-error' : ''">
                         <option value="" disabled selected>Select Building</option>
@@ -185,13 +196,22 @@
                     <input type="text" th:field="*{ipAddress}" placeholder="IP Address" required
                            th:classappend="${#fields.hasErrors('ipAddress')} ? 'input-error' : ''"/>
 
-                    <select th:field="*{frequencyPlan}" required
-                            th:classappend="${#fields.hasErrors('frequencyPlan')} ? 'input-error' : ''">
-                        <option value="" disabled selected>Frequency Plan</option>
-                        <th:block th:each="plan : ${frequencyPlans}">
-                            <option th:value="${plan.description}" th:text="${plan}"></option>
+                    <select id="protocolSelectCreate" name="protocolId" required>
+                        <option value="" disabled selected>Select Protocol</option>
+                        <th:block th:each="p : ${protocolsAvailable}">
+                            <option th:value="${p.id}" th:text="${p.name}"></option>
                         </th:block>
                     </select>
+
+                    <div id="frequencyPlanRowCreate" class="form-row">
+                        <select th:field="*{frequencyPlan}" required
+                                th:classappend="${#fields.hasErrors('frequencyPlan')} ? 'input-error' : ''">
+                            <option value="" disabled selected>Frequency Plan</option>
+                            <th:block th:each="plan : ${frequencyPlans}">
+                                <option th:value="${plan.description}" th:text="${plan}"></option>
+                            </th:block>
+                        </select>
+                    </div>
 
                     <select th:field="*{buildingId}" id="buildingSelectCreate" required
                             th:classappend="${#fields.hasErrors('buildingId')} ? 'input-error' : ''">
@@ -226,6 +246,7 @@
     <script th:inline="javascript">
         /*<![CDATA[*/
         window.GATEWAYS          = /*[[${gateways}]]*/        [];
+        window.AVAILABLE_PROTOCOLS = /*[[${protocolsAvailable}]]*/ [];
         window.BUILDING_FLOORS   = /*[[${buildingFloors}]]*/  [];
         window.CAN_EDIT_GATEWAYS = /*[[${#authorization.expression("hasAnyRole('ADMIN','SUPERUSER')")}]]*/ false;
         /*]]>*/

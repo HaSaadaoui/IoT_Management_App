@@ -113,26 +113,41 @@
             <section class="config-subcard">
                 <h3>Protocols</h3>
 
-                <form th:action="@{/configuration/protocols/add}" method="post" class="config-inline-form">
+                <!-- 1 SEUL FORM ADD -->
+                <form th:action="@{/configuration/protocols/add}" method="post" class="config-inline-form"
+                      style="display: flex; align-items: center; gap: 10px;">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                    <input type="text" name="name" class="form-control" placeholder="ex: LoRaWAN, Zigbee..." required>
+
+                    <input type="text" name="name" class="form-control" placeholder="ex: LoRaWAN, Zigbee..." required
+                           style="flex: 1;">
+
+                    <label style="margin: 0; white-space: nowrap; cursor: pointer;">
+                        <input type="checkbox" name="available" value="true"
+                               style="margin-right: 5px; transform: scale(1.1);"> Gateway
+                    </label>
+
                     <button type="submit" class="btn btn-violet">Add</button>
                 </form>
 
+                <!-- Table INCHANGÉE -->
                 <div class="config-mini-table-wrapper">
                     <table class="config-mini-table">
                         <thead>
                         <tr>
-                            <th>Name</th>
-                            <th style="width: 90px;">Action</th>
+                            <th style="width: 70%;">Name</th>
+                            <th style="width: 15%; text-align: center;">Gateway</th>
+                            <th style="width: 15%;">Action</th>
                         </tr>
                         </thead>
                         <tbody>
                         <tr th:each="p : ${protocols}">
-                            <td th:text="${p.name}">LoRaWAN</td>
+                            <td th:text="${p.name}"></td>
+                            <td style="text-align: center; font-size: 18px;">
+                                <span th:text="${p.availableForGateway ? '✅' : '❌'}"></span>
+                            </td>
                             <td>
                                 <form th:action="@{/configuration/protocols/delete}" method="post"
-                                      onsubmit="return confirm('Delete protocol: ' + [[${p.name}]] + ' ?');">
+                                      style="display: inline-block;">
                                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                                     <input type="hidden" name="id" th:value="${p.id}"/>
                                     <button type="submit" class="btn btn-danger-mini">Delete</button>
@@ -140,13 +155,12 @@
                             </td>
                         </tr>
                         <tr th:if="${protocols == null || #lists.isEmpty(protocols)}">
-                            <td colspan="2" class="muted">No protocols yet.</td>
+                            <td colspan="3" class="muted">No protocols yet.</td>
                         </tr>
                         </tbody>
                     </table>
                 </div>
             </section>
-
         </div>
 
 

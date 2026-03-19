@@ -16,4 +16,7 @@ public class Protocol {
 
     @Column(nullable = false, unique = true, length = 50)
     private String name;
+
+    @Column(name = "available_for_gateway", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean availableForGateway;
 }

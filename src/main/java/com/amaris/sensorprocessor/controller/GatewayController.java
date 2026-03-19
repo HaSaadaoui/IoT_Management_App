@@ -4,6 +4,7 @@ import com.amaris.sensorprocessor.constant.Constants;
 import com.amaris.sensorprocessor.constant.FrequencyPlan;
 import com.amaris.sensorprocessor.entity.Building;
 import com.amaris.sensorprocessor.entity.Gateway;
+import com.amaris.sensorprocessor.entity.Protocol;
 import com.amaris.sensorprocessor.entity.User;
 import com.amaris.sensorprocessor.service.*;
 import jakarta.servlet.http.HttpSession;
@@ -31,6 +32,7 @@ public class GatewayController {
     private final GatewayLorawanService gatewayLorawanService;
     private final UserService userService;
     private final BuildingService buildingService;
+    private  final ProtocolService protocolService;
 
     private static final String ERROR_ADD = "errorAdd";
     private static final String GATEWAY_ADD = "gatewayAdd";
@@ -43,12 +45,13 @@ public class GatewayController {
                              InputValidationService inputValidationService,
                              GatewayLorawanService gatewayLorawanService,
                              UserService userService,
-                             BuildingService buildingService) {
+                             BuildingService buildingService, ProtocolService protocolService) {
         this.gatewayService = gatewayService;
         this.inputValidationService = inputValidationService;
         this.gatewayLorawanService = gatewayLorawanService;
         this.userService = userService;
         this.buildingService = buildingService;
+        this.protocolService = protocolService;
     }
 
     @GetMapping("/manage-gateways")
@@ -312,6 +315,10 @@ public class GatewayController {
 
         List<Building> buildings = buildingService.findAll();
         model.addAttribute("buildings", buildings);
+
+        List<Protocol> protocols = protocolService.findAllAvailableForGateway();
+        model.addAttribute("protocolsAvailable",protocols);
+
 
         List<Map<String, Object>> buildingFloors = buildings.stream()
                 .map(b -> {

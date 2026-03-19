@@ -45,13 +45,24 @@ public class InputValidationService {
         }
     }
 
-    // ✅ Remplace isValidInputBuildingName
     public void isValidInputBuildingId(Integer buildingId, BindingResult bindingResult) {
         if (buildingId == null || buildingId <= 0) {
             LoggerUtil.logWithBindingObject(bindingResult, Constants.GATEWAY_BUILDING_NAME_INVALID,
                     String.valueOf(buildingId), Constants.BINDING_BUILDING_NAME);
         }
     }
+
+    public void isValidProtocolId(Integer protocolId, BindingResult bindingResult) {
+        if (protocolId == null || protocolId <= 0) {
+            LoggerUtil.logWithBindingObject(
+                    bindingResult,
+                    Constants.GATEWAY_PROTOCOL_ID_INVALID,
+                    String.valueOf(protocolId),
+                    "protocolId"
+            );
+        }
+    }
+
 
     public void isValidInputFloorNumber(Integer floorNumber, BindingResult bindingResult) {
         if (floorNumber == null || floorNumber < -10 || floorNumber > 99) {
@@ -79,7 +90,8 @@ public class InputValidationService {
         isValidInputGatewayEui(gateway.getGatewayEui(), bindingResult);
         isValidInputIpAddress(gateway.getIpAddress(), bindingResult);
         isValidDropDownMenuFrequencyPlan(gateway, bindingResult);
-        isValidInputBuildingId(gateway.getBuildingId(), bindingResult); // ✅
+        isValidInputBuildingId(gateway.getBuildingId(), bindingResult);
+        isValidProtocolId(gateway.getProtocolId(), bindingResult);
         isValidInputFloorNumber(gateway.getFloorNumber(), bindingResult);
         isValidInputLocationDescription(gateway.getLocationDescription(), bindingResult);
     }
@@ -88,7 +100,8 @@ public class InputValidationService {
         isValidInputGatewayId(gateway.getGatewayId(), bindingResult);
         isValidInputIpAddress(gateway.getIpAddress(), bindingResult);
         isValidDropDownMenuFrequencyPlan(gateway, bindingResult);
-        isValidInputBuildingId(gateway.getBuildingId(), bindingResult); // ✅
+        isValidProtocolId(gateway.getProtocolId(), bindingResult);
+        isValidInputBuildingId(gateway.getBuildingId(), bindingResult);
         isValidInputFloorNumber(gateway.getFloorNumber(), bindingResult);
         isValidInputLocationDescription(gateway.getLocationDescription(), bindingResult);
     }

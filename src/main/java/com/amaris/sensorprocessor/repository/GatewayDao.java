@@ -76,13 +76,15 @@ public class GatewayDao {
                 "INSERT INTO gateways (" +
                         "gateway_id, gateway_eui, ip_address, frequency_plan, created_at, " +
                         "building_id, floor_number, location_description, " +
-                        "antenna_latitude, antenna_longitude, antenna_altitude) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "antenna_latitude, antenna_longitude, antenna_altitude, " +
+                        "protocol_id) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 gateway.getGatewayId(), gateway.getGatewayEui(), gateway.getIpAddress(),
                 gateway.getFrequencyPlan(), gateway.getCreatedAt(),
                 gateway.getBuildingId(),
                 gateway.getFloorNumber(), gateway.getLocationDescription(),
-                gateway.getAntennaLatitude(), gateway.getAntennaLongitude(), gateway.getAntennaAltitude()
+                gateway.getAntennaLatitude(), gateway.getAntennaLongitude(), gateway.getAntennaAltitude(),
+                gateway.getProtocolId()
         );
     }
 
@@ -91,12 +93,13 @@ public class GatewayDao {
                 "UPDATE gateways SET " +
                         "ip_address = ?, frequency_plan = ?, building_id = ?, floor_number = ?, " +
                         "location_description = ?, antenna_latitude = ?, antenna_longitude = ?, " +
-                        "antenna_altitude = ? " +
+                        "antenna_altitude = ?, protocol_id = ? " +
                         "WHERE gateway_id = ?",
                 gateway.getIpAddress(), gateway.getFrequencyPlan(),
                 gateway.getBuildingId(), gateway.getFloorNumber(),
                 gateway.getLocationDescription(), gateway.getAntennaLatitude(),
                 gateway.getAntennaLongitude(), gateway.getAntennaAltitude(),
+                gateway.getProtocolId(),
                 gateway.getGatewayId()
         );
     }

@@ -53,6 +53,25 @@ function populateFloors(selectEl, buildingId, currentFloor = null) {
     }
 }
 
+/**
+ * Affiche/masque le champ frequencyPlan si le protocol est lorawan (id = 1)
+ */
+function toggleFrequencyPlan(elSelect, elRow) {
+    if (!elSelect || !elRow) return;
+
+    const lorawanProtocolId = "10";
+    const selected = elSelect.value;
+
+    if (selected === lorawanProtocolId) {
+        elRow.style.display = "block";
+    } else {
+        elRow.style.display = "none";
+        const selectFreq = elRow.querySelector("select");
+        if (selectFreq) selectFreq.value = ""; // Réinitialise si caché
+    }
+}
+
+
 // CREATE : building change → peuple floors
 buildingSelectCreate?.addEventListener('change', () => {
     populateFloors(floorSelectCreate, buildingSelectCreate.value);
@@ -119,8 +138,28 @@ window.onclick = function(event) {
     });
 };
 
-// Ouvre le modal si erreur serveur détectée
 document.addEventListener("DOMContentLoaded", function () {
+
+const protocolSelectCreate   = document.getElementById("protocolSelectCreate");
+const frequencyPlanRowCreate = document.getElementById("frequencyPlanRowCreate");
+const protocolSelectEdit   = document.getElementById("protocolSelectEdit");
+const frequencyPlanRowEdit = document.getElementById("frequencyPlanRowEdit");
+
+if (protocolSelectCreate && frequencyPlanRowCreate) {
+    // Initial state
+    toggleFrequencyPlan(protocolSelectCreate, frequencyPlanRowCreate);
+    protocolSelectCreate.addEventListener("change", () => {
+        toggleFrequencyPlan(protocolSelectCreate, frequencyPlanRowCreate);
+    });
+}
+
+// EDIT (si le modal est présent)
+if (protocolSelectEdit && frequencyPlanRowEdit) {
+    toggleFrequencyPlan(protocolSelectEdit, frequencyPlanRowEdit);
+    protocolSelectEdit.addEventListener("change", () => {
+        toggleFrequencyPlan(protocolSelectEdit, frequencyPlanRowEdit);
+    });
+}
     if (document.querySelector('.error-message-create') && modalCreate) {
         modalCreate.style.display = "block";
         // Re-peuple le floor select Create si un building était sélectionné
@@ -231,6 +270,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateInput   = document.getElementById('dateFilter');
     const paginationEl = document.getElementById('pagination');
 
+
+
     const PAGE_SIZE = 10;
     let currentPage = 1;
     let filteredRows = [];
@@ -298,6 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         rows.forEach(gw => {
             const row = document.createElement('tr');
+            const protocolName = window.AVAILABLE_PROTOCOLS?.find(p => p.id == gw.protocolId)?.name || 'N/A';
             const freqLabel =
                 gw.frequencyPlan === 'EU_863_870_TTN'    ? 'Europe' :
                 gw.frequencyPlan === 'US_902_928_FSB_2'  ? 'United States' :
@@ -312,6 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
             row.innerHTML = `
                 <td>${gw.gatewayId ?? ''}</td>
                 <td>${gw.ipAddress ?? ''}</td>
+                <td>${protocolName}</td>
                 <td>${freqLabel}</td>
                 <td>${gw.createdAt ?? ''}</td>
                 <td>${buildingLabel}</td>
