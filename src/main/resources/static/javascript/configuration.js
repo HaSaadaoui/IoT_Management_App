@@ -473,6 +473,7 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
     const selectChairContainer = selectChairPosition?.parentElement;
     const styleSelect = document.getElementById("filter-style");
     const styleSelectContainer = styleSelect?.parentElement;
+    const inputLocationContainer = document.getElementById("input-location-container");
 
     const sensorMode = (sensorTypeValue ?? sensorTypeSelect?.value ?? 'DESK');
 
@@ -495,9 +496,18 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
                 if (selectChairContainer) selectChairContainer.style.display = 'none';
                 if (inputLabelContainer) inputLabelContainer.style.display = 'none';
             }
+            if (inputLocationContainer) {
+                inputLocationContainer.style.display = "block";
+
+                // Charger les options si le composant vient d'être affiché
+                const buildingId = document.getElementById("filter-building")?.value || "";
+                const floor = document.getElementById("filter-floor")?.value ?? "";
+                loadLocationOptions(buildingId, floor, getLocationValue());
+            }
             break;
 
         case "Wall":
+            if (inputLocationContainer) inputLocationContainer.style.display = "none";
             if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
             if (inputSizeContainer) inputSizeContainer.style.display = 'block';
             if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
@@ -512,6 +522,7 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
         case "Room":
         case "Door":
         case "Window":
+            if (inputLocationContainer) inputLocationContainer.style.display = "none";
             if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
             if (inputSizeContainer) inputSizeContainer.style.display = 'none';
             if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
@@ -524,6 +535,7 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
             break;
 
         case "Circle":
+            if (inputLocationContainer) inputLocationContainer.style.display = "none";
             if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
             if (inputSizeContainer) inputSizeContainer.style.display = 'none';
             if (inputRadiusContainer) inputRadiusContainer.style.display = 'block';
@@ -536,6 +548,7 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
             break;
 
         case "Label":
+            if (inputLocationContainer) inputLocationContainer.style.display = "none";
             if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
             if (inputSizeContainer) inputSizeContainer.style.display = 'block';
             if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
@@ -567,6 +580,10 @@ function initializeInputs() {
     const chairLeft = document.getElementById("chair_left");
     const chairRight = document.getElementById("chair_right");
     const styleSelect = document.getElementById("filter-style");
+    const select = document.getElementById("select_location");
+    const wrapper = document.getElementById("new-location-input-wrapper");
+    const inputNew = document.getElementById("input_location_new");
+    const hidden = document.getElementById("input_location");
 
     // ID auto-généré
     idInput.value = `${element}_${Date.now()}`;
@@ -575,6 +592,10 @@ function initializeInputs() {
     chairLeft.value = 0;
     chairRight.value = 0;
     styleSelect.value = "Dark";
+    if (select) select.value = "";
+    if (wrapper) wrapper.style.display = "none";
+    if (inputNew) inputNew.value = "";
+    if (hidden) hidden.value = "";
 
     // --- Selon le type d'élément ---
     switch (element) {
@@ -987,10 +1008,199 @@ async function updateBuildingConfig(formData) {
 }
 
 // ======================================================
+// =====================  LOCATION  =====================
+// ======================================================
+
+/**
+ * Charge les locations distinctes pour un building/floor donnés
+ * et alimente le select.
+ * @param {string} buildingId
+ * @param {string|number|null} floor
+ * @param {string} currentValue - valeur à pré-sélectionner après chargement
+ */
+async function loadLocationOptions(buildingId, floor, currentValue = "") {
+    const select = document.getElementById("select_location");
+    if (!select) return;
+
+    // Conserver uniquement les options fixes pendant le chargement
+    select.innerHTML = `
+        <option value="">-- Loading... --</option>
+        <option value="__NEW__">✏️ New Location...</option>
+    `;
+
+    try {
+        const qs = new URLSearchParams();
+        if (buildingId) qs.set("buildingId", buildingId);
+        if (floor !== null && floor !== undefined && floor !== "") {
+            qs.set("floor", String(floor));
+        }
+
+        const resp = await fetch(`/api/sensors/locations?${qs.toString()}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+        const locations = await resp.json();
+
+        // Reconstruire le select avec les valeurs récupérées
+        select.innerHTML = `<option value="">None</option>`;
+
+        locations.forEach(loc => {
+            const opt = document.createElement("option");
+            opt.value = loc;
+            opt.textContent = loc;
+            select.appendChild(opt);
+        });
+
+        // Toujours garder l'option "nouvelle valeur" en dernier
+        const newOpt = document.createElement("option");
+        newOpt.value = "__NEW__";
+        newOpt.textContent = "✏️ New location...";
+        select.appendChild(newOpt);
+
+        // Pré-sélectionner la valeur courante si elle existe dans la liste
+        if (currentValue) {
+            const exists = locations.includes(currentValue);
+            if (exists) {
+                select.value = currentValue;
+                syncHiddenLocationField(currentValue);
+            } else if (currentValue.trim() !== "") {
+                // La valeur existe mais pas dans la liste (ex: building différent)
+                // → l'ajouter dynamiquement et la sélectionner
+                const opt = document.createElement("option");
+                opt.value = currentValue;
+                opt.textContent = currentValue;
+                // Insérer avant "__NEW__"
+                select.insertBefore(opt, newOpt);
+                select.value = currentValue;
+                syncHiddenLocationField(currentValue);
+            }
+        }
+
+    } catch (e) {
+        console.error("[Location] Failed to load options:", e);
+        // En cas d'erreur : select minimal opérationnel
+        select.innerHTML = `
+            <option value="">None</option>
+            <option value="__NEW__">✏️ New Location...</option>
+        `;
+    }
+}
+
+/**
+ * Appelé au changement du select location.
+ * Affiche/masque le champ libre selon la sélection.
+ */
+function onLocationChange() {
+    const selectEl = document.getElementById("select_location");
+    const wrapper = document.getElementById("new-location-input-wrapper");
+    const inputNew = document.getElementById("input_location_new");
+    const inputIdEl  = document.getElementById("input_id");
+
+    if (selectEl.value === "__NEW__") {
+        // Afficher le champ libre
+        if (wrapper) wrapper.style.display = "flex";
+        if (inputNew) {
+            inputNew.value = "";
+            inputNew.focus();
+        }
+        syncHiddenLocationField("");
+    } else {
+        // Masquer le champ libre et synchroniser la valeur cachée
+        if (wrapper) wrapper.style.display = "none";
+        if (inputNew) inputNew.value = "";
+        syncHiddenLocationField(selectEl.value);
+    }
+    const locationValue = document.getElementById("input_location")?.value || "";
+    if (inputIdEl && inputIdEl.value.trim() !== '') {
+        this.saveSensorLocation(inputIdEl.value, locationValue);
+    }
+}
+
+function onLocationInputChange() {
+    const selectEl = document.getElementById("select_location");
+    const inputNew = document.getElementById("input_location_new");
+    const inputIdEl  = document.getElementById("input_id");
+    if (selectEl.value === "__NEW__") {
+        syncHiddenLocationField(inputNew.value);
+    } else {
+        syncHiddenLocationField(selectEl.value);
+    }
+    const locationValue = document.getElementById("input_location")?.value || "";
+    if (inputIdEl && inputIdEl.value.trim() !== '') {
+        this.saveSensorLocation(inputIdEl.value, locationValue);
+    }
+}
+
+/**
+ * Synchronise le champ caché #input_location avec la valeur finale.
+ * C'est cette valeur qui sera lue par addElementSVG / updateElementSVG.
+ */
+function syncHiddenLocationField(value) {
+    const hidden = document.getElementById("input_location");
+    if (hidden) hidden.value = value || "";
+}
+
+/**
+ * Retourne la valeur de location à persister,
+ * en tenant compte du mode "nouvelle valeur".
+ * @returns {string}
+ */
+function getLocationValue() {
+    const select = document.getElementById("select_location");
+    const inputNew = document.getElementById("input_location_new");
+
+    if (select?.value === "__NEW__") {
+        return (inputNew?.value || "").trim();
+    }
+
+    return (select?.value || "").trim();
+}
+
+/**
+ * Sauvegarde la location d'un capteur via l'API REST
+ * @param {string} sensorId - ID du capteur
+ * @param {string} location - Valeur de la location
+ * @returns {Promise<boolean>}
+ */
+async function saveSensorLocation(sensorId, location) {
+    if (!sensorId || location === undefined) return false;
+
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    if (!csrfMeta || !csrfHeaderMeta) {
+        console.warn("[Location] CSRF token not found");
+        return false;
+    }
+
+    try {
+        const response = await fetch(`/api/sensors/${encodeURIComponent(sensorId)}/location`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                [csrfHeaderMeta.getAttribute("content")]: csrfMeta.getAttribute("content")
+            },
+            body: JSON.stringify({ location: location.trim() })
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            console.error(`[Location] Failed to save for ${sensorId}:`, err);
+            return false;
+        }
+
+        console.info(`[Location] Saved for ${sensorId}: "${location}"`);
+        return true;
+
+    } catch (e) {
+        console.error(`[Location] Network error for ${sensorId}:`, e);
+        return false;
+    }
+}
+
+// ======================================================
 // =====================  SVG ELEMENTS  =================
 // ======================================================
 
-function addElementSVG() {
+async function addElementSVG() {
     const sensorType  = document.getElementById("filter-sensor-type");
     const floorNumber = document.getElementById("filter-floor");
     const elementSelect = document.getElementById('filter-element');
@@ -1002,6 +1212,7 @@ function addElementSVG() {
     const inputRadiusEl = document.getElementById('input_radius');
     const inputLabelEl = document.getElementById('input_label');
     const inputStyleEl = document.getElementById('filter-style');
+    const locationValue = document.getElementById("input_location")?.value || "";
 
     if (!inputIdEl || inputIdEl.value.trim() === '') {
         alert("Merci de saisir un ID.");
@@ -1045,6 +1256,7 @@ function addElementSVG() {
             height : parseInt(inputHeightEl.value),
             rotation : parseInt(inputRotationEl.value),
             label : inputLabelEl.value,
+            location: locationValue,
             chairs : {
                 top: parseInt(document.getElementById("chair_top").value || 0),
                 bottom: parseInt(document.getElementById("chair_bottom").value || 0),
@@ -1053,6 +1265,7 @@ function addElementSVG() {
             }
         }
         window.building3D.currentArchPlan.overlayManager.drawSensor(sensor);
+        await saveSensorLocation(sensor.id, locationValue);
     } else {
         switch (elementSelect.value){
             case "Wall":
@@ -1839,6 +2052,10 @@ window.saveEnergyConfig = saveEnergyConfig;
 window.editEnergyConfig = editEnergyConfig;
 window.deleteEnergyConfig = deleteEnergyConfig;
 window.loadEnergyConfigs = loadEnergyConfigs;
+window.loadLocationOptions     = loadLocationOptions;
+window.onLocationChange  = onLocationChange;
+window.getLocationValue        = getLocationValue;
+window.syncHiddenLocationField = syncHiddenLocationField;
 
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", function() {
@@ -1850,4 +2067,30 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof updateInputSizeLabel === 'function') updateInputSizeLabel();
     if (typeof loadEnergyConfigs === 'function') loadEnergyConfigs();
     if (window.building3D) { window.building3D.isDashboard = false; }
+
+    const inputNew = document.getElementById("input_location_new");
+    const buildingSelect = document.getElementById("filter-building");
+    const floorSelect = document.getElementById("filter-floor");
+    if (inputNew) {
+        inputNew.addEventListener("input", () => {
+            syncHiddenLocationField(inputNew.value);
+        });
+    }
+
+    const reloadLocations = () => {
+        const buildingId = buildingSelect?.value || "";
+        const floor = floorSelect?.value ?? "";
+        // Ne recharger que si le composant est visible
+        const container = document.getElementById("input-location-container");
+        if (container && container.style.display !== "none") {
+            loadLocationOptions(buildingId, floor, getLocationValue());
+        }
+    };
+
+    if (buildingSelect) {
+        buildingSelect.addEventListener("change", reloadLocations);
+    }
+    if (floorSelect) {
+        floorSelect.addEventListener("change", reloadLocations);
+    }
 });

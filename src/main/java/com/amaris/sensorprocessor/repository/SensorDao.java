@@ -102,6 +102,12 @@ public class SensorDao {
                 new BeanPropertyRowMapper<>(Sensor.class), location);
     }
 
+    public List<Sensor> findAllByBuildingAndFloor(String buildingId, Integer floorNumber) {
+        return jdbcTemplate.query(
+                BASE_SELECT + "WHERE s.building_id = ? AND s.floor = ?",
+                new BeanPropertyRowMapper<>(Sensor.class), buildingId, floorNumber);
+    }
+
     public int updateSensor(Sensor sensor) {
         return jdbcTemplate.update(
                 "UPDATE sensors SET " +
