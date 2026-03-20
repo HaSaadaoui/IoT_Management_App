@@ -222,7 +222,7 @@ public class DashboardController {
     private String mapBuildingToAppId(String building) {
         String appId = "";
         if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
-            return "rpi-mantu-appli";
+            return DEFAULT_APP_ID;
         }
         if (isInteger(building)){
             List<Gateway> gateway = gatewayService.findByBuildingId(Integer.parseInt(building));

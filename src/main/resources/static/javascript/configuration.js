@@ -786,7 +786,6 @@ function refresh3DConfig(){
         : getExcludedFloors();
 
     window.building3D.buildingKey = buildingId;
-    window.building3D.isDbBuilding = true;
     window.building3D.dbShapeCache = null;
     window.building3D.dbBuildingConfig = {floors: floorsEl.value, scale: scaleEl.value, excludedFloors: previouslyExcluded, svgUrl: defaultSVGFile};
     window.building3D.config = {id: buildingId, floors: floorsEl.value, excludedFloors: previouslyExcluded, scale: scaleEl.value};

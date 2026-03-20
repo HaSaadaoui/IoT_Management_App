@@ -1,23 +1,3 @@
-// ================== SHAPES ==================
-
-function createChateaudunShape(scale = 0.01) {
-    const shape = new THREE.Shape();
-
-    // SVG coordinates: x: 50-1050, y: 50-450
-    shape.moveTo(50 * scale, 50 * scale);
-    shape.lineTo(950 * scale, 50 * scale);
-    shape.lineTo(1050 * scale, 50 * scale);
-    shape.lineTo(1050 * scale, 450 * scale);
-    shape.lineTo(200 * scale, 280 * scale);
-    shape.lineTo(50 * scale, 200 * scale);
-    shape.lineTo(50 * scale, 50 * scale);
-
-    const centerX = (50 + 1050) * scale / 2;
-    const centerZ = (50 + 450) * scale / 2;
-
-    return { shape, centerX, centerZ };
-}
-
 // ================== HELPER SVG (bâtiments DB) ==================
 
 // Charge un SVG via URL et renvoie { shape, centerX, centerZ }
@@ -76,52 +56,6 @@ async function loadSVGShapeFromUrl(url) {
     });
 }
 
-// ================== FLOOR DATA ==================
-
-const CHATEAUDUN_BASE_FLOOR_DATA = {
-    0: {
-        name: 'Ground Floor',
-        desks: window.DeskSensorConfig.getFloorDesks(0, 'invalid', 'CHATEAUDUN')
-    },
-    1: {
-        name: 'Floor 1',
-        desks: window.DeskSensorConfig.getFloorDesks(1, 'invalid', 'CHATEAUDUN')
-    },
-    2: {
-        name: 'Floor 2',
-        desks: window.DeskSensorConfig.getFloorDesks(2, 'invalid', 'CHATEAUDUN')
-    },
-    3: {
-        name: 'Floor 3',
-        desks: window.DeskSensorConfig.getFloorDesks(3, 'invalid', 'CHATEAUDUN')
-    },
-    4: {
-        name: 'Floor 4',
-        desks: window.DeskSensorConfig.getFloorDesks(4, 'invalid', 'CHATEAUDUN')
-    },
-    5: {
-        name: 'Floor 5',
-        desks: window.DeskSensorConfig.getFloorDesks(5, 'invalid', 'CHATEAUDUN')
-    },
-    6: {
-        name: 'Floor 6',
-        desks: window.DeskSensorConfig.getFloorDesks(6, 'invalid', 'CHATEAUDUN')
-    }
-};
-
-// ================== CONFIG BUILDINGS ==================
-
-const BUILDINGS = {
-    CHATEAUDUN: {
-        id: 'CHATEAUDUN',
-        floors: 7,
-        scale: 0.01,
-        createShape: createChateaudunShape,
-        floorData: JSON.parse(JSON.stringify(CHATEAUDUN_BASE_FLOOR_DATA)),
-        excludedFloors: [] 
-    }
-};
-
 // ================== CLASS BUILDING3D ==================
 
 class Building3D {
@@ -129,7 +63,6 @@ class Building3D {
         this.container = document.getElementById(containerId);
         this.canvas = document.getElementById('building-canvas');
         this.buildingKey = buildingKey;
-        this.isDbBuilding = false;
         this.dbBuildingConfig = null;
         this.dbShapeCache = null;
         this.config = null;
@@ -206,14 +139,6 @@ class Building3D {
         return match?.sensor ?? null;
     }
 
-    getSvgPlanUrl() {
-        // Cas DB
-        if (this.isDbBuilding && this.dbBuildingConfig?.svgUrl) {
-            return this.dbBuildingConfig.svgUrl;
-        }
-        return null;
-    }
-
     // Sérialise le SVG courant et le met en blob URL
     persistCurrentSvgToBlob() {
         try {
@@ -231,11 +156,8 @@ class Building3D {
             // Nouveau blob
             const blob = new Blob([svgContent], { type: "image/svg+xml" });
             this._ephemeralSvgUrl = URL.createObjectURL(blob);
+            this.dbBuildingConfig.svgUrl = this._ephemeralSvgUrl;
 
-            // Alimente la source SVG utilisée au prochain drawFloorSVG()
-            if (this.isDbBuilding && this.dbBuildingConfig) {
-                this.dbBuildingConfig.svgUrl = this._ephemeralSvgUrl;
-            }
         } catch (e) {
             console.warn('[Building3D] persistCurrentSvgToBlob error', e);
         }
@@ -372,11 +294,7 @@ class Building3D {
         if (!this.isIn3DView && this.currentArchPlan && this.currentFloorNumber != null) {
             const floorInfo = this.floorData[this.currentFloorNumber];
             const m = {};
-            if (this.isDbBuilding){
-                Object.values(floorInfo.desks).forEach(d => (m[d.sensor] = d.status));
-            } else {
-                Object.values(floorInfo.desks).forEach(d => (m[d.id] = d.status));
-            } 
+            Object.values(floorInfo.desks).forEach(d => (m[d.sensor] = d.status));
             this.currentArchPlan.drawFloorPlan(m);
         }
     }
@@ -407,11 +325,7 @@ class Building3D {
             if (sensorId && this.deskStatusMap.has(sensorId)) {
                 const status = this.deskStatusMap.get(sensorId);
                 desk.status = status;
-                if (this.isDbBuilding){
-                    deskOccupancy[desk.sensor] = status;
-                } else {
-                    deskOccupancy[desk.id] = status;
-                } 
+                deskOccupancy[desk.sensor] = status;
             }
         });
 
@@ -536,21 +450,14 @@ class Building3D {
         const excludedFloors = this.config.excludedFloors || [];
         let buildingShape, centerX, centerZ, dbScale;
 
-        if (this.isDbBuilding && this.dbBuildingConfig) {
-            if (!this.dbShapeCache) {
-                console.log("Loading DB building SVG from:", this.dbBuildingConfig.svgUrl);
-                this.dbShapeCache = await loadSVGShapeFromUrl(this.dbBuildingConfig.svgUrl);
-            }
-            dbScale       = this.dbBuildingConfig.scale || 1;
-            buildingShape = this.dbShapeCache.shape;
-            centerX       = this.dbShapeCache.centerX * dbScale;
-            centerZ       = this.dbShapeCache.centerZ * dbScale;
-        } else {
-            const result  = this.config.createShape(this.config.scale);
-            buildingShape = result.shape;
-            centerX       = result.centerX;
-            centerZ       = result.centerZ;
+        if (!this.dbShapeCache) {
+            console.log("Loading DB building SVG from:", this.dbBuildingConfig.svgUrl);
+            this.dbShapeCache = await loadSVGShapeFromUrl(this.dbBuildingConfig.svgUrl);
         }
+        dbScale       = this.dbBuildingConfig.scale || 1;
+        buildingShape = this.dbShapeCache.shape;
+        centerX       = this.dbShapeCache.centerX * dbScale;
+        centerZ       = this.dbShapeCache.centerZ * dbScale;
 
         for (let i = 0; i < floorsCount; i++) {
             const floorGroup = new THREE.Group();
@@ -561,9 +468,7 @@ class Building3D {
 
             // ---------- FLOOR ----------
             const floorGeometry = new THREE.ExtrudeGeometry(buildingShape, extrudeSettings);
-            if (this.isDbBuilding) {
-                floorGeometry.scale(dbScale, dbScale, dbScale);
-            }
+            floorGeometry.scale(dbScale, dbScale, dbScale);
             const floorMaterial = new THREE.MeshStandardMaterial({
                 color: this.colors.floorBase,
                 metalness: 0.1,
@@ -580,9 +485,7 @@ class Building3D {
 
             // ---------- WALLS ----------
             const wallGeometry = new THREE.ExtrudeGeometry(buildingShape, wallExtrudeSettings);
-            if (this.isDbBuilding) {
-                wallGeometry.scale(dbScale, dbScale, 1);
-            }
+            wallGeometry.scale(dbScale, dbScale, 1);
             const wallMaterial = new THREE.MeshStandardMaterial({
                 color: this.colors.walls,
                 transparent: true,
@@ -599,9 +502,7 @@ class Building3D {
 
             // ---------- ROOF ----------
             const roofGeometry = new THREE.ExtrudeGeometry(buildingShape, extrudeSettings);
-            if (this.isDbBuilding) {
-                roofGeometry.scale(dbScale, dbScale, dbScale);
-            }
+            roofGeometry.scale(dbScale, dbScale, dbScale);
             const roofMaterial = new THREE.MeshStandardMaterial({
                 color: this.colors.roof,
                 metalness: 0.3,
@@ -832,11 +733,10 @@ class Building3D {
         };
 
         if (window.ArchitecturalFloorPlan) {
-            const svgPath = this.getSvgPlanUrl();
             if (!this.currentArchPlan) {
-                this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', currentFloorData, this.currentSensorMode, this.config.id, svgPath, this.isDashboard, floorsCount);
+                this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', currentFloorData, this.currentSensorMode, this.config.id, this.dbBuildingConfig.svgUrl, this.isDashboard, floorsCount);
             } else {
-                this.currentArchPlan.updateConfig(currentFloorData, this.currentSensorMode, svgPath);
+                this.currentArchPlan.updateConfig(currentFloorData, this.currentSensorMode, this.dbBuildingConfig.svgUrl);
             }
            this.loadRealOccupancyData();
         } else {
@@ -942,7 +842,6 @@ class Building3D {
                 const b = await resp.json();
 
                 this.buildingKey = String(dbId);
-                this.isDbBuilding = true;
                 this.dbBuildingConfig = {
                     id: b.id,
                     name: b.name,
@@ -968,13 +867,6 @@ class Building3D {
             } catch (e) {
                 console.error("Erreur lors du chargement du bâtiment DB:", e);
             }
-        } else {
-            this.buildingKey = upper;
-            this.isDbBuilding = false;
-            this.dbBuildingConfig = null;
-
-            this.config = BUILDINGS[this.buildingKey];
-            this.floorData = JSON.parse(JSON.stringify(this.config.floorData));
         }
     }
 
