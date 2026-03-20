@@ -205,17 +205,17 @@ public class DashboardController {
     ) {
         final String appId = mapBuildingToAppId(building);
 
-        Flux<String> upstream = sensorService.getMonitoringMany(appId, List.of());
-
         Flux<ServerSentEvent<String>> keepAlive =
                 Flux.interval(Duration.ofSeconds(15))
                         .map(t -> ServerSentEvent.<String>builder("ping")
                                 .event("keepalive")
                                 .build());
 
-        return upstream
-                .filter(s -> s != null && !s.isBlank())
-                .map(payload -> ServerSentEvent.<String>builder(payload).event("uplink").build())
+        return sensorService.getMonitoringMany(appId, List.of())
+                .filter(sse -> sse.data() != null && !sse.data().isBlank())
+                .map(sse -> ServerSentEvent.<String>builder(sse.data())
+                        .event(sse.event() != null ? sse.event() : "uplink")
+                        .build())
                 .mergeWith(keepAlive);
     }
 
@@ -302,12 +302,12 @@ public class DashboardController {
                 .onErrorResume(e -> Mono.empty());
 
         Flux<ServerSentEvent<ConsoLiveAggregate>> live = sensorService.getMonitoringMany(appId, consoDeviceIds)
-                .filter(s -> s != null && !s.isBlank())
-                .flatMap(json -> {
+                .filter(sse -> sse.data() != null && !sse.data().isBlank())
+                .flatMap(sse -> {
                     try {
                         resetIfNewDay(building);
 
-                        ParsedUplink p = parseUplink(json);
+                        ParsedUplink p = parseUplink(sse.data());
                         if (p == null || p.deviceId == null || p.decodedPayload == null) {
                             return Mono.empty();
                         }
@@ -582,11 +582,13 @@ public class DashboardController {
 
         return sensorService
                 .getMonitoringMany(appId, ids)
-                .filter(s -> s != null && !s.isBlank())
-                .map(payload -> ServerSentEvent.builder(payload).event("uplink").build())
+                .filter(sse -> sse.data() != null && !sse.data().isBlank())
+                .map(sse -> ServerSentEvent.<String>builder(sse.data())
+                        .event(sse.event() != null ? sse.event() : "uplink")
+                        .build())
                 .mergeWith(
                         Flux.interval(Duration.ofSeconds(15))
-                                .map(t -> ServerSentEvent.builder("ping").event("keepalive").build())
+                                .map(t -> ServerSentEvent.<String>builder("ping").event("keepalive").build())
                 );
     }
 
