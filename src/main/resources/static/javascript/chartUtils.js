@@ -141,8 +141,9 @@ function openOccupancySSE(building, floor) {
   }
 
   // Souscription au hub (1 seul EventSource partagé)
-  occupancyUnsub = window.SSEManager.subscribeOccupancy(building, (msg) => {
+  occupancyUnsub = window.SSEManager.subscribeOccupancy(building, ({ type, data }) => {
     try {
+      const msg = data;
       const deviceId =
         msg?.end_device_ids?.device_id ||
         msg?.deviceId ||

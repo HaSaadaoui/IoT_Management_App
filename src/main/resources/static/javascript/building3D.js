@@ -168,8 +168,9 @@ class Building3D {
 
         if (!this.buildingKey || !window.SSEManager?.subscribeOccupancy) return;
 
-        this.occupancyUnsub = window.SSEManager.subscribeOccupancy(this.buildingKey, (msg) => {
+        this.occupancyUnsub = window.SSEManager.subscribeOccupancy(this.buildingKey, ({ type, data }) => {
             try {
+                const msg = data;
                 const deviceId =
                     msg?.end_device_ids?.device_id ||
                     msg?.deviceId ||
