@@ -126,8 +126,8 @@ public class SensorController {
     @ResponseBody
     public ResponseEntity<?> getSensor(@PathVariable String idSensor) {
         return sensorService.findByIdSensor(idSensor)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     /* ===================== ADD ===================== */
@@ -324,33 +324,33 @@ public class SensorController {
     public ResponseEntity<?> updateSensorLocation(
             @PathVariable String idSensor,
             @RequestBody Map<String, String> body) {
-        
+
         String location = body.get("location");
-        
+
         if (location == null) {
             return ResponseEntity
-                .badRequest()
-                .body(Map.of("error", "Location field is required"));
+                    .badRequest()
+                    .body(Map.of("error", "Location field is required"));
         }
-        
+
         try {
             Sensor existing = sensorService.getOrThrow(idSensor);
             existing.setLocation(location.trim());
             sensorService.update(idSensor, existing);
             return ResponseEntity.ok(Map.of(
-                "message", "Location updated successfully",
-                "sensorId", idSensor,
-                "location", location.trim()
+                    "message", "Location updated successfully",
+                    "sensorId", idSensor,
+                    "location", location.trim()
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", e.getMessage()));
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             log.error("[API] Error updating sensor location for {}: {}", idSensor, e.getMessage());
             return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Failed to update location"));
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to update location"));
         }
     }
 
@@ -439,11 +439,16 @@ public class SensorController {
         var normalizer = new SensorEventNormalizer();
 
         var subscription = sensorService.getMonitoringData(appId, idSensor)
-                .map(json -> normalizer.normalizeToMonitoringSensorDataJson(json, appId, sensor, deviceTypeLabel)) // ✅ label passé
                 .subscribe(
-                        normalizedJson -> {
+                        sse -> {
                             try {
-                                emitter.send(normalizedJson);
+                                String eventType = sse.event() != null ? sse.event() : "uplink";
+                                String normalizedJson = normalizer.normalizeToMonitoringSensorDataJson(
+                                        sse.data(), appId, sensor, deviceTypeLabel
+                                );
+                                emitter.send(SseEmitter.event()
+                                        .name(eventType)
+                                        .data(normalizedJson));
                             } catch (IOException e) {
                                 emitter.completeWithError(e);
                             }
@@ -740,7 +745,10 @@ public class SensorController {
         private static Double numOrNull(com.fasterxml.jackson.databind.JsonNode n) {
             if (n == null) return null;
             if (n.isNumber()) return n.asDouble();
-            if (n.isTextual()) try { return Double.parseDouble(n.asText()); } catch (Exception ignored) {}
+            if (n.isTextual()) try {
+                return Double.parseDouble(n.asText());
+            } catch (Exception ignored) {
+            }
             return null;
         }
 
@@ -757,7 +765,10 @@ public class SensorController {
             var n = dp.path(key);
             if (n.isMissingNode()) return null;
             if (n.isNumber()) return n.asDouble();
-            if (n.isTextual()) try { return Double.parseDouble(n.asText()); } catch (Exception ignored) {}
+            if (n.isTextual()) try {
+                return Double.parseDouble(n.asText());
+            } catch (Exception ignored) {
+            }
             return null;
         }
     }

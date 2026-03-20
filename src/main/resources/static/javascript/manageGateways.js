@@ -54,20 +54,24 @@ function populateFloors(selectEl, buildingId, currentFloor = null) {
 }
 
 /**
- * Affiche/masque le champ frequencyPlan si le protocol est lorawan (id = 1)
+ * Affiche/masque le champ frequencyPlan si le protocol est lorawan
  */
 function toggleFrequencyPlan(elSelect, elRow) {
-    if (!elSelect || !elRow) return;
+    if (!elSelect || !elRow || !window.AVAILABLE_PROTOCOLS) return;
 
-    const lorawanProtocolId = "10";
+    const lorawanProtocol = window.AVAILABLE_PROTOCOLS.find(p =>
+        p.name && p.name.toLowerCase().includes('lorawan')
+    );
+    const lorawanProtocolId = lorawanProtocol ? String(lorawanProtocol.id) : null;
+
     const selected = elSelect.value;
 
-    if (selected === lorawanProtocolId) {
+    if (lorawanProtocolId && selected === lorawanProtocolId) {
         elRow.style.display = "block";
     } else {
         elRow.style.display = "none";
         const selectFreq = elRow.querySelector("select");
-        if (selectFreq) selectFreq.value = ""; // Réinitialise si caché
+        if (selectFreq) selectFreq.value = "";
     }
 }
 

@@ -55,8 +55,7 @@ public class SensorService {
     private String baseUrl;
 
     /* ===================== MONITORING (SSE) ===================== */
-
-    public Flux<String> getMonitoringData(String appId, String deviceId) {
+    public Flux<ServerSentEvent<String>> getMonitoringData(String appId, String deviceId) {
         List<String> deviceIds = List.of(deviceId);
         ObjectMapper om = new ObjectMapper();
 
@@ -69,23 +68,18 @@ public class SensorService {
                 .bodyValue(deviceIds)
                 .retrieve()
                 .bodyToFlux(new org.springframework.core.ParameterizedTypeReference<ServerSentEvent<String>>() {})
-                .map(ServerSentEvent::data)
-                .filter(Objects::nonNull)
-                .map(String::trim)
-                .filter(s -> !s.isBlank())
-                .filter(json -> {
+                .filter(sse -> sse.data() != null && !sse.data().isBlank())
+                .filter(sse -> {
                     try {
-                        JsonNode root = om.readTree(json);
+                        JsonNode root = om.readTree(sse.data());
                         if (root.has("raw") && root.get("raw").isObject()) root = root.get("raw");
                         JsonNode result = root.has("result") ? root.get("result") : root;
-                        JsonNode up = result.path("uplink_message");
-                        JsonNode dp = up.path("decoded_payload");
-                        return !dp.isMissingNode() && !dp.isNull();
-                    } catch (Exception e) {
-                        return false;
-                    }
+                        JsonNode dp = result.path("uplink_message").path("decoded_payload");
+                        // snapshot sans decoded_payload → on laisse passer quand même
+                        return !dp.isMissingNode() && !dp.isNull()
+                                || "snapshot".equals(sse.event());
+                    } catch (Exception e) { return false; }
                 })
-                .doOnNext(s -> log.info("[Sensor] SSE DATA -> {}", s.substring(0, Math.min(120, s.length()))))
                 .doOnError(err -> log.error("[Sensor] SSE error appId={}, deviceId={}", appId, deviceId, err));
     }
 

@@ -2102,13 +2102,13 @@ function startEnvironmentSSE(building) {
 		return;
 	}
 
-	environmentUnsub = window.SSEManager.subscribeEnvironment(building, (msg) => {
-
-		const decoded =
-			msg?.uplink_message?.decoded_payload ??
-			msg?.decoded_payload ??
-			msg?.payload ??
-			{};
+	environmentUnsub = window.SSEManager.subscribeEnvironment(building, ({ type, data }) => {
+        const msg = data;
+        const decoded =
+            msg?.uplink_message?.decoded_payload ??
+            msg?.decoded_payload ??
+            msg?.payload ??
+            {};
 
 		const temperature = decoded?.temperature;
 		const humidity = decoded?.humidity;
