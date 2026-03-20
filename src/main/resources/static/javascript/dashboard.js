@@ -83,10 +83,10 @@ class DashboardManager {
 		// Initialize alert cache for instant filtering
 		this.initAlertCache();
 
-    this.loadBuildings().then(() => {
-        this.scheduleNextRefresh();
-    });
-	this.scheduleNextRefresh();
+		this.loadBuildings().then(() => {
+			this.scheduleNextRefresh();
+		});
+		this.scheduleNextRefresh();
 	}
 
 	async initAlertCache() {
@@ -119,37 +119,37 @@ class DashboardManager {
 	// ===== BUILDING UTILS =====
 	// =========================
 
-getBuildingKey(building) {
-    if (!building?.id) return null;
-    return String(building.id);
-}
+	getBuildingKey(building) {
+		if (!building?.id) return null;
+		return String(building.id);
+	}
 
 	// =========================
 	// ===== FILTERS =====
 	// =========================
 
-initializeFilters() {
-    const filterIds = ['building', 'floor', 'sensor-type'];
-    filterIds.forEach(filterId => {
-        const element = document.getElementById(`filter-${filterId}`);
-        if (!element) return;
+	initializeFilters() {
+		const filterIds = ['building', 'floor', 'sensor-type'];
+		filterIds.forEach(filterId => {
+			const element = document.getElementById(`filter-${filterId}`);
+			if (!element) return;
 
-        const filterKey = filterId.replace('-', '');
-        const mappedKey = filterKey === 'sensortype' ? 'sensorType'
-                        : filterKey === 'time'       ? 'timeSlot'
-                        : filterKey;
+			const filterKey = filterId.replace('-', '');
+			const mappedKey = filterKey === 'sensortype' ? 'sensorType'
+							: filterKey === 'time'       ? 'timeSlot'
+							: filterKey;
 
-        if (this.filters[mappedKey] !== undefined && this.filters[mappedKey] !== null) {
-            element.value = this.filters[mappedKey];
-        }
+			if (this.filters[mappedKey] !== undefined && this.filters[mappedKey] !== null) {
+				element.value = this.filters[mappedKey];
+			}
 
-        element.addEventListener('change', e => this.handleFilterChange(filterId, e.target.value));
-    });
-}
+			element.addEventListener('change', e => this.handleFilterChange(filterId, e.target.value));
+		});
+	}
 
-// =========================
-// ===== CONSO SSE (aggregate)
-// =========================
+	// =========================
+	// ===== CONSO SSE (aggregate)
+	// =========================
 
 	startConsoAggregateSse() {
 		const building = this.filters.building;
@@ -260,56 +260,56 @@ initializeFilters() {
 		});
 	}
 
-async loadBuildings() {
-    const select = document.getElementById('filter-building');
-    const selectHist = document.getElementById('hist-filter-building'); // ✅ ajout
-    if (!select) return;
+	async loadBuildings() {
+		const select = document.getElementById('filter-building');
+		const selectHist = document.getElementById('hist-filter-building'); // ✅ ajout
+		if (!select) return;
 
-    try {
-        const resp = await fetch('/api/buildings');
-        const buildings = resp.ok ? await resp.json() : [];
-        this.buildings = buildings;
+		try {
+			const resp = await fetch('/api/buildings');
+			const buildings = resp.ok ? await resp.json() : [];
+			this.buildings = buildings;
 
-        if (!buildings.length) {
-            select.innerHTML = '<option value="" disabled selected>No building found</option>';
-            if (selectHist) selectHist.innerHTML = '<option value="" disabled selected>No building found</option>';
-            return;
-        }
+			if (!buildings.length) {
+				select.innerHTML = '<option value="" disabled selected>No building found</option>';
+				if (selectHist) selectHist.innerHTML = '<option value="" disabled selected>No building found</option>';
+				return;
+			}
 
-        // Remplir les deux selects
-        const buildOptions = buildings.map(b => {
-            const opt = document.createElement('option');
-            opt.value = b.id;
-            opt.textContent = b.name;
-            return opt;
-        });
+			// Remplir les deux selects
+			const buildOptions = buildings.map(b => {
+				const opt = document.createElement('option');
+				opt.value = b.id;
+				opt.textContent = b.name;
+				return opt;
+			});
 
-        select.innerHTML = '';
-        buildOptions.forEach(opt => select.appendChild(opt.cloneNode(true)));
+			select.innerHTML = '';
+			buildOptions.forEach(opt => select.appendChild(opt.cloneNode(true)));
 
-        // ✅ Remplir aussi le select History
-        if (selectHist) {
-            selectHist.innerHTML = '';
-            buildOptions.forEach(opt => selectHist.appendChild(opt.cloneNode(true)));
-        }
+			// ✅ Remplir aussi le select History
+			if (selectHist) {
+				selectHist.innerHTML = '';
+				buildOptions.forEach(opt => selectHist.appendChild(opt.cloneNode(true)));
+			}
 
-        const current = buildings[0];
-        select.value = String(current.id);
-        if (selectHist) selectHist.value = String(current.id);
+			const current = buildings[0];
+			select.value = String(current.id);
+			if (selectHist) selectHist.value = String(current.id);
 
-        this.currentBuilding = current;
-        this.filters.building = String(current.id);
+			this.currentBuilding = current;
+			this.filters.building = String(current.id);
 
-        this.startConsoAggregateSse();
-        await this.loadBuildingFloors(current.id);
-        await this.loadDashboardData();
+			this.startConsoAggregateSse();
+			await this.loadBuildingFloors(current.id);
+			await this.loadDashboardData();
 
-    } catch (e) {
-        console.error('Error loading buildings', e);
-        select.innerHTML = '<option value="" disabled selected>Error loading</option>';
-        if (selectHist) selectHist.innerHTML = '<option value="" disabled selected>Error loading</option>';
-    }
-}
+		} catch (e) {
+			console.error('Error loading buildings', e);
+			select.innerHTML = '<option value="" disabled selected>Error loading</option>';
+			if (selectHist) selectHist.innerHTML = '<option value="" disabled selected>Error loading</option>';
+		}
+	}
 
 	async handleFilterChange(filterId, value) {
 		console.log(`=== Filter Change: ${filterId} ===`, value);
@@ -1421,15 +1421,15 @@ async loadBuildings() {
 		if (element) element.textContent = formatted;
 	}
 
-showLoading() {
-    const el = document.getElementById('global-loading-indicator');
-    if (el) el.style.display = 'flex';
-}
+	showLoading() {
+		const el = document.getElementById('global-loading-indicator');
+		if (el) el.style.display = 'flex';
+	}
 
-hideLoading() {
-    const el = document.getElementById('global-loading-indicator');
-    if (el) el.style.display = 'none';
-}
+	hideLoading() {
+		const el = document.getElementById('global-loading-indicator');
+		if (el) el.style.display = 'none';
+	}
 
 	showError(message) {
 		console.error('❌ Error:', message);
@@ -1710,7 +1710,6 @@ hideLoading() {
 
     async loadBuildingFloors(buildingId) {
         const floorSelect = document.getElementById('filter-floor');
-        const selectHist = document.getElementById('hist-filter-building');
 
         if (!floorSelect) {
             console.warn('Floor select not found (#filter-floor). Skipping floors update.');
@@ -1972,7 +1971,6 @@ function initEnvChartToggles() {
 	});
 }
 
-
 function updateEnvChart(metric, value) {
 
 	const chart = envRealtimeCharts[metric];
@@ -1990,7 +1988,6 @@ function updateEnvChart(metric, value) {
 
 	chart.update("none");
 }
-
 
 const envMaxValues = {};
 
@@ -2013,8 +2010,6 @@ function updateEnvStats(metric) {
 	if (maxEl) maxEl.textContent = max.toFixed(2);
 
 }
-
-
 
 function updateEnvAverage(metric) {
 
@@ -2062,7 +2057,6 @@ function updateEnvMax(metric) {
 	const el = document.getElementById(map[metric]);
 	if (el) el.textContent = max.toFixed(2);
 }
-
 
 let environmentUnsub = null;
 const environmentState = {};
@@ -2153,6 +2147,43 @@ function updateEnvironmentChartsVisibility(building) {
 	});
 }
 
+function updateTitles(buildingName) {
+
+	const buildingTitle = document.getElementById('building-title');
+	if (buildingTitle) buildingTitle.textContent = `🏢 ${buildingName} Office Building`;
+
+	const sensorSelect = document.getElementById('filter-sensor-type');
+	if (sensorSelect) {
+		const sensorType = sensorSelect.value;
+
+		const sensorInfo = {
+			DESK: {icon: '📊', name: 'Desk Occupancy'},
+			CO2: {icon: '🌫️', name: 'CO₂ Air Quality'},
+			TEMP: {icon: '🌡️', name: 'Temperature'},
+			LIGHT: {icon: '💡', name: 'Light Levels'},
+			MOTION: {icon: '👁️',name: 'Motion Detection'},
+			NOISE: { icon: '🔉',name: 'Noise Levels'},
+			HUMIDITY: {icon: '💧', name: 'Humidity'},
+			TEMPEX: {icon: '🌀', name: 'HVAC Flow (TEMPex)'},
+			PR: {icon: '👤',name: 'Presence & Light'},
+			SECURITY: {icon: '🚨',name: 'Security Alerts'}
+		};
+
+		const info = sensorInfo[sensorType] || sensorInfo.DESK;
+		const liveTitle     = document.getElementById('live-section-title');
+		const histTitle     = document.getElementById('historical-section-title');
+		if (liveTitle)     liveTitle.textContent     = `${info.icon} Live ${info.name} - ${buildingName} Office`;
+		if (histTitle)     histTitle.textContent     = `📈 Historical ${info.name} Data - ${buildingName} Office`;
+	}
+}
+
+async function update3DConfig(buildingId) {
+	if (window.building3D?.loadConfig) {
+		window.building3D.buildingKey = buildingId;
+		await window.building3D.loadConfig();
+		window.building3D.setBuilding();
+	}
+}
 
 function resetEnvironmentCharts() {
 	Object.values(envRealtimeCharts).forEach(chart => {
@@ -2209,10 +2240,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Délai court pour laisser loadBuildings() finir et définir filters.building
     setTimeout(() => {
-        const building = document.getElementById('filter-building')?.value;
-        if (building) {
-            updateEnvironmentChartsVisibility(building);
-            startEnvironmentSSE(building);
+        const buildingId = document.getElementById('filter-building')?.value;
+		const buildingName = document.getElementById('filter-building')?.selectedOptions[0].text;
+        if (buildingId) {
+			update3DConfig(buildingId);
+			updateTitles(buildingName);
+            updateEnvironmentChartsVisibility(buildingId);
+            startEnvironmentSSE(buildingId);
         }
     }, 1500);
 });
