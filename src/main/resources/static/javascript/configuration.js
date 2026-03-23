@@ -1807,7 +1807,6 @@ async function saveSensorThreshold() {
         }
 
         if (typeof cfgToast === 'function') cfgToast('Sensor threshold saved!', 'success'); else alert('Sensor threshold saved!');
-        loadAllSensorThresholds();
         
     } catch (error) {
         console.error("Error saving sensor threshold:", error);
@@ -1841,7 +1840,6 @@ async function deleteSensorThreshold(thresholdId) {
         
         if (response.ok) {
             if (typeof cfgToast === 'function') cfgToast('Sensor threshold deleted!', 'success'); else alert('Sensor threshold deleted!');
-            loadAllSensorThresholds();
         } else {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -1965,8 +1963,6 @@ window.loadNotificationPreferences = loadNotificationPreferences;
 window.loadSensors = loadSensors;
 window.loadSensorThresholds = loadSensorThresholds;
 window.saveSensorThreshold = saveSensorThreshold;
-window.loadAllSensorThresholds = loadAllSensorThresholds;
-window.editSensorThreshold = editSensorThreshold;
 window.deleteSensorThreshold = deleteSensorThreshold;
 window.updateParameterUnits = updateParameterUnits;
 window.editNotificationPreference = editNotificationPreference;
@@ -1985,8 +1981,6 @@ window.syncHiddenLocationField = syncHiddenLocationField;
 document.addEventListener("DOMContentLoaded", function() {
     if (typeof loadSensors === 'function') loadSensors();
     if (typeof loadNotificationPreferences === 'function') loadNotificationPreferences();
-    if (typeof loadAllSensorThresholds === 'function') loadAllSensorThresholds();
-    if (typeof populateBuildingSelect === 'function') populateBuildingSelect();
     if (typeof toggleFormFields === 'function') toggleFormFields();
     if (typeof updateInputSizeLabel === 'function') updateInputSizeLabel();
     if (typeof loadEnergyConfigs === 'function') loadEnergyConfigs();

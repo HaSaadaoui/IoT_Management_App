@@ -896,6 +896,7 @@ function switchSection(clickedLink) {
     }
     // If building section, trigger resize for 3D canvas
     if (targetId === 'section-building' && window.building3D) {
+        populateBuildingSelect();
         setTimeout(() => {
             if (window.building3D.renderer) {
                 window.building3D.renderer.setSize(
