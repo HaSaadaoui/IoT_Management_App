@@ -144,10 +144,8 @@ class Building3D {
         try {
             // On ne persiste que dans la configuration
             if (!this.currentArchPlan || this.isDashboard) return;
-
             const svgContent = this.currentArchPlan.exportSVG();
             if (!svgContent) return;
-
             // Nettoyage ancien blob si existant
             if (this._ephemeralSvgUrl) {
                 URL.revokeObjectURL(this._ephemeralSvgUrl);
@@ -157,7 +155,6 @@ class Building3D {
             const blob = new Blob([svgContent], { type: "image/svg+xml" });
             this._ephemeralSvgUrl = URL.createObjectURL(blob);
             this.dbBuildingConfig.svgUrl = this._ephemeralSvgUrl;
-
         } catch (e) {
             console.warn('[Building3D] persistCurrentSvgToBlob error', e);
         }
@@ -624,15 +621,29 @@ class Building3D {
         if (!overlay) return;
 
         const data = this.floorData[floorNumber];
-        if (!data) return;
+        let floorName = '';
+        let floorTotalDesks = 0;
+        let freeDesks = 0;
+        let usedDesks = 0;
+        let invalidDesks = 0;
 
-        const freeDesks = data.desks.filter(d => d.status === 'free').length;
-        const usedDesks = data.desks.filter(d => d.status === 'used').length;
-        const invalidDesks = data.desks.filter(d => d.status === 'invalid').length;
-        const floorTotalDesks = freeDesks + usedDesks + invalidDesks;
+        if (floorNumber === 0){
+            floorName = 'Ground Floor';
+        } else {
+            floorName = 'Floor '+floorNumber;
+        }
+        if (data) {
+            freeDesks = data.desks.filter(d => d.status === 'free').length;
+            usedDesks = data.desks.filter(d => d.status === 'used').length;
+            invalidDesks = data.desks.filter(d => d.status === 'invalid').length;
+            floorTotalDesks = freeDesks + usedDesks + invalidDesks;
+            if (data.name){
+                floorName = data.name;
+            }
+        }
 
         overlay.innerHTML = `
-            <h4 style="margin:0 0 0.5rem;color:#662179;font-size:1rem;">${data.name}</h4>
+            <h4 style="margin:0 0 0.5rem;color:#662179;font-size:1rem;">${floorName}</h4>
             <p style="margin:0.25rem 0;font-size:0.9rem;">Total Desks: ${floorTotalDesks}</p>
             <p style="margin:0.25rem 0;font-size:0.9rem;color:#10b981;">🟢 Free: ${freeDesks}</p>
             <p style="margin:0.25rem 0;font-size:0.9rem;color:#ef4444;">🔴 Used: ${usedDesks}</p>
@@ -710,6 +721,7 @@ class Building3D {
     }
 
     loadArchitecturalPlan(floorNumber) {
+        //Permet de conserver les modifications en cours
         this.persistCurrentSvgToBlob();
         const deskGrid = document.getElementById('desk-grid');
         if (!deskGrid) {
@@ -826,7 +838,6 @@ class Building3D {
     async loadConfig() {
         if (!this.buildingKey || this.buildingKey.trim() === '') return;
         
-        const upper = this.buildingKey.toUpperCase();
         let dbId = null;
         if (/^\d+$/.test(this.buildingKey)) {
             dbId = parseInt(this.buildingKey, 10);
@@ -834,40 +845,38 @@ class Building3D {
 
         this.dbShapeCache = null;
 
-        if (!isNaN(dbId) && dbId !== null) {
-            try {
-                const resp = await fetch(`/api/buildings/${dbId}`);
-                if (!resp.ok) {
-                    throw new Error(`HTTP ${resp.status}`);
-                }
-                const b = await resp.json();
-
-                this.buildingKey = String(dbId);
-                this.dbBuildingConfig = {
-                    id: b.id,
-                    name: b.name,
-                    floors: b.floorsCount || 1,
-                    scale: b.scale || 0.01,
-                    svgUrl: b.svgPlan,
-                    excludedFloors: b.excludedFloors ? b.excludedFloors.map(String) : [] 
-                };
-                this.config = {
-                    id: b.id,
-                    floors: b.floorsCount || 1,
-                    scale: b.scale || 0.01,
-                    excludedFloors: b.excludedFloors ? b.excludedFloors.map(String) : [] 
-                };
-
-                this.floorData = [];
-                const svgFloorData = await this.loadFloorDataFromSvg(this.dbBuildingConfig.svgUrl);
-                if (Object.keys(svgFloorData).length > 0) {
-                    this.floorData = svgFloorData;
-                }
-
-                console.log("Loaded DB building config:", this.dbBuildingConfig);
-            } catch (e) {
-                console.error("Erreur lors du chargement du bâtiment DB:", e);
+        try {
+            const resp = await fetch(`/api/buildings/${dbId}`);
+            if (!resp.ok) {
+                throw new Error(`HTTP ${resp.status}`);
             }
+            const b = await resp.json();
+
+            this.buildingKey = String(dbId);
+            this.dbBuildingConfig = {
+                id: b.id,
+                name: b.name,
+                floors: b.floorsCount || 1,
+                scale: b.scale || 0.01,
+                svgUrl: b.svgPlan,
+                excludedFloors: b.excludedFloors ? b.excludedFloors.map(String) : [] 
+            };
+            this.config = {
+                id: b.id,
+                floors: b.floorsCount || 1,
+                scale: b.scale || 0.01,
+                excludedFloors: b.excludedFloors ? b.excludedFloors.map(String) : [] 
+            };
+
+            this.floorData = [];
+            const svgFloorData = await this.loadFloorDataFromSvg(this.dbBuildingConfig.svgUrl);
+            if (Object.keys(svgFloorData).length > 0) {
+                this.floorData = svgFloorData;
+            }
+
+            console.log("Loaded DB building config:", this.dbBuildingConfig);
+        } catch (e) {
+            console.error("Erreur lors du chargement du bâtiment DB:", e);
         }
     }
 

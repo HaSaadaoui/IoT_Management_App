@@ -285,6 +285,9 @@ class ArchitecturalFloorPlan {
             return;
         }
 
+        console.log(this.svgPath);
+        console.log(raw);
+
         const parser = new DOMParser();
         const doc = parser.parseFromString(raw, "image/svg+xml");
         const graphicSelector = ['rect','circle','line','text','path','ellipse','polyline','polygon','use'].join(', ');
@@ -352,7 +355,7 @@ class ArchitecturalFloorPlan {
                 const importedG = document.importNode(srcG, true);
                 const isSameFloor = (floor == null && this.floorData.floorNumber == null) || (floor != null && this.floorData.floorNumber != null && Number(floor) === Number(this.floorData.floorNumber));
                 if (!this.isDashboard && isSameFloor){
-                    importedG.setAttribute("data-draggable", importedG.getAttribute("data-draggable") ?? "true");
+                    importedG.setAttribute("data-draggable", "true");
                     importedG.style.cursor = "move";
                 } else {
                     importedG.setAttribute("data-draggable", "false");

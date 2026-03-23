@@ -726,6 +726,7 @@
                             <span>Click floor to enter</span>
                         </div>
                     </div>
+                    <div id="floor-info-overlay" class="floor-info-overlay"></div>
                 </div>
 
                 <!-- 2D Floor Plan View -->
@@ -896,7 +897,11 @@ function switchSection(clickedLink) {
     }
     // If building section, trigger resize for 3D canvas
     if (targetId === 'section-building' && window.building3D) {
+        document.getElementById('filter-building').value = "";
+        window.building3D.init();
         populateBuildingSelect();
+        initBuildingConfig();
+        window.building3D.isDashboard = false;
         setTimeout(() => {
             if (window.building3D.renderer) {
                 window.building3D.renderer.setSize(
