@@ -67,6 +67,7 @@ public class ConfigurationController {
         model.addAttribute("brands", brandService.findAll());
         model.addAttribute("protocols", protocolService.findAll());
         model.addAttribute("gatewayConfig", null);
+        model.addAttribute("sensors", sensorDao.findAllSensors());
 
         if (principal != null) {
             User user = userService.searchUserByUsername(principal.getName());
