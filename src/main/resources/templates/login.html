@@ -2,70 +2,352 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Please Log In</title>
-    <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}" />
-    <link rel="stylesheet" type="text/css" th:href="@{/css/login-home.css}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Building — Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" th:href="@{/css/auth.css}" />
 </head>
-<body>
-<div class="login-container">
-    <div class="login-box">
-        <img src="/image/mantu-logo.jpg" alt="Logo" class="mantu-logo">
-        <h2>Please log in</h2>
-        <div class="error-message" th:if="${param.error}">
-            Invalid username and password.
-        </div>
-        <div class="error-message" th:if="${param.logout}">
-            You have been logged out.
-        </div>
-        <form th:action="@{/login}" method="post">
-            <div class="form-login">
-                <input type="text" id="username" name="username" placeholder="Username" required>
+<body class="auth-page">
+
+<!-- ============================================================
+     MAIN AUTH CONTAINER
+     ============================================================ -->
+<div class="auth-container" id="authContainer">
+
+    <!-- ========== SIGN IN FORM ========== -->
+    <div class="form-container sign-in-container">
+        <div class="form-wrapper">
+            <img th:src="@{/image/mantu-logo.jpg}" alt="Mantu Logo" class="auth-logo">
+            <h1 class="auth-title">Welcome back</h1>
+            <p class="auth-subtitle">Sign in to your Smart Building account</p>
+
+            <!-- Error / Logout / Success Messages -->
+            <div class="auth-message auth-message-error" th:if="${param.error}">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                <span>Invalid username or password</span>
             </div>
-            <div class="form-login password-container">
-                <input type="password" id="password" name="password" placeholder="Password" required>
-                <span class="toggle-password" id="togglePassword">
-                            <!-- œil barré par défaut -->
-                            <img id="eyeClosed" src="/image/cacher.svg" alt="Masqué">
-                    <!-- œil ouvert (masqué par défaut) -->
-                            <img id="eyeOpen" src="/image/oeil.svg" alt="Visible" style="display:none;">
+            <div class="auth-message auth-message-info" th:if="${param.logout}">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span>You have been logged out</span>
+            </div>
+            <div class="auth-message auth-message-success" th:if="${param.registered}">
+                <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <span>Account created! Please sign in</span>
+            </div>
+
+            <!-- Login Form -->
+            <form th:action="@{/login}" method="post">
+                <div class="auth-input-group">
+                    <label for="login-username">Username</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         </span>
+                        <input class="auth-input" type="text" id="login-username" name="username" placeholder="Enter your username" required autocomplete="username">
+                    </div>
+                </div>
+
+                <div class="auth-input-group">
+                    <label for="login-password">Password</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </span>
+                        <input class="auth-input" type="password" id="login-password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+                        <button type="button" class="auth-password-toggle" data-target="login-password" aria-label="Toggle password visibility">
+                            <svg class="eye-open" viewBox="0 0 24 24" style="display:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg class="eye-closed" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="auth-btn auth-btn-primary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                    Sign In
+                </button>
+            </form>
+
+            <p class="auth-switch">
+                Don't have an account? <a href="javascript:void(0)" id="goToRegister">Create one</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- ========== SIGN UP FORM ========== -->
+    <div class="form-container sign-up-container">
+        <div class="form-wrapper">
+            <img th:src="@{/image/mantu-logo.jpg}" alt="Mantu Logo" class="auth-logo">
+            <h1 class="auth-title">Create Account</h1>
+            <p class="auth-subtitle">Join the Smart Building platform</p>
+
+            <!-- Register Form -->
+            <form th:action="@{/register}" method="post" id="registerForm">
+                <div class="auth-input-row">
+                    <div class="auth-input-group">
+                        <label for="reg-firstname">First Name</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">
+                                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </span>
+                            <input class="auth-input" type="text" id="reg-firstname" name="firstname" placeholder="First name" required>
+                        </div>
+                    </div>
+                    <div class="auth-input-group">
+                        <label for="reg-lastname">Last Name</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">
+                                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </span>
+                            <input class="auth-input" type="text" id="reg-lastname" name="lastname" placeholder="Last name" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="auth-input-group">
+                    <label for="reg-username">Username</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </span>
+                        <input class="auth-input" type="text" id="reg-username" name="username" placeholder="Choose a username" required>
+                    </div>
+                </div>
+
+                <div class="auth-input-group">
+                    <label for="reg-email">Email</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        </span>
+                        <input class="auth-input" type="email" id="reg-email" name="email" placeholder="your@email.com" required>
+                    </div>
+                </div>
+
+                <div class="auth-input-group">
+                    <label for="reg-password">Password</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </span>
+                        <input class="auth-input" type="password" id="reg-password" name="password" placeholder="Create a password" required autocomplete="new-password">
+                        <button type="button" class="auth-password-toggle" data-target="reg-password" aria-label="Toggle password visibility">
+                            <svg class="eye-open" viewBox="0 0 24 24" style="display:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg class="eye-closed" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="auth-input-group">
+                    <label for="reg-confirm-password">Confirm Password</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </span>
+                        <input class="auth-input" type="password" id="reg-confirm-password" placeholder="Confirm your password" required autocomplete="new-password">
+                    </div>
+                    <div class="auth-field-error" id="confirmPasswordError">Passwords do not match</div>
+                </div>
+
+                <input type="hidden" name="role" value="USER" />
+
+                <button type="submit" class="auth-btn auth-btn-primary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                    Create Account
+                </button>
+            </form>
+
+            <p class="auth-switch">
+                Already have an account? <a href="javascript:void(0)" id="goToLogin">Sign in</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- ========== OVERLAY (Sliding Visual Panel) ========== -->
+    <div class="overlay-container">
+        <div class="overlay">
+
+            <!-- Floating Particles -->
+            <div class="overlay-particles">
+                <div class="overlay-particle"></div>
+                <div class="overlay-particle"></div>
+                <div class="overlay-particle"></div>
+                <div class="overlay-particle"></div>
+                <div class="overlay-particle"></div>
+                <div class="overlay-particle"></div>
+                <div class="overlay-particle"></div>
+                <div class="overlay-particle"></div>
             </div>
-            <button type="submit" class="submit-btn">Log in</button>
-        </form>
-        <p class="register-link">
-            Not registered yet? <a th:href="@{/register}">Create an account</a>
-        </p>
+
+            <!-- LEFT PANEL (visible when Register is active) -->
+            <div class="overlay-panel overlay-left">
+                <div class="overlay-illustration">
+                    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Building -->
+                        <rect x="55" y="40" width="90" height="130" rx="4" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
+                        <!-- Floors -->
+                        <line x1="55" y1="70" x2="145" y2="70" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                        <line x1="55" y1="100" x2="145" y2="100" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                        <line x1="55" y1="130" x2="145" y2="130" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                        <!-- Windows -->
+                        <rect x="68" y="48" width="14" height="14" rx="2" fill="rgba(255,255,255,0.12)" class="building-glow"/>
+                        <rect x="93" y="48" width="14" height="14" rx="2" fill="rgba(58,123,213,0.25)" class="building-glow"/>
+                        <rect x="118" y="48" width="14" height="14" rx="2" fill="rgba(255,255,255,0.12)" class="building-glow"/>
+                        <rect x="68" y="78" width="14" height="14" rx="2" fill="rgba(58,123,213,0.25)" class="building-glow"/>
+                        <rect x="93" y="78" width="14" height="14" rx="2" fill="rgba(255,255,255,0.12)" class="building-glow"/>
+                        <rect x="118" y="78" width="14" height="14" rx="2" fill="rgba(155,89,182,0.3)" class="building-glow"/>
+                        <rect x="68" y="108" width="14" height="14" rx="2" fill="rgba(155,89,182,0.3)" class="building-glow"/>
+                        <rect x="93" y="108" width="14" height="14" rx="2" fill="rgba(58,123,213,0.25)" class="building-glow"/>
+                        <rect x="118" y="108" width="14" height="14" rx="2" fill="rgba(255,255,255,0.12)" class="building-glow"/>
+                        <!-- Door -->
+                        <rect x="88" y="145" width="24" height="25" rx="2" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+                        <!-- Roof antenna -->
+                        <line x1="100" y1="40" x2="100" y2="25" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+                        <circle cx="100" cy="22" r="3" fill="rgba(58,123,213,0.6)" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+                        <!-- Sensor dots -->
+                        <circle cx="75" cy="55" r="3" fill="#3a7bd5" class="sensor-dot"/>
+                        <circle cx="125" cy="85" r="3" fill="#9b59b6" class="sensor-dot"/>
+                        <circle cx="75" cy="115" r="3" fill="#3a7bd5" class="sensor-dot"/>
+                        <circle cx="100" cy="85" r="3" fill="#27ae60" class="sensor-dot"/>
+                        <!-- Signal waves from antenna -->
+                        <circle cx="100" cy="22" r="8" stroke="rgba(58,123,213,0.4)" stroke-width="1" fill="none" class="signal-wave"/>
+                        <circle cx="100" cy="22" r="8" stroke="rgba(58,123,213,0.3)" stroke-width="1" fill="none" class="signal-wave"/>
+                        <circle cx="100" cy="22" r="8" stroke="rgba(58,123,213,0.2)" stroke-width="1" fill="none" class="signal-wave"/>
+                        <!-- Ground -->
+                        <line x1="30" y1="170" x2="170" y2="170" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="4 4"/>
+                    </svg>
+                </div>
+                <h2 class="overlay-title">Welcome Back!</h2>
+                <p class="overlay-text">Sign in to access your Smart Building dashboard and monitor your IoT devices</p>
+                <button class="auth-btn-ghost" id="overlayGoToLogin">Sign In</button>
+            </div>
+
+            <!-- RIGHT PANEL (visible when Login is active) -->
+            <div class="overlay-panel overlay-right">
+                <div class="overlay-illustration">
+                    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Building -->
+                        <rect x="55" y="40" width="90" height="130" rx="4" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
+                        <!-- Floors -->
+                        <line x1="55" y1="70" x2="145" y2="70" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                        <line x1="55" y1="100" x2="145" y2="100" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                        <line x1="55" y1="130" x2="145" y2="130" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                        <!-- Windows with glow -->
+                        <rect x="68" y="48" width="14" height="14" rx="2" fill="rgba(58,123,213,0.3)" class="building-glow"/>
+                        <rect x="93" y="48" width="14" height="14" rx="2" fill="rgba(255,255,255,0.12)" class="building-glow"/>
+                        <rect x="118" y="48" width="14" height="14" rx="2" fill="rgba(155,89,182,0.35)" class="building-glow"/>
+                        <rect x="68" y="78" width="14" height="14" rx="2" fill="rgba(255,255,255,0.12)" class="building-glow"/>
+                        <rect x="93" y="78" width="14" height="14" rx="2" fill="rgba(155,89,182,0.35)" class="building-glow"/>
+                        <rect x="118" y="78" width="14" height="14" rx="2" fill="rgba(58,123,213,0.3)" class="building-glow"/>
+                        <rect x="68" y="108" width="14" height="14" rx="2" fill="rgba(58,123,213,0.3)" class="building-glow"/>
+                        <rect x="93" y="108" width="14" height="14" rx="2" fill="rgba(255,255,255,0.12)" class="building-glow"/>
+                        <rect x="118" y="108" width="14" height="14" rx="2" fill="rgba(155,89,182,0.35)" class="building-glow"/>
+                        <!-- Door -->
+                        <rect x="88" y="145" width="24" height="25" rx="2" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+                        <!-- Roof antenna -->
+                        <line x1="100" y1="40" x2="100" y2="25" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+                        <circle cx="100" cy="22" r="3" fill="rgba(155,89,182,0.6)" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+                        <!-- IoT sensors -->
+                        <circle cx="75" cy="55" r="3" fill="#9b59b6" class="sensor-dot"/>
+                        <circle cx="125" cy="85" r="3" fill="#3a7bd5" class="sensor-dot"/>
+                        <circle cx="75" cy="115" r="3" fill="#27ae60" class="sensor-dot"/>
+                        <circle cx="125" cy="115" r="3" fill="#e67e22" class="sensor-dot"/>
+                        <!-- Signal waves -->
+                        <circle cx="100" cy="22" r="8" stroke="rgba(155,89,182,0.4)" stroke-width="1" fill="none" class="signal-wave"/>
+                        <circle cx="100" cy="22" r="8" stroke="rgba(155,89,182,0.3)" stroke-width="1" fill="none" class="signal-wave"/>
+                        <circle cx="100" cy="22" r="8" stroke="rgba(155,89,182,0.2)" stroke-width="1" fill="none" class="signal-wave"/>
+                        <!-- Ground -->
+                        <line x1="30" y1="170" x2="170" y2="170" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="4 4"/>
+                    </svg>
+                </div>
+                <h2 class="overlay-title">Hello!</h2>
+                <p class="overlay-text">Create an account to start managing your Smart Building Platform in real time</p>
+                <button class="auth-btn-ghost" id="overlayGoToRegister">Create Account</button>
+            </div>
+
+        </div>
     </div>
-    <div class="success-message" th:if="${param.registered}">
-        Your account has been created. Please log in.
-    </div>
+
 </div>
 
-<!-- Script inline -->
+<!-- ============================================================
+     INLINE JAVASCRIPT (no external JS file needed for security)
+     ============================================================ -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const passwordInput = document.getElementById('password');
-        const eyeClosed = document.getElementById('eyeClosed');
-        const eyeOpen = document.getElementById('eyeOpen');
-        const togglePassword = document.getElementById('togglePassword');
-        let timerId = null;
+document.addEventListener('DOMContentLoaded', function () {
+    const container = document.getElementById('authContainer');
 
-        togglePassword.addEventListener('click', function() {
-            // Affiche mot de passe temporairement
-            passwordInput.type = 'text';
+    // --- Panel Sliding ---
+    const goToRegister = document.getElementById('goToRegister');
+    const goToLogin = document.getElementById('goToLogin');
+    const overlayGoToRegister = document.getElementById('overlayGoToRegister');
+    const overlayGoToLogin = document.getElementById('overlayGoToLogin');
+
+    function showRegister() { container.classList.add('right-panel-active'); }
+    function showLogin()    { container.classList.remove('right-panel-active'); }
+
+    if (goToRegister)       goToRegister.addEventListener('click', showRegister);
+    if (goToLogin)          goToLogin.addEventListener('click', showLogin);
+    if (overlayGoToRegister) overlayGoToRegister.addEventListener('click', showRegister);
+    if (overlayGoToLogin)   overlayGoToLogin.addEventListener('click', showLogin);
+
+    // --- Password Toggle (all toggles on page) ---
+    document.querySelectorAll('.auth-password-toggle').forEach(function (btn) {
+        var timerId = null;
+        btn.addEventListener('click', function () {
+            var targetId = btn.getAttribute('data-target');
+            var input = document.getElementById(targetId);
+            var eyeOpen = btn.querySelector('.eye-open');
+            var eyeClosed = btn.querySelector('.eye-closed');
+            if (!input) return;
+
+            input.type = 'text';
+            eyeOpen.style.display = 'block';
             eyeClosed.style.display = 'none';
-            eyeOpen.style.display = 'inline';
 
-            // Remet à l'état masqué après 1 seconde
             if (timerId) clearTimeout(timerId);
-            timerId = setTimeout(function() {
-                passwordInput.type = 'password';
-                eyeClosed.style.display = 'inline';
+            timerId = setTimeout(function () {
+                input.type = 'password';
                 eyeOpen.style.display = 'none';
+                eyeClosed.style.display = 'block';
                 timerId = null;
-            }, 1000);
+            }, 1200);
         });
     });
+
+    // --- Confirm Password Validation ---
+    var registerForm = document.getElementById('registerForm');
+    var confirmInput = document.getElementById('reg-confirm-password');
+    var confirmError = document.getElementById('confirmPasswordError');
+
+    if (registerForm && confirmInput) {
+        registerForm.addEventListener('submit', function (e) {
+            var password = document.getElementById('reg-password').value;
+            var confirm  = confirmInput.value;
+            if (password !== confirm) {
+                e.preventDefault();
+                confirmError.classList.add('visible');
+                confirmInput.focus();
+                confirmInput.style.borderColor = '#e74c3c';
+            } else {
+                confirmError.classList.remove('visible');
+                confirmInput.style.borderColor = '';
+            }
+        });
+
+        confirmInput.addEventListener('input', function () {
+            confirmError.classList.remove('visible');
+            confirmInput.style.borderColor = '';
+        });
+    }
+
+    // --- Auto-switch to register if URL has ?register param ---
+    if (window.location.search.indexOf('register') !== -1) {
+        showRegister();
+    }
+});
 </script>
+
 </body>
 </html>

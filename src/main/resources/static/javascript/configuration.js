@@ -214,23 +214,16 @@ function validateGatewayThresholds(thresholds) {
  * Show notification message
  */
 function showNotification(message, type = 'info') {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-    notification.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-        }
-    }, 5000);
+    if (typeof cfgToast === 'function') {
+        cfgToast(message.replace(/[\u2705\u274C\u26A0\uFE0F]/g, '').trim(), type);
+    } else {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        notification.innerHTML = `${message}`;
+        document.body.appendChild(notification);
+        setTimeout(() => { if (notification.parentNode) notification.parentNode.removeChild(notification); }, 5000);
+    }
 }
 
 // ======================================================
@@ -250,13 +243,13 @@ function hexToBytes(hex) {
 // Test du decoder (exécute le code Ace + decodePayload)
 function testDecoder() {
     if (!editor) {
-        alert("Payload editor not ready.");
+        if (typeof cfgToast === 'function') cfgToast("Payload editor not ready.", 'warning'); else alert("Payload editor not ready.");
         return;
     }
 
     const hexInput = document.getElementById("test-byte-payload").value;
     if (!hexInput) {
-        alert("Please enter a hex payload!");
+        if (typeof cfgToast === 'function') cfgToast("Please enter a hex payload!", 'warning'); else alert("Please enter a hex payload!");
         return;
     }
 
@@ -817,7 +810,7 @@ async function deleteBuildingConfig() {
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
     
     if (!csrfMeta || !csrfHeaderMeta) {
-        alert("CSRF token not found. Please refresh the page.");
+        if (typeof cfgToast === 'function') cfgToast("CSRF token not found. Please refresh the page.", 'error'); else alert("CSRF token not found. Please refresh the page.");
         return;
     }
     
@@ -840,12 +833,12 @@ async function deleteBuildingConfig() {
                 throw new Error(`HTTP error! status: ${response.status}`);
             } else {
                 console.log("Building deleted:" + buildingId);
-                alert("Building deleted successfully");
+                if (typeof cfgToast === 'function') cfgToast('Building deleted successfully', 'success'); else alert('Building deleted successfully');
             }
             
         } catch (error) {
             console.error("Error deleting building:", error);
-            alert("Failed to delete building: " + error.message);
+            if (typeof cfgToast === 'function') cfgToast('Failed to delete building: ' + error.message, 'error'); else alert('Failed to delete building: ' + error.message);
         }
 
         populateBuildingSelect();
@@ -865,7 +858,7 @@ async function deleteBuildingConfig() {
         this.refresh3DConfig();
         window.building3D.setBuilding();
     } else {
-        alert("Please select a building to delete.");
+        if (typeof cfgToast === 'function') cfgToast('Please select a building to delete.', 'warning'); else alert('Please select a building to delete.');
     }
 }
 
@@ -886,7 +879,7 @@ async function saveBuildingConfig() {
     ).map(cb => parseInt(cb.value, 10));
 
     if (!name) {
-        alert("Merci de saisir un nom de bâtiment.");
+        if (typeof cfgToast === 'function') cfgToast('Please enter a building name.', 'warning'); else alert('Please enter a building name.');
         return;
     }
 
@@ -895,7 +888,7 @@ async function saveBuildingConfig() {
         if (!isNaN(selectBuilding.value) && selectBuilding.value !== null && selectBuilding.value !== "") {
             svgFile = new File([], "");
         } else {
-            alert("Merci de sélectionner un fichier SVG.");
+            if (typeof cfgToast === 'function') cfgToast('Please select an SVG file.', 'warning'); else alert('Please select an SVG file.');
             return;
         }
     }
@@ -913,7 +906,7 @@ async function saveBuildingConfig() {
         console.log("CSRF token:", csrf);
     } catch (e) {
         console.error("Erreur CSRF:", e);
-        alert("Impossible de récupérer le token CSRF");
+        if (typeof cfgToast === 'function') cfgToast('Could not retrieve CSRF token', 'error'); else alert('Could not retrieve CSRF token');
         return;
     }
 
@@ -923,7 +916,7 @@ async function saveBuildingConfig() {
         const fileName = svgFile.name || defaultSVGFile.split('/').pop() || name;
         const svgContent = window.building3D.currentArchPlan.exportSVG();
         if (!svgContent) {
-            alert("Failed to extract SVG content.");
+            if (typeof cfgToast === 'function') cfgToast('Failed to extract SVG content.', 'error'); else alert('Failed to extract SVG content.');
             return;
         }
         // Convert SVG text → Blob (fichier)
@@ -971,13 +964,13 @@ async function createBuildingConfig(formData) {
 
             const maxValue = Math.max(...values);
             selectBuilding.value = isNaN(maxValue) ? "" : maxValue;
-            alert("Building créé avec succès (id=" + (maxValue ?? "?") + ")");
+            if (typeof cfgToast === 'function') cfgToast('Building created successfully (id=' + (maxValue ?? '?') + ')', 'success'); else alert('Building created successfully');
         });
 
     })
     .catch(err => {
         console.error(err);
-        alert("Erreur lors de la création du building.");
+        if (typeof cfgToast === 'function') cfgToast('Error creating building.', 'error'); else alert('Error creating building.');
     });
 }
 
@@ -998,11 +991,11 @@ async function updateBuildingConfig(formData) {
     })
     .then(data => {
         console.log("Building updated :", data);
-        alert("Building modifié avec succès (id=" + (data.id ?? "?") + ")");
+        if (typeof cfgToast === 'function') cfgToast('Building updated successfully', 'success'); else alert('Building updated successfully');
     })
     .catch(err => {
         console.error(err);
-        alert("Erreur lors de la modification du building.");
+        if (typeof cfgToast === 'function') cfgToast('Error updating building.', 'error'); else alert('Error updating building.');
     });
 }
 
@@ -1214,14 +1207,14 @@ async function addElementSVG() {
     const locationValue = document.getElementById("input_location")?.value || "";
 
     if (!inputIdEl || inputIdEl.value.trim() === '') {
-        alert("Merci de saisir un ID.");
+        if (typeof cfgToast === 'function') cfgToast('Please enter an ID.', 'warning'); else alert('Please enter an ID.');
         return;
     }
 
     const id = CSS.escape(inputIdEl.value);
     const elementWithID = Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+id));
     if (elementWithID.length) {
-        alert("Un élément avec cet ID existe déjà.");
+        if (typeof cfgToast === 'function') cfgToast('An element with this ID already exists.', 'warning'); else alert('An element with this ID already exists.');
         return;
     }
 
@@ -1231,16 +1224,16 @@ async function addElementSVG() {
     if (elementSelect.value === "Sensor"){
         if (sensorType.value === "DESK") {
             if (!inputWidthEl || inputWidthEl.value.trim() === '') {
-                alert("Please fill the width input");
+                if (typeof cfgToast === 'function') cfgToast('Please fill the width input', 'warning'); else alert('Please fill the width input');
                 return;
             }
             if (!inputHeightEl || inputHeightEl.value.trim() === '') {
-                alert("Please fill the height input");
+                if (typeof cfgToast === 'function') cfgToast('Please fill the height input', 'warning'); else alert('Please fill the height input');
                 return;
             }
         } else {
             if (!inputSizeEl || inputSizeEl.value.trim() === '') {
-                alert("Please fill the size input");
+                if (typeof cfgToast === 'function') cfgToast('Please fill the size input', 'warning'); else alert('Please fill the size input');
                 return;
             }
         }
@@ -1269,49 +1262,49 @@ async function addElementSVG() {
         switch (elementSelect.value){
             case "Wall":
                 if (!inputSizeEl || inputSizeEl.value.trim() === '') {
-                    alert("Please fill the size input");
+                    if (typeof cfgToast === 'function') cfgToast('Please fill the size input', 'warning'); else alert('Please fill the size input');
                     return;
                 }
                 break;
             case "Room":
                 if (!inputWidthEl || inputWidthEl.value.trim() === '') {
-                    alert("Please fill the width input");
+                    if (typeof cfgToast === 'function') cfgToast('Please fill the width input', 'warning'); else alert('Please fill the width input');
                     return;
                 }
                 if (!inputHeightEl || inputHeightEl.value.trim() === '') {
-                    alert("Please fill the height input");
+                    if (typeof cfgToast === 'function') cfgToast('Please fill the height input', 'warning'); else alert('Please fill the height input');
                     return;
                 }
                 break;
             case "Door":
                 if (!inputWidthEl || inputWidthEl.value.trim() === '') {
-                    alert("Please fill the width input");
+                    if (typeof cfgToast === 'function') cfgToast('Please fill the width input', 'warning'); else alert('Please fill the width input');
                     return;
                 }
                 if (!inputHeightEl || inputHeightEl.value.trim() === '') {
-                    alert("Please fill the height input");
+                    if (typeof cfgToast === 'function') cfgToast('Please fill the height input', 'warning'); else alert('Please fill the height input');
                     return;
                 }
                 break;
             case "Window":
                 if (!inputWidthEl || inputWidthEl.value.trim() === '') {
-                    alert("Please fill the width input");
+                    if (typeof cfgToast === 'function') cfgToast('Please fill the width input', 'warning'); else alert('Please fill the width input');
                     return;
                 }
                 if (!inputHeightEl || inputHeightEl.value.trim() === '') {
-                    alert("Please fill the height input");
+                    if (typeof cfgToast === 'function') cfgToast('Please fill the height input', 'warning'); else alert('Please fill the height input');
                     return;
                 }
                 break;
             case "Circle":
                 if (!inputRadiusEl || inputRadiusEl.value.trim() === '') {
-                    alert("Please fill the radius input");
+                    if (typeof cfgToast === 'function') cfgToast('Please fill the radius input', 'warning'); else alert('Please fill the radius input');
                     return;
                 }
                 break;
             case "Label":
                 if (!inputLabelEl || inputLabelEl.value.trim() === '') {
-                    alert("Please fill the label input");
+                    if (typeof cfgToast === 'function') cfgToast('Please fill the label input', 'warning'); else alert('Please fill the label input');
                     return;
                 }
                 break;
@@ -1339,14 +1332,14 @@ function removeElementSVG() {
     const elementSelect = document.getElementById('filter-element');
 
     if (!elementId || elementId.value.trim() === '') {
-        alert("Merci de saisir un ID.");
+        if (typeof cfgToast === 'function') cfgToast('Please enter an ID.', 'warning'); else alert('Please enter an ID.');
         return;
     }
     if (window.building3D && window.building3D.currentArchPlan) {
         const id = CSS.escape(elementId.value);
         const elementWithID = Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+id));
         if (!elementWithID.length) {
-            alert("Aucun élément avec cet ID n'existe.");
+            if (typeof cfgToast === 'function') cfgToast('No element with this ID exists.', 'warning'); else alert('No element with this ID exists.');
             return;
         }
     }
@@ -1464,7 +1457,7 @@ async function saveAlertConfig() {
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
     
     if (!csrfMeta || !csrfHeaderMeta) {
-        alert("CSRF token not found. Please refresh the page.");
+        if (typeof cfgToast === 'function') cfgToast("CSRF token not found. Please refresh the page.", 'error'); else alert("CSRF token not found. Please refresh the page.");
         return;
     }
     
@@ -1509,12 +1502,12 @@ async function saveAlertConfig() {
         }
 
         const data = await response.json();
-        alert("Configuration saved successfully!");
+        if (typeof cfgToast === 'function') cfgToast('Configuration saved successfully!', 'success'); else alert('Configuration saved successfully!');
         console.log("Alert config saved:", data);
         
     } catch (error) {
         console.error("Error saving alert config:", error);
-        alert("Failed to save configuration: " + error.message);
+        if (typeof cfgToast === 'function') cfgToast('Failed to save configuration: ' + error.message, 'error'); else alert('Failed to save configuration: ' + error.message);
     }
 }
 
@@ -1527,7 +1520,7 @@ async function saveNotificationChannels() {
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
     
     if (!csrfMeta || !csrfHeaderMeta) {
-        alert("CSRF token not found. Please refresh the page.");
+        if (typeof cfgToast === 'function') cfgToast('CSRF token not found. Please refresh the page.', 'error'); else alert('CSRF token not found.');
         return;
     }
     
@@ -1563,12 +1556,12 @@ async function saveNotificationChannels() {
         }
 
         const data = await response.json();
-        alert("Notification preferences saved successfully!");
+        if (typeof cfgToast === 'function') cfgToast('Notification preferences saved!', 'success'); else alert('Notification preferences saved!');
         loadNotificationPreferences();
         
     } catch (error) {
         console.error("Error saving notification preferences:", error);
-        alert("Failed to save notification preferences: " + error.message);
+        if (typeof cfgToast === 'function') cfgToast('Failed to save notification preferences: ' + error.message, 'error'); else alert('Failed to save notification preferences: ' + error.message);
     }
 }
 
@@ -1671,7 +1664,7 @@ async function deleteNotificationPreference(prefId) {
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
     
     if (!csrfMeta || !csrfHeaderMeta) {
-        alert("CSRF token not found. Please refresh the page.");
+        if (typeof cfgToast === 'function') cfgToast('CSRF token not found. Please refresh the page.', 'error'); else alert('CSRF token not found.');
         return;
     }
     
@@ -1687,14 +1680,14 @@ async function deleteNotificationPreference(prefId) {
         });
         
         if (response.ok) {
-            alert("Notification preference deleted successfully!");
+            if (typeof cfgToast === 'function') cfgToast('Notification preference deleted!', 'success'); else alert('Notification preference deleted!');
             loadNotificationPreferences();
         } else {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
     } catch (error) {
         console.error("Error deleting notification preference:", error);
-        alert("Failed to delete notification preference: " + error.message);
+        if (typeof cfgToast === 'function') cfgToast('Failed to delete notification preference: ' + error.message, 'error'); else alert('Failed to delete notification preference: ' + error.message);
     }
 }
 
@@ -1770,7 +1763,7 @@ async function saveSensorThreshold() {
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
     
     if (!csrfMeta || !csrfHeaderMeta) {
-        alert("CSRF token not found. Please refresh the page.");
+        if (typeof cfgToast === 'function') cfgToast('CSRF token not found. Please refresh the page.', 'error'); else alert('CSRF token not found.');
         return;
     }
     
@@ -1785,10 +1778,10 @@ async function saveSensorThreshold() {
     const criticalLow = parseFloat(document.getElementById("sensor-critical-low").value);
 
     if (!sensorId) {
-        alert("Please select a sensor.");
+        if (typeof cfgToast === 'function') cfgToast('Please select a sensor.', 'warning'); else alert('Please select a sensor.');
         return;
     }
-
+    
     const payload = {
         sensorId: sensorId,
         parameterType: parameterType,
@@ -1813,83 +1806,15 @@ async function saveSensorThreshold() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        alert("Sensor threshold saved successfully!");
+        if (typeof cfgToast === 'function') cfgToast('Sensor threshold saved!', 'success'); else alert('Sensor threshold saved!');
         loadAllSensorThresholds();
         
     } catch (error) {
         console.error("Error saving sensor threshold:", error);
-        alert("Failed to save sensor threshold: " + error.message);
+        if (typeof cfgToast === 'function') cfgToast('Failed to save sensor threshold: ' + error.message, 'error'); else alert('Failed to save sensor threshold: ' + error.message);
     }
 }
 
-async function loadAllSensorThresholds() {
-    try {
-        const response = await fetch("/api/configuration/sensor-thresholds");
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
-        const thresholds = await response.json();
-        const listDiv = document.getElementById("sensor-thresholds-list");
-        
-        if (!thresholds || thresholds.length === 0) {
-            listDiv.innerHTML = '<p class="text-muted">No custom sensor thresholds configured yet.</p>';
-            return;
-        }
-        
-        let html = '';
-        thresholds.forEach(threshold => {
-            const values = [];
-            if (threshold.criticalThreshold) values.push(`Critical High: ${threshold.criticalThreshold}`);
-            if (threshold.warningThreshold) values.push(`Warning High: ${threshold.warningThreshold}`);
-            if (threshold.warningLow) values.push(`Warning Low: ${threshold.warningLow}`);
-            if (threshold.criticalLow) values.push(`Critical Low: ${threshold.criticalLow}`);
-            
-            html += `
-                <div class="threshold-item">
-                    <div class="threshold-info">
-                        <div class="threshold-label">${threshold.sensorId} - ${threshold.parameterType}</div>
-                        <div class="threshold-values">${values.join(' | ')}</div>
-                    </div>
-                    <div class="threshold-actions">
-                        <button class="btn-edit" onclick="editSensorThreshold('${threshold.id}', '${threshold.sensorId}', '${threshold.parameterType}')">
-                            ✏️ Edit
-                        </button>
-                        <button class="btn-delete" onclick="deleteSensorThreshold('${threshold.id}')">
-                            🗑️ Delete
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        listDiv.innerHTML = html;
-    } catch (error) {
-        console.error("Error loading sensor thresholds:", error);
-        document.getElementById("sensor-thresholds-list").innerHTML = '<p class="text-muted">Error loading thresholds.</p>';
-    }
-}
-
-// Edit sensor threshold
-async function editSensorThreshold(thresholdId, sensorId, parameterType) {
-    document.getElementById("sensor-select").value = sensorId;
-    document.getElementById("threshold-parameter").value = parameterType;
-    loadSensorThresholds();
-    
-    try {
-        const response = await fetch(`/api/configuration/sensor-thresholds/${thresholdId}`);
-        if (response.ok) {
-            const threshold = await response.json();
-            if (threshold.criticalThreshold) document.getElementById("sensor-critical-high").value = threshold.criticalThreshold;
-            if (threshold.warningThreshold) document.getElementById("sensor-warning-high").value = threshold.warningThreshold;
-            if (threshold.warningLow) document.getElementById("sensor-warning-low").value = threshold.warningLow;
-            if (threshold.criticalLow) document.getElementById("sensor-critical-low").value = threshold.criticalLow;
-            updateParameterUnits();
-        }
-    } catch (error) {
-        console.error("Error loading threshold for edit:", error);
-    }
-}
-
-// Delete sensor threshold
 async function deleteSensorThreshold(thresholdId) {
     if (!confirm("Are you sure you want to delete this sensor threshold override?")) {
         return;
@@ -1899,7 +1824,7 @@ async function deleteSensorThreshold(thresholdId) {
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
     
     if (!csrfMeta || !csrfHeaderMeta) {
-        alert("CSRF token not found. Please refresh the page.");
+        if (typeof cfgToast === 'function') cfgToast('CSRF token not found. Please refresh the page.', 'error'); else alert('CSRF token not found.');
         return;
     }
     
@@ -1915,14 +1840,14 @@ async function deleteSensorThreshold(thresholdId) {
         });
         
         if (response.ok) {
-            alert("Sensor threshold deleted successfully!");
+            if (typeof cfgToast === 'function') cfgToast('Sensor threshold deleted!', 'success'); else alert('Sensor threshold deleted!');
             loadAllSensorThresholds();
         } else {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
     } catch (error) {
         console.error("Error deleting sensor threshold:", error);
-        alert("Failed to delete sensor threshold: " + error.message);
+        if (typeof cfgToast === 'function') cfgToast('Failed to delete sensor threshold: ' + error.message, 'error'); else alert('Failed to delete sensor threshold: ' + error.message);
     }
 }
 
@@ -1974,12 +1899,12 @@ async function saveEnergyConfig() {
     const currency = document.getElementById('energy-currency')?.value || 'EUR';
     const co2EmissionFactor = parseFloat(document.getElementById('co2-emission-factor')?.value) || 0;
 
-    if (!buildingName) { alert('Please select a building'); return; }
-    if (isNaN(energyCostPerKwh) || energyCostPerKwh < 0) { alert('Please enter a valid energy cost'); return; }
+    if (!buildingName) { if (typeof cfgToast === 'function') cfgToast('Please select a building', 'warning'); else alert('Please select a building'); return; }
+    if (isNaN(energyCostPerKwh) || energyCostPerKwh < 0) { if (typeof cfgToast === 'function') cfgToast('Please enter a valid energy cost', 'warning'); else alert('Please enter a valid energy cost'); return; }
 
     const csrfMeta = document.querySelector('meta[name="_csrf"]');
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
-    if (!csrfMeta || !csrfHeaderMeta) { alert("CSRF token not found."); return; }
+    if (!csrfMeta || !csrfHeaderMeta) { if (typeof cfgToast === 'function') cfgToast('CSRF token not found.', 'error'); else alert('CSRF token not found.'); return; }
 
     try {
         const response = await fetch('/api/configuration/building-energy', {
@@ -1988,13 +1913,13 @@ async function saveEnergyConfig() {
             body: JSON.stringify({ buildingName, energyCostPerKwh, currency, co2EmissionFactor })
         });
         if (response.ok) {
-            alert('Configuration saved!');
+            if (typeof cfgToast === 'function') cfgToast('Energy configuration saved!', 'success'); else alert('Configuration saved!');
             loadEnergyConfigs();
             document.getElementById('energy-config-building').value = '';
             document.getElementById('energy-cost-kwh').value = '';
             document.getElementById('co2-emission-factor').value = '';
         } else { throw new Error('Failed to save'); }
-    } catch (error) { alert('Error: ' + error.message); }
+    } catch (error) { if (typeof cfgToast === 'function') cfgToast('Error: ' + error.message, 'error'); else alert('Error: ' + error.message); }
 }
 
 async function editEnergyConfig(buildingName) {
@@ -2006,22 +1931,22 @@ async function editEnergyConfig(buildingName) {
         document.getElementById('energy-cost-kwh').value = config.energyCostPerKwh || '';
         document.getElementById('energy-currency').value = config.currency || 'EUR';
         document.getElementById('co2-emission-factor').value = config.co2EmissionFactor || '';
-    } catch (error) { alert('Error: ' + error.message); }
+    } catch (error) { if (typeof cfgToast === 'function') cfgToast('Error: ' + error.message, 'error'); else alert('Error: ' + error.message); }
 }
 
 async function deleteEnergyConfig(buildingName) {
     if (!confirm(`Delete config for ${buildingName}?`)) return;
     const csrfMeta = document.querySelector('meta[name="_csrf"]');
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
-    if (!csrfMeta || !csrfHeaderMeta) { alert("CSRF token not found."); return; }
+    if (!csrfMeta || !csrfHeaderMeta) { if (typeof cfgToast === 'function') cfgToast('CSRF token not found.', 'error'); else alert('CSRF token not found.'); return; }
     try {
         const response = await fetch(`/api/configuration/building-energy/${encodeURIComponent(buildingName)}`, {
             method: 'DELETE',
             headers: { [csrfHeaderMeta.getAttribute("content")]: csrfMeta.getAttribute("content") }
         });
-        if (response.ok) { alert('Deleted!'); loadEnergyConfigs(); }
+        if (response.ok) { if (typeof cfgToast === 'function') cfgToast('Energy config deleted!', 'success'); else alert('Deleted!'); loadEnergyConfigs(); }
         else { throw new Error('Failed'); }
-    } catch (error) { alert('Error: ' + error.message); }
+    } catch (error) { if (typeof cfgToast === 'function') cfgToast('Error: ' + error.message, 'error'); else alert('Error: ' + error.message); }
 }
 
 // ======================================================
