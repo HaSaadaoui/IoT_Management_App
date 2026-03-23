@@ -424,222 +424,208 @@
         <!-- Live Sensor Data Section -->
         <section class="live-section">
             <h3 class="section-title" id="live-section-title">
-                📊 Live Desk Occupancy - Châteaudun Office
+                📊 Live Data - Châteaudun Office
             </h3>
+
+
             <div class="live-occupancy-layout">
-                <!-- LEFT: 3D Building Visualization (60%) -->
-                <div class="floor-plan-card" style="flex: 0 0 58%; min-width: 0;">
-                    <div class="building-3d-header">
-                        <h4 id="building-title">
-                            🏢 Châteaudun Office Building
-                        </h4>
-                        <button
-                                id="back-to-3d-btn"
-                                class="back-to-building"
-                                style="display: none"
-                                onclick="return3DView()"
-                        >
-                            ← Back to 3D View
-                        </button>
-                    </div>
-
-                    <!-- 3D Canvas Container -->
-                    <div id="building-3d-container" class="building-3d-container">
-                        <canvas id="building-canvas"></canvas>
-                        <div class="building-controls">
-                            <div class="control-hint">
-                                <span>🖱️ Rotate: Left Click + Drag</span>
-                                <span>🔍 Zoom: Scroll</span>
-                                <span>👆 Click floor to enter</span>
-                            </div>
+                <!-- TOP : 3D + 2D -->
+                <div class="building-layout">
+                    <!-- LEFT : 3D -->
+                    <div class="floor-plan-card left-panel">
+                        <div class="building-3d-header">
+                            <h4 id="building-title">🏢 Châteaudun Office Building</h4>
                         </div>
-                        <div
-                                id="floor-info-overlay"
-                                class="floor-info-overlay"
-                        ></div>
+
+                        <div id="building-3d-container" class="building-3d-container">
+                            <canvas id="building-canvas"></canvas>
+                            <div class="building-controls">
+                                <div class="control-hint">
+                                    <span>🖱️ Rotate: Left Click + Drag</span>
+                                    <span>🔍 Zoom: Scroll</span>
+                                    <span>👆 Click floor to enter</span>
+                                </div>
+                            </div>
+                            <div
+                                    id="floor-info-overlay"
+                                    class="floor-info-overlay"
+                            ></div>
+                        </div>
                     </div>
 
-                    <!-- 2D Floor Plan View (Hidden by default) -->
-                    <div
-                            id="floor-plan-2d"
-                            class="floor-plan-2d"
-                            style="display: none"
-                    >
+                    <!-- RIGHT : 2D -->
+                    <div class="floor-plan-card right-panel" id="floor-plan-2d">
                         <div class="floor-plan-header">
-                            <h4 id="current-floor-title">
-                                Floor 1 - Ceiling View
-                            </h4>
+                            <h4 id="current-floor-title">Floor</h4>
+                            <button
+                                    id="back-to-3d-btn"
+                                    class="back-to-building"
+                                    style="display: none"
+                                    onclick="return3DView()"
+                            >
+                                ← Back to 3D View
+                            </button>
                         </div>
 
                         <div class="floor-plan">
-                            <!-- Desk Grid -->
-                            <div class="desk-grid" id="desk-grid">
-                                <!-- Desks will be dynamically generated -->
-                            </div>
+                            <div class="desk-grid" id="desk-grid"></div>
 
-                            <!-- Legend -->
                             <div class="floor-legend">
-                                <div class="legend-item">
-                                    <span class="legend-dot free"></span>
-                                    <span>Free</span>
-                                </div>
-                                <div class="legend-item">
-                                    <span class="legend-dot used"></span>
-                                    <span>Used</span>
-                                </div>
-                                <div class="legend-item">
-                                    <span class="legend-dot invalid"></span>
-                                    <span>Invalid</span>
-                                </div>
+                                <div class="legend-item"><span class="legend-dot free"></span>Free</div>
+                                <div class="legend-item"><span class="legend-dot used"></span>Used</div>
+                                <div class="legend-item"><span class="legend-dot invalid"></span>Invalid</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- RIGHT: Floor Stats Grid (40%) - Dynamically populated based on building -->
-                <div id="sensor-stats-container" class="office-stats">
-                    <!-- Stats cards will be dynamically generated by JavaScript based on building zones -->
-                </div>
-
-                <!-- ============================= -->
-                <!-- REALTIME ENVIRONMENT CHARTS -->
-                <!-- ============================= -->
-
-                <section class="realtime-charts">
-                    <div class="charts-grid charts-grid--2col">
-                        <!-- ================= CO2 ================= -->
-                        <div class="chart-card">
-                            <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <div class="chart-title">
-                                        <span class="chart-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💨</span>
-                                        <span>CO₂</span>
-                                    </div>
-                                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                        Avg: <span class="kpi-value" id="env-co2-avg" style="font-weight: 600; color: #10b981;">--</span> ppm
-                                    </div>
-                                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                        Max: <span id="env-co2-max" class="kpi-value" style="font-weight: 600; color: #10b981;">--</span> ppm
-                                    </div>
-                                </div>
-                                <div class="env-chart-toggle" data-chart="co2" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
-                                    <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                        📈 Line
-                                    </button>
-                                    <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                        📊 Bar
-                                    </button>
-                                    <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                        🍩 Donut
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="rt-chart-container" style="height: 280px; position: relative;">
-                                <canvas id="rt-co2-chart"></canvas>
-                            </div>
-                        </div>
-
-                        <!-- ================= TEMPERATURE ================= -->
-                        <div class="chart-card">
-                            <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <div class="chart-title">
-                                        <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🌡️</span>
-                                        <span>Temperature</span>
-                                    </div>
-                                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                        Avg: <span class="kpi-value" id="env-temp-avg" style="font-weight: 600; color: #ef4444;">--</span> °C
-                                    </div>
-
-                                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                        Max: <span id="env-temp-max" class="kpi-value" style="font-weight: 600; color: #10b981;">--</span> °C
-                                    </div>
-                                </div>
-                                <div class="env-chart-toggle" data-chart="temperature" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
-                                    <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                        📈 Line
-                                    </button>
-                                    <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                        📊 Bar
-                                    </button>
-                                    <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                        🍩 Donut
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="rt-chart-container" style="height: 280px; position: relative;">
-                                <canvas id="rt-temperature-chart"></canvas>
-                            </div>
-                        </div>
-
-                        <!-- ================= HUMIDITY ================= -->
-                        <div class="chart-card">
-                            <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <div class="chart-title">
-                                        <span class="chart-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">💧</span>
-                                        <span>Humidity</span>
-                                    </div>
-                                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                        Avg: <span class="kpi-value" id="env-humidity-avg" style="font-weight: 600; color: #3b82f6;">--</span> %
-                                    </div>
-                                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                        Max: <span id="env-humidity-max" class="kpi-value" style="font-weight: 600; color: #10b981;">--</span> %
-                                    </div>
-                                </div>
-                                <div class="env-chart-toggle" data-chart="humidity" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
-                                    <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                        📈 Line
-                                    </button>
-                                    <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                        📊 Bar
-                                    </button>
-                                    <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                        🍩 Donut
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="rt-chart-container" style="height: 280px; position: relative;">
-                                <canvas id="rt-humidity-chart"></canvas>
-                            </div>
-                        </div>
-
-                        <!-- ================= SOUND ================= -->
-                        <div class="chart-card">
-
-                            <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <div class="chart-title">
-                                        <span class="chart-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</span>
-                                        <span>Sound Level</span>
-                                    </div>
-                                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                        Avg: <span class="kpi-value" id="env-sound-avg" style="font-weight: 600; color: #f59e0b;">--</span> dB
-                                    </div>
-
-                                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                        Max: <span id="env-sound-max" class="kpi-value" style="font-weight: 600; color: #10b981;">--</span> dB
-                                    </div>
-                                </div>
-                                <div class="env-chart-toggle" data-chart="sound" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
-                                    <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                        📈 Line
-                                    </button>
-                                    <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                        📊 Bar
-                                    </button>
-                                    <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                        🍩 Donut
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="rt-chart-container" style="height: 280px; position: relative;">
-                                <canvas id="rt-sound-chart"></canvas>
-                            </div>
-                        </div>
+                <!-- BOTTOM : stats + charts -->
+                <div class="dashboard-bottom">
+                    <!-- RIGHT: Floor Stats Grid (40%) - Dynamically populated based on building -->
+                    <div id="sensor-stats-container" class="office-stats">
+                        <!-- Stats cards will be dynamically generated by JavaScript based on building zones -->
                     </div>
-                </section>
+
+                    <!-- ============================= -->
+                    <!-- REALTIME ENVIRONMENT CHARTS -->
+                    <!-- ============================= -->
+
+                    <section class="realtime-charts">
+                        <div class="charts-grid charts-grid--2col">
+                            <!-- ================= CO2 ================= -->
+                            <div class="chart-card">
+                                <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <div class="chart-title">
+                                            <span class="chart-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💨</span>
+                                            <span>CO₂</span>
+                                        </div>
+                                        <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                            Avg: <span class="kpi-value" id="env-co2-avg" style="font-weight: 600; color: #10b981;">--</span> ppm
+                                        </div>
+                                        <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                            Max: <span id="env-co2-max" class="kpi-value" style="font-weight: 600; color: #10b981;">--</span> ppm
+                                        </div>
+                                    </div>
+                                    <div class="env-chart-toggle" data-chart="co2" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+                                        <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                            📈 Line
+                                        </button>
+                                        <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                            📊 Bar
+                                        </button>
+                                        <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                            🍩 Donut
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="rt-chart-container" style="height: 280px; position: relative;">
+                                    <canvas id="rt-co2-chart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- ================= TEMPERATURE ================= -->
+                            <div class="chart-card">
+                                <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <div class="chart-title">
+                                            <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🌡️</span>
+                                            <span>Temperature</span>
+                                        </div>
+                                        <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                            Avg: <span class="kpi-value" id="env-temp-avg" style="font-weight: 600; color: #ef4444;">--</span> °C
+                                        </div>
+
+                                        <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                            Max: <span id="env-temp-max" class="kpi-value" style="font-weight: 600; color: #10b981;">--</span> °C
+                                        </div>
+                                    </div>
+                                    <div class="env-chart-toggle" data-chart="temperature" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+                                        <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                            📈 Line
+                                        </button>
+                                        <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                            📊 Bar
+                                        </button>
+                                        <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                            🍩 Donut
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="rt-chart-container" style="height: 280px; position: relative;">
+                                    <canvas id="rt-temperature-chart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- ================= HUMIDITY ================= -->
+                            <div class="chart-card">
+                                <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <div class="chart-title">
+                                            <span class="chart-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">💧</span>
+                                            <span>Humidity</span>
+                                        </div>
+                                        <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                            Avg: <span class="kpi-value" id="env-humidity-avg" style="font-weight: 600; color: #3b82f6;">--</span> %
+                                        </div>
+                                        <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                            Max: <span id="env-humidity-max" class="kpi-value" style="font-weight: 600; color: #10b981;">--</span> %
+                                        </div>
+                                    </div>
+                                    <div class="env-chart-toggle" data-chart="humidity" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+                                        <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                            📈 Line
+                                        </button>
+                                        <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                            📊 Bar
+                                        </button>
+                                        <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                            🍩 Donut
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="rt-chart-container" style="height: 280px; position: relative;">
+                                    <canvas id="rt-humidity-chart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- ================= SOUND ================= -->
+                            <div class="chart-card">
+
+                                <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <div class="chart-title">
+                                            <span class="chart-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</span>
+                                            <span>Sound Level</span>
+                                        </div>
+                                        <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                            Avg: <span class="kpi-value" id="env-sound-avg" style="font-weight: 600; color: #f59e0b;">--</span> dB
+                                        </div>
+
+                                        <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                            Max: <span id="env-sound-max" class="kpi-value" style="font-weight: 600; color: #10b981;">--</span> dB
+                                        </div>
+                                    </div>
+                                    <div class="env-chart-toggle" data-chart="sound" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+                                        <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                            📈 Line
+                                        </button>
+                                        <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                            📊 Bar
+                                        </button>
+                                        <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                            🍩 Donut
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="rt-chart-container" style="height: 280px; position: relative;">
+                                    <canvas id="rt-sound-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
             </div>
         </section>
     </section>
@@ -2254,8 +2240,8 @@
     function initializeEnvironmentCharts() {
         ['temperature', 'humidity', 'co2', 'sound'].forEach(type => {
             const canvasId = type === 'temperature' ? 'hist-temperature-chart' :
-                            type === 'humidity' ? 'hist-humidity-chart' :
-                            type === 'co2' ? 'hist-co2-chart' : 'hist-sound-chart';
+                type === 'humidity' ? 'hist-humidity-chart' :
+                    type === 'co2' ? 'hist-co2-chart' : 'hist-sound-chart';
             const canvas = document.getElementById(canvasId);
             if (!canvas) return;
 
@@ -2371,8 +2357,8 @@
         if (!chart) return;
 
         const canvasId = type === 'temperature' ? 'hist-temperature-chart' :
-                        type === 'humidity' ? 'hist-humidity-chart' :
-                        type === 'co2' ? 'hist-co2-chart' : 'hist-sound-chart';
+            type === 'humidity' ? 'hist-humidity-chart' :
+                type === 'co2' ? 'hist-co2-chart' : 'hist-sound-chart';
         const canvas = document.getElementById(canvasId);
         if (!canvas) return;
 
@@ -2555,7 +2541,7 @@
     async function loadEnergyCostData() {
         const fromDate = document.getElementById('hist-from')?.value;
         const toDate = document.getElementById('hist-to')?.value;
-const building = document.getElementById('hist-filter-building')?.value ?? '';
+        const building = document.getElementById('hist-filter-building')?.value ?? '';
 
         if (!fromDate || !toDate) return;
 
