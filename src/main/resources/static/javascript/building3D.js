@@ -728,7 +728,10 @@ class Building3D {
 
         deskGrid.innerHTML = '';
         deskGrid.style.gridTemplateColumns = '1fr';
-        deskGrid.style.padding = '0';
+        deskGrid.style.display = 'flex';
+        deskGrid.style.justifyContent = 'center';
+        deskGrid.style.alignItems = 'center';
+        deskGrid.style.minHeight = '600px'; // important pour le centrage vertical
         deskGrid.style.background = '#ffffff';
         deskGrid.style.borderRadius = '12px';
         deskGrid.style.border = '2px solid #e2e8f0';
