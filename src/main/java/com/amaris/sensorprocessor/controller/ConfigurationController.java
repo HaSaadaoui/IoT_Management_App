@@ -331,29 +331,18 @@ public class ConfigurationController {
 
     @PostMapping("/configuration/locations/add")
     public String addLocation(@RequestParam("name") String name,
-                              @RequestParam("buildingId") Integer buildingId,
-                              Model model, Principal principal) {
-        try {
-            Location location = new Location();
-            location.setName(name);
-            location.setBuildingId(buildingId);
-            locationService.create(location);
-            model.addAttribute("configMessage", "Location added successfully");
-        } catch (Exception e) {
-            model.addAttribute("configError", e.getMessage());
-        }
-        return configuration(model, principal);
+                              @RequestParam("buildingId") Integer buildingId) {
+        Location location = new Location();
+        location.setName(name);
+        location.setBuildingId(buildingId);
+        locationService.create(location);
+        return "redirect:/configuration#section-locations";
     }
 
     @PostMapping("/configuration/locations/delete")
-    public String deleteLocation(@RequestParam("id") Integer id, Model model, Principal principal) {
-        try {
-            locationService.delete(id);
-            model.addAttribute("configMessage", "Location deleted successfully");
-        } catch (Exception e) {
-            model.addAttribute("configError", e.getMessage());
-        }
-        return configuration(model, principal);
+    public String deleteLocation(@RequestParam("id") Integer id) {
+        locationService.delete(id);
+        return "redirect:/configuration#section-locations";
     }
 
     @PostMapping("/configuration/brands/test-decoder")
