@@ -63,7 +63,7 @@ public class SensorDao {
         return jdbcTemplate.update(
                 "INSERT INTO sensors (" +
                         "id_sensor, id_device_type, commissioning_date, status, " +
-                        "building_id, floor, location, id_gateway, " +  // ✅ building_id
+                        "building_id, floor, location_id, id_gateway, " +
                         "dev_eui, join_eui, app_key, frequency_plan, " +
                         "brand_id, protocol_id" +
                         ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -71,9 +71,9 @@ public class SensorDao {
                 sensor.getIdDeviceType(),
                 sensor.getCommissioningDate(),
                 sensor.getStatus(),
-                sensor.getBuildingId(),  // ✅ getBuildingId()
+                sensor.getBuildingId(),
                 sensor.getFloor(),
-                sensor.getLocation(),
+                sensor.getLocationId(),
                 sensor.getIdGateway(),
                 sensor.getDevEui(),
                 sensor.getJoinEui(),
@@ -104,10 +104,10 @@ public class SensorDao {
         return count != null && count > 0;
     }
 
-    public List<Sensor> findAllByLocation(String location) {
+    public List<Sensor> findAllByLocationId(Integer locationId) {
         return jdbcTemplate.query(
-                BASE_SELECT + "WHERE s.location = ?",
-                new BeanPropertyRowMapper<>(Sensor.class), location);
+                BASE_SELECT + "WHERE s.location_id = ?",
+                new BeanPropertyRowMapper<>(Sensor.class), locationId);
     }
 
     public List<Sensor> findAllByBuildingAndFloor(String buildingId, Integer floorNumber) {
@@ -122,9 +122,9 @@ public class SensorDao {
                         "id_device_type = ?, " +
                         "commissioning_date = ?, " +
                         "status = ?, " +
-                        "building_id  = ?, " +
+                        "building_id = ?, " +
                         "floor = ?, " +
-                        "location = ?, " +
+                        "location_id = ?, " +
                         "id_gateway = ?, " +
                         "dev_eui = ?, " +
                         "join_eui = ?, " +
@@ -138,7 +138,7 @@ public class SensorDao {
                 sensor.getStatus(),
                 sensor.getBuildingId(),
                 sensor.getFloor(),
-                sensor.getLocation(),
+                sensor.getLocationId(),
                 sensor.getIdGateway(),
                 sensor.getDevEui(),
                 sensor.getJoinEui(),

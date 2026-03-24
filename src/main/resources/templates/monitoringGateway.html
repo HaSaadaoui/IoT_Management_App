@@ -161,7 +161,12 @@
         <div class="card" id="mapContainer" style="flex: 1; padding: 10px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h4>Gateway Location</h4>
-                <h4 id="gateway-location" style="font-weight:normal;">--</h4>
+                <h4 style="font-weight:normal;">
+                    <span th:if="${gatewayLocationName != null}"
+                          th:text="${gatewayLocationName}"
+                          style="font-family:inherit; font-weight:bold;"></span>
+                    <span th:if="${gatewayLocationName == null}">--</span>
+                </h4>
             </div>
             <br>
             <div id="map" style="min-height:300px; height:50vh; width:100%; border-radius:10px;"></div>
@@ -240,11 +245,6 @@
 
         if (document.querySelector("#ipPublic").textContent === "--" && data.system.ip_public) {
             document.querySelector("#ipPublic").textContent = data.system.ip_public;
-        }
-
-        const locationElem = document.querySelector("#gateway-location");
-        if (locationElem && data.database && data.database.location) {
-            locationElem.innerHTML = `<strong style="font-family: inherit; font-weight: bold;">${data.database.location}</strong>`;
         }
 
         const ramTotal = data.system['ram_total_gb (GB)'];

@@ -12,7 +12,7 @@ public class Sensor {
 
     public Sensor(String idSensor, Integer idDeviceType, String commissioningDate,
                   Boolean status, Integer buildingId, Integer floor,
-                  String location, String idGateway,
+                  String idGateway,
                   String devEui, String joinEui, String appKey, String frequencyPlan,
                   Integer brandId, Integer protocolId) {
         this.idSensor = idSensor;
@@ -21,7 +21,6 @@ public class Sensor {
         this.status = status;
         this.buildingId = buildingId;
         this.floor = floor;
-        this.location = location;
         this.idGateway = idGateway;
         this.devEui = devEui;
         this.joinEui = joinEui;
@@ -50,8 +49,8 @@ public class Sensor {
     @Column("floor")
     private Integer floor;
 
-    @Column("location")
-    private String location;
+    @Column("location_id")
+    private Integer locationId;
 
     @Column("id_gateway")
     private String idGateway;

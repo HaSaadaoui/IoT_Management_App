@@ -52,6 +52,10 @@
                 <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="9" y1="6" x2="9" y2="6.01"/><line x1="15" y1="6" x2="15" y2="6.01"/><line x1="9" y1="10" x2="9" y2="10.01"/><line x1="15" y1="10" x2="15" y2="10.01"/><line x1="9" y1="14" x2="9" y2="14.01"/><line x1="15" y1="14" x2="15" y2="14.01"/><path d="M9 18h6v4H9z"/></svg></span>
                 Building Modeling
             </a>
+            <a data-section="section-locations" onclick="switchSection(this)">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+                Locations
+            </a>
         </nav>
     </aside>
 
@@ -791,12 +795,7 @@
                             <label class="form-label" for="select_location">Location</label>
                             <select id="select_location" class="form-select" onchange="onLocationChange()">
                                 <option value="">None</option>
-                                <option value="__NEW__">&#9999;&#65039; New location...</option>
                             </select>
-                            <div id="new-location-input-wrapper" style="display:none;">
-                                <input type="text" class="form-control" id="input_location_new" placeholder="New location..." maxlength="100" onchange="onLocationInputChange()"/>
-                            </div>
-                            <input type="hidden" id="input_location" />
                         </div>
                     </div>
                     <div class="row mb-3">
@@ -852,11 +851,122 @@
             </div>
         </div>
 
+        <!-- ==========================================
+             SECTION: LOCATIONS
+             ========================================== -->
+        <div id="section-locations" class="cfg-section">
+            <div class="config-card">
+                <h2>
+                    <span class="card-icon"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+                    Locations
+                </h2>
+                <p>Manage locations per building. Each location belongs to a specific building.</p>
+
+                <div class="config-grid-1" style="max-width:600px;">
+                    <section class="config-subcard">
+                        <h3>Add a Location</h3>
+                        <form th:action="@{/configuration/locations/add}" method="post" class="config-inline-form" style="flex-wrap:wrap;gap:8px;">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <select name="buildingId" class="form-control" required style="min-width:160px;" id="loc-building-select" onchange="filterLocationTable()">
+                                <option value="">Select Building</option>
+                                <option th:each="b : ${buildings}" th:value="${b.id}" th:text="${b.name}"></option>
+                            </select>
+                            <input type="text" name="name" class="form-control" placeholder="Location name" required style="min-width:180px;">
+                            <button type="submit" class="btn btn-violet">Add</button>
+                        </form>
+
+                        <div th:if="${configMessage != null}" class="alert alert-success mt-2" th:text="${configMessage}"></div>
+                        <div th:if="${configError != null}" class="alert alert-danger mt-2" th:text="${configError}"></div>
+
+                        <div class="config-mini-table-wrapper" style="margin-top:16px;">
+                            <table class="config-mini-table" id="locations-table">
+                                <thead>
+                                    <tr>
+                                        <th>Building</th>
+                                        <th>Location Name</th>
+                                        <th style="width:80px">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="loc : ${locations}"
+                                    th:attr="data-building-id=${loc.buildingId}">
+                                    <td>
+                                        <span th:each="b : ${buildings}" th:if="${b.id == loc.buildingId}" th:text="${b.name}"></span>
+                                    </td>
+                                    <td th:text="${loc.name}"></td>
+                                    <td>
+                                        <form th:action="@{/configuration/locations/delete}" method="post"
+                                              onsubmit="return confirm('Delete location?')">
+                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                            <input type="hidden" name="id" th:value="${loc.id}"/>
+                                            <button type="submit" class="btn-danger-mini">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <tr th:if="${locations == null || #lists.isEmpty(locations)}">
+                                    <td colspan="3" class="muted">No locations yet.</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
     </div><!-- /cfg-main -->
 </div><!-- /cfg-layout -->
 
 <!-- ================= TOAST CONTAINER ================= -->
 <div id="cfg-toast-container" class="cfg-toast-container"></div>
+
+<!-- ================= SIDEBAR NAVIGATION (early — must be defined before external scripts finish) ================= -->
+<script>
+function switchSection(clickedLink) {
+    document.querySelectorAll('.cfg-sidebar-nav a').forEach(a => a.classList.remove('active'));
+    clickedLink.classList.add('active');
+    document.querySelectorAll('.cfg-section').forEach(s => s.classList.remove('active'));
+    const targetId = clickedLink.getAttribute('data-section');
+    const target = document.getElementById(targetId);
+    if (target) {
+        target.classList.add('active');
+        target.style.animation = 'none';
+        target.offsetHeight;
+        target.style.animation = '';
+    }
+    if (targetId === 'section-building' && window.building3D) {
+        document.getElementById('filter-building').value = "";
+        window.building3D.init();
+        populateBuildingSelect();
+        initBuildingConfig();
+        window.building3D.isDashboard = false;
+        setTimeout(() => {
+            if (window.building3D.renderer) {
+                window.building3D.renderer.setSize(
+                    document.getElementById('building-3d-container').clientWidth,
+                    document.getElementById('building-3d-container').clientHeight
+                );
+            }
+        }, 100);
+    }
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const hash = window.location.hash.replace('#', '');
+    if (hash) {
+        const link = document.querySelector(`[data-section="${hash}"]`);
+        if (link) switchSection(link);
+    }
+});
+
+function filterLocationTable() {
+    const select = document.getElementById('loc-building-select');
+    const buildingId = select ? select.value : '';
+    const rows = document.querySelectorAll('#locations-table tbody tr[data-building-id]');
+    rows.forEach(row => {
+        row.style.display = (!buildingId || row.getAttribute('data-building-id') === buildingId) ? '' : 'none';
+    });
+}
+</script>
 
 <!-- ================= SCRIPTS ================= -->
 <script src="/javascript/lib/three.min.js"></script>
@@ -876,51 +986,6 @@
 </script>
 <script src="/javascript/configuration.js"></script>
 
-<!-- ================= SIDEBAR NAVIGATION ================= -->
-<script>
-function switchSection(clickedLink) {
-    // Remove active from all nav links
-    document.querySelectorAll('.cfg-sidebar-nav a').forEach(a => a.classList.remove('active'));
-    // Add active to clicked
-    clickedLink.classList.add('active');
-    // Hide all sections
-    document.querySelectorAll('.cfg-section').forEach(s => s.classList.remove('active'));
-    // Show target section
-    const targetId = clickedLink.getAttribute('data-section');
-    const target = document.getElementById(targetId);
-    if (target) {
-        target.classList.add('active');
-        // Re-trigger animation
-        target.style.animation = 'none';
-        target.offsetHeight; // force reflow
-        target.style.animation = '';
-    }
-    // If building section, trigger resize for 3D canvas
-    if (targetId === 'section-building' && window.building3D) {
-        document.getElementById('filter-building').value = "";
-        window.building3D.init();
-        populateBuildingSelect();
-        initBuildingConfig();
-        window.building3D.isDashboard = false;
-        setTimeout(() => {
-            if (window.building3D.renderer) {
-                window.building3D.renderer.setSize(
-                    document.getElementById('building-3d-container').clientWidth,
-                    document.getElementById('building-3d-container').clientHeight
-                );
-            }
-        }, 100);
-    }
-}
-// Deep-link support: check URL hash
-document.addEventListener('DOMContentLoaded', function() {
-    const hash = window.location.hash.replace('#', '');
-    if (hash) {
-        const link = document.querySelector(`[data-section="${hash}"]`);
-        if (link) switchSection(link);
-    }
-});
-</script>
 
 <!-- ================= DECODER MODAL ================= -->
 <div id="decoder-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);

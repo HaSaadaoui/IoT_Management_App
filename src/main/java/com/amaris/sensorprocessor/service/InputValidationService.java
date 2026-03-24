@@ -71,12 +71,6 @@ public class InputValidationService {
         }
     }
 
-    public void isValidInputLocationDescription(String locationDescription, BindingResult bindingResult) {
-        if (locationDescription == null || !locationDescription.matches("^[a-zA-ZÀ-ÖØ-öø-ÿ0-9\\s\\-,'\".]{1,50}$")) {
-            LoggerUtil.logWithBindingObject(bindingResult, Constants.GATEWAY_LOCATION_INVALID, locationDescription, Constants.BINDING_LOCATION);
-        }
-    }
-
     public void isValidInputAntenna(Double coordinate) {
         if (coordinate == null || !(String.valueOf(coordinate).matches("^\\d{1,3}(\\.\\d{1,10})?$"))) {
             logger.error("Unauthorized format : coordinate invalid");
@@ -93,7 +87,6 @@ public class InputValidationService {
         isValidInputBuildingId(gateway.getBuildingId(), bindingResult);
         isValidProtocolId(gateway.getProtocolId(), bindingResult);
         isValidInputFloorNumber(gateway.getFloorNumber(), bindingResult);
-        isValidInputLocationDescription(gateway.getLocationDescription(), bindingResult);
     }
 
     public void validateGatewayForUpdateForm(Gateway gateway, BindingResult bindingResult) {
@@ -103,6 +96,5 @@ public class InputValidationService {
         isValidProtocolId(gateway.getProtocolId(), bindingResult);
         isValidInputBuildingId(gateway.getBuildingId(), bindingResult);
         isValidInputFloorNumber(gateway.getFloorNumber(), bindingResult);
-        isValidInputLocationDescription(gateway.getLocationDescription(), bindingResult);
     }
 }

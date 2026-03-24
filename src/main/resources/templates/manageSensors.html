@@ -238,10 +238,10 @@
                         </select>
                         <div class="field-error" th:if="${#fields.hasErrors('floor')}" th:errors="*{floor}"></div>
 
-                        <!-- Location (optionnel) -->
-                        <input type="text" th:field="*{location}" placeholder="Location"
-                               th:classappend="${#fields.hasErrors('location')} ? 'input-error' : ''"/>
-                        <div class="field-error" th:if="${#fields.hasErrors('location')}" th:errors="*{location}"></div>
+                        <!-- Location -->
+                        <select id="locationSelect" th:field="*{locationId}" disabled>
+                            <option value="">-- Select a Building first --</option>
+                        </select>
 
                         <!-- DevEUI -->
                         <div id="devEuiWrapper">
@@ -304,7 +304,9 @@
                         <select id="floorSelectEdit" th:field="*{floor}" required
                                 th:attr="data-current=${sensorEdit.floor}, data-building=${sensorEdit.buildingId}">
                         </select>
-                        <input type="text" th:field="*{location}" placeholder="Location"/>
+                        <select id="locationSelectEdit" th:field="*{locationId}"
+                                th:attr="data-current=${sensorEdit.locationId}, data-building=${sensorEdit.buildingId}">
+                        </select>
 
                         <div class="form-buttons">
                             <button type="submit">Update</button>
@@ -347,6 +349,7 @@
         window.SENSORS          = /*[[${sensors}]]*/        [];
         window.GATEWAYS         = /*[[${gateways}]]*/       [];
         window.BUILDING_FLOORS  = /*[[${buildingFloors}]]*/ [];
+        window.LOCATIONS        = /*[[${locations}]]*/      [];
         window.CAN_EDIT_SENSORS = /*[[${#authorization.expression('hasAnyRole(''ADMIN'',''SUPERUSER'')')}]]*/ false;
         /*]]>*/
     </script>
