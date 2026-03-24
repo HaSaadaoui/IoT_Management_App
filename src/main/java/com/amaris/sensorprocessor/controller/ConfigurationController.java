@@ -32,6 +32,8 @@ public class ConfigurationController {
     private final DeviceTypeService deviceTypeService;
     private final BuildingEnergyConfigDao buildingEnergyConfigDao;
     private final SensorService sensorService;
+    private final BuildingService buildingService;
+    private final LocationService locationService;
 
     @Autowired
     public ConfigurationController(AlertThresholdConfig alertThresholdConfig,
@@ -45,7 +47,9 @@ public class ConfigurationController {
                                    ProtocolService protocolService,
                                    DeviceTypeService deviceTypeService,
                                    SensorService sensorService,
-                                   BuildingEnergyConfigDao buildingEnergyConfigDao) { // ✅ UN SEUL constructeur
+                                   BuildingEnergyConfigDao buildingEnergyConfigDao,
+                                   BuildingService buildingService,
+                                   LocationService locationService) {
         this.alertThresholdConfig = alertThresholdConfig;
         this.alertConfigurationService = alertConfigurationService;
         this.notificationService = notificationService;
@@ -58,6 +62,8 @@ public class ConfigurationController {
         this.deviceTypeService = deviceTypeService;
         this.sensorService = sensorService;
         this.buildingEnergyConfigDao = buildingEnergyConfigDao;
+        this.buildingService = buildingService;
+        this.locationService = locationService;
     }
 
     @GetMapping("/configuration")
@@ -68,6 +74,8 @@ public class ConfigurationController {
         model.addAttribute("protocols", protocolService.findAll());
         model.addAttribute("gatewayConfig", null);
         model.addAttribute("sensors", sensorDao.findAllSensors());
+        model.addAttribute("buildings", buildingService.findAll());
+        model.addAttribute("locations", locationService.findAll());
 
         if (principal != null) {
             User user = userService.searchUserByUsername(principal.getName());
@@ -317,6 +325,35 @@ public class ConfigurationController {
                                               @RequestBody Map<String, String> body) {
         brandService.updateDecoder(id, body.get("decoder"));
         return ResponseEntity.ok("{\"success\":true}");
+    }
+
+    // ==================== LOCATIONS ====================
+
+    @PostMapping("/configuration/locations/add")
+    public String addLocation(@RequestParam("name") String name,
+                              @RequestParam("buildingId") Integer buildingId,
+                              Model model, Principal principal) {
+        try {
+            Location location = new Location();
+            location.setName(name);
+            location.setBuildingId(buildingId);
+            locationService.create(location);
+            model.addAttribute("configMessage", "Location added successfully");
+        } catch (Exception e) {
+            model.addAttribute("configError", e.getMessage());
+        }
+        return configuration(model, principal);
+    }
+
+    @PostMapping("/configuration/locations/delete")
+    public String deleteLocation(@RequestParam("id") Integer id, Model model, Principal principal) {
+        try {
+            locationService.delete(id);
+            model.addAttribute("configMessage", "Location deleted successfully");
+        } catch (Exception e) {
+            model.addAttribute("configError", e.getMessage());
+        }
+        return configuration(model, principal);
     }
 
     @PostMapping("/configuration/brands/test-decoder")
