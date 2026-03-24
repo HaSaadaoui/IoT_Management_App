@@ -144,10 +144,8 @@ class Building3D {
         try {
             // On ne persiste que dans la configuration
             if (!this.currentArchPlan || this.isDashboard) return;
-
             const svgContent = this.currentArchPlan.exportSVG();
             if (!svgContent) return;
-
             // Nettoyage ancien blob si existant
             if (this._ephemeralSvgUrl) {
                 URL.revokeObjectURL(this._ephemeralSvgUrl);
@@ -157,7 +155,6 @@ class Building3D {
             const blob = new Blob([svgContent], { type: "image/svg+xml" });
             this._ephemeralSvgUrl = URL.createObjectURL(blob);
             this.dbBuildingConfig.svgUrl = this._ephemeralSvgUrl;
-
         } catch (e) {
             console.warn('[Building3D] persistCurrentSvgToBlob error', e);
         }
@@ -624,12 +621,26 @@ class Building3D {
         if (!overlay) return;
 
         const data = this.floorData[floorNumber];
-        if (!data) return;
+        let floorName = '';
+        let floorTotalDesks = 0;
+        let freeDesks = 0;
+        let usedDesks = 0;
+        let invalidDesks = 0;
 
-        const freeDesks = data.desks.filter(d => d.status === 'free').length;
-        const usedDesks = data.desks.filter(d => d.status === 'used').length;
-        const invalidDesks = data.desks.filter(d => d.status === 'invalid').length;
-        const floorTotalDesks = freeDesks + usedDesks + invalidDesks;
+        if (floorNumber === 0){
+            floorName = 'Ground Floor';
+        } else {
+            floorName = 'Floor '+floorNumber;
+        }
+        if (data) {
+            freeDesks = data.desks.filter(d => d.status === 'free').length;
+            usedDesks = data.desks.filter(d => d.status === 'used').length;
+            invalidDesks = data.desks.filter(d => d.status === 'invalid').length;
+            floorTotalDesks = freeDesks + usedDesks + invalidDesks;
+            if (data.name){
+                floorName = data.name;
+            }
+        }
 
         overlay.innerHTML = `
             <h4 style="margin:0 0 0.5rem;color:#662179;font-size:1rem;">${data.name}</h4>
@@ -719,6 +730,7 @@ class Building3D {
 
 
     loadArchitecturalPlan(floorNumber) {
+        //Permet de conserver les modifications en cours
         this.persistCurrentSvgToBlob();
         const deskGrid = document.getElementById('desk-grid');
         if (!deskGrid) {

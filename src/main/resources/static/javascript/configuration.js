@@ -424,21 +424,6 @@ function updateMasterCheckboxUI() {
     }
 }
 
-function updateInputSizeLabel() {
-    const elementValue = document.getElementById('filter-element')?.value;
-    const sensorTypeValue = document.getElementById('filter-sensor-type')?.value;
-
-    const sizeInput = document.getElementById('input_size');
-    const sizeLabel = sizeInput?.parentElement?.querySelector('label');
-    if (!sizeLabel) return;
-
-    if (elementValue === 'Sensor' && sensorTypeValue === 'DESK') {
-        sizeLabel.textContent = 'Font Size';
-    } else {
-        sizeLabel.textContent = 'Size';
-    }
-}
-
 function toggleFormFields() {
     const elementSelect = document.getElementById('filter-element');
     const sensorTypeSelect = document.getElementById('filter-sensor-type');
@@ -553,8 +538,6 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
             if (styleSelectContainer) styleSelectContainer.style.display = 'block';
             break;
     }
-
-    this.updateInputSizeLabel();
 }
 
 function initializeInputs() {
@@ -688,14 +671,12 @@ function onChangeSensor() {
         if (inputLabelContainer) inputLabelContainer.style.display = 'none';
     }
     this.initializeInputs();
-    this.updateInputSizeLabel();
 }
 
 function onChangeElement() {
     this.populateFloorSelect();
     this.initializeInputs();
     this.toggleFormFields();
-    this.updateInputSizeLabel();
     
     const floorSelect = document.getElementById('filter-floor');
     const sensorTypeSelect = document.getElementById('filter-sensor-type');
@@ -1807,7 +1788,6 @@ async function saveSensorThreshold() {
         }
 
         if (typeof cfgToast === 'function') cfgToast('Sensor threshold saved!', 'success'); else alert('Sensor threshold saved!');
-        loadAllSensorThresholds();
         
     } catch (error) {
         console.error("Error saving sensor threshold:", error);
@@ -1841,7 +1821,6 @@ async function deleteSensorThreshold(thresholdId) {
         
         if (response.ok) {
             if (typeof cfgToast === 'function') cfgToast('Sensor threshold deleted!', 'success'); else alert('Sensor threshold deleted!');
-            loadAllSensorThresholds();
         } else {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -1965,8 +1944,6 @@ window.loadNotificationPreferences = loadNotificationPreferences;
 window.loadSensors = loadSensors;
 window.loadSensorThresholds = loadSensorThresholds;
 window.saveSensorThreshold = saveSensorThreshold;
-window.loadAllSensorThresholds = loadAllSensorThresholds;
-window.editSensorThreshold = editSensorThreshold;
 window.deleteSensorThreshold = deleteSensorThreshold;
 window.updateParameterUnits = updateParameterUnits;
 window.editNotificationPreference = editNotificationPreference;
@@ -1979,18 +1956,15 @@ window.loadEnergyConfigs = loadEnergyConfigs;
 window.loadLocationOptions     = loadLocationOptions;
 window.onLocationChange  = onLocationChange;
 window.getLocationValue        = getLocationValue;
+window.initializeInputs = initializeInputs;
 window.syncHiddenLocationField = syncHiddenLocationField;
 
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", function() {
     if (typeof loadSensors === 'function') loadSensors();
     if (typeof loadNotificationPreferences === 'function') loadNotificationPreferences();
-    if (typeof loadAllSensorThresholds === 'function') loadAllSensorThresholds();
-    if (typeof populateBuildingSelect === 'function') populateBuildingSelect();
     if (typeof toggleFormFields === 'function') toggleFormFields();
-    if (typeof updateInputSizeLabel === 'function') updateInputSizeLabel();
     if (typeof loadEnergyConfigs === 'function') loadEnergyConfigs();
-    if (window.building3D) { window.building3D.isDashboard = false; }
 
     const inputNew = document.getElementById("input_location_new");
     const buildingSelect = document.getElementById("filter-building");
@@ -2013,8 +1987,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if (buildingSelect) {
         buildingSelect.addEventListener("change", reloadLocations);
+        buildingSelect.addEventListener("change", initializeInputs);
     }
     if (floorSelect) {
         floorSelect.addEventListener("change", reloadLocations);
+        floorSelect.addEventListener("change", initializeInputs);
     }
 });
