@@ -53,6 +53,9 @@ public class Sensor {
     @Column("location")
     private String location;
 
+    @Column("location_id")
+    private Integer locationId;
+
     @Column("id_gateway")
     private String idGateway;
 

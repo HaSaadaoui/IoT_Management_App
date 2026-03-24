@@ -363,7 +363,8 @@ public class SensorService {
         if (patch.getCommissioningDate() != null) existing.setCommissioningDate(patch.getCommissioningDate());
         if (patch.getFloor() != null)             existing.setFloor(patch.getFloor());
         if (patch.getLocation() != null)          existing.setLocation(patch.getLocation());
-        if (patch.getBuildingId() != null)      existing.setBuildingId(patch.getBuildingId());
+        if (patch.getLocationId() != null)        existing.setLocationId(patch.getLocationId());
+        if (patch.getBuildingId() != null)        existing.setBuildingId(patch.getBuildingId());
 
         int rows = sensorDao.updateSensor(existing);
         if (rows != 1) throw new IllegalStateException("DB update failed for sensor " + idSensor);

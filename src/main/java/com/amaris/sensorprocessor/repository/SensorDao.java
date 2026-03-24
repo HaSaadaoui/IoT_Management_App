@@ -55,17 +55,18 @@ public class SensorDao {
         return jdbcTemplate.update(
                 "INSERT INTO sensors (" +
                         "id_sensor, id_device_type, commissioning_date, status, " +
-                        "building_id, floor, location, id_gateway, " +  // ✅ building_id
+                        "building_id, floor, location, location_id, id_gateway, " +
                         "dev_eui, join_eui, app_key, frequency_plan, " +
                         "brand_id, protocol_id" +
-                        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 sensor.getIdSensor(),
                 sensor.getIdDeviceType(),
                 sensor.getCommissioningDate(),
                 sensor.getStatus(),
-                sensor.getBuildingId(),  // ✅ getBuildingId()
+                sensor.getBuildingId(),
                 sensor.getFloor(),
                 sensor.getLocation(),
+                sensor.getLocationId(),
                 sensor.getIdGateway(),
                 sensor.getDevEui(),
                 sensor.getJoinEui(),
@@ -114,9 +115,10 @@ public class SensorDao {
                         "id_device_type = ?, " +
                         "commissioning_date = ?, " +
                         "status = ?, " +
-                        "building_id  = ?, " +
+                        "building_id = ?, " +
                         "floor = ?, " +
                         "location = ?, " +
+                        "location_id = ?, " +
                         "id_gateway = ?, " +
                         "dev_eui = ?, " +
                         "join_eui = ?, " +
@@ -131,6 +133,7 @@ public class SensorDao {
                 sensor.getBuildingId(),
                 sensor.getFloor(),
                 sensor.getLocation(),
+                sensor.getLocationId(),
                 sensor.getIdGateway(),
                 sensor.getDevEui(),
                 sensor.getJoinEui(),

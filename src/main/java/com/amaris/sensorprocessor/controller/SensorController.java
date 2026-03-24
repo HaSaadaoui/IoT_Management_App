@@ -59,13 +59,15 @@ public class SensorController {
     private final BuildingService buildingService;
     private final com.amaris.sensorprocessor.service.SensorLorawanService sensorLorawanService;
     private final com.amaris.sensorprocessor.service.SensorSyncService sensorSyncService;
+    private final com.amaris.sensorprocessor.service.LocationService locationService;
 
     @Autowired
     public SensorController(SensorService sensorService, GatewayService gatewayService,
                             UserService userService, SensorLorawanService sensorLorawanService,
                             SensorSyncService sensorSyncService, ProtocolService protocolService,
                             BrandService brandService, DeviceTypeService deviceTypeService,
-                            BuildingService buildingService) {
+                            BuildingService buildingService,
+                            com.amaris.sensorprocessor.service.LocationService locationService) {
         this.sensorService = sensorService;
         this.gatewayService = gatewayService;
         this.userService = userService;
@@ -75,6 +77,7 @@ public class SensorController {
         this.brandService = brandService;
         this.deviceTypeService = deviceTypeService;
         this.buildingService = buildingService;
+        this.locationService = locationService;
     }
 
 
@@ -98,26 +101,20 @@ public class SensorController {
 
     @GetMapping("/api/sensors/locations")
     @ResponseBody
-    public ResponseEntity<List<String>> getDistinctLocations(
+    public ResponseEntity<List<com.amaris.sensorprocessor.entity.Location>> getDistinctLocations(
             @RequestParam(required = false) String buildingId,
             @RequestParam(required = false) String floor) {
 
-        List<Sensor> sensors = new ArrayList<Sensor>();
+        List<com.amaris.sensorprocessor.entity.Location> locations;
 
         if (hasText(buildingId) && hasText(floor)) {
-            sensors = sensorService.findAllByBuildingAndFloor(buildingId, Integer.parseInt(floor));
+            locations = locationService.findByBuildingAndFloor(
+                    Integer.parseInt(buildingId), Integer.parseInt(floor));
         } else if (hasText(buildingId)) {
-            sensors = sensorService.findAllByBuildingId(buildingId);
+            locations = locationService.findByBuilding(Integer.parseInt(buildingId));
         } else {
-            sensors = sensorService.findAll();
+            locations = locationService.findAll();
         }
-
-        List<String> locations = sensors.stream()
-                .map(Sensor::getLocation)
-                .filter(loc -> loc != null && !loc.isBlank())
-                .distinct()
-                .sorted()
-                .collect(Collectors.toList());
 
         return ResponseEntity.ok(locations);
     }
@@ -323,24 +320,36 @@ public class SensorController {
     @ResponseBody
     public ResponseEntity<?> updateSensorLocation(
             @PathVariable String idSensor,
-            @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, Object> body) {
 
-        String location = body.get("location");
+        Object locationIdRaw = body.get("locationId");
 
-        if (location == null) {
+        if (locationIdRaw == null) {
             return ResponseEntity
                     .badRequest()
-                    .body(Map.of("error", "Location field is required"));
+                    .body(Map.of("error", "locationId field is required"));
+        }
+
+        Integer locationId;
+        try {
+            locationId = Integer.parseInt(locationIdRaw.toString());
+        } catch (NumberFormatException e) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of("error", "locationId must be an integer"));
         }
 
         try {
+            locationService.findById(locationId)
+                    .orElseThrow(() -> new IllegalArgumentException("Location not found: " + locationId));
+
             Sensor existing = sensorService.getOrThrow(idSensor);
-            existing.setLocation(location.trim());
+            existing.setLocationId(locationId);
             sensorService.update(idSensor, existing);
             return ResponseEntity.ok(Map.of(
                     "message", "Location updated successfully",
                     "sensorId", idSensor,
-                    "location", location.trim()
+                    "locationId", locationId
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity
@@ -549,6 +558,7 @@ public class SensorController {
 
         List<Building> buildings = buildingService.findAll();
         model.addAttribute("buildings", buildings);
+        model.addAttribute("locations", locationService.findAll());
 
         List<Map<String, Object>> buildingFloors = buildings.stream()
                 .map(b -> {
