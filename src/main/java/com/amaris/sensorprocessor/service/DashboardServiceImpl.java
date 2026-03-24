@@ -602,6 +602,66 @@ public class DashboardServiceImpl implements DashboardService {
                 .build();
     }
 
+    @Override
+    public Map<String, Object> getEnvConfig(String building, String floorParam) {
+        boolean isAllFloors = floorParam == null
+                || floorParam.isBlank()
+                || "all".equalsIgnoreCase(floorParam);
+
+        Integer floor = null;
+
+        if (!isAllFloors) {
+            floor = Integer.parseInt(floorParam);
+        }
+
+        List<Map<String, Object>> rows= sensorDao.findAllByBuildingAndFloor(building, floor, isAllFloors);
+
+        Map<String, List<String>> zones = new HashMap<>();
+        Set<String> metrics = new HashSet<>();
+
+        for (Map<String, Object> row : rows) {
+
+            String deviceId = (String) row.get("id_sensor");
+            String location = (String) row.get("location");
+            String type = (String) row.get("type_name");
+
+            // groupement par zone
+            zones.computeIfAbsent(location, z -> new ArrayList<>()).add(deviceId);
+
+            // mapping type -> métriques
+            switch (type) {
+                case "CO2":
+                    metrics.add("co2");
+                    metrics.add("temperature");
+                    metrics.add("humidity");
+                    break;
+
+                case "TEMPEX":
+                    metrics.add("temperature");
+                    break;
+
+                case "SON":
+                    metrics.add("sound");
+                    break;
+            }
+        }
+
+        // format final
+        List<Map<String, Object>> zonesList = zones.entrySet().stream()
+                .map(e -> Map.of(
+                        "name", e.getKey(),
+                        "deviceIds", e.getValue()
+                ))
+                .toList();
+
+        return Map.of(
+                "building", building,
+                "floor", floor,
+                "zones", zonesList,
+                "metrics", metrics
+        );
+    }
+
     private boolean hasText(String s) {
         return s != null && !s.trim().isEmpty();
     }
