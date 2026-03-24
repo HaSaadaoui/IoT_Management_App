@@ -110,7 +110,7 @@ public class SensorService {
                 });
     }
 
-    public Flux<String> getMonitoringMany(String appId, List<String> deviceIds) {
+    public Flux<ServerSentEvent<String>> getMonitoringMany(String appId, List<String> deviceIds) {
         return webClientSse.post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/api/monitoring/app/{appId}/stream")
@@ -119,7 +119,7 @@ public class SensorService {
                 .accept(MediaType.TEXT_EVENT_STREAM)
                 .bodyValue(deviceIds == null ? List.of() : deviceIds)
                 .retrieve()
-                .bodyToFlux(String.class)
+                .bodyToFlux(new org.springframework.core.ParameterizedTypeReference<ServerSentEvent<String>>() {})
                 .doOnError(err -> log.error("[Sensor] SSE multi error appId={}: {}", appId, err.getMessage(), err));
     }
 

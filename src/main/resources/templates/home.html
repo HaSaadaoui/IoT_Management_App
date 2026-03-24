@@ -3,80 +3,141 @@
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8" />
-    <title>Home page</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home - Smart Building IoT</title>
     <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}" />
     <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
-    <link
-            rel="stylesheet"
-            type="text/css"
-            th:href="@{/css/login-home.css}"
-    />
+    <link rel="stylesheet" type="text/css" th:href="@{/css/home.css}" />
 </head>
 <body>
-<div
-        th:replace="fragments/header :: appHeader(pageTitle='Manage Users', homeUrl=@{/})"
-></div>
+
+<!-- Floating Particles -->
+<div class="home-particles">
+    <div class="home-particle"></div>
+    <div class="home-particle"></div>
+    <div class="home-particle"></div>
+    <div class="home-particle"></div>
+    <div class="home-particle"></div>
+    <div class="home-particle"></div>
+    <div class="home-particle"></div>
+    <div class="home-particle"></div>
+    <div class="home-particle"></div>
+    <div class="home-particle"></div>
+</div>
+
+<!-- Header -->
+<div th:replace="fragments/header :: appHeader(pageTitle='Home', homeUrl=@{/})"></div>
+
+<!-- Main Content -->
 <div class="main-container">
+
+    <!-- Hero Section -->
+    <div class="home-hero">
+        <div class="home-hero-badge">
+            <span class="badge-dot"></span>
+            Smart Building Platform
+        </div>
+        <h1>Smart Building<br/><span>IoT Management</span></h1>
+    </div>
+
+    <!-- Dashboard Container -->
     <div class="dashboard-container">
-        <h1>Smart Building<br /><span>IoT Application</span></h1>
+
+        <!-- Section Title -->
+        <div class="dashboard-section-title">
+            <span class="title-line"></span>
+            <h2>Quick Access</h2>
+            <span class="title-line"></span>
+        </div>
 
         <div class="dashboard-grid">
+
+            <!-- Dashboard -->
             <a href="/dashboard" class="dashboard-card">
-                <img src="/image/dashboard_icon.svg" alt="Dashboard" />
+                <div class="card-icon">
+                    <img src="/image/dashboard_icon.svg" alt="Dashboard" />
+                </div>
                 <span>Dashboard</span>
+                <div class="card-desc">Real-time monitoring</div>
             </a>
 
+            <!-- Sensors -->
             <a href="/manage-sensors" class="dashboard-card">
-                <img src="/image/sensor-icon.svg" alt="Supervision" />
+                <div class="card-icon">
+                    <img src="/image/sensor-icon.svg" alt="Sensors" />
+                </div>
                 <span>Sensors</span>
+                <div class="card-desc">Manage IoT devices</div>
             </a>
 
+            <!-- Gateways -->
             <a href="/manage-gateways" class="dashboard-card">
-                <img src="/image/gateway-icon.svg" alt="Gateways" />
+                <div class="card-icon">
+                    <img src="/image/gateway-icon.svg" alt="Gateways" />
+                </div>
                 <span>Gateways</span>
+                <div class="card-desc">Network infrastructure</div>
             </a>
 
+            <!-- Prediction -->
             <a href="/prediction" class="dashboard-card">
-                <img src="/image/predictive.svg" alt="Prediction" />
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </div>
                 <span>Prediction</span>
+                <div class="card-desc">AI-powered analytics</div>
             </a>
 
-            <!-- ADMIN + SUPERUSER : actif -->
+            <!-- Manage Users — ADMIN + SUPERUSER : active -->
             <a sec:authorize="hasAnyRole('ADMIN','SUPERUSER')"
                href="/manage-users"
                class="dashboard-card">
-                <img src="/image/user-icon.svg" alt="Manage Users" />
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                </div>
                 <span>Manage Users</span>
+                <div class="card-desc">Roles &amp; permissions</div>
             </a>
 
-            <!-- USER : grisé -->
+            <!-- Manage Users — USER : disabled -->
             <div sec:authorize="hasRole('USER')"
                  class="dashboard-card disabled">
-                <img src="/image/user-icon.svg" alt="Manage Users" />
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                </div>
                 <span>Manage Users</span>
+                <div class="card-desc">Admin only</div>
             </div>
 
-            <!-- ADMIN + SUPERUSER -->
+            <!-- Configuration — ADMIN + SUPERUSER -->
             <a sec:authorize="hasAnyRole('ADMIN','SUPERUSER')"
                href="/configuration"
                class="dashboard-card">
-                <img src="/image/config-icon.svg" alt="Configuration" />
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                </div>
                 <span>Configuration</span>
+                <div class="card-desc">Platform settings</div>
             </a>
 
-            <!-- USER -->
+            <!-- Configuration — USER : disabled -->
             <div sec:authorize="hasRole('USER')"
                  class="dashboard-card disabled">
-                <img src="/image/config-icon.svg" alt="Configuration" />
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                </div>
                 <span>Configuration</span>
+                <div class="card-desc">Admin only</div>
             </div>
+
         </div>
     </div>
 </div>
 
-<!-- Footer bar -->
+<!-- Footer -->
 <div class="footer-bar">
-    <!-- Empty footer for styling purposes -->
+    <span class="footer-text">&copy; 2026 <a href="https://www.mantu.com" target="_blank">Mantu Lab</a> &middot; Smart Building IoT Platform</span>
 </div>
+
 </body>
 </html>
