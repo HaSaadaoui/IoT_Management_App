@@ -6,6 +6,7 @@ import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.Sensor;
 import com.amaris.sensorprocessor.entity.SensorData;
 import com.amaris.sensorprocessor.model.dashboard.*;
+import com.amaris.sensorprocessor.repository.LocationDao;
 import com.amaris.sensorprocessor.repository.SensorDao;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
 import lombok.extern.slf4j.Slf4j;
@@ -29,15 +30,23 @@ public class DashboardServiceImpl implements DashboardService {
     private final AlertService alertService;
     private final DeviceTypeService deviceTypeService;
     private final BuildingService buildingService;
+    private final LocationDao locationDao;
 
     @Autowired
     public DashboardServiceImpl(SensorDao sensorDao, SensorDataDao sensorDataDao,
-                                AlertService alertService, DeviceTypeService deviceTypeService, BuildingService buildingService) {
+                                AlertService alertService, DeviceTypeService deviceTypeService,
+                                BuildingService buildingService, LocationDao locationDao) {
         this.sensorDao = sensorDao;
         this.sensorDataDao = sensorDataDao;
         this.alertService = alertService;
         this.deviceTypeService = deviceTypeService;
         this.buildingService = buildingService;
+        this.locationDao = locationDao;
+    }
+
+    private Map<Integer, String> loadLocationNameMap() {
+        return locationDao.findAll().stream()
+                .collect(Collectors.toMap(l -> l.getId(), l -> l.getName(), (a, b) -> a));
     }
 
     private Integer mapBuildingToId(String building) {
@@ -100,9 +109,12 @@ public class DashboardServiceImpl implements DashboardService {
                     .collect(Collectors.toList());
         }
 
+        Map<Integer, String> locationNameMap = loadLocationNameMap();
         Map<String, List<Sensor>> sensorsByLocation = filteredSensors.stream()
                 .collect(Collectors.groupingBy(sensor ->
-                        sensor.getLocation() != null ? sensor.getLocation() : "Unknown Location"
+                        sensor.getLocationId() != null
+                                ? locationNameMap.getOrDefault(sensor.getLocationId(), "Unknown Location")
+                                : "Unknown Location"
                 ));
 
         for (Map.Entry<String, List<Sensor>> entry : sensorsByLocation.entrySet()) {
@@ -250,12 +262,13 @@ public class DashboardServiceImpl implements DashboardService {
         }
 
         Map<Integer, String> deviceTypeMap = loadDeviceTypeMap();
+        Map<Integer, String> locationNameMap = loadLocationNameMap();
 
         return sensors.stream()
                 .map(s -> new SensorInfo(
                         s.getIdSensor(),
                         deviceTypeMap.getOrDefault(s.getIdDeviceType(), "UNKNOWN"),
-                        s.getLocation(),
+                        s.getLocationId() != null ? locationNameMap.getOrDefault(s.getLocationId(), null) : null,
                         s.getBuildingId() != null ? String.valueOf(s.getBuildingId()) : null,
                         s.getFloor(),
                         true

@@ -362,7 +362,6 @@ public class SensorService {
         if (patch.getIdDeviceType() != null) existing.setIdDeviceType(patch.getIdDeviceType());
         if (patch.getCommissioningDate() != null) existing.setCommissioningDate(patch.getCommissioningDate());
         if (patch.getFloor() != null)             existing.setFloor(patch.getFloor());
-        if (patch.getLocation() != null)          existing.setLocation(patch.getLocation());
         if (patch.getLocationId() != null)        existing.setLocationId(patch.getLocationId());
         if (patch.getBuildingId() != null)        existing.setBuildingId(patch.getBuildingId());
 

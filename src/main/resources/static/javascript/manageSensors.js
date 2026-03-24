@@ -69,7 +69,7 @@ function populateFloors(selectEl, building, currentFloor = null) {
 function populateLocations(selectEl, buildingId, currentLocationId = null) {
   if (!selectEl) return;
 
-  selectEl.innerHTML = '<option value="">-- Select a Location --</option>';
+  selectEl.innerHTML = '<option value="" disabled selected>Select a location</option>';
 
   if (!buildingId) {
     selectEl.disabled = true;
@@ -211,7 +211,7 @@ function toggleFrequencyPlan() {
   function applyGatewayHintsCreate() {
     if (!gatewaySelect) return;
     const opt = gatewaySelect.selectedOptions[0];
-    if (!opt) return;
+    if (!opt || !opt.value) return;
     const freq = opt.getAttribute('data-freq')     || '';
     const bldg = opt.getAttribute('data-building') || '';
 
@@ -275,7 +275,7 @@ buildingNameInput?.addEventListener('change', () => {
           </span>
         </td>
         <td>${buildingDisplay}</td>
-        <td>${(LOCATIONS.find(l => l.id === s.locationId)?.name) ?? s.location ?? ''}</td>
+        <td>${LOCATIONS.find(l => l.id === s.locationId)?.name ?? ''}</td>
         <td>${s.idGateway ?? ''}</td>
         <td>
           <div class="button-container">

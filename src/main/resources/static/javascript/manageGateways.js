@@ -4,6 +4,29 @@
 
 const CAN_EDIT_GATEWAYS = !!window.CAN_EDIT_GATEWAYS;
 const BUILDING_FLOORS   = Array.isArray(window.BUILDING_FLOORS) ? window.BUILDING_FLOORS : [];
+const LOCATIONS         = Array.isArray(window.LOCATIONS) ? window.LOCATIONS : [];
+
+function populateLocations(selectEl, buildingId, currentLocationId = null) {
+    if (!selectEl) return;
+    selectEl.innerHTML = '<option value="" disabled selected>Select a location</option>';
+    if (!buildingId) {
+        selectEl.disabled = true;
+        return;
+    }
+    const filtered = LOCATIONS.filter(l => String(l.buildingId) === String(buildingId));
+    if (filtered.length === 0) {
+        selectEl.disabled = true;
+        return;
+    }
+    filtered.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.id;
+        opt.textContent = l.name;
+        selectEl.appendChild(opt);
+    });
+    selectEl.disabled = false;
+    if (currentLocationId) selectEl.value = String(currentLocationId);
+}
 
 // ── Popups ──
 var modalCreate = document.getElementById("createGatewayPopup");
@@ -21,6 +44,10 @@ const floorSelectCreate    = document.getElementById('floorSelectCreate');
 const buildingSelectCreate = document.getElementById('buildingSelectCreate');
 const floorSelectEdit      = document.getElementById('floorSelectEdit');
 const buildingSelectEdit   = document.getElementById('buildingSelectEdit');
+
+// ── Selects locations ──
+const locationSelectCreate = document.getElementById('locationSelectCreate');
+const locationSelectEdit   = document.getElementById('locationSelectEdit');
 
 // -----------------------
 // Populate Floors
@@ -76,21 +103,26 @@ function toggleFrequencyPlan(elSelect, elRow) {
 }
 
 
-// CREATE : building change → peuple floors
+// CREATE : building change → peuple floors + locations
 buildingSelectCreate?.addEventListener('change', () => {
     populateFloors(floorSelectCreate, buildingSelectCreate.value);
+    populateLocations(locationSelectCreate, buildingSelectCreate.value);
+    if (locationSelectCreate) locationSelectCreate.disabled = false;
 });
 
-// EDIT : pré-peuple les floors au chargement si le modal est présent
+// EDIT : pré-peuple les floors + locations au chargement si le modal est présent
 if (floorSelectEdit) {
-    const buildingId   = floorSelectEdit.dataset.building || '';
-    const currentFloor = floorSelectEdit.dataset.current  || null;
+    const buildingId        = floorSelectEdit.dataset.building || '';
+    const currentFloor      = floorSelectEdit.dataset.current  || null;
+    const currentLocationId = locationSelectEdit?.dataset.current || null;
     populateFloors(floorSelectEdit, buildingId, currentFloor);
+    populateLocations(locationSelectEdit, buildingId, currentLocationId);
 }
 
-// EDIT : building change → repeuple floors
+// EDIT : building change → repeuple floors + locations
 buildingSelectEdit?.addEventListener('change', () => {
     populateFloors(floorSelectEdit, buildingSelectEdit.value);
+    populateLocations(locationSelectEdit, buildingSelectEdit.value);
 });
 
 // -----------------------
