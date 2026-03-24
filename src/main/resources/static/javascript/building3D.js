@@ -300,10 +300,10 @@ class Building3D {
     async loadOccupancyDataForFloor(floorNumber) {
         console.log("Loading occupancy from SSE cache for", this.buildingKey, "floor", floorNumber);
         // Update stats from building 3D
-		if (window.ChartUtils?.generateStatCardsForBuilding) {
-			// Génère uniquement les cartes du floor choisi
-			window.ChartUtils.generateStatCardsForBuilding(this.buildingKey, floorNumber);
-		}
+        if (window.ChartUtils?.generateStatCardsForBuilding) {
+            // Génère uniquement les cartes du floor choisi
+            window.ChartUtils.generateStatCardsForBuilding(this.buildingKey, floorNumber);
+        }
 
         const floorInfo = this.floorData[floorNumber];
         if (!floorInfo) {
@@ -558,16 +558,16 @@ class Building3D {
         window.addEventListener('beforeunload', () => {
             this.stopOccupancySSE();
             if (this._ephemeralSvgUrl) {
-            try { URL.revokeObjectURL(this._ephemeralSvgUrl); } catch {}
-            this._ephemeralSvgUrl = null;
+                try { URL.revokeObjectURL(this._ephemeralSvgUrl); } catch {}
+                this._ephemeralSvgUrl = null;
             }
         });
     }
 
     onMouseMove(event) {
-        if (!this.isIn3DView) return;
-
         const rect = this.canvas.getBoundingClientRect();
+        if (event.clientX > rect.right) return; // ignore si souris côté 2D
+
         this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
@@ -599,9 +599,9 @@ class Building3D {
     }
 
     onMouseClick(event) {
-        if (!this.isIn3DView) return;
-
         const rect = this.canvas.getBoundingClientRect();
+        if (event.clientX > rect.right) return; // ignore si souris côté 2D
+
         this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
@@ -643,7 +643,7 @@ class Building3D {
         }
 
         overlay.innerHTML = `
-            <h4 style="margin:0 0 0.5rem;color:#662179;font-size:1rem;">${floorName}</h4>
+            <h4 style="margin:0 0 0.5rem;color:#662179;font-size:1rem;">${data.name}</h4>
             <p style="margin:0.25rem 0;font-size:0.9rem;">Total Desks: ${floorTotalDesks}</p>
             <p style="margin:0.25rem 0;font-size:0.9rem;color:#10b981;">🟢 Free: ${freeDesks}</p>
             <p style="margin:0.25rem 0;font-size:0.9rem;color:#ef4444;">🔴 Used: ${usedDesks}</p>
@@ -704,21 +704,30 @@ class Building3D {
     }
 
     // ===== 2D VIEW =====
-
     switch2DFloorView(floorNumber) {
         this.isIn3DView = false;
 
-        const container3D = document.getElementById('building-3d-container');
-        if (container3D) container3D.style.display = 'none';
+        const layout = document.querySelector('.building-layout');
+        if (layout) layout.style.display = 'flex';
 
         const floorPlan2D = document.getElementById('floor-plan-2d');
-        if (floorPlan2D) floorPlan2D.style.display = 'block';
+        if (floorPlan2D) floorPlan2D.style.display = 'block'; // 🔥 FIX
 
         const backBtn = document.getElementById('back-to-3d-btn');
         if (backBtn) backBtn.style.display = 'block';
 
+        document.querySelector('.left-panel').style.flex = '0 0 50%';
+        document.querySelector('.right-panel').style.flex = '0 0 50%';
+
+
+        requestAnimationFrame(() => this.resize3D());
+
+        //garder interaction 3D
+        if (this.controls) this.controls.enabled = true;
+
         this.loadArchitecturalPlan(floorNumber);
     }
+
 
     loadArchitecturalPlan(floorNumber) {
         //Permet de conserver les modifications en cours
@@ -731,7 +740,10 @@ class Building3D {
 
         deskGrid.innerHTML = '';
         deskGrid.style.gridTemplateColumns = '1fr';
-        deskGrid.style.padding = '0';
+        deskGrid.style.display = 'flex';
+        deskGrid.style.justifyContent = 'center';
+        deskGrid.style.alignItems = 'center';
+        deskGrid.style.minHeight = '600px'; // important pour le centrage vertical
         deskGrid.style.background = '#ffffff';
         deskGrid.style.borderRadius = '12px';
         deskGrid.style.border = '2px solid #e2e8f0';
@@ -751,7 +763,7 @@ class Building3D {
             } else {
                 this.currentArchPlan.updateConfig(currentFloorData, this.currentSensorMode, this.dbBuildingConfig.svgUrl);
             }
-           this.loadRealOccupancyData();
+            this.loadRealOccupancyData();
         } else {
             console.error('ArchitecturalFloorPlan not loaded');
         }
@@ -802,19 +814,28 @@ class Building3D {
         }
     }
 
+
     return3DView() {
         this.isIn3DView = true;
 
-        const container3D   = document.getElementById('building-3d-container');
-        const floorPlan2D   = document.getElementById('floor-plan-2d');
-        const backBtn       = document.getElementById('back-to-3d-btn');
-
-        if (container3D) container3D.style.display = 'block';
+        const floorPlan2D = document.getElementById('floor-plan-2d');
         if (floorPlan2D) floorPlan2D.style.display = 'none';
-        if (backBtn)     backBtn.style.display     = 'none';
 
+        const layout = document.querySelector('.building-layout');
+        if (layout) layout.style.display = 'flex';
+
+        const backBtn = document.getElementById('back-to-3d-btn');
+        if (backBtn) backBtn.style.display = 'none';
+
+
+        document.querySelector('.left-panel').style.flex = '1';
+        document.querySelector('.right-panel').style.flex = '0';
+
+        requestAnimationFrame(() => this.resize3D());
+
+        // animation caméra (inchangé)
         const computed = this.computeDynamicViewForBuilding();
-        const { target, camPos, minD, maxD } = computed;
+        const { target, camPos } = computed;
 
         gsap.to(this.camera.position, {
             ...camPos,
@@ -835,9 +856,42 @@ class Building3D {
         }
     }
 
+    resize3D() {
+        if (!this.camera || !this.renderer || !this.container) return;
+
+        const width = this.container.clientWidth;
+        const height = this.container.clientHeight;
+
+        // update camera
+        this.camera.aspect = width / height;
+        this.camera.updateProjectionMatrix();
+
+        // update renderer
+        this.renderer.setSize(width, height);
+
+        // recadrer proprement le bâtiment
+        this.resetCameraForBuilding();
+    }
+
+
+    resetLayout() {
+        const left = document.querySelector('.left-panel');
+        const right = document.querySelector('.right-panel');
+
+        if (left) left.style.flex = '1';
+        if (right) {
+            right.style.flex = '0';
+            right.style.display = 'none';
+        }
+
+        const layout = document.querySelector('.building-layout');
+        if (layout) layout.style.display = 'flex';
+    }
+
     async loadConfig() {
         if (!this.buildingKey || this.buildingKey.trim() === '') return;
-        
+
+        const upper = this.buildingKey.toUpperCase();
         let dbId = null;
         if (/^\d+$/.test(this.buildingKey)) {
             dbId = parseInt(this.buildingKey, 10);
@@ -845,38 +899,40 @@ class Building3D {
 
         this.dbShapeCache = null;
 
-        try {
-            const resp = await fetch(`/api/buildings/${dbId}`);
-            if (!resp.ok) {
-                throw new Error(`HTTP ${resp.status}`);
+        if (!isNaN(dbId) && dbId !== null) {
+            try {
+                const resp = await fetch(`/api/buildings/${dbId}`);
+                if (!resp.ok) {
+                    throw new Error(`HTTP ${resp.status}`);
+                }
+                const b = await resp.json();
+
+                this.buildingKey = String(dbId);
+                this.dbBuildingConfig = {
+                    id: b.id,
+                    name: b.name,
+                    floors: b.floorsCount || 1,
+                    scale: b.scale || 0.01,
+                    svgUrl: b.svgPlan,
+                    excludedFloors: b.excludedFloors ? b.excludedFloors.map(String) : []
+                };
+                this.config = {
+                    id: b.id,
+                    floors: b.floorsCount || 1,
+                    scale: b.scale || 0.01,
+                    excludedFloors: b.excludedFloors ? b.excludedFloors.map(String) : []
+                };
+
+                this.floorData = [];
+                const svgFloorData = await this.loadFloorDataFromSvg(this.dbBuildingConfig.svgUrl);
+                if (Object.keys(svgFloorData).length > 0) {
+                    this.floorData = svgFloorData;
+                }
+
+                console.log("Loaded DB building config:", this.dbBuildingConfig);
+            } catch (e) {
+                console.error("Erreur lors du chargement du bâtiment DB:", e);
             }
-            const b = await resp.json();
-
-            this.buildingKey = String(dbId);
-            this.dbBuildingConfig = {
-                id: b.id,
-                name: b.name,
-                floors: b.floorsCount || 1,
-                scale: b.scale || 0.01,
-                svgUrl: b.svgPlan,
-                excludedFloors: b.excludedFloors ? b.excludedFloors.map(String) : [] 
-            };
-            this.config = {
-                id: b.id,
-                floors: b.floorsCount || 1,
-                scale: b.scale || 0.01,
-                excludedFloors: b.excludedFloors ? b.excludedFloors.map(String) : [] 
-            };
-
-            this.floorData = [];
-            const svgFloorData = await this.loadFloorDataFromSvg(this.dbBuildingConfig.svgUrl);
-            if (Object.keys(svgFloorData).length > 0) {
-                this.floorData = svgFloorData;
-            }
-
-            console.log("Loaded DB building config:", this.dbBuildingConfig);
-        } catch (e) {
-            console.error("Erreur lors du chargement du bâtiment DB:", e);
         }
     }
 
@@ -940,6 +996,7 @@ class Building3D {
         this.currentFloorNumber = null;
         this.isIn3DView = true;
         this.currentArchPlan = null;
+        this.resetLayout();
 
         const container3D   = document.getElementById('building-3d-container');
         const floorPlan2D   = document.getElementById('floor-plan-2d');
@@ -958,7 +1015,7 @@ class Building3D {
             (!this.dbBuildingConfig || !this.dbBuildingConfig.svgUrl || this.dbBuildingConfig.svgUrl.trim() === '')){
             this.clearBuilding();
             this.showEmptyScene();
-            return; 
+            return;
         }
 
         await this.createBuilding();
@@ -992,7 +1049,7 @@ class Building3D {
         this.ground.position.y = -0.5;
         this.ground.receiveShadow = true;
         this.scene.add(this.ground);
-        
+
         // Grid
         this.gridHelper = new THREE.GridHelper(50, 50, this.colors.primary, 0x334155);
         this.gridHelper.position.y = -0.4;
@@ -1021,7 +1078,7 @@ class Building3D {
     animate() {
         requestAnimationFrame(() => this.animate());
         if (this.controls) this.controls.update();
-        if (this.building && this.isIn3DView) {
+        if (this.building) {
             this.building.rotation.y += 0.0005;
         }
         this.renderer.render(this.scene, this.camera);
@@ -1069,7 +1126,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (floorSelect.value === ""){
                     if(!window.building3D.isDashboard){
                         window.building3D.currentFloorNumber = "";
-                        window.building3D.loadArchitecturalPlan(""); 
+                        window.building3D.loadArchitecturalPlan("");
                     }
                     return;
                 }
@@ -1092,7 +1149,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const buildingName = buildingSelect.selectedOptions[0].text;
-        
+
             const buildingTitle = document.getElementById('building-title');
             if (buildingTitle) buildingTitle.textContent = `🏢 ${buildingName} Office Building`;
 
@@ -1116,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const info = sensorInfo[sensorType] || sensorInfo.DESK;
                 const liveTitle     = document.getElementById('live-section-title');
                 const histTitle     = document.getElementById('historical-section-title');
-                if (liveTitle)     liveTitle.textContent     = `${info.icon} Live ${info.name} - ${buildingName} Office`;
+                if (liveTitle)     liveTitle.textContent     = `${info.icon} Live Data - ${buildingName} Office`;
                 if (histTitle)     histTitle.textContent     = `📈 Historical ${info.name} Data - ${buildingName} Office`;
             }
 
