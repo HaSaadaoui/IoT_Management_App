@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.relational.core.sql.In;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -78,8 +79,8 @@ public class AlertService {
         this.gatewayService = gatewayService;
     }
 
-    public List<Alert> getCurrentAlerts(String building) {
-        String cacheKey = building == null || building.isBlank() ? "_ALL_" : building;
+    public List<Alert> getCurrentAlerts(Integer buildingId) {
+        String cacheKey = buildingId == null ? "_ALL_" : String.valueOf(buildingId);
 
         CachedAlerts cached = alertCache.get(cacheKey);
         if (cached != null && !cached.isExpired()) {
@@ -90,11 +91,11 @@ public class AlertService {
         log.debug("🔄 Alert cache MISS - computing alerts for: {}", cacheKey);
 
         List<Alert> alerts = new ArrayList<>();
-        alerts.addAll(checkCO2Alerts(building));
-        alerts.addAll(checkTemperatureAlerts(building));
-        alerts.addAll(checkSensorOfflineAlerts(building));
-        alerts.addAll(checkHumidityAlerts(building));
-        alerts.addAll(checkNoiseAlerts(building));
+        alerts.addAll(checkCO2Alerts(buildingId));
+        alerts.addAll(checkTemperatureAlerts(buildingId));
+        alerts.addAll(checkSensorOfflineAlerts(buildingId));
+        alerts.addAll(checkHumidityAlerts(buildingId));
+        alerts.addAll(checkNoiseAlerts(buildingId));
 
         alertCache.put(cacheKey, new CachedAlerts(alerts));
         log.debug("✅ Cached {} alerts for building: {}", alerts.size(), cacheKey);
@@ -108,7 +109,7 @@ public class AlertService {
         log.debug("🗑️ Alert cache invalidated for: {}", cacheKey);
     }
 
-    private List<Alert> checkCO2Alerts(String building) {
+    private List<Alert> checkCO2Alerts(Integer building) {
         List<Alert> alerts = new ArrayList<>();
         List<Sensor> co2Sensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_CO2, building);
 
@@ -143,7 +144,7 @@ public class AlertService {
         return alerts;
     }
 
-    private List<Alert> checkTemperatureAlerts(String building) {
+    private List<Alert> checkTemperatureAlerts(Integer building) {
         List<Alert> alerts = new ArrayList<>();
         List<Sensor> co2Sensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_CO2, building);
         List<Sensor> tempSensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_TEMP, building);
@@ -189,9 +190,9 @@ public class AlertService {
         return alerts;
     }
 
-    private List<Alert> checkSensorOfflineAlerts(String building) {
+    private List<Alert> checkSensorOfflineAlerts(Integer building) {
         List<Alert> alerts = new ArrayList<>();
-        List<Sensor> allSensors = sensorDao.findAllByBuilding(building);
+        List<Sensor> allSensors = sensorDao.findAllByBuildingId(building);
 
         log.debug("Checking {} sensors for offline status", allSensors.size());
 
@@ -247,7 +248,7 @@ public class AlertService {
         };
     }
 
-    private List<Alert> checkHumidityAlerts(String building) {
+    private List<Alert> checkHumidityAlerts(Integer building) {
         List<Alert> alerts = new ArrayList<>();
         List<Sensor> co2Sensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_CO2, building);
         List<Sensor> humiditySensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_HUMIDITY, building);
@@ -285,7 +286,7 @@ public class AlertService {
         return alerts;
     }
 
-    private List<Alert> checkNoiseAlerts(String building) {
+    private List<Alert> checkNoiseAlerts(Integer building) {
         List<Alert> alerts = new ArrayList<>();
         List<Sensor> noiseSensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_NOISE, building);
 
@@ -417,55 +418,35 @@ public class AlertService {
         }
     }
 
-    public void startMonitoringForBuilding(String building, String sensorType, String dbBuildingName) {
+    public void startMonitoringForBuilding(String building, String sensorType, Integer dbBuildingId) {
         if (currentSubscription != null && !currentSubscription.isDisposed()) {
             currentSubscription.dispose();
         }
 
-        String appId = mapBuildingToAppId(building);
-        List<Sensor> sensors = sensorDao.findAllByDeviceTypeAndBuilding(sensorType, dbBuildingName);
+        List<Gateway> gateways = gatewayService.findByBuildingId(dbBuildingId);
+        String appId = gateways.isEmpty()
+                ? "rpi-mantu-appli"
+                : resolveAppIdFromGateway(gateways.get(0), "rpi-mantu-appli");
+
+        List<Sensor> sensors = sensorDao.findAllByDeviceTypeAndBuilding(sensorType, dbBuildingId);
         List<String> deviceIds = sensors.stream().map(Sensor::getIdSensor).toList();
 
         currentSubscription = getMonitoringMany(appId, deviceIds).subscribe();
     }
 
-    private String mapBuildingToAppId(String building) {
-        String defaultValue = "rpi-mantu-appli";
-        if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
-            return defaultValue;
-        }
-        // Permet de conserver le fonctionnement en dur pour l'instant
-        if (isInteger(building)){
-            Optional<Gateway> gateway = gatewayService.findByBuildingId(building);
-            if (gateway.isPresent()){
-                return gateway.get().getGatewayId();
-            } else {
-                return defaultValue;
-            }
-        } else {
-            return switch (building.trim().toUpperCase()) {
-                case "CHATEAUDUN", "CHÂTEAUDUN" -> "rpi-mantu-appli";
-                case "LEVALLOIS"                -> "lorawan-network-mantu";
-                case "LILLE"                    -> "lil-rpi-mantu-appli";
-                default                         -> building;
-            };
-        }
+    private String resolveAppIdFromGateway(Gateway gw, String defaultValue) {
+        if (gw.getBuildingId() == null) return defaultValue;
+        return switch (gw.getGatewayId().toLowerCase()) {
+            case "leva-rpi-mantu" -> "lorawan-network-mantu";
+            default               -> gw.getGatewayId() + "-appli";
+        };
     }
 
-    private boolean isInteger(String s) {
-        try {
-            Integer.parseInt(s);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
-    public List<Alert> getCurrentAlertsWithWait(String building, int maxWaitMs) {
+    public List<Alert> getCurrentAlertsWithWait(Integer buildingId, int maxWaitMs) {
         int intervalMs = 100;
         int waited = 0;
 
-        while (liveSensorCache.isEmpty(building) && waited < maxWaitMs) {
+        while (liveSensorCache.isEmpty(buildingId) && waited < maxWaitMs) {
             try {
                 Thread.sleep(intervalMs);
             } catch (InterruptedException e) {
@@ -474,6 +455,7 @@ public class AlertService {
             }
             waited += intervalMs;
         }
-        return getCurrentAlerts(building);
+        return getCurrentAlerts(buildingId);
     }
+
 }

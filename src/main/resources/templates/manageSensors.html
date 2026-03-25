@@ -69,8 +69,8 @@
                             style="padding: 8px 30px 8px 12px; border: 1px solid #662179; border-radius: 6px; font-size: inherit; outline: none; box-shadow: none; width: 100%;">
                         <option value="" disabled selected hidden>Building (all)</option>
                         <option th:each="b : ${buildings}"
-                                th:value="${b}"
-                                th:text="${b}">Building
+                                th:value="${b.id}"
+                                th:text="${b.name}">Building
                         </option>
                     </select>
                     <span id="clearBuilding"
@@ -179,7 +179,7 @@
                             <option th:each="g : ${gateways}"
                                     th:value="${g.gatewayId}"
                                     th:text="${g.gatewayId}"
-                                    th:attr="data-freq=${g.frequencyPlan},data-building=${g.buildingName}">
+                                    th:attr="data-freq=${g.frequencyPlan},data-building=${g.buildingId}">
                                 GATEWAY_ID
                             </option>
                         </select>
@@ -215,18 +215,19 @@
                         </select>
 
                         <!-- Building Name -->
-                        <select id="buildingNameInput" th:field="*{buildingName}" required
-                                th:classappend="${#fields.hasErrors('buildingName')} ? 'input-error' : ''">
+                        <select id="buildingNameInput" th:field="*{buildingId}" required
+                                th:classappend="${#fields.hasErrors('buildingId')} ? 'input-error' : ''">
                             <option value="" disabled selected>Select a Building</option>
                             <option th:each="b : ${buildings}"
-                                    th:value="${b}"
-                                    th:text="${b}">
+                                    th:value="${b.id}"
+                                    th:text="${b.name}">
                             </option>
                         </select>
+                        <div class="field-error" th:if="${#fields.hasErrors('buildingId')}" th:errors="*{buildingId}"></div>
 
-                        <div class="field-error" th:if="${#fields.hasErrors('buildingName')}" th:errors="*{buildingName}"></div>
+
                         <datalist id="buildingsOptions">
-                            <option th:each="b : ${buildings}" th:value="${b}" th:text="${b}">Building</option>
+                            <option th:each="b : ${buildings}" th:value="${b.id}" th:text="${b.name}"></option>
                         </datalist>
 
                         <!-- Floor -->
@@ -237,31 +238,36 @@
                         </select>
                         <div class="field-error" th:if="${#fields.hasErrors('floor')}" th:errors="*{floor}"></div>
 
-                        <!-- Location (optionnel) -->
-                        <input type="text" th:field="*{location}" placeholder="Location"
-                               th:classappend="${#fields.hasErrors('location')} ? 'input-error' : ''"/>
-                        <div class="field-error" th:if="${#fields.hasErrors('location')}" th:errors="*{location}"></div>
+                        <!-- Location -->
+                        <select id="locationSelect" th:field="*{locationId}" disabled>
+                            <option value="">-- Select a Building first --</option>
+                        </select>
 
                         <!-- DevEUI -->
-                        <input type="text" id="devEuiInput" th:field="*{devEui}" placeholder="DevEUI" required
-                               pattern="^[A-Fa-f0-9]{16}$" title="16 hex characters (0-9, A-F)"
-                               th:classappend="${#fields.hasErrors('devEui')} ? 'input-error' : ''"/>
-                        <div class="field-error" th:if="${#fields.hasErrors('devEui')}" th:errors="*{devEui}"></div>
+                        <div id="devEuiWrapper">
+                            <input type="text" id="devEuiInput" th:field="*{devEui}" placeholder="DevEUI"
+                                   pattern="^[A-Fa-f0-9]{16}$" title="16 hex characters (0-9, A-F)"
+                                   th:classappend="${#fields.hasErrors('devEui')} ? 'input-error' : ''"/>
+                            <div class="field-error" th:if="${#fields.hasErrors('devEui')}" th:errors="*{devEui}"></div>
+                        </div>
 
                         <!-- JoinEUI -->
-                        <input type="text" id="joinEuiInput" th:field="*{joinEui}" placeholder="JoinEUI" required
-                               pattern="^[A-Fa-f0-9]{16}$" title="16 hex characters (0-9, A-F)"
-                               th:classappend="${#fields.hasErrors('joinEui')} ? 'input-error' : ''"/>
-                        <div class="field-error" th:if="${#fields.hasErrors('joinEui')}" th:errors="*{joinEui}"></div>
+                        <div id="joinEuiWrapper">
+                            <input type="text" id="joinEuiInput" th:field="*{joinEui}" placeholder="JoinEUI"
+                                   pattern="^[A-Fa-f0-9]{16}$" title="16 hex characters (0-9, A-F)"
+                                   th:classappend="${#fields.hasErrors('joinEui')} ? 'input-error' : ''"/>
+                            <div class="field-error" th:if="${#fields.hasErrors('joinEui')}" th:errors="*{joinEui}"></div>
+                        </div>
 
                         <!-- AppKey -->
-                        <input type="password" id="appKeyInput" th:field="*{appKey}" placeholder="AppKey" required
-                               pattern="^[A-Fa-f0-9]{32}$" title="32 hex characters (0-9, A-F)"
-                               th:classappend="${#fields.hasErrors('appKey')} ? 'input-error' : ''"/>
-                        <div class="field-error" th:if="${#fields.hasErrors('appKey')}" th:errors="*{appKey}"></div>
+                        <div id="appKeyWrapper">
+                            <input type="password" id="appKeyInput" th:field="*{appKey}" placeholder="AppKey"
+                                   pattern="^[A-Fa-f0-9]{32}$" title="32 hex characters (0-9, A-F)"
+                                   th:classappend="${#fields.hasErrors('appKey')} ? 'input-error' : ''"/>
+                            <div class="field-error" th:if="${#fields.hasErrors('appKey')}" th:errors="*{appKey}"></div>
+                        </div>
 
-                        <div class="form-buttons">
-                            <button type="submit">Add</button>
+                        <button type="submit">Add</button>
                             <button type="button" id="closeCreateSensor">Cancel</button>
 
                         </div>
@@ -294,10 +300,13 @@
                             </option>
                         </select>
                         <input type="text" class="datepicker" th:field="*{commissioningDate}" placeholder="Commissioning Date"/>
-                        <input type="hidden" id="buildingNameInputEdit" th:field="*{buildingName}"/>
-                        <select id="floorSelectEdit" th:field="*{floor}" required th:attr="data-current=${sensorEdit.floor}, data-building=${sensorEdit.buildingName}">
+                        <input type="hidden" id="buildingIdInputEdit" th:field="*{buildingId}"/>
+                        <select id="floorSelectEdit" th:field="*{floor}" required
+                                th:attr="data-current=${sensorEdit.floor}, data-building=${sensorEdit.buildingId}">
                         </select>
-                        <input type="text" th:field="*{location}" placeholder="Location"/>
+                        <select id="locationSelectEdit" th:field="*{locationId}"
+                                th:attr="data-current=${sensorEdit.locationId}, data-building=${sensorEdit.buildingId}">
+                        </select>
 
                         <div class="form-buttons">
                             <button type="submit">Update</button>
@@ -333,18 +342,16 @@
 
     <!-- Flatpickr -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
-    <script th:inline="javascript">
-        /*<![CDATA[*/
-        window.SENSORS  = /*[[${sensors}]]*/ [];
-        window.GATEWAYS = /*[[${gateways}]]*/ [];
-        window.BUILDING_FLOORS = /*[[${buildingFloors}]]*/ [];
-        window.CAN_EDIT_SENSORS =
-            /*[[${#authorization.expression("hasAnyRole('ADMIN','SUPERUSER')")}]]*/ false;
-        /*]]>*/
-    </script>
-
     <!-- JS -->
     <script th:src="@{/javascript/manageSensors.js}" defer></script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        window.SENSORS          = /*[[${sensors}]]*/        [];
+        window.GATEWAYS         = /*[[${gateways}]]*/       [];
+        window.BUILDING_FLOORS  = /*[[${buildingFloors}]]*/ [];
+        window.LOCATIONS        = /*[[${locations}]]*/      [];
+        window.CAN_EDIT_SENSORS = /*[[${#authorization.expression('hasAnyRole(''ADMIN'',''SUPERUSER'')')}]]*/ false;
+        /*]]>*/
+    </script>
     </body>
     </html>

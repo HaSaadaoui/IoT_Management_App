@@ -23,7 +23,6 @@ class SensorOverlayManager {
         this.isDashboard = isDashboard;
         this.currentMode = 'DESK';
         this.sensors = [];
-        this.overlayGroup = null;
         this.animationFrames = [];
 
         this.init()
@@ -31,6 +30,22 @@ class SensorOverlayManager {
 
     async init(){
         await this.loadThresholds();
+    }
+
+    _resolveParentGroup(floorNumber) {
+        const isUnset = floorNumber === "" || floorNumber == null;
+        const selector = isUnset
+            ? "#all-floors"
+            : `#floor-${parseInt(floorNumber, 10)}`;
+
+        const group = this.svg.querySelector(selector);
+
+        if (!group) {
+            console.warn(`[SensorOverlayManager] Group not found: "${selector}", falling back to #all-floors`);
+            return this.svg.querySelector("#all-floors");
+        }
+
+        return group;
     }
 
     getIcon(sensorType, options = {}) {
@@ -65,11 +80,6 @@ class SensorOverlayManager {
     }
 
     createOverlay(mode) {
-        // On récupère le groupe 'floor-x' existant
-        this.overlayGroup = this.svg.querySelector(`#${CSS.escape(`floor-${this.currentFloor}`)}`);
-        if (!this.overlayGroup) {
-            this.overlayGroup = this.svg.querySelector("#all-floors");
-        }
 
         // On y dessine directement les capteurs
         if (this.isDashboard) {
@@ -106,6 +116,7 @@ class SensorOverlayManager {
       const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
 
       this.sensors.forEach((sensor) => {
+        const parent = this._resolveParentGroup(sensor.floor);
         const gradId = `co2-grad-${sensor.id}`;
         const circleId = `co2-circle-${sensor.id}`;
 
@@ -130,14 +141,15 @@ class SensorOverlayManager {
         circle.setAttribute("r", "80");
         circle.setAttribute("fill", `url(#${gradId})`);
 
-        this.overlayGroup.appendChild(circle);
+        parent.appendChild(circle);
 
         this.addSensorIcon(
           sensor.x,
           sensor.y,
           this.getIcon("CO2"),
           `${sensor.value} ppm`,
-          sensor.id
+          sensor.id,
+          sensor.floor
         );
       });
 
@@ -176,6 +188,7 @@ class SensorOverlayManager {
       const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
 
       this.sensors.forEach(sensor => {
+        const parent = this._resolveParentGroup(sensor.floor);
         const gradId = `temp-grad-${sensor.id}`;
         const circleId = `temp-circle-${sensor.id}`;
 
@@ -200,9 +213,9 @@ class SensorOverlayManager {
         circle.setAttribute("r", "90");
         circle.setAttribute("fill", `url(#${gradId})`);
 
-        this.overlayGroup.appendChild(circle);
+        parent.appendChild(circle);
 
-        this.addSensorIcon(sensor.x, sensor.y, this.getIcon("TEMP"), `${sensor.value} °C`, sensor.id);
+        this.addSensorIcon(sensor.x, sensor.y, this.getIcon("TEMP"), `${sensor.value} °C`, sensor.id, sensor.floor);
       });
 
       this.svg.insertBefore(defs, this.svg.firstChild);
@@ -224,6 +237,7 @@ class SensorOverlayManager {
     createLightMap() {
         const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
         this.sensors.forEach((sensor, i) => {
+            const parent = this._resolveParentGroup(sensor.floor);
             const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
             gradient.setAttribute("id", `light-grad-${i}`);
             const color = this.getLightColor(sensor.value);
@@ -239,9 +253,9 @@ class SensorOverlayManager {
             circle.setAttribute("cy", sensor.y);
             circle.setAttribute("r", "70");
             circle.setAttribute("fill", `url(#light-grad-${i})`);
-            this.overlayGroup.appendChild(circle);
+            parent.appendChild(circle);
             
-            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("LIGHT"), sensor.value + " lux", sensor.id);
+            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("LIGHT"), sensor.value + " lux", sensor.id, sensor.floor);
         });
         this.svg.insertBefore(defs, this.svg.firstChild);
     }
@@ -253,7 +267,8 @@ class SensorOverlayManager {
         return '#ef4444';
     }
 
-    createRipple(x, y) {
+    createRipple(x, y, floor = null) {
+        const parent = this._resolveParentGroup(floor);
         for (let i = 0; i < 3; i++) {
             setTimeout(() => {
                 const ripple = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -265,7 +280,7 @@ class SensorOverlayManager {
                 ripple.setAttribute("stroke", "#8b5cf6");
                 ripple.setAttribute("stroke-width", "2");
                 ripple.setAttribute("opacity", "1");
-                this.overlayGroup.appendChild(ripple);
+                parent.appendChild(ripple);
                 
                 const animate = () => {
                     let r = 10, opacity = 1;
@@ -289,6 +304,7 @@ class SensorOverlayManager {
 
     createNoiseMap() {
       this.sensors.forEach(sensor => {
+        const parent = this._resolveParentGroup(sensor.floor);
         const color = this.getNoiseColor(sensor.value);
 
         for (let i = 0; i < 3; i++) {
@@ -303,14 +319,10 @@ class SensorOverlayManager {
           ring.setAttribute("stroke-width", "2");
           ring.setAttribute("opacity", 0.6 - i * 0.2);
 
-          this.overlayGroup.appendChild(ring);
-
-          /*if (color === "critical") {
-            this.addPulseAnimation(ring);
-          }*/
+          parent.appendChild(ring);
         }
 
-        this.addSensorIcon(sensor.x, sensor.y, this.getIcon("NOISE"), `${sensor.value} dB`, sensor.id);
+        this.addSensorIcon(sensor.x, sensor.y, this.getIcon("NOISE"), `${sensor.value} dB`, sensor.id, sensor.floor);
       });
     }
 
@@ -325,6 +337,7 @@ class SensorOverlayManager {
       const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
 
       this.sensors.forEach(sensor => {
+        const parent = this._resolveParentGroup(sensor.floor);
         const gradId = `humid-grad-${sensor.id}`;
         const circleId = `humid-circle-${sensor.id}`;
 
@@ -348,9 +361,9 @@ class SensorOverlayManager {
         circle.setAttribute("r", "75");
         circle.setAttribute("fill", `url(#${gradId})`);
 
-        this.overlayGroup.appendChild(circle);
+        parent.appendChild(circle);
 
-        this.addSensorIcon(sensor.x, sensor.y, this.getIcon("HUMIDITY"), `${sensor.value} %`, sensor.id);
+        this.addSensorIcon(sensor.x, sensor.y, this.getIcon("HUMIDITY"), `${sensor.value} %`, sensor.id, sensor.floor);
       });
 
       this.svg.insertBefore(defs, this.svg.firstChild);
@@ -368,9 +381,10 @@ class SensorOverlayManager {
 
     createTempexFlow() {
         this.sensors.forEach(sensor => {
+            const parent = this._resolveParentGroup(sensor.floor);
             const arrow = this.createArrow(sensor.x, sensor.y, sensor.direction || 0, sensor.intensity || 1);
-            this.overlayGroup.appendChild(arrow);
-            this.addSensorIcon(sensor.x, sensor.y - 25, this.getIcon("TEMPEX"), `${sensor.value}°C`, sensor.id);
+            parent.appendChild(arrow);
+            this.addSensorIcon(sensor.x, sensor.y - 25, this.getIcon("TEMPEX"), `${sensor.value}°C`, sensor.id, sensor.floor);
         });
     }
 
@@ -389,6 +403,7 @@ class SensorOverlayManager {
 
     createPresenceLight() {
         this.sensors.forEach(sensor => {
+            const parent = this._resolveParentGroup(sensor.floor);
             if (sensor.presence) {
                 const glow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                 glow.setAttribute("class", "circle-marker");
@@ -397,16 +412,17 @@ class SensorOverlayManager {
                 glow.setAttribute("r", "60");
                 glow.setAttribute("fill", "#fbbf24");
                 glow.setAttribute("opacity", "0.3");
-                this.overlayGroup.appendChild(glow);
-                this.addSensorIcon(sensor.x, sensor.y, this.getIcon("PR", { sensor: sensor.presence }), "Present");
+                parent.appendChild(glow);
+                this.addSensorIcon(sensor.x, sensor.y, this.getIcon("PR", { sensor: sensor.presence }), "Present", null, sensor.floor);
             } else {
-                this.addSensorIcon(sensor.x, sensor.y, this.getIcon("PR"), "Empty");
+                this.addSensorIcon(sensor.x, sensor.y, this.getIcon("PR"), "Empty", null, sensor.floor);
             }
         });
     }
 
     createSecurityOverlay() {
         this.sensors.forEach(sensor => {
+            const parent = this._resolveParentGroup(sensor.floor);
             if (sensor.alert) {
                 const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                 circle.setAttribute("class", "circle-marker");
@@ -415,14 +431,15 @@ class SensorOverlayManager {
                 circle.setAttribute("r", "20");
                 circle.setAttribute("fill", "#ef4444");
                 circle.setAttribute("opacity", "0.7");
-                this.overlayGroup.appendChild(circle);
+                parent.appendChild(circle);
                 this.addPulseAnimation(circle);
             }
-            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("SECURITY", { alert: sensor.alert }), sensor.message || "OK", sensor.id);
+            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("SECURITY", { alert: sensor.alert }), sensor.message || "OK", sensor.id, sensor.floor);
         });
     }
 
-    addSensorIcon(x, y, emoji, label, sensorId) {
+    addSensorIcon(x, y, emoji, label, sensorId, floor = null) {
+        const parent = this._resolveParentGroup(floor);
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
         g.setAttribute("class", "sensor-marker");
 
@@ -450,7 +467,7 @@ class SensorOverlayManager {
 
         g.appendChild(icon);
         g.appendChild(text);
-        this.overlayGroup.appendChild(g);
+        parent.appendChild(g);
     }
 
     addPulseAnimation(element) {
@@ -472,6 +489,7 @@ class SensorOverlayManager {
         const COLOR = "#6366f1"; // indigo stable
 
         this.sensors.forEach((sensor, i) => {
+            const parent = this._resolveParentGroup(sensor.floor);
             const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
             gradient.setAttribute("id", `counter-grad-${i}`);
 
@@ -488,7 +506,7 @@ class SensorOverlayManager {
             circle.setAttribute("cy", sensor.y);
             circle.setAttribute("r", "65");
             circle.setAttribute("fill", `url(#counter-grad-${i})`);
-            this.overlayGroup.appendChild(circle);
+            parent.appendChild(circle);
 
             // Icône compteur
             const icon = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -497,7 +515,7 @@ class SensorOverlayManager {
             icon.setAttribute("text-anchor", "middle");
             icon.setAttribute("font-size", "20");
             icon.textContent = this.getIcon("COUNT");
-            this.overlayGroup.appendChild(icon);
+            parent.appendChild(icon);
 
             // Valeurs IN | OUT
             const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -513,7 +531,7 @@ class SensorOverlayManager {
             const outVal = sensor.value?.out ?? "—";
 
             label.textContent = `${inVal} | ${outVal}`;
-            this.overlayGroup.appendChild(label);
+            parent.appendChild(label);
         });
 
         this.svg.insertBefore(defs, this.svg.firstChild);
@@ -524,6 +542,7 @@ class SensorOverlayManager {
         const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
 
         this.sensors.forEach((sensor, i) => {
+            const parent = this._resolveParentGroup(sensor.floor);
             // 🔹 Gradient radial pour le halo
             const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
             gradient.setAttribute("id", `energy-grad-${i}`);
@@ -542,11 +561,11 @@ class SensorOverlayManager {
             circle.setAttribute("cy", sensor.y);
             circle.setAttribute("r", "75");
             circle.setAttribute("fill", `url(#energy-grad-${i})`);
-            this.overlayGroup.appendChild(circle);
+            parent.appendChild(circle);
 
             // 🔹 Icône et valeur
             const labelText = sensor.value != null ? `${sensor.value} kWh` : "—";
-            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("ENERGY"), labelText, sensor.id);
+            this.addSensorIcon(sensor.x, sensor.y, this.getIcon("ENERGY"), labelText, sensor.id, sensor.floor);
         });
 
         // Insérer defs avant le reste du SVG
@@ -566,6 +585,7 @@ class SensorOverlayManager {
         const COLOR = "#7c3aed"; // violet motion
 
         this.sensors.forEach((sensor, i) => {
+            const parent = this._resolveParentGroup(sensor.floor);
             const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
             gradient.setAttribute("id", `motion-grad-${i}`);
 
@@ -582,7 +602,7 @@ class SensorOverlayManager {
             circle.setAttribute("cy", sensor.y);
             circle.setAttribute("r", "60");
             circle.setAttribute("fill", `url(#motion-grad-${i})`);
-            this.overlayGroup.appendChild(circle);
+            parent.appendChild(circle);
 
             //Icône
             const icon = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -592,7 +612,7 @@ class SensorOverlayManager {
             icon.setAttribute("dominant-baseline", "middle");
             icon.setAttribute("font-size", "20");
             icon.textContent = this.getIcon("MOTION");
-            this.overlayGroup.appendChild(icon);
+            parent.appendChild(icon);
 
             // Texte "Motion"
             const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -604,7 +624,7 @@ class SensorOverlayManager {
             label.setAttribute("font-size", "12");
             label.setAttribute("fill", "#1f2937");
             label.textContent = "Motion";
-            this.overlayGroup.appendChild(label);
+            parent.appendChild(label);
         });
 
         this.svg.insertBefore(defs, this.svg.firstChild);
@@ -817,13 +837,14 @@ class SensorOverlayManager {
     }
 
     drawSensor(sensor) {
+        const parent = this._resolveParentGroup(sensor.floor);
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
         g.setAttribute("class", "sensor-marker");
         g.setAttribute("id", "marker-"+sensor.id);
         if (sensor.type !== this.currentMode || parseInt(sensor.floor) !== parseInt(this.currentFloor)){
             g.style.display="none";
         }
-        if (!this.isDashboard) {
+        if (!this.isDashboard && parseInt(sensor.floor) === parseInt(this.currentFloor)) {
             g.setAttribute("data-draggable", "true");
             g.style.cursor = "move";
         } else {
@@ -837,13 +858,14 @@ class SensorOverlayManager {
             this.createSensor(g, sensor);
         }
         
-        this.overlayGroup.appendChild(g);
+        parent.appendChild(g);
     }
  
     removeSensorMarkerById(id) {
-        if (!this.overlayGroup || !id) return false;
+        if (!id) return false;
 
-        const el = this.overlayGroup.querySelector(`#${CSS.escape("marker-"+id)}`);
+        // On cherche dans tout le SVG
+        const el = this.svg.querySelector(`#${CSS.escape("marker-" + id)}`);
         if (!el) return false;
 
         el.remove();

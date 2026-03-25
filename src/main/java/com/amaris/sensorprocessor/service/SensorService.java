@@ -49,14 +49,13 @@ public class SensorService {
     private final SensorLorawanService lorawanService;
     private final WebClient webClient;
     private final WebClient webClientSse;
-    private final DeviceTypeService deviceTypeService; // ✅ AJOUT
+    private final DeviceTypeService deviceTypeService;
 
     @Value("${api.base.url}")
     private String baseUrl;
 
     /* ===================== MONITORING (SSE) ===================== */
-
-    public Flux<String> getMonitoringData(String appId, String deviceId) {
+    public Flux<ServerSentEvent<String>> getMonitoringData(String appId, String deviceId) {
         List<String> deviceIds = List.of(deviceId);
         ObjectMapper om = new ObjectMapper();
 
@@ -69,23 +68,18 @@ public class SensorService {
                 .bodyValue(deviceIds)
                 .retrieve()
                 .bodyToFlux(new org.springframework.core.ParameterizedTypeReference<ServerSentEvent<String>>() {})
-                .map(ServerSentEvent::data)
-                .filter(Objects::nonNull)
-                .map(String::trim)
-                .filter(s -> !s.isBlank())
-                .filter(json -> {
+                .filter(sse -> sse.data() != null && !sse.data().isBlank())
+                .filter(sse -> {
                     try {
-                        JsonNode root = om.readTree(json);
+                        JsonNode root = om.readTree(sse.data());
                         if (root.has("raw") && root.get("raw").isObject()) root = root.get("raw");
                         JsonNode result = root.has("result") ? root.get("result") : root;
-                        JsonNode up = result.path("uplink_message");
-                        JsonNode dp = up.path("decoded_payload");
-                        return !dp.isMissingNode() && !dp.isNull();
-                    } catch (Exception e) {
-                        return false;
-                    }
+                        JsonNode dp = result.path("uplink_message").path("decoded_payload");
+                        // snapshot sans decoded_payload → on laisse passer quand même
+                        return !dp.isMissingNode() && !dp.isNull()
+                                || "snapshot".equals(sse.event());
+                    } catch (Exception e) { return false; }
                 })
-                .doOnNext(s -> log.info("[Sensor] SSE DATA -> {}", s.substring(0, Math.min(120, s.length()))))
                 .doOnError(err -> log.error("[Sensor] SSE error appId={}, deviceId={}", appId, deviceId, err));
     }
 
@@ -116,7 +110,7 @@ public class SensorService {
                 });
     }
 
-    public Flux<String> getMonitoringMany(String appId, List<String> deviceIds) {
+    public Flux<ServerSentEvent<String>> getMonitoringMany(String appId, List<String> deviceIds) {
         return webClientSse.post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/api/monitoring/app/{appId}/stream")
@@ -125,7 +119,7 @@ public class SensorService {
                 .accept(MediaType.TEXT_EVENT_STREAM)
                 .bodyValue(deviceIds == null ? List.of() : deviceIds)
                 .retrieve()
-                .bodyToFlux(String.class)
+                .bodyToFlux(new org.springframework.core.ParameterizedTypeReference<ServerSentEvent<String>>() {})
                 .doOnError(err -> log.error("[Sensor] SSE multi error appId={}: {}", appId, err.getMessage(), err));
     }
 
@@ -145,9 +139,9 @@ public class SensorService {
      * @param building Building name (empty string for all buildings)
      * @return List of sensor IDs
      */
-    public List<String> getSensorIdsByTypeAndBuilding(String deviceType, String building) {
+    public List<String> getSensorIdsByTypeAndBuilding(String deviceType, Integer building) {
         List<Sensor> sensors;
-        if (building == null || building.isBlank()) {
+        if (building == null) {
             sensors = sensorDao.findAllByDeviceType(deviceType);
         } else {
             sensors = sensorDao.findAllByDeviceTypeAndBuilding(deviceType, building);
@@ -155,6 +149,14 @@ public class SensorService {
         return sensors.stream()
                 .map(Sensor::getIdSensor)
                 .collect(java.util.stream.Collectors.toList());
+    }
+
+    public List<Sensor> findAllByBuildingId(String buildingId) {
+        return sensorDao.findAllByBuildingId(Integer.parseInt(buildingId));
+    }
+
+    public List<Sensor> findAllByBuildingAndFloor(String buildingId, Integer floorNumber) {
+        return sensorDao.findAllByBuildingAndFloor(buildingId, floorNumber);
     }
 
 
@@ -360,8 +362,8 @@ public class SensorService {
         if (patch.getIdDeviceType() != null) existing.setIdDeviceType(patch.getIdDeviceType());
         if (patch.getCommissioningDate() != null) existing.setCommissioningDate(patch.getCommissioningDate());
         if (patch.getFloor() != null)             existing.setFloor(patch.getFloor());
-        if (patch.getLocation() != null)          existing.setLocation(patch.getLocation());
-        if (patch.getBuildingName() != null)      existing.setBuildingName(patch.getBuildingName());
+        if (patch.getLocationId() != null)        existing.setLocationId(patch.getLocationId());
+        if (patch.getBuildingId() != null)        existing.setBuildingId(patch.getBuildingId());
 
         int rows = sensorDao.updateSensor(existing);
         if (rows != 1) throw new IllegalStateException("DB update failed for sensor " + idSensor);

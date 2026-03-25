@@ -21,21 +21,25 @@ public class ProtocolService {
         return protocolRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
     }
 
-    public Protocol createByName(String name) {
+    public Protocol createByName(String name, Boolean available) {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Protocol name is required");
         }
 
         String cleaned = name.trim();
-
         Protocol protocol = new Protocol();
         protocol.setName(cleaned);
+        protocol.setAvailableForGateway(available != null ? available : false);  // false par défaut
 
         try {
             return protocolRepository.save(protocol);
         } catch (DataIntegrityViolationException e) {
             throw new IllegalStateException("Protocol already exists: " + cleaned);
         }
+    }
+
+    public List<Protocol> findAllAvailableForGateway() {
+        return protocolRepository.findByAvailableForGatewayTrue(Sort.by(Sort.Direction.ASC, "name"));
     }
 
     public void deleteById(Integer id) {

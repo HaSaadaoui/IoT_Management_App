@@ -2,12 +2,11 @@ package com.amaris.sensorprocessor.controller;
 
 import com.amaris.sensorprocessor.constant.Constants;
 import com.amaris.sensorprocessor.constant.FrequencyPlan;
+import com.amaris.sensorprocessor.entity.Building;
 import com.amaris.sensorprocessor.entity.Gateway;
+import com.amaris.sensorprocessor.entity.Protocol;
 import com.amaris.sensorprocessor.entity.User;
-import com.amaris.sensorprocessor.service.GatewayLorawanService;
-import com.amaris.sensorprocessor.service.GatewayService;
-import com.amaris.sensorprocessor.service.InputValidationService;
-import com.amaris.sensorprocessor.service.UserService;
+import com.amaris.sensorprocessor.service.*;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -32,6 +31,9 @@ public class GatewayController {
     private final InputValidationService inputValidationService;
     private final GatewayLorawanService gatewayLorawanService;
     private final UserService userService;
+    private final BuildingService buildingService;
+    private final ProtocolService protocolService;
+    private final LocationService locationService;
 
     private static final String ERROR_ADD = "errorAdd";
     private static final String GATEWAY_ADD = "gatewayAdd";
@@ -43,11 +45,17 @@ public class GatewayController {
     public GatewayController(GatewayService gatewayService,
                              InputValidationService inputValidationService,
                              GatewayLorawanService gatewayLorawanService,
-                             UserService userService) {
+                             UserService userService,
+                             BuildingService buildingService,
+                             ProtocolService protocolService,
+                             LocationService locationService) {
         this.gatewayService = gatewayService;
         this.inputValidationService = inputValidationService;
         this.gatewayLorawanService = gatewayLorawanService;
         this.userService = userService;
+        this.buildingService = buildingService;
+        this.protocolService = protocolService;
+        this.locationService = locationService;
     }
 
     @GetMapping("/manage-gateways")
@@ -244,12 +252,20 @@ public class GatewayController {
      * @return Nom de la vue Thymeleaf "monitoringGateway"
      */
     @GetMapping("/manage-gateways/monitoring/{id}/view")
-    public String monitoringView(@PathVariable("id") String id, @RequestParam("ip") String ip, Model model , Principal principal) {
+    public String monitoringView(@PathVariable("id") String id, @RequestParam("ip") String ip, Model model, Principal principal) {
         model.addAttribute(Constants.BINDING_GATEWAY_ID, id);
         model.addAttribute("ipAddress", ip);
         User user = userService.searchUserByUsername(principal.getName());
         model.addAttribute("user", user);
-        model.addAttribute("loggedUsername", user.getUsername());;
+        model.addAttribute("loggedUsername", user.getUsername());
+
+        String locationName = gatewayService.findById(id)
+                .filter(gw -> gw.getLocationId() != null)
+                .flatMap(gw -> locationService.findById(gw.getLocationId()))
+                .map(loc -> loc.getName())
+                .orElse(null);
+        model.addAttribute("gatewayLocationName", locationName);
+
         return Constants.PAGE_MONITORING_GATEWAYS;
     }
 
@@ -302,12 +318,38 @@ public class GatewayController {
         );
     }
 
+
     private void prepareModel(Model model) {
         model.addAttribute("frequencyPlans", FrequencyPlan.values());
+
         List<Gateway> gateways = gatewayService.getAllGateways();
         model.addAttribute("gateways", gateways);
+
+        List<Building> buildings = buildingService.findAll();
+        model.addAttribute("buildings", buildings);
+
+        List<Protocol> protocols = protocolService.findAllAvailableForGateway();
+        model.addAttribute("protocolsAvailable",protocols);
+
+
+        List<Map<String, Object>> buildingFloors = buildings.stream()
+                .map(b -> {
+                    Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("id", b.getId());
+                    m.put("name", b.getName());
+                    m.put("floorsCount", b.getFloorsCount());
+                    return m;
+                })
+                .collect(java.util.stream.Collectors.toList());
+        model.addAttribute("buildingFloors", buildingFloors);
+        model.addAttribute("locations", locationService.findAll());
+
         if (!model.containsAttribute(GATEWAY_ADD)) {
             model.addAttribute(GATEWAY_ADD, new Gateway());
+        }
+
+        if (!model.containsAttribute(GATEWAY_EDIT)) {
+            model.addAttribute(GATEWAY_EDIT, null);
         }
     }
 

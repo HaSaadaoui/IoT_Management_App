@@ -51,15 +51,12 @@ public class GatewayDao {
      * @param buildingId ID du building de la gateway à rechercher
      * @return Optional contenant la gateway si trouvée, sinon Optional.empty()
      */
-    public Optional<Gateway> findGatewayByBuildingId(String buildingId) {
+    public List<Gateway> findGatewaysByBuildingId(Integer buildingId) {
         List<Gateway> gateways = jdbcTemplate.query(
-            "SELECT g.* FROM gateways g "
-            +"INNER JOIN building b ON g.BUILDING_NAME = b.NAME "
-            +"WHERE b.ID=?",
-            new BeanPropertyRowMapper<>(Gateway.class),
-            buildingId);
-
-        return gateways.isEmpty() ? Optional.empty() : Optional.of(gateways.get(0));
+                "SELECT * FROM gateways WHERE building_id = ?",
+                new BeanPropertyRowMapper<>(Gateway.class),
+                buildingId);
+        return gateways;
     }
 
     /**
@@ -70,44 +67,41 @@ public class GatewayDao {
      */
     public int deleteGatewayById(String gatewayId) {
         return jdbcTemplate.update(
-            "DELETE FROM gateways WHERE GATEWAY_ID=?",
-            gatewayId);
+                "DELETE FROM gateways WHERE gateway_id = ?",
+                gatewayId);
     }
 
-    /**
-     * Insère une nouvelle gateway en base.
-     *
-     * @param gateway objet Gateway à insérer
-     */
     public void insertGatewayInDatabase(Gateway gateway) {
         jdbcTemplate.update(
-            "INSERT INTO gateways (" +
-                    "GATEWAY_ID, GATEWAY_EUI, IP_ADDRESS, FREQUENCY_PLAN, CREATED_AT, " +
-                    "BUILDING_NAME, FLOOR_NUMBER, LOCATION_DESCRIPTION, " +
-                    "ANTENNA_LATITUDE, ANTENNA_LONGITUDE, ANTENNA_ALTITUDE) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            gateway.getGatewayId(), gateway.getGatewayEui(), gateway.getIpAddress(), gateway.getFrequencyPlan(),
-            gateway.getCreatedAt(), gateway.getBuildingName(), gateway.getFloorNumber(), gateway.getLocationDescription(),
-            gateway.getAntennaLatitude(), gateway.getAntennaLongitude(), gateway.getAntennaAltitude()
+                "INSERT INTO gateways (" +
+                        "gateway_id, gateway_eui, ip_address, frequency_plan, created_at, " +
+                        "building_id, floor_number, location_id, " +
+                        "antenna_latitude, antenna_longitude, antenna_altitude, " +
+                        "protocol_id) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                gateway.getGatewayId(), gateway.getGatewayEui(), gateway.getIpAddress(),
+                gateway.getFrequencyPlan(), gateway.getCreatedAt(),
+                gateway.getBuildingId(),
+                gateway.getFloorNumber(), gateway.getLocationId(),
+                gateway.getAntennaLatitude(), gateway.getAntennaLongitude(), gateway.getAntennaAltitude(),
+                gateway.getProtocolId()
         );
     }
 
-    /**
-     * Met à jour une gateway existante avec toutes ses données selon son ID.
-     *
-     * @param gateway Objet Gateway contenant les nouvelles valeurs.
-     * @return Nombre de lignes modifiées (0 si aucune correspondance).
-     */
     public int updateGatewayInDatabase(Gateway gateway) {
         return jdbcTemplate.update(
-            "UPDATE gateways SET " +
-                    "IP_ADDRESS = ?, FREQUENCY_PLAN = ?, BUILDING_NAME = ?, FLOOR_NUMBER = ?, " +
-                    "LOCATION_DESCRIPTION = ?, ANTENNA_LATITUDE = ?, ANTENNA_LONGITUDE = ?, " +
-                    "ANTENNA_ALTITUDE = ? " +
-                    "WHERE GATEWAY_ID = ?",
-            gateway.getIpAddress(), gateway.getFrequencyPlan(), gateway.getBuildingName(),
-                gateway.getFloorNumber(), gateway.getLocationDescription(), gateway.getAntennaLatitude(),
-                gateway.getAntennaLongitude(), gateway.getAntennaAltitude(), gateway.getGatewayId()
+                "UPDATE gateways SET " +
+                        "ip_address = ?, frequency_plan = ?, building_id = ?, floor_number = ?, " +
+                        "location_id = ?, " +
+                        "antenna_latitude = ?, antenna_longitude = ?, " +
+                        "antenna_altitude = ?, protocol_id = ? " +
+                        "WHERE gateway_id = ?",
+                gateway.getIpAddress(), gateway.getFrequencyPlan(),
+                gateway.getBuildingId(), gateway.getFloorNumber(),
+                gateway.getLocationId(),
+                gateway.getAntennaLatitude(), gateway.getAntennaLongitude(), gateway.getAntennaAltitude(),
+                gateway.getProtocolId(),
+                gateway.getGatewayId()
         );
     }
 

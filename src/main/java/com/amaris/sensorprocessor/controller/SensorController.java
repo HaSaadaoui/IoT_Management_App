@@ -3,7 +3,7 @@ package com.amaris.sensorprocessor.controller;
 import com.amaris.sensorprocessor.constant.Constants;
 import com.amaris.sensorprocessor.entity.*;
 import com.amaris.sensorprocessor.service.*;
-import com.amaris.sensorprocessor.service.BrandService;
+
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,13 +59,15 @@ public class SensorController {
     private final BuildingService buildingService;
     private final com.amaris.sensorprocessor.service.SensorLorawanService sensorLorawanService;
     private final com.amaris.sensorprocessor.service.SensorSyncService sensorSyncService;
+    private final com.amaris.sensorprocessor.service.LocationService locationService;
 
     @Autowired
     public SensorController(SensorService sensorService, GatewayService gatewayService,
                             UserService userService, SensorLorawanService sensorLorawanService,
                             SensorSyncService sensorSyncService, ProtocolService protocolService,
                             BrandService brandService, DeviceTypeService deviceTypeService,
-                            BuildingService buildingService) {
+                            BuildingService buildingService,
+                            com.amaris.sensorprocessor.service.LocationService locationService) {
         this.sensorService = sensorService;
         this.gatewayService = gatewayService;
         this.userService = userService;
@@ -75,6 +77,7 @@ public class SensorController {
         this.brandService = brandService;
         this.deviceTypeService = deviceTypeService;
         this.buildingService = buildingService;
+        this.locationService = locationService;
     }
 
 
@@ -94,6 +97,36 @@ public class SensorController {
         return redirectWithTimestamp();
     }
 
+    /* ===================== GET ===================== */
+
+    @GetMapping("/api/sensors/locations")
+    @ResponseBody
+    public ResponseEntity<List<com.amaris.sensorprocessor.entity.Location>> getDistinctLocations(
+            @RequestParam(required = false) String buildingId,
+            @RequestParam(required = false) String floor) {
+
+        List<com.amaris.sensorprocessor.entity.Location> locations;
+
+        if (hasText(buildingId) && hasText(floor)) {
+            locations = locationService.findByBuildingAndFloor(
+                    Integer.parseInt(buildingId), Integer.parseInt(floor));
+        } else if (hasText(buildingId)) {
+            locations = locationService.findByBuilding(Integer.parseInt(buildingId));
+        } else {
+            locations = locationService.findAll();
+        }
+
+        return ResponseEntity.ok(locations);
+    }
+
+    @GetMapping("/api/sensors/{idSensor}")
+    @ResponseBody
+    public ResponseEntity<?> getSensor(@PathVariable String idSensor) {
+        return sensorService.findByIdSensor(idSensor)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     /* ===================== ADD ===================== */
 
     @PostMapping("/manage-sensors/add")
@@ -110,10 +143,10 @@ public class SensorController {
                     "Use lowercase a-z, 0-9 and single '-' (min 3 chars, no leading/trailing '-')"));
         }
 
-        if (sensor.getIdDeviceType() == null) { // ✅ idDeviceType au lieu de deviceType
+        if (sensor.getIdDeviceType() == null) {
             bindingResult.addError(new FieldError(SENSOR_ADD, "idDeviceType", "Device Type is required"));
         }
-        if (isBlank(sensor.getBuildingName())) {
+        if (sensor.getBuildingId() == null) {
             bindingResult.addError(new FieldError(SENSOR_ADD, "buildingName", "Building Name is required"));
         }
         if (sensor.getFloor() == null) {
@@ -195,11 +228,18 @@ public class SensorController {
                 .orElse("GENERIC");
         model.addAttribute("deviceTypeLabel", deviceTypeLabel);
 
+        if (s.getBuildingId() != null) {
+            buildingService.findById(s.getBuildingId())
+                    .ifPresent(b -> model.addAttribute("sensorBuildingName", b.getName()));
+        }
+
         gatewayService.findById(s.getIdGateway()).ifPresent(gw -> {
-            String label = (gw.getBuildingName() != null && !gw.getBuildingName().isBlank())
-                    ? gw.getBuildingName() + " (" + gw.getGatewayId() + ")"
+            String buildingLabel = gw.getBuildingId() != null
+                    ? buildingService.findById(gw.getBuildingId())
+                    .map(b -> b.getName() + " (" + gw.getGatewayId() + ")")
+                    .orElse(gw.getGatewayId())
                     : gw.getGatewayId();
-            model.addAttribute("gatewayName", label);
+            model.addAttribute("gatewayName", buildingLabel);
             model.addAttribute("gatewayIp", gw.getIpAddress());
         });
 
@@ -276,6 +316,53 @@ public class SensorController {
         return redirectWithTimestamp();
     }
 
+    @PostMapping("/api/sensors/{idSensor}/location")
+    @ResponseBody
+    public ResponseEntity<?> updateSensorLocation(
+            @PathVariable String idSensor,
+            @RequestBody Map<String, Object> body) {
+
+        Object locationIdRaw = body.get("locationId");
+
+        if (locationIdRaw == null) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of("error", "locationId field is required"));
+        }
+
+        Integer locationId;
+        try {
+            locationId = Integer.parseInt(locationIdRaw.toString());
+        } catch (NumberFormatException e) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of("error", "locationId must be an integer"));
+        }
+
+        try {
+            locationService.findById(locationId)
+                    .orElseThrow(() -> new IllegalArgumentException("Location not found: " + locationId));
+
+            Sensor existing = sensorService.getOrThrow(idSensor);
+            existing.setLocationId(locationId);
+            sensorService.update(idSensor, existing);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Location updated successfully",
+                    "sensorId", idSensor,
+                    "locationId", locationId
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("[API] Error updating sensor location for {}: {}", idSensor, e.getMessage());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to update location"));
+        }
+    }
+
     /* ===================== DELETE ===================== */
 
     @PostMapping("/manage-sensors/delete/{idSensor}")
@@ -346,10 +433,9 @@ public class SensorController {
                 .map(DeviceType::getLabel)
                 .orElse("GENERIC");
 
-        String appId = gatewayService.findById(sensor.getIdGateway())
-                .map(Gateway::getGatewayId)
-                .map(gid -> "leva-rpi-mantu".equalsIgnoreCase(gid) ? "lorawan-network-mantu" : gid + "-appli")
-                .orElseThrow(() -> new IllegalStateException("Gateway introuvable pour le capteur " + idSensor));
+        String appId = sensor.getIdGateway().equals("leva-rpi-mantu")
+                ? "lorawan-network-mantu"
+                : sensor.getIdGateway() + "-appli";
 
         SseEmitter emitter = new SseEmitter(3600000L);
 
@@ -362,11 +448,16 @@ public class SensorController {
         var normalizer = new SensorEventNormalizer();
 
         var subscription = sensorService.getMonitoringData(appId, idSensor)
-                .map(json -> normalizer.normalizeToMonitoringSensorDataJson(json, appId, sensor, deviceTypeLabel)) // ✅ label passé
                 .subscribe(
-                        normalizedJson -> {
+                        sse -> {
                             try {
-                                emitter.send(normalizedJson);
+                                String eventType = sse.event() != null ? sse.event() : "uplink";
+                                String normalizedJson = normalizer.normalizeToMonitoringSensorDataJson(
+                                        sse.data(), appId, sensor, deviceTypeLabel
+                                );
+                                emitter.send(SseEmitter.event()
+                                        .name(eventType)
+                                        .data(normalizedJson));
                             } catch (IOException e) {
                                 emitter.completeWithError(e);
                             }
@@ -463,23 +554,20 @@ public class SensorController {
         model.addAttribute("gateways", gateways);
         model.addAttribute("protocols", protocolService.findAll());
         model.addAttribute("brands", brandService.findAll());
-        model.addAttribute("deviceTypes", deviceTypeService.findAll()); // ✅ AJOUT
+        model.addAttribute("deviceTypes", deviceTypeService.findAll());
 
-        List<String> buildingNames = buildingService.getAllBuildings()
-                .stream()
-                .map(Building::getName)
-                .filter(Objects::nonNull)
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .distinct()
-                .sorted()
-                .collect(Collectors.toList());
+        List<Building> buildings = buildingService.findAll();
+        model.addAttribute("buildings", buildings);
+        model.addAttribute("locations", locationService.findAll());
 
-        model.addAttribute("buildings", buildingNames);
-
-        record BuildingFloors(String name, int floorsCount) {}
-        List<BuildingFloors> buildingFloors = buildingService.getAllBuildings().stream()
-                .map(b -> new BuildingFloors(b.getName(), b.getFloorsCount()))
+        List<Map<String, Object>> buildingFloors = buildings.stream()
+                .map(b -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", b.getId());
+                    m.put("name", b.getName());
+                    m.put("floorsCount", b.getFloorsCount());
+                    return m;
+                })
                 .collect(Collectors.toList());
         model.addAttribute("buildingFloors", buildingFloors);
 
@@ -494,6 +582,10 @@ public class SensorController {
 
     private static boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
+    }
+
+    private static boolean hasText(String s) {
+        return s != null && !s.isBlank();
     }
 
     /* ===================== NORMALIZER ===================== */
@@ -663,7 +755,10 @@ public class SensorController {
         private static Double numOrNull(com.fasterxml.jackson.databind.JsonNode n) {
             if (n == null) return null;
             if (n.isNumber()) return n.asDouble();
-            if (n.isTextual()) try { return Double.parseDouble(n.asText()); } catch (Exception ignored) {}
+            if (n.isTextual()) try {
+                return Double.parseDouble(n.asText());
+            } catch (Exception ignored) {
+            }
             return null;
         }
 
@@ -680,7 +775,10 @@ public class SensorController {
             var n = dp.path(key);
             if (n.isMissingNode()) return null;
             if (n.isNumber()) return n.asDouble();
-            if (n.isTextual()) try { return Double.parseDouble(n.asText()); } catch (Exception ignored) {}
+            if (n.isTextual()) try {
+                return Double.parseDouble(n.asText());
+            } catch (Exception ignored) {
+            }
             return null;
         }
     }

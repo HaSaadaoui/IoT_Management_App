@@ -8,6 +8,7 @@ import com.amaris.sensorprocessor.model.dashboard.OccupationHistoryEntry;
 import com.amaris.sensorprocessor.model.dashboard.SensorInfo;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface DashboardService {
@@ -16,4 +17,5 @@ public interface DashboardService {
     List<SensorInfo> getSensorsList(String building, String floor, String sensorType);
     List<OccupationHistoryEntry> getOccupationHistory(List<String> sensorIds, int days);
     HistogramResponse getHistogramData(HistogramRequest request);
+    Map<String, Object> getEnvConfig(String building, String floorParam);
 }

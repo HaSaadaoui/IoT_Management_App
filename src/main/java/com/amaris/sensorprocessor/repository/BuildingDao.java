@@ -79,7 +79,7 @@ public class BuildingDao {
      */
     public int insertBuilding(Building building) {
         return jdbcTemplate.update(
-                "INSERT INTO building (name, svg_plan, floors_count, scale, excluded_floors) VALUES (?, ?, ?, ?)",
+                "INSERT INTO building (name, svg_plan, floors_count, scale, excluded_floors) VALUES (?, ?, ?, ?, ?)",
                 building.getName(),
                 building.getSvgPlan(),
                 building.getFloorsCount(),

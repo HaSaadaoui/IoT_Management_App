@@ -22,6 +22,7 @@ const exitDelete  = document.getElementById("closeDelete");
 const SENSORS  = Array.isArray(window.SENSORS)  ? window.SENSORS  : [];
 const GATEWAYS = Array.isArray(window.GATEWAYS) ? window.GATEWAYS : [];
 const BUILDING_FLOORS = Array.isArray(window.BUILDING_FLOORS) ? window.BUILDING_FLOORS : [];
+const LOCATIONS = Array.isArray(window.LOCATIONS) ? window.LOCATIONS : [];
 // -----------------------
 // Helpers UI
 // -----------------------
@@ -41,22 +42,58 @@ function populateFloors(selectEl, building, currentFloor = null) {
   }
 
   // ✅ UTILISE window.BUILDING_FLOORS au lieu de SENSORS
-  const bf = (window.BUILDING_FLOORS || []).find(b => b.name === building);
+  const bf = (window.BUILDING_FLOORS || []).find(b => String(b.id) === String(building));
   if (!bf || !bf.floorsCount) {
     selectEl.disabled = true;
     return;
   }
 
-  for (let i = 1; i <= bf.floorsCount; i++) {
+  for (let i = 0; i < bf.floorsCount; i++) {
     const opt = document.createElement('option');
     opt.value = i;
-    opt.textContent = `Floor ${i}`;
+    if (i == 0){
+      opt.textContent = `Ground Floor`;
+    } else {
+      opt.textContent = `Floor ${i}`;
+    }
+    
     selectEl.appendChild(opt);
   }
 
   selectEl.disabled = false;
   if (currentFloor != null) {
     selectEl.value = String(currentFloor);
+  }
+}
+
+function populateLocations(selectEl, buildingId, currentLocationId = null) {
+  if (!selectEl) return;
+
+  selectEl.innerHTML = '<option value="" disabled selected>Select a location</option>';
+
+  if (!buildingId) {
+    selectEl.disabled = true;
+    return;
+  }
+
+  const filtered = LOCATIONS.filter(l => String(l.buildingId) === String(buildingId));
+
+  if (filtered.length === 0) {
+    selectEl.disabled = true;
+    return;
+  }
+
+  filtered.forEach(loc => {
+    const opt = document.createElement('option');
+    opt.value = loc.id;
+    opt.textContent = loc.name;
+    selectEl.appendChild(opt);
+  });
+
+  selectEl.disabled = false;
+
+  if (currentLocationId != null) {
+    selectEl.value = String(currentLocationId);
   }
 }
 
@@ -96,7 +133,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const gatewaySelect      = document.getElementById('gatewaySelect');
   const protocolSelect     = document.getElementById('protocolSelect');
   const frequencyPlanWrapper = document.getElementById('frequencyPlanWrapper');
-  const floorSelect       = document.getElementById('floorSelect');
+  const floorSelect        = document.getElementById('floorSelect');
+  const locationSelect     = document.getElementById('locationSelect');
   const frequencyPlanInput = document.getElementById('frequencyPlanInput');
   const buildingNameInput  = document.getElementById('buildingNameInput');
   const devEuiInput        = document.getElementById('devEuiInput');
@@ -108,7 +146,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const gatewaySelectEdit      = document.getElementById('gatewaySelectEdit');
   const frequencyPlanInputEdit = document.getElementById('frequencyPlanInputEdit');
   const buildingNameInputEdit  = document.getElementById('buildingNameInputEdit');
-  const floorSelectEdit   = document.getElementById('floorSelectEdit');
+  const floorSelectEdit        = document.getElementById('floorSelectEdit');
+  const locationSelectEdit     = document.getElementById('locationSelectEdit');
 
   // État pagination
   const PAGE_SIZE = 10;
@@ -124,31 +163,45 @@ document.addEventListener('DOMContentLoaded', () => {
   // -----------------------
   function populateBuildings() {
     if (!buildingFilter) return;
-    const uniques = Array.from(new Set(
-      (SENSORS || []).map(s => (s.buildingName || '').trim()).filter(Boolean)
-    )).sort();
-    buildingFilter.querySelectorAll('option:not([value=""])').forEach(o => o.remove());
-    for (const b of uniques) {
-      const opt = document.createElement('option');
-      opt.value = b;
-      opt.textContent = b;
-      buildingFilter.appendChild(opt);
-    }
     updateSelectPlaceholderStyle(buildingFilter);
   }
 
   // -----------------------
   // Toggle Frequency Plan selon protocole
   // -----------------------
-  function toggleFrequencyPlan() {
+function toggleFrequencyPlan() {
     if (!protocolSelect || !frequencyPlanWrapper) return;
+
     const selectedText = protocolSelect.selectedOptions[0]?.text?.toLowerCase() ?? '';
     const isLorawan = selectedText.includes('lora');
+
+    // Frequency plan
     frequencyPlanWrapper.style.display = isLorawan ? 'block' : 'none';
-    if (!isLorawan && frequencyPlanInput) {
-      frequencyPlanInput.value = '';
-    }
-  }
+    if (!isLorawan && frequencyPlanInput) frequencyPlanInput.value = '';
+
+    // DevEUI / JoinEUI / AppKey : cachés si non-LoRaWAN
+    const euiConfig = [
+        { field: devEuiInput,  wrapperId: 'devEuiWrapper'  },
+        { field: joinEuiInput, wrapperId: 'joinEuiWrapper' },
+        { field: appKeyInput,  wrapperId: 'appKeyWrapper'  },
+    ];
+
+    euiConfig.forEach(({ field, wrapperId }) => {
+        if (!field) return;
+        const wrapper = document.getElementById(wrapperId);
+        if (isLorawan) {
+            field.required = true;
+            field.disabled = false;
+            if (wrapper) wrapper.style.display = 'block';
+        } else {
+            field.required = false;
+            field.disabled = true;
+            field.value = '';
+            if (wrapper) wrapper.style.display = 'none';
+        }
+    });
+}
+
 
   protocolSelect?.addEventListener('change', toggleFrequencyPlan);
 
@@ -158,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function applyGatewayHintsCreate() {
     if (!gatewaySelect) return;
     const opt = gatewaySelect.selectedOptions[0];
-    if (!opt) return;
+    if (!opt || !opt.value) return;
     const freq = opt.getAttribute('data-freq')     || '';
     const bldg = opt.getAttribute('data-building') || '';
 
@@ -172,14 +225,17 @@ document.addEventListener('DOMContentLoaded', () => {
       buildingNameInput.value = match ? bldg : '';
     }
 
-    populateFloors(floorSelect, buildingNameInput?.value || '');
+    const selectedBuilding = buildingNameInput?.value || '';
+    populateFloors(floorSelect, selectedBuilding);
+    populateLocations(locationSelect, selectedBuilding);
   }
 
   gatewaySelect?.addEventListener('change', applyGatewayHintsCreate);
 
-// Floor dynamique selon building (Add)
+// Floor + Location dynamiques selon building (Add)
 buildingNameInput?.addEventListener('change', () => {
   populateFloors(floorSelect, buildingNameInput.value);
+  populateLocations(locationSelect, buildingNameInput.value);
 });
 
   // -----------------------
@@ -207,6 +263,8 @@ buildingNameInput?.addEventListener('change', () => {
       const editClass = CAN_EDIT_SENSORS ? '' : 'disabled';
       const delClass  = CAN_EDIT_SENSORS ? '' : 'disabled';
 
+    const buildingObj = BUILDING_FLOORS.find(b => b.id === s.buildingId);
+    const buildingDisplay = buildingObj ? buildingObj.name : '';
       row.innerHTML = `
         <td>${s.idSensor ?? ''}</td>
         <td>${s.devEui ?? ''}</td>
@@ -216,8 +274,8 @@ buildingNameInput?.addEventListener('change', () => {
             ${s.status ? 'Active' : 'Inactive'}
           </span>
         </td>
-        <td>${s.buildingName ?? ''}</td>
-        <td>${s.location ?? ''}</td>
+        <td>${buildingDisplay}</td>
+        <td>${LOCATIONS.find(l => l.id === s.locationId)?.name ?? ''}</td>
         <td>${s.idGateway ?? ''}</td>
         <td>
           <div class="button-container">
@@ -327,7 +385,7 @@ buildingNameInput?.addEventListener('change', () => {
 
     let rows = (SENSORS || []).slice();
 
-    if (b) rows = rows.filter(x => (x.buildingName || '') === b);
+    if (b) rows = rows.filter(x => String(x.buildingId) === String(b));
     if (s) {
       const boolVal = (s === 'true');
       rows = rows.filter(x => String(x.status) === String(boolVal));
@@ -396,11 +454,12 @@ buildingNameInput?.addEventListener('change', () => {
 
   // EDIT
 if (modalEdit && floorSelectEdit) {
-  // ✅ Building récupéré depuis data-building (pas depuis un select)
-  const buildingEdit  = floorSelectEdit.dataset.building || '';
-  const currentFloor  = floorSelectEdit.dataset.current  || '';
+  const buildingEdit      = floorSelectEdit.dataset.building || '';
+  const currentFloor      = floorSelectEdit.dataset.current  || '';
+  const currentLocationId = locationSelectEdit?.dataset.current || null;
+
   populateFloors(floorSelectEdit, buildingEdit, currentFloor);
-  // Pas d'event change building : on ne change pas le building en Edit
+  populateLocations(locationSelectEdit, buildingEdit, currentLocationId);
 }
 
 if (closeEditBtn && modalEdit) {

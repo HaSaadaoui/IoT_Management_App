@@ -39,18 +39,18 @@ public class LiveSensorCache {
         return Optional.ofNullable(map.get(type));
     }
 
-    public boolean isEmpty(String building) {
-        // Vérifie si au moins un capteur du building a des données
-        List<Sensor> sensors = sensorDao.findAllByBuilding(building); // tous les capteurs du building
+    public boolean isEmpty(Integer buildingId) {
+        List<Sensor> sensors = sensorDao.findAllByBuildingId(buildingId); // adapter le DAO
         for (Sensor sensor : sensors) {
             for (PayloadValueType type : PayloadValueType.values()) {
                 if (getLatest(sensor.getIdSensor(), type).isPresent()) {
-                    return false; // au moins une donnée existe
+                    return false;
                 }
             }
         }
-        return true; // pas de données pour aucun capteur
+        return true;
     }
+
 
 
 

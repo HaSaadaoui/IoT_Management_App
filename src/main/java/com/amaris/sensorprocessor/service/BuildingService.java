@@ -33,11 +33,10 @@ public class BuildingService {
         this.buildingDao = buildingDao;
     }
 
-    public List<Building> getAllBuildings() {
+    public List<Building> findAll() {
         try {
             return buildingDao.findAllBuildings();
         } catch (Exception e) {
-            // TODO: logger proprement
             return Collections.emptyList();
         }
     }
@@ -255,4 +254,5 @@ public class BuildingService {
 
         return building;
     }
+
 }

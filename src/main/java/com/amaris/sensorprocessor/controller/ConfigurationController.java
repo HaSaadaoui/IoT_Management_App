@@ -32,6 +32,8 @@ public class ConfigurationController {
     private final DeviceTypeService deviceTypeService;
     private final BuildingEnergyConfigDao buildingEnergyConfigDao;
     private final SensorService sensorService;
+    private final BuildingService buildingService;
+    private final LocationService locationService;
 
     @Autowired
     public ConfigurationController(AlertThresholdConfig alertThresholdConfig,
@@ -45,7 +47,9 @@ public class ConfigurationController {
                                    ProtocolService protocolService,
                                    DeviceTypeService deviceTypeService,
                                    SensorService sensorService,
-                                   BuildingEnergyConfigDao buildingEnergyConfigDao) { // ✅ UN SEUL constructeur
+                                   BuildingEnergyConfigDao buildingEnergyConfigDao,
+                                   BuildingService buildingService,
+                                   LocationService locationService) {
         this.alertThresholdConfig = alertThresholdConfig;
         this.alertConfigurationService = alertConfigurationService;
         this.notificationService = notificationService;
@@ -58,6 +62,8 @@ public class ConfigurationController {
         this.deviceTypeService = deviceTypeService;
         this.sensorService = sensorService;
         this.buildingEnergyConfigDao = buildingEnergyConfigDao;
+        this.buildingService = buildingService;
+        this.locationService = locationService;
     }
 
     @GetMapping("/configuration")
@@ -67,6 +73,9 @@ public class ConfigurationController {
         model.addAttribute("brands", brandService.findAll());
         model.addAttribute("protocols", protocolService.findAll());
         model.addAttribute("gatewayConfig", null);
+        model.addAttribute("sensors", sensorDao.findAllSensors());
+        model.addAttribute("buildings", buildingService.findAll());
+        model.addAttribute("locations", locationService.findAll());
 
         if (principal != null) {
             User user = userService.searchUserByUsername(principal.getName());
@@ -191,9 +200,11 @@ public class ConfigurationController {
     }
 
     @PostMapping("/configuration/protocols/add")
-    public String addProtocol(@RequestParam("name") String name, Model model, Principal principal) {
+    public String addProtocol(@RequestParam("name") String name,
+                              @RequestParam(value = "available", required = false) Boolean available,
+                              Model model, Principal principal) {
         try {
-            protocolService.createByName(name);
+            protocolService.createByName(name, available);
             model.addAttribute("configMessage", "Protocol added successfully");
         } catch (Exception e) {
             model.addAttribute("configError", e.getMessage());
@@ -265,15 +276,15 @@ public class ConfigurationController {
         return ResponseEntity.ok(configs);
     }
 
-    @GetMapping("/api/configuration/building-energy/{buildingName}")
+    @GetMapping("/api/configuration/building-energy/{buildingId}")
     @ResponseBody
-    public ResponseEntity<?> getBuildingEnergyConfig(@PathVariable String buildingName) {
-        Optional<BuildingEnergyConfig> config = buildingEnergyConfigDao.findByBuildingName(buildingName);
+    public ResponseEntity<?> getBuildingEnergyConfig(@PathVariable Integer buildingId) {
+        Optional<BuildingEnergyConfig> config = buildingEnergyConfigDao.findByBuildingId(buildingId);
         if (config.isPresent()) {
             return ResponseEntity.ok(config.get());
         }
         BuildingEnergyConfig defaultConfig = new BuildingEnergyConfig();
-        defaultConfig.setBuildingName(buildingName);
+        defaultConfig.setBuildingId(buildingId);
         defaultConfig.setEnergyCostPerKwh(0.0);
         defaultConfig.setCurrency("EUR");
         defaultConfig.setCo2EmissionFactor(0.0);
@@ -283,8 +294,8 @@ public class ConfigurationController {
     @PostMapping("/api/configuration/building-energy")
     @ResponseBody
     public ResponseEntity<?> saveBuildingEnergyConfig(@RequestBody BuildingEnergyConfig config) {
-        if (config.getBuildingName() == null || config.getBuildingName().isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Building name is required"));
+        if (config.getBuildingId() == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Building ID is required"));
         }
         if (config.getEnergyCostPerKwh() == null || config.getEnergyCostPerKwh() < 0) {
             return ResponseEntity.badRequest().body(Map.of("error", "Energy cost must be a positive number"));
@@ -293,10 +304,10 @@ public class ConfigurationController {
         return ResponseEntity.ok().body(Map.of("message", "Building energy configuration saved successfully"));
     }
 
-    @DeleteMapping("/api/configuration/building-energy/{buildingName}")
+    @DeleteMapping("/api/configuration/building-energy/{buildingId}")
     @ResponseBody
-    public ResponseEntity<?> deleteBuildingEnergyConfig(@PathVariable String buildingName) {
-        buildingEnergyConfigDao.delete(buildingName);
+    public ResponseEntity<?> deleteBuildingEnergyConfig(@PathVariable Integer buildingId) {
+        buildingEnergyConfigDao.delete(buildingId);
         return ResponseEntity.ok().body(Map.of("message", "Building energy configuration deleted successfully"));
     }
 
@@ -314,6 +325,24 @@ public class ConfigurationController {
                                               @RequestBody Map<String, String> body) {
         brandService.updateDecoder(id, body.get("decoder"));
         return ResponseEntity.ok("{\"success\":true}");
+    }
+
+    // ==================== LOCATIONS ====================
+
+    @PostMapping("/configuration/locations/add")
+    public String addLocation(@RequestParam("name") String name,
+                              @RequestParam("buildingId") Integer buildingId) {
+        Location location = new Location();
+        location.setName(name);
+        location.setBuildingId(buildingId);
+        locationService.create(location);
+        return "redirect:/configuration#section-locations";
+    }
+
+    @PostMapping("/configuration/locations/delete")
+    public String deleteLocation(@RequestParam("id") Integer id) {
+        locationService.delete(id);
+        return "redirect:/configuration#section-locations";
     }
 
     @PostMapping("/configuration/brands/test-decoder")

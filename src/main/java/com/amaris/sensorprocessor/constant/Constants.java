@@ -22,8 +22,9 @@ public final class Constants {
     public static final String GATEWAY_IP_INVALID = "IP Address format is invalid";
     public static final String GATEWAY_FREQUENCY_PLAN_INVALID = "Frequency Plan format is invalid";
     public static final String GATEWAY_BUILDING_NAME_INVALID = "Text format of Building Name is invalid";
+    public static final String GATEWAY_PROTOCOL_ID_INVALID = "Text format of Protocol is invalid";
+
     public static final String GATEWAY_FLOOR_NUMBER_INVALID = "Text format of Floor Number is invalid";
-    public static final String GATEWAY_LOCATION_INVALID = "Text format of Location Description is invalid";
 
     /**
      * Noms de l'erreur à remonter dans le BindingResult
@@ -38,7 +39,6 @@ public final class Constants {
     public static final String BINDING_FREQUENCY_PLAN = "frequencyPlan";
     public static final String BINDING_BUILDING_NAME = "buildingName";
     public static final String BINDING_FLOOR_NUMBER = "floorNumber";
-    public static final String BINDING_LOCATION = "locationDescription";
 
     /**
      * Noms de l'objet BindingResult correspondant au formulaire en question

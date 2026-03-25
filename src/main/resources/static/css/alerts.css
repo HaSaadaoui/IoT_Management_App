@@ -8,17 +8,17 @@
     --warning: #f59e0b;
     --danger: #ef4444;
     --info: #3b82f6;
-    
+
     --free-color: #10b981;
     --used-color: #ef4444;
     --invalid-color: #94a3b8;
-    
+
     --bg-main: #f8fafc;
     --bg-card: #ffffff;
     --text-primary: #1e293b;
     --text-secondary: #64748b;
     --border: #e2e8f0;
-    
+
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
     --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
@@ -1040,11 +1040,11 @@ main {
     .live-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .historical-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .chart-card.large {
         grid-column: span 1;
     }
@@ -1054,20 +1054,20 @@ main {
     main {
         padding: 0.5rem;
     }
-    
+
     .filters-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .desk-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-    
+
     .floor-legend {
         flex-direction: column;
         gap: 0.5rem;
     }
-    
+
     .alerts-grid {
         grid-template-columns: 1fr;
     }
@@ -1077,13 +1077,13 @@ main {
     .section-title {
         font-size: 1.2rem;
     }
-    
+
     .desk-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 0.5rem;
         padding: 1rem;
     }
-    
+
     .desk {
         font-size: 0.85rem;
     }
@@ -1099,106 +1099,169 @@ main {
         gap: 0.25rem;
         font-size: 0.8rem;
         align-items: center;
-}
+    }
 
-@media (max-width: 480px) {
-    .doughnut-container {
-        flex-direction: column;
+    @media (max-width: 480px) {
+        .doughnut-container {
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .doughnut-chart {
+            flex: 0 0 auto;  /* taille auto selon le canvas */
+            max-width: 180px;
+        }
+    }
+
+
+
+    @media (max-width: 768px) {
+        .stat-card {
+            padding: 0.75rem;
+        }
+
+        .stat-card h4 {
+            font-size: 0.95rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .chart-office {
+            max-width: 140px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .stat-card {
+            padding: 0.5rem;
+        }
+    }
+
+    /* Dashboard / Stats only */
+    .stat-chart-container {
+        display: flex;
+        justify-content: center;
         align-items: center;
-        gap: 0.5rem;
+
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e5e7eb;
+
+        width: 100%;
+        height: 100%;
+        padding: 1rem;
+
+        box-sizing: border-box;
+
+        padding: 0.5rem;   /* 🔥 clé : pas de padding massif */
+        width: 100%;
+
+        border-radius: 16px;
+        box-shadow: 0 4px 16px rgba(102, 33, 121, 0.15);
+        border: 1px solid #e5e7eb;
     }
 
-    .doughnut-chart {
-        flex: 0 0 auto;  /* taille auto selon le canvas */
-        max-width: 180px;
-    }
-}
-
-
-
-@media (max-width: 768px) {
-    .stat-card {
-        padding: 0.75rem;
+    /* Canvas du chart */
+    .stat-card .chart-office {
+        width: 100% !important;
+        height: 100% !important;
     }
 
-    .stat-card h4 {
-        font-size: 0.95rem;
-        margin-bottom: 0.75rem;
+    .doughnut-labels {
+        min-width: 110px;
+        flex-shrink: 0;
     }
 
-    .chart-office {
-        max-width: 140px;
+    .custom-label,
+    .stat-legend div {
+        white-space: nowrap;
     }
-}
 
-@media (max-width: 480px) {
-    .stat-card {
-        padding: 0.5rem;
+    .stat-card .chart-office {
+        min-height: 260px; /* ou la taille souhaitée */
+        flex-shrink: 0;    /* empêche le donut d'écraser la légende */
     }
-}
 
-/* Dashboard / Stats only */
-.stat-chart-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e5e7eb;
-
-    width: 100%;
-    height: 100%;
-    padding: 1rem;
-
-    box-sizing: border-box;
-
-    padding: 0.5rem;   /* 🔥 clé : pas de padding massif */
-    width: 100%;
-
-    border-radius: 16px;
-    box-shadow: 0 4px 16px rgba(102, 33, 121, 0.15);
-    border: 1px solid #e5e7eb;
-}
-
-/* Canvas du chart */
-.stat-card .chart-office {
-    width: 100% !important;
-    height: 100% !important;
-}
-
-.doughnut-labels {
-    min-width: 110px;
-    flex-shrink: 0;
-}
-
-.custom-label,
-.stat-legend div {
-    white-space: nowrap;
-}
-
-.stat-card .chart-office {
-    min-height: 260px; /* ou la taille souhaitée */
-    flex-shrink: 0;    /* empêche le donut d'écraser la légende */
-}
-
-.doughnut-labels div {
-    flex-shrink: 0;
-}
-
-
-/* Tablette */
-@media (max-width: 768px) {
-    .office-stats {
-        grid-template-columns: 1fr; /* une seule colonne */
+    .doughnut-labels div {
+        flex-shrink: 0;
     }
-}
 
-/* Mobile */
-@media (max-width: 480px) {
-    .office-stats {
-        grid-template-columns: 1fr; /* une seule colonne */
-        gap: 0.5rem;
+
+    /* Tablette */
+    @media (max-width: 768px) {
+        .office-stats {
+            grid-template-columns: 1fr; /* une seule colonne */
+        }
     }
-}
+
+    /* Mobile */
+    @media (max-width: 480px) {
+        .office-stats {
+            grid-template-columns: 1fr; /* une seule colonne */
+            gap: 0.5rem;
+        }
+    }
+
+    .building-layout {
+        display: flex;
+        gap: 1.5rem;
+        height: 600px;
+    }
+
+
+    .live-occupancy-layout {
+        display: flex;
+        gap: 1.5rem;
+        width: 100%;
+        height: 600px;
+    }
+
+    /* 3D */
+    .left-panel {
+        flex: 0 0 50%;
+        min-width: 0;
+    }
+
+    /* 2D */
+    .right-panel {
+        display: none;
+    }
+
+    .floor-plan-2d {
+        position: relative;
+    }
+
+    /* Canvas prend toute la place */
+    .building-3d-container {
+        width: 100%;
+        height: 100%;
+        min-height: 500px;
+    }
+
+    /* 2D prend toute la hauteur */
+    .floor-plan {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .desk-grid {
+        flex: 1;
+        overflow: auto;
+    }
+
+    .right-panel {
+        animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
