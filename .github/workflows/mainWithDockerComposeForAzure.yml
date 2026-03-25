@@ -28,7 +28,7 @@ jobs:
             echo "SPRING_DATASOURCE_URL=${{ secrets.MYSQL_DB_URL_STAGING }}" >> $GITHUB_ENV
             echo "HOST=${{ secrets.AZURE_HOST }}" >> $GITHUB_ENV
             echo "USER=azureuser" >> $GITHUB_ENV
-            echo "PORT=80" >> $GITHUB_ENV
+            echo "PORT=8080" >> $GITHUB_ENV
             echo "GATEWAY_BRANCH=main" >> $GITHUB_ENV
             echo "NSG_NAME=vm-sensorprocessor-1-nsg" >> $GITHUB_ENV
             echo "RESOURCE_GROUP=rg-Smart-Building-Mantu" >> $GITHUB_ENV
