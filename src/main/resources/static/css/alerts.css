@@ -109,7 +109,7 @@ main {
 
 .filters-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(0em, 1fr));
     gap: 1rem;
     margin-top: 1rem;
 }
@@ -152,9 +152,21 @@ main {
     margin-top: 1.5rem;
     padding-top: 1rem;
     border-top: 1px solid var(--border);
-    text-align: right;
+    text-align: left;
     font-size: 0.9rem;
     color: var(--text-secondary);
+}
+
+.filters-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    justify-content: flex-end;
+}
+
+.filters-actions .filter-card {
+    flex: 0 0 auto;
+    min-width: 180px;
 }
 
 .last-refresh strong {
@@ -171,6 +183,12 @@ main {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
+}
+
+.wrapper3d {
+    display: block;
+    grid-template-columns: 1fr;
+    padding-bottom: 1.5rem;
 }
 
 .floor-plan-card {
@@ -418,7 +436,6 @@ main {
 }
 
 .sensor-marker:hover {
-    transform: scale(1.2);
     filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
 }
 
@@ -463,10 +480,7 @@ main {
 }
 
 .desk-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-    padding: 1.5rem;
+    display:block;
     background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
     border-radius: 12px;
     border: 2px dashed var(--border);
@@ -527,10 +541,12 @@ main {
 
 /* ===== FLOOR LEGEND ===== */
 .floor-legend {
-    display: flex;
-    gap: 2rem;
+    display: block;
+    flex-direction: column;
     justify-content: center;
     padding: 1rem;
+    gap: 2 rem;
+    font-size: 0.85rem;
     background: var(--bg-main);
     border-radius: 8px;
 }
@@ -546,6 +562,8 @@ main {
 .legend-dot {
     width: 16px;
     height: 16px;
+    min-width: 16px;
+    min-height: 16px;
     border-radius: 4px;
 }
 
@@ -563,6 +581,7 @@ main {
 
 /* ===== OFFICE STATS ===== */
 .office-stats {
+    padding-top: 10px;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
@@ -590,6 +609,13 @@ main {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
+    margin: 0rem;
+}
+.stat-card .stat-chart-container {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 16px;
+    padding:15px;
 }
 
 .stat-card::before {
@@ -623,10 +649,56 @@ main {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin-bottom: 1rem;
     text-align: center;
+    margin-top: 0;
 }
 
+/* Layout horizontal pour le doughnut chart - matching monitoringSensor style */
+.doughnut-container {
+    display: flex;
+    max-height: 100%;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    flex-direction: column;
+    align-content: center;
+}
+
+.doughnut-labels {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 120px;
+}
+
+.doughnut-chart {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.doughnut-chart canvas {
+    max-height: 180px !important;
+    max-width: 180px !important;
+}
+
+.custom-label {
+    transition: all 0.2s ease;
+    padding: 0.25rem;
+    border-radius: 6px;
+}
+
+.custom-label:hover {
+    transform: translateX(2px);
+    background-color: rgba(102, 33, 121, 0.05);
+}
+
+/* Legacy donut-chart support (for any old code) */
 .donut-chart {
     position: relative;
     width: 100%;
@@ -672,8 +744,12 @@ main {
 
 .historical-grid {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-columns: 1fr 3fr 1fr;
     gap: 1.5rem;
+}
+
+.canvas-wrapper {
+    flex: 1; min-height: 0; position: relative;
 }
 
 .chart-card {
@@ -683,6 +759,7 @@ main {
     box-shadow: var(--shadow-md);
     border: 1px solid var(--border);
     transition: all 0.3s ease;
+    display: flex; flex-direction: column;
 }
 
 .chart-card:hover {
@@ -693,11 +770,47 @@ main {
 .chart-card.large {
     grid-column: span 3;
     min-height: 400px;
+    /* max-height: fit-content; */
 }
 
 .chart-card.large canvas {
-    height: 350px !important;
+    /* height: auto; */
 }
+
+.filter-item-building {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-item-building label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.filter-item-building select {
+    padding: 0.75rem;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-item-building select:hover {
+    border-color: var(--primary);
+}
+
+.filter-item-building select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(102, 33, 121, 0.1);
+}
+
 
 .chart-card h4 {
     font-size: 1.1rem;
@@ -712,8 +825,10 @@ main {
     justify-content: center;
     align-items: center;
     min-height: 250px;
+    padding: 1rem;
 }
 
+/* Legacy global-donut support */
 .global-donut {
     position: relative;
     width: 200px;
@@ -728,6 +843,19 @@ main {
     font-size: 2rem;
     font-weight: 700;
     color: var(--text-primary);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* Global occupation with horizontal layout */
+.global-occupation .doughnut-container {
+    max-width: 500px;
+    width: 100%;
+}
+
+.global-occupation .doughnut-chart {
+    position: relative;
 }
 
 /* ===== HISTORY TABLE ===== */
@@ -795,41 +923,41 @@ main {
 /* ===== SENSOR COST CHART ===== */
 .cost-summary {
     display: flex;
-    gap: 1.5rem;
+    flex-direction: column;
+    gap: 1rem;
     margin-bottom: 1.5rem;
-    padding: 1rem;
-    background: linear-gradient(135deg, rgba(102, 33, 121, 0.05), rgba(139, 47, 163, 0.05));
-    border-radius: 12px;
-    border: 1px solid rgba(102, 33, 121, 0.1);
 }
 
-.cost-total,
-.cost-average {
-    flex: 1;
+.cost-card {
+    background: var(--bg-card);
+    padding: 1rem;
+    border-left: 4px solid var(--primary);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cost-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
 .cost-label {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
 }
 
 .cost-value {
-    font-size: 1.75rem;
+    font-size: 1.3rem;
     font-weight: 700;
-    background: linear-gradient(135deg, var(--primary), var(--primary-light));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--primary);
 }
 
 #chart-sensor-cost {
-    height: 250px !important;
+    /* height: 250px !important; */
 }
 
 /* ===== ALERTS SECTION ===== */
@@ -958,5 +1086,119 @@ main {
     
     .desk {
         font-size: 0.85rem;
+    }
+}
+
+
+/* MEDIA QUERY pour petits écrans */
+
+@media (max-width: 480px) {
+    .doughnut-labels {
+        flex: 0 0 auto;   /* Ne pas grandir ou rétrécir */
+        min-width: 100%;  /* Toujours visible */
+        gap: 0.25rem;
+        font-size: 0.8rem;
+        align-items: center;
+}
+
+@media (max-width: 480px) {
+    .doughnut-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .doughnut-chart {
+        flex: 0 0 auto;  /* taille auto selon le canvas */
+        max-width: 180px;
+    }
+}
+
+
+
+@media (max-width: 768px) {
+    .stat-card {
+        padding: 0.75rem;
+    }
+
+    .stat-card h4 {
+        font-size: 0.95rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .chart-office {
+        max-width: 140px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stat-card {
+        padding: 0.5rem;
+    }
+}
+
+/* Dashboard / Stats only */
+.stat-chart-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+
+    width: 100%;
+    height: 100%;
+    padding: 1rem;
+
+    box-sizing: border-box;
+
+    padding: 0.5rem;   /* 🔥 clé : pas de padding massif */
+    width: 100%;
+
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(102, 33, 121, 0.15);
+    border: 1px solid #e5e7eb;
+}
+
+/* Canvas du chart */
+.stat-card .chart-office {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.doughnut-labels {
+    min-width: 110px;
+    flex-shrink: 0;
+}
+
+.custom-label,
+.stat-legend div {
+    white-space: nowrap;
+}
+
+.stat-card .chart-office {
+    min-height: 260px; /* ou la taille souhaitée */
+    flex-shrink: 0;    /* empêche le donut d'écraser la légende */
+}
+
+.doughnut-labels div {
+    flex-shrink: 0;
+}
+
+
+/* Tablette */
+@media (max-width: 768px) {
+    .office-stats {
+        grid-template-columns: 1fr; /* une seule colonne */
+    }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .office-stats {
+        grid-template-columns: 1fr; /* une seule colonne */
+        gap: 0.5rem;
     }
 }

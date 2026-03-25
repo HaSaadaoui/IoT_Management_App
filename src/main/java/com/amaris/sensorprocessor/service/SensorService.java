@@ -1,10 +1,21 @@
 package com.amaris.sensorprocessor.service;
 
+import com.amaris.sensorprocessor.entity.DeviceType;
 import com.amaris.sensorprocessor.entity.LorawanSensorData;
+import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.Sensor;
+import com.amaris.sensorprocessor.entity.SensorData;
 import com.amaris.sensorprocessor.repository.SensorDao;
+import com.amaris.sensorprocessor.repository.SensorDataDao;
+
+import org.springframework.http.codec.ServerSentEvent;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,61 +24,109 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Flux;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class SensorService {
 
-    private final SensorDao sensorDao;                 // DAO JdbcTemplate
-    private final SensorLorawanService lorawanService; // Intégration TTN
-    private final WebClient webClient;                 // Bean configuré (baseUrl = http://localhost:8081)
+    private final SensorDao sensorDao;
+    private final SensorDataDao sensorDataDao;
+    private final SensorLorawanService lorawanService;
+    private final WebClient webClient;
+    private final WebClient webClientSse;
+    private final DeviceTypeService deviceTypeService; // ✅ AJOUT
+
+    @Value("${api.base.url}")
+    private String baseUrl;
 
     /* ===================== MONITORING (SSE) ===================== */
 
-    /**
-     * Ouvre le flux SSE du microservice 8081 :
-     * GET /api/monitoring/sensor/{appId}/{deviceId}?threadId=...
-     * Retourne un Flux<String> (JSON brut) pour le pousser tel quel au navigateur via SseEmitter.
-     */
-    public Flux<String> getMonitoringData(String appId, String deviceId, String threadId) {
-        return webClient.get()
+    public Flux<String> getMonitoringData(String appId, String deviceId) {
+        List<String> deviceIds = List.of(deviceId);
+        ObjectMapper om = new ObjectMapper();
+
+        return webClientSse.post()
                 .uri(uriBuilder -> uriBuilder
-                        .path("/api/monitoring/sensor/{appId}/{deviceId}")
-                        .queryParam("threadId", threadId)
-                        .build(appId, deviceId))
+                        .path("/api/monitoring/app/{appId}/stream")
+                        .build(appId))
+                .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.TEXT_EVENT_STREAM)
+                .bodyValue(deviceIds)
                 .retrieve()
-                .bodyToFlux(String.class)
-                .doOnError(err -> log.error(
-                        "[Sensor] SSE error appId={}, deviceId={}: {}",
-                        appId, deviceId, err.getMessage(), err
-                ));
+                .bodyToFlux(new org.springframework.core.ParameterizedTypeReference<ServerSentEvent<String>>() {})
+                .map(ServerSentEvent::data)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .filter(json -> {
+                    try {
+                        JsonNode root = om.readTree(json);
+                        if (root.has("raw") && root.get("raw").isObject()) root = root.get("raw");
+                        JsonNode result = root.has("result") ? root.get("result") : root;
+                        JsonNode up = result.path("uplink_message");
+                        JsonNode dp = up.path("decoded_payload");
+                        return !dp.isMissingNode() && !dp.isNull();
+                    } catch (Exception e) {
+                        return false;
+                    }
+                })
+                .doOnNext(s -> log.info("[Sensor] SSE DATA -> {}", s.substring(0, Math.min(120, s.length()))))
+                .doOnError(err -> log.error("[Sensor] SSE error appId={}, deviceId={}", appId, deviceId, err));
     }
 
-    /**
-     * Demande l'arrêt du monitoring côté microservice 8081.
-     * GET /api/monitoring/sensor/stop/{deviceId}?threadId=...
-     */
-    public void stopMonitoring(String deviceId, String threadId) {
-        webClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/api/monitoring/sensor/stop/{deviceId}")
-                        .queryParam("threadId", threadId)
-                        .build(deviceId))
+    public Flux<String> getGatewayDevices(String appId, Instant after) {
+        return webClientSse.get()
+                .uri(uriBuilder -> {
+                    uriBuilder.path("/api/monitoring/app/{appId}/uplinks");
+                    if (after != null) uriBuilder.queryParam("after", after.toString());
+                    uriBuilder.queryParam("limit", 200);
+                    uriBuilder.queryParam("order", "-received_at");
+                    return uriBuilder.build(appId);
+                })
+                .accept(MediaType.valueOf("application/x-ndjson"))
                 .retrieve()
-                .toBodilessEntity()
-                .doOnSuccess(ok -> log.info(
-                        "[Sensor] Monitoring stopped for deviceId={}, threadId={}",
-                        deviceId, threadId
-                ))
-                .doOnError(err -> log.error(
-                        "[Sensor] Stop monitoring error for deviceId={}, threadId={}: {}",
-                        deviceId, threadId, err.getMessage(), err
-                ))
-                .subscribe();
+                .bodyToFlux(String.class)
+                .flatMap(chunk -> {
+                    if (chunk == null || chunk.isBlank()) return Flux.empty();
+                    List<String> parts = new ArrayList<>(Arrays.asList(chunk.split("\\R")));
+                    List<String> expanded = new ArrayList<>();
+                    for (String p : parts) {
+                        if (p != null && p.contains("}{")) {
+                            expanded.addAll(Arrays.asList(p.split("(?<=\\})(?=\\{)")));
+                        } else {
+                            expanded.add(p);
+                        }
+                    }
+                    return Flux.fromIterable(expanded).map(String::trim).filter(s -> !s.isBlank());
+                });
+    }
+
+    public Flux<String> getMonitoringMany(String appId, List<String> deviceIds) {
+        return webClientSse.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/monitoring/app/{appId}/stream")
+                        .build(appId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .bodyValue(deviceIds == null ? List.of() : deviceIds)
+                .retrieve()
+                .bodyToFlux(String.class)
+                .doOnError(err -> log.error("[Sensor] SSE multi error appId={}: {}", appId, err.getMessage(), err));
     }
 
     /* ===================== READ ===================== */
@@ -80,9 +139,156 @@ public class SensorService {
         return sensorDao.findByIdOfSensor(idSensor);
     }
 
+    /**
+     * Get sensor IDs by device type and building
+     * @param deviceType Device type (CO2, TEMPEX, HUMIDITY, NOISE, etc.)
+     * @param building Building name (empty string for all buildings)
+     * @return List of sensor IDs
+     */
+    public List<String> getSensorIdsByTypeAndBuilding(String deviceType, String building) {
+        List<Sensor> sensors;
+        if (building == null || building.isBlank()) {
+            sensors = sensorDao.findAllByDeviceType(deviceType);
+        } else {
+            sensors = sensorDao.findAllByDeviceTypeAndBuilding(deviceType, building);
+        }
+        return sensors.stream()
+                .map(Sensor::getIdSensor)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+
     public Sensor getOrThrow(String idSensor) {
         return findByIdSensor(idSensor)
                 .orElseThrow(() -> new IllegalArgumentException("Sensor not found: " + idSensor));
+    }
+
+    public HashMap<PayloadValueType, SensorData> getSensorData(String idSensor) {
+        return sensorDataDao.findLatestDataBySensor(idSensor);
+    }
+
+    public LinkedHashMap<LocalDateTime, String> findSensorDataByPeriodAndType(String idSensor, Date startDate,
+                                                                              Date endDate, PayloadValueType valueType, Optional<Integer> limit) {
+        var datas = sensorDataDao.findSensorDataByPeriodAndType(idSensor, startDate, endDate, valueType, limit);
+        LinkedHashMap<LocalDateTime, String> timeToStringValueMap = new LinkedHashMap<>();
+        String lastValue = null;
+
+        for (SensorData data : datas) {
+            String currentValue = data.getValueAsString();
+            if (!Objects.equals(currentValue, lastValue)) {
+                timeToStringValueMap.put(data.getReceivedAt(), currentValue);
+                lastValue = currentValue;
+            }
+        }
+        return timeToStringValueMap;
+    }
+
+    public Map<PayloadValueType, LinkedHashMap<LocalDateTime, String>> findSensorDataByPeriod(String idSensor,
+                                                                                              Date startDate, Date endDate) {
+        List<SensorData> allSensorDatas = sensorDataDao.findSensorDataByPeriod(idSensor, startDate, endDate);
+        Map<PayloadValueType, LinkedHashMap<LocalDateTime, String>> groupedData = new LinkedHashMap<>();
+        for (SensorData data : allSensorDatas) {
+            groupedData.computeIfAbsent(data.getValueType(), k -> new LinkedHashMap<>())
+                    .put(data.getReceivedAt(), data.getValueAsString());
+        }
+        return groupedData;
+    }
+
+    public Map<Date, Double> getConsumptionByChannels(String idSensor, Date startDate, Date endDate,
+                                                      List<String> channels) {
+        Set<PayloadValueType> energyChannels = channels.stream()
+                .map(ch -> PayloadValueType.valueOf("ENERGY_CHANNEL_" + ch))
+                .collect(Collectors.toSet());
+
+        Instant adjustedStartInstant = startDate.toInstant().minus(1, ChronoUnit.HOURS);
+        Date adjustedStartDate = Date.from(adjustedStartInstant);
+        List<SensorData> allSensorData = sensorDataDao.findSensorDataByPeriodAndTypes2(idSensor, adjustedStartDate,
+                endDate, energyChannels);
+
+        Instant startInstant = adjustedStartInstant.truncatedTo(ChronoUnit.HOURS);
+        Instant endInstant = endDate.toInstant();
+
+        Map<Instant, Map<PayloadValueType, Double>> hourlyChannelValues = new LinkedHashMap<>();
+        Map<PayloadValueType, Double> lastKnownValues = new HashMap<>();
+
+        for (PayloadValueType channel : energyChannels) {
+            Optional<SensorData> lastData = sensorDataDao.findLastValueBefore(idSensor, channel, startInstant);
+            lastKnownValues.put(channel, lastData.map(SensorData::getValueAsDouble).orElse(0.0));
+        }
+
+        Instant currentHour = startInstant;
+        int dataIndex = 0;
+
+        while (!currentHour.isAfter(endInstant)) {
+            while (dataIndex < allSensorData.size()) {
+                SensorData dataPoint = allSensorData.get(dataIndex);
+                Instant dataTimestamp = dataPoint.getReceivedAt().atZone(java.time.ZoneOffset.UTC).toInstant();
+                if (dataTimestamp.isAfter(currentHour)) break;
+                Double value = dataPoint.getValueAsDouble();
+                if (value != null) lastKnownValues.put(dataPoint.getValueType(), value);
+                dataIndex++;
+            }
+            hourlyChannelValues.put(currentHour, new HashMap<>(lastKnownValues));
+            currentHour = currentHour.plus(1, ChronoUnit.HOURS);
+        }
+
+        Map<Date, Double> finalHourlyConsumption = new LinkedHashMap<>();
+        List<Instant> hours = new ArrayList<>(hourlyChannelValues.keySet());
+        hours.sort(Instant::compareTo);
+
+        for (int i = 1; i < hours.size(); i++) {
+            Instant currentHourKey = hours.get(i);
+            Instant previousHourKey = hours.get(i - 1);
+
+            Map<PayloadValueType, Double> currentValues = hourlyChannelValues.get(currentHourKey);
+            Map<PayloadValueType, Double> previousValues = hourlyChannelValues.get(previousHourKey);
+
+            double totalConsumption = 0.0;
+            for (PayloadValueType channel : energyChannels) {
+                double currentValue = currentValues.getOrDefault(channel, 0.0);
+                double previousValue = previousValues.getOrDefault(channel, 0.0);
+                double channelConsumption = currentValue < previousValue ? currentValue : currentValue - previousValue;
+                totalConsumption += channelConsumption;
+            }
+
+            finalHourlyConsumption.put(Date.from(currentHourKey), totalConsumption);
+        }
+
+        return finalHourlyConsumption;
+    }
+
+    public Double getCurrentConsumption(String idSensor, List<String> channels, int minutes) {
+        Instant now = Instant.now();
+        Instant timeAgo = now.minus(Math.max(1, minutes), ChronoUnit.MINUTES);
+
+        if (channels == null || channels.isEmpty()) return 0.0;
+
+        Set<PayloadValueType> energyChannels = channels.stream()
+                .map(ch -> PayloadValueType.valueOf("ENERGY_CHANNEL_" + ch))
+                .collect(Collectors.toSet());
+
+        if (energyChannels.isEmpty()) return 0.0;
+
+        List<SensorData> recentData = sensorDataDao.findSensorDataByPeriodAndTypes2(idSensor, Date.from(timeAgo),
+                Date.from(now), energyChannels);
+
+        Map<PayloadValueType, List<SensorData>> dataByChannel = recentData.stream()
+                .collect(Collectors.groupingBy(SensorData::getValueType));
+
+        double totalConsumption = 0;
+        for (PayloadValueType channel : energyChannels) {
+            List<SensorData> channelData = dataByChannel.get(channel);
+            if (channelData != null && channelData.size() > 1) {
+                channelData.sort(java.util.Comparator.comparing(SensorData::getReceivedAt));
+                double oldestValue = channelData.get(0).getValueAsDouble();
+                double latestValue = channelData.get(channelData.size() - 1).getValueAsDouble();
+                double delta = latestValue - oldestValue;
+                if (delta < 0) delta = latestValue;
+                totalConsumption += delta;
+            }
+        }
+
+        return totalConsumption > 0 ? totalConsumption : null;
     }
 
     /* ===================== CREATE ===================== */
@@ -100,12 +306,10 @@ public class SensorService {
 
         if (toCreate.getStatus() == null) toCreate.setStatus(Boolean.TRUE);
 
-        // 1) Insert BDD (transactionnel)
         int rows = sensorDao.insertSensor(toCreate);
         if (rows != 1) throw new IllegalStateException("DB insert failed for sensor " + toCreate.getIdSensor());
         log.info("[Sensor] DB created idSensor={}", toCreate.getIdSensor());
 
-        // 2) Création TTN
         try {
             if (toCreate.getIdGateway() == null || toCreate.getIdGateway().isBlank()) {
                 log.warn("[Sensor] No idGateway provided for {} → skipping TTN create", toCreate.getIdSensor());
@@ -133,13 +337,11 @@ public class SensorService {
     public Sensor update(String idSensor, Sensor patch) {
         Sensor existing = getOrThrow(idSensor);
 
-        // Pas de renommage d'ID
         if (patch.getIdSensor() != null && !patch.getIdSensor().isBlank()
                 && !patch.getIdSensor().equals(existing.getIdSensor())) {
             throw new IllegalArgumentException("Renaming idSensor is not supported by current DAO");
         }
 
-        // Détection des changements critiques (DevEUI, JoinEUI, AppKey)
         boolean ttnUpdateNeeded = false;
         if (patch.getDevEui() != null && !patch.getDevEui().equals(existing.getDevEui())) {
             existing.setDevEui(patch.getDevEui());
@@ -154,19 +356,17 @@ public class SensorService {
             ttnUpdateNeeded = true;
         }
 
-        // Champs DB-only
-        if (patch.getDeviceType() != null)        existing.setDeviceType(patch.getDeviceType());
+        // ✅ idDeviceType à la place de deviceType
+        if (patch.getIdDeviceType() != null) existing.setIdDeviceType(patch.getIdDeviceType());
         if (patch.getCommissioningDate() != null) existing.setCommissioningDate(patch.getCommissioningDate());
         if (patch.getFloor() != null)             existing.setFloor(patch.getFloor());
         if (patch.getLocation() != null)          existing.setLocation(patch.getLocation());
         if (patch.getBuildingName() != null)      existing.setBuildingName(patch.getBuildingName());
 
-        // 1) Update DB
         int rows = sensorDao.updateSensor(existing);
         if (rows != 1) throw new IllegalStateException("DB update failed for sensor " + idSensor);
         log.info("[Sensor] DB updated idSensor={}", idSensor);
 
-        // 2) Update TTN si nécessaire
         if (ttnUpdateNeeded) {
             try {
                 if (existing.getIdGateway() == null || existing.getIdGateway().isBlank()) {
@@ -178,7 +378,6 @@ public class SensorService {
                 }
             } catch (WebClientResponseException e) {
                 log.error("[Sensor] TTN update failed for {}: {}", idSensor, e.getMessage(), e);
-                // On ne rollback pas la transaction DB, juste un warning
             } catch (Exception e) {
                 log.error("[Sensor] TTN update unexpected error for {}: {}", idSensor, e.getMessage(), e);
             }
@@ -198,7 +397,6 @@ public class SensorService {
             log.info("[Sensor] TTN deleted device {} (app={}-app)", idSensor, existing.getIdGateway());
         } catch (WebClientResponseException e) {
             if (e.getStatusCode().value() == 404) {
-                // Déjà supprimé côté TTN : OK, on continue
                 log.warn("[Sensor] TTN device {} not found in app {}-app (already deleted?)",
                         idSensor, existing.getIdGateway());
             } else {

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <title>Test Email Notification</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        .test-card {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 500px;
+            width: 100%;
+        }
+        .test-card h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .form-control, .form-select {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
+            transition: border-color 0.3s;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-send {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 20px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn-send:hover {
+            transform: translateY(-2px);
+        }
+        .alert {
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .info-text {
+            color: #666;
+            font-size: 14px;
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-card">
+        <h1>📧 Test Email Notification</h1>
+        
+        <form id="test-email-form">
+            <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" class="form-control" id="email" placeholder="your.email@example.com" required>
+            </div>
+            
+            <div class="mb-3">
+                <label for="level" class="form-label">Alert Level</label>
+                <select class="form-select" id="level">
+                    <option value="critical">🚨 Critical</option>
+                    <option value="warning" selected>⚠️ Warning</option>
+                    <option value="info">ℹ️ Info</option>
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="sensorId" class="form-label">Sensor ID</label>
+                <input type="text" class="form-control" id="sensorId" value="dev_eui_001" placeholder="dev_eui_001">
+            </div>
+            
+            <button type="submit" class="btn-send">
+                📨 Send Test Email
+            </button>
+        </form>
+        
+        <div id="result" style="display: none;"></div>
+        
+        <div class="info-text">
+            <strong>Note:</strong> Assurez-vous que Azure Communication Services est configuré dans application.properties avec les bonnes credentials.
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('test-email-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const level = document.getElementById('level').value;
+            const sensorId = document.getElementById('sensorId').value;
+            const resultDiv = document.getElementById('result');
+            const submitBtn = e.target.querySelector('.btn-send');
+            
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = '📤 Sending...';
+            resultDiv.style.display = 'none';
+            
+            try {
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                headers[csrfHeader] = csrfToken;
+                
+                const response = await fetch('/api/test/send-alert-email', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ email, level, sensorId })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.className = 'alert alert-success';
+                    resultDiv.innerHTML = `
+                        <strong>✅ Success!</strong><br>
+                        ${data.message}<br>
+                        <small>Level: ${data.alert.level} | Sensor: ${data.alert.sensorId}</small>
+                    `;
+                } else {
+                    resultDiv.className = 'alert alert-danger';
+                    resultDiv.innerHTML = `
+                        <strong>❌ Error!</strong><br>
+                        ${data.error || 'Failed to send email'}
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'alert alert-danger';
+                resultDiv.innerHTML = `
+                    <strong>❌ Error!</strong><br>
+                    ${error.message}
+                `;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '📨 Send Test Email';
+                resultDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

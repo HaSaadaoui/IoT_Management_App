@@ -1,5 +1,5 @@
 username,firstname,lastname,password,role,email,icon
-user1,Johnn,Doess,$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG,ADMIN,john.doe@example.com,/image/default-avatar.png
+user1,Johnn,Doess,$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG,ADMIN,john.doe@example.com,/uploads/20251027_144306_User_icon_2.svg.png
 user3,Alice,Johnson,$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG,SUPERUSER,alice.johnson@example.com,/image/default-avatar.png
 user4,Bob,Brown,$2a$10$WcXpO7sR8lJAjp2Nti6jR.Q52y3rNN2UKDTquMAhZWaH1.1qNhmfG,USER,bob.brown@example.com,/image/default-avatar.png
 user5,Charlie,Davis56,$2a$10$pbiynIjfUXO5vo29yD1TWuG4EUVJ8gM9nb3RXgyxSemib5DScgoPm,ADMIN,charlie.davis@example.com,/uploads/20251013_110308_chevre.png

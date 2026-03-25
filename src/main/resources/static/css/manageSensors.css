@@ -8,6 +8,13 @@
     margin: 0;
 }
 
+.disabled {
+  opacity: .4;
+  filter: grayscale(100%);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 table {
     width: 95%;
     border-collapse: collapse;

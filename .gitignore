@@ -33,14 +33,37 @@ build/
 ### VS Code ###
 .vscode/
 
+### Documentation Files ###
+*README*.md
+*GUIDE*.md
+*SETUP*.md
+*COMPLETE*.md
+*FIXES*.md
+*EXPLAINED*.md
+*INTEGRATION*.md
+*REFACTOR*.md
+PROFILE-*.md
+ACS-*.md
+WEB-*.md
+EMAIL-*.md
+AZURE-*.md
+RESEND-*.md
+VERIFICATION-*.md
+CODE-*.md
+GIT-PUSH-*.txt
+
+### Local Configuration with Secrets ###
+application-local.properties
+*-local.properties
 # Ces fichier pourraient contenir des information confidentielles
 application.yml
 *.db
 Userssaifeddine.mosrati_mDesktopmydatabase.db
+uploads/
 
 ### Logs ###
 logs/*.gz
-logs/application.log
+logs/*.log
 
 ### Documentation & Scripts (local only) ###
 docs/
@@ -66,4 +89,50 @@ execute_migration.bat
 verify_migration.bat
 run_migration.ps1
 DEPLOYMENT.md
-README.md
+
+json
+.env
+secret.config.yml
+
+### Additional Important Exclusions ###
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Maven wrapper (if not needed)
+.mvn/wrapper/maven-wrapper.properties
+
+# IDE specific
+*.code-workspace
+.history/
+
+# Node modules (if any frontend dependencies)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Application specific
+application-prod.properties
+application-dev.properties
+*.key
+*.pem
+*.p12
+*.jks

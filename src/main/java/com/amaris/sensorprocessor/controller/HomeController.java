@@ -40,23 +40,12 @@ public class HomeController {
     /**
      * @return la vue "home" pour afficher la page d'accueil.
      */
-    @GetMapping("/home")
+    @GetMapping({"/home", "/"})
     public String home(Model model, Principal principal) {
         User user = userService.searchUserByUsername(principal.getName());
         model.addAttribute("user", user);
         model.addAttribute("loggedUsername", user.getUsername());
         return "home";
-    }
-
-    /**
-     * @return la vue "dashboard" pour afficher le dashboard de monitoring et analytics.
-     */
-    @GetMapping("/dashboard")
-    public String dashboard(Model model, Principal principal) {
-        User user = userService.searchUserByUsername(principal.getName());
-        model.addAttribute("user", user);
-        model.addAttribute("loggedUsername", user.getUsername());
-        return "dashboard";
     }
 
     /**

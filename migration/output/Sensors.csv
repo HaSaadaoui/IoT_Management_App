@@ -1,5 +1,5 @@
 id_sensor,device_type,commissioning_date,status,building_name,floor,location,id_gateway,dev_eui,join_eui,app_key,frequency_plan
-co2-03-01,CO2,2025-09-09T09:40:45.146468Z,1,Levallois-Building,3,"Floor 3",leva-rpi-mantu,A81758FFFE0D615D,,,EU_863_870_TTN
+co2-03-01,CO2,2025-09-09,1,Levallois-Building,3,"Floor 3",leva-rpi-mantu,A81758FFFE0D615D,,,EU_863_870_TTN
 co2-03-02,CO2,2025-09-09T09:40:46.252311Z,1,Levallois-Building,3,"Floor 3",leva-rpi-mantu,A81758FFFE08E12F,,,EU_863_870_TTN
 co2-03-03,CO2,2025-09-09T09:40:47.293656Z,1,Levallois-Building,3,"Floor 3",leva-rpi-mantu,A81758FFFE0D5B43,,,EU_863_870_TTN
 conso-squid-03-01,CONSO,2025-09-09T09:40:48.354486Z,1,Levallois-Building,3,"Floor 3",leva-rpi-mantu,70B3D54750121261,,,EU_863_870_TTN

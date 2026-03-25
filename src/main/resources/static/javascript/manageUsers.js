@@ -1,207 +1,205 @@
-// Récupérer les popups
+// =======================
+// Manage Users (JS)
+// =======================
+
+// -----------------------
+// Références globales
+// -----------------------
 var modalCreate = document.getElementById("createUserPopup");
-var modalEdit = document.getElementById("editUserPopup");
+var modalEdit   = document.getElementById("editUserPopup");
 var modalDelete = document.getElementById("deleteUserPopup");
 
-// Récupérer le bouton qui ouvre la popup Create
-var btnCreate = document.getElementById("openCreateBtn");
+const loggedRole = document.body?.dataset?.loggedRole || "";
 
-// Récupérer les éléments qui ferment les popups
+var btnCreate  = document.getElementById("openCreateBtn");
 var exitCreate = document.getElementById("closeCreate");
-if (document.getElementById("closeEdit")) {
-    var exitEdit = document.getElementById("closeEdit");
-    exitEdit.addEventListener("click", () => {
-        modalEdit.style.display = "none";
-    });
-}
-var cancelDelete = document.getElementById("cancelDelete");
 
-// Quand l'utilisateur clique sur ouvrir la popup Create
+// -----------------------
+// Helpers
+// -----------------------
+function resetModalFields() {
+    if (!modalCreate) return;
+    modalCreate.querySelectorAll("input").forEach(input => {
+        if (input.type !== "hidden") input.value = "";
+    });
+    const select = modalCreate.querySelector("select[name='role']");
+    if (select) {
+        select.value    = "USER";
+        select.disabled = loggedRole === "SUPERUSER";
+    }
+}
+
+function resetError() {
+    if (!modalCreate) return;
+    const errorDiv = modalCreate.querySelector(".alert-danger");
+    if (errorDiv) errorDiv.style.display = "none";
+}
+
+function updateCsrfToken() {
+    const token = document.querySelector("meta[name='_csrf']")?.content;
+    if (!token || !modalCreate) return;
+    const form = modalCreate.querySelector("form");
+    if (!form) return;
+    let csrfInput = form.querySelector("input[name='_csrf']");
+    if (!csrfInput) {
+        csrfInput = document.createElement("input");
+        csrfInput.type = "hidden";
+        csrfInput.name = "_csrf";
+        form.prepend(csrfInput);
+    }
+    csrfInput.value = token;
+}
+
+// -----------------------
+// Bouton Create
+// -----------------------
 if (btnCreate) {
     btnCreate.addEventListener("click", () => {
         updateCsrfToken();
-        modalCreate.style.display = "block";
+        if (modalCreate) modalCreate.style.display = "block";
+        if (loggedRole === "SUPERUSER") {
+            const select = modalCreate?.querySelector("select[name='role']");
+            if (select) { select.value = "USER"; select.disabled = true; }
+        }
     });
 }
 
-// Quand l'utilisateur clique sur Exit, fermer la popup Create
 if (exitCreate) {
     exitCreate.addEventListener("click", () => {
-        modalCreate.style.display = "none";
+        if (modalCreate) modalCreate.style.display = "none";
         resetModalFields();
         resetError();
     });
 }
 
-// Quand l'utilisateur clique sur Cancel, fermer la popup Delete
-if (cancelDelete) {
-    cancelDelete.addEventListener("click", () => {
-        modalDelete.style.display = "none";
-    });
-}
-
-// Quand l'utilisateur clique en dehors d'une popup, la fermer
+// -----------------------
+// Fermer sur overlay click
+// -----------------------
 window.onclick = function(event) {
     [modalCreate, modalEdit, modalDelete].forEach(modal => {
         if (modal && event.target === modal) {
             modal.style.display = "none";
-            if (modal === modalCreate) {
-                resetModalFields();
-                resetError();
-            }
+            if (modal === modalCreate) { resetModalFields(); resetError(); }
         }
     });
-}
+};
 
-// Si l'erreur est levée alors ouvrir la popup Create, sinon fermer les popups
-document.addEventListener("DOMContentLoaded", function() {
-    if (modalCreate) modalCreate.style.display = "none";
-    if (modalDelete) modalDelete.style.display = "none";
-    if (document.querySelector(".alert-danger")) {
-        modalCreate.style.display = "block";
-    }
-});
+// -----------------------
+// Delete popup
+// -----------------------
+let currentForm = null;
 
-// Fonction pour réinitialiser les champs du formulaire Create
-function resetModalFields() {
-    const inputs = modalCreate.querySelectorAll("input");
-    inputs.forEach(input => input.value = "");
-    const select = modalCreate.querySelector("select");
-    if (select) {
-        select.value = "USER";
-    }
-}
-
-// Fonction pour réinitialiser l'affichage de l'erreur
-function resetError() {
-    const errorDiv = modalCreate.querySelector(".alert-danger");
-    if (errorDiv) {
-        errorDiv.style.display = "none";
-    }
-}
-
-let currentForm;
 document.querySelectorAll(".deleteForm").forEach(form => {
-    form.addEventListener('click', () => {
-        event.preventDefault();
+    form.addEventListener("submit", (e) => {
+        e.preventDefault();
         currentForm = form;
-        modalDelete.style.display = "block";
+        if (modalDelete) modalDelete.style.display = "block";
     });
 });
 
-document.getElementById('confirmDelete').addEventListener('click', () => {
-    if (currentForm) currentForm.submit();
-});
+const confirmDeleteBtn = document.getElementById("confirmDelete");
+if (confirmDeleteBtn) {
+    confirmDeleteBtn.addEventListener("click", () => {
+        if (currentForm) currentForm.submit();
+    });
+}
 
-document.getElementById('cancelDelete').addEventListener('click', () => {
-    modalDelete.style.display = 'none';
-});
+const cancelDeleteBtn = document.getElementById("cancelDelete");
+if (cancelDeleteBtn) {
+    cancelDeleteBtn.addEventListener("click", () => {
+        if (modalDelete) modalDelete.style.display = "none";
+    });
+}
 
-// retour à la page /home avec le clic retour du navigateur
-window.addEventListener('pageshow', function(event) {
+// -----------------------
+// Retour navigateur (cache)
+// -----------------------
+window.addEventListener("pageshow", function(event) {
     if (event.persisted) {
-        console.log("Page chargée depuis le cache");
-        if (modalEdit) {
-            modalEdit.style.display = "none";
-        }
-        modalCreate.style.display = "none";
-        modalDelete.style.display = "none";
+        if (modalEdit)   modalEdit.style.display   = "none";
+        if (modalCreate) modalCreate.style.display = "none";
+        if (modalDelete) modalDelete.style.display = "none";
         window.location.href = "/home?" + new Date().getTime();
     }
 });
 
-
 // -----------------------
-// Filtres + Pagination
+// Filtres — déclarations (AVANT DOMContentLoaded)
 // -----------------------
+const usernameFilter = document.getElementById("usernameFilter");
+const emailFilter    = document.getElementById("emailFilter");
+const roleFilter     = document.getElementById("roleFilter");
+const clearRoleBtn   = document.getElementById("clearRole");
+const userRows       = document.querySelectorAll("table tbody tr");
+const paginationEl   = document.getElementById("pagination");
 
-// Filter elements
-const usernameFilter = document.getElementById('usernameFilter');
-const emailFilter    = document.getElementById('emailFilter');
-const roleFilter     = document.getElementById('roleFilter');
-const clearRoleBtn   = document.getElementById('clearRole');
-
-// Récupère toutes les lignes du tableau
-const userRows = document.querySelectorAll('table tbody tr');
-const paginationEl = document.getElementById('pagination');
-
-// Pagination state
 const PAGE_SIZE = 10;
 let currentPage = 1;
 let filteredRows = [];
 
-// Listeners pour filtres
-if (usernameFilter) {
-    usernameFilter.addEventListener('input', filterUsers);
-    document.querySelector('[onclick*="usernameFilter"]')?.addEventListener('click', function() {
-        usernameFilter.value = '';
-        filterUsers();
-    });
-}
-
-if (emailFilter) {
-    emailFilter.addEventListener('input', filterUsers);
-    document.querySelector('[onclick*="emailFilter"]')?.addEventListener('click', function() {
-        emailFilter.value = '';
-        filterUsers();
-    });
-}
+// Listeners filtres
+if (usernameFilter) usernameFilter.addEventListener("input", filterUsers);
+if (emailFilter)    emailFilter.addEventListener("input", filterUsers);
 
 if (roleFilter) {
-    roleFilter.addEventListener('change', function() {
-        clearRoleBtn.style.display = this.value ? 'block' : 'none';
+    roleFilter.addEventListener("change", function() {
+        if (clearRoleBtn) clearRoleBtn.style.display = this.value ? "block" : "none";
         filterUsers();
     });
 }
 
 if (clearRoleBtn) {
-    clearRoleBtn.addEventListener('click', function() {
-        roleFilter.value = '';
-        this.style.display = 'none';
+    clearRoleBtn.addEventListener("click", function() {
+        roleFilter.value   = "";
+        this.style.display = "none";
         filterUsers();
     });
 }
 
-// Fonction de filtrage
+document.querySelector('[onclick*="usernameFilter"]')?.addEventListener("click", function() {
+    if (usernameFilter) { usernameFilter.value = ""; filterUsers(); }
+});
+document.querySelector('[onclick*="emailFilter"]')?.addEventListener("click", function() {
+    if (emailFilter) { emailFilter.value = ""; filterUsers(); }
+});
+
+// -----------------------
+// Filtrage
+// -----------------------
 function filterUsers() {
-    const usernameValue = usernameFilter ? usernameFilter.value.toLowerCase() : '';
-    const emailValue    = emailFilter ? emailFilter.value.toLowerCase() : '';
-    const roleValue     = roleFilter ? roleFilter.value : '';
+    const usernameValue = (usernameFilter?.value || "").toLowerCase();
+    const emailValue    = (emailFilter?.value    || "").toLowerCase();
+    const roleValue     =  roleFilter?.value     || "";
 
-    const rows = Array.from(userRows).filter(row => {
-        const username = row.cells[0].textContent.toLowerCase();
-        const email    = row.cells[3].textContent.toLowerCase();
-        const role     = row.cells[4].textContent.trim();
-
-        const matchesUsername = username.includes(usernameValue);
-        const matchesEmail    = email.includes(emailValue);
-        const matchesRole     = !roleValue || role === roleValue;
-
-        return matchesUsername && matchesEmail && matchesRole;
+    filteredRows = Array.from(userRows).filter(row => {
+        const username = row.cells[0]?.textContent.toLowerCase() || "";
+        const email    = row.cells[3]?.textContent.toLowerCase() || "";
+        const role     = row.cells[4]?.textContent.trim()        || "";
+        return username.includes(usernameValue)
+            && email.includes(emailValue)
+            && (!roleValue || role === roleValue);
     });
 
-    filteredRows = rows;
     currentPage = 1;
     renderRowsPaginated();
 }
 
 // -----------------------
-// Pagination functions
+// Pagination
 // -----------------------
 function renderPagination(totalCount) {
     if (!paginationEl) return;
 
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
     currentPage = Math.min(currentPage, totalPages);
-
-    paginationEl.innerHTML = '';
+    paginationEl.innerHTML = "";
 
     const btn = (label, page, disabled = false, active = false) => {
-        const b = document.createElement('button');
-        b.className = 'page-btn' + (active ? ' active' : '');
+        const b = document.createElement("button");
+        b.className = "page-btn" + (active ? " active" : "");
         b.textContent = label;
-        if (disabled) b.setAttribute('disabled', 'disabled');
-        b.addEventListener('click', () => {
+        if (disabled) b.setAttribute("disabled", "disabled");
+        b.addEventListener("click", () => {
             if (!disabled && currentPage !== page) {
                 currentPage = page;
                 renderRowsPaginated();
@@ -210,8 +208,8 @@ function renderPagination(totalCount) {
         return b;
     };
 
-    paginationEl.appendChild(btn('«', 1, currentPage === 1));
-    paginationEl.appendChild(btn('‹', currentPage - 1, currentPage === 1));
+    paginationEl.appendChild(btn("«", 1, currentPage === 1));
+    paginationEl.appendChild(btn("‹", currentPage - 1, currentPage === 1));
 
     const totalPagesToShow = 5;
     let startPage = Math.max(1, currentPage - Math.floor(totalPagesToShow / 2));
@@ -219,43 +217,57 @@ function renderPagination(totalCount) {
     if (endPage - startPage + 1 < totalPagesToShow) {
         startPage = Math.max(1, endPage - totalPagesToShow + 1);
     }
-
     for (let p = startPage; p <= endPage; p++) {
         paginationEl.appendChild(btn(String(p), p, false, p === currentPage));
     }
 
-    paginationEl.appendChild(btn('›', currentPage + 1, currentPage === totalPages));
-    paginationEl.appendChild(btn('»', totalPages, currentPage === totalPages));
+    paginationEl.appendChild(btn("›", currentPage + 1, currentPage === totalPages));
+    paginationEl.appendChild(btn("»", totalPages, currentPage === totalPages));
 }
 
 function renderRowsPaginated() {
-    const total = filteredRows.length;
-    const start = (currentPage - 1) * PAGE_SIZE;
+    const total    = filteredRows.length;
+    const start    = (currentPage - 1) * PAGE_SIZE;
     const pageRows = filteredRows.slice(start, start + PAGE_SIZE);
-
-    // cacher toutes les lignes
-    userRows.forEach(r => r.style.display = 'none');
-    // afficher seulement celles de la page
-    pageRows.forEach(r => r.style.display = '');
+    userRows.forEach(r => r.style.display = "none");
+    pageRows.forEach(r => r.style.display = "");
     renderPagination(total);
 }
 
 // -----------------------
-// Init page
+// DOMContentLoaded — en dernier
 // -----------------------
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", function() {
+
+    // État initial des modals
+    if (modalCreate) modalCreate.style.display = "none";
+    if (modalDelete) modalDelete.style.display = "none";
+
+    // Ouvrir Edit automatiquement si editUser chargé par le serveur
+    if (modalEdit) modalEdit.style.display = "block";
+
+    // Fermer le modal Edit
+    const closeEditBtn = document.getElementById("closeEdit");
+    if (closeEditBtn && modalEdit) {
+        closeEditBtn.addEventListener("click", () => {
+            modalEdit.style.display = "none";
+        });
+    }
+
+    // SUPERUSER : verrouille les rôles
+    if (loggedRole === "SUPERUSER") {
+        const createRole = document.querySelector("#createUserPopup select[name='role']");
+        if (createRole) { createRole.value = "USER"; createRole.disabled = true; }
+        const editRole = document.querySelector("#editUserPopup select#role");
+        if (editRole) editRole.disabled = true;
+    }
+
+    // Ouvrir Create si erreur serveur
+    if (document.querySelector(".alert-danger")) {
+        if (modalCreate) modalCreate.style.display = "block";
+    }
+
+    // Init pagination
     filteredRows = Array.from(userRows);
     renderRowsPaginated();
 });
-function updateCsrfToken() {
-    const token = document.querySelector("meta[name='_csrf']").content;
-    let csrfInput = modalCreate.querySelector("input[name='_csrf']");
-    if (!csrfInput) {
-        // si le champ n'existe pas, on le crée
-        csrfInput = document.createElement("input");
-        csrfInput.type = "hidden";
-        csrfInput.name = "_csrf";
-        modalCreate.querySelector("form").prepend(csrfInput);
-    }
-    csrfInput.value = token;
-}

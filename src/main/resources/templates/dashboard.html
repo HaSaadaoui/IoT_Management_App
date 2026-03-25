@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
@@ -6,19 +6,69 @@
     <link rel="stylesheet" href="/css/styles.css"/>
     <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}"/>
     <link rel="stylesheet" href="/css/alerts.css"/>
+    <link rel="stylesheet" href="/css/monitoringSensor.css"/>
+    <link rel="stylesheet" href="/css/dashboard-live.css"/>
+    <link rel="stylesheet" href="/css/analytics.css"/>
+    <link rel="stylesheet" href="/css/occupancy-daily.css"/>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1"></script>
+    <!-- Three.js + OrbitControls + SVGLoader (r128 / r131 style UMD) -->
+    <script src="/javascript/lib/three.min.js"></script>
+    <script src="/javascript/lib/OrbitControls.js"></script>
+    <script src="/javascript/lib/SVGLoader.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
+    <script src="/javascript/chartUtils.js" defer></script>
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 
 <body>
 <header class="app-header">
-    <a href="/home" class="back-btn" title="Back to home" style="margin-right: 20px">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="30" height="30">
-            <circle cx="15" cy="15" r="13" fill="none" stroke="#662179" stroke-width="2"/>
-            <path d="M17 9 L11 15 L17 21" fill="none" stroke="#662179" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <line x1="11" y1="15" x2="22" y2="15" stroke="#662179" stroke-width="2" stroke-linecap="round"/>
+    <a
+            href="/home"
+            class="back-btn"
+            title="Back to home"
+            style="margin-right: 20px"
+    >
+        <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 30 30"
+                width="30"
+                height="30"
+        >
+            <circle
+                    cx="15"
+                    cy="15"
+                    r="13"
+                    fill="none"
+                    stroke="#662179"
+                    stroke-width="2"
+            />
+            <path
+                    d="M17 9 L11 15 L17 21"
+                    fill="none"
+                    stroke="#662179"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+            />
+            <line
+                    x1="11"
+                    y1="15"
+                    x2="22"
+                    y2="15"
+                    stroke="#662179"
+                    stroke-width="2"
+                    stroke-linecap="round"
+            />
         </svg>
     </a>
     <div class="header-title-gateway">
@@ -26,29 +76,79 @@
     </div>
     <div class="header-right">
         <div class="dropdown">
-            <button onclick="toggleMenu()" class="menu-btn" aria-label="Menu">
-                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="#662179" viewBox="0 0 24 24">
-                    <path d="M3 6h18M3 12h18M3 18h18" stroke="#662179" stroke-width="2" stroke-linecap="round"/>
+            <button
+                    onclick="toggleMenu()"
+                    class="menu-btn"
+                    aria-label="Menu"
+            >
+                <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="26"
+                        height="26"
+                        fill="#662179"
+                        viewBox="0 0 24 24"
+                >
+                    <path
+                            d="M3 6h18M3 12h18M3 18h18"
+                            stroke="#662179"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                    />
                 </svg>
             </button>
             <div id="dropdownMenu" class="dropdown-content">
                 <a th:href="@{/home}">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22">
-                        <path fill="#662179" d="M12 3.172 2.293 12.88a1 1 0 1 0 1.414 1.414L5 13.001V20a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-5h2v5a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-6.999l1.293 1.293a1 1 0 0 0 1.414-1.414L12 3.172z"/>
+                    <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            width="22"
+                            height="22"
+                    >
+                        <path
+                                fill="#662179"
+                                d="M12 3.172 2.293 12.88a1 1 0 1 0 1.414 1.414L5 13.001V20a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-5h2v5a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-6.999l1.293 1.293a1 1 0 0 0 1.414-1.414L12 3.172z"
+                        />
                     </svg>
                     Home
                 </a>
-                <a th:href="@{/users/{username}(username=${loggedUsername})}">
-                    <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22">
-                        <path fill="#662179" d="M400-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM80-160v-112q0-33 17-62t47-44q51-26 115-44t141-18h14q6 0 12 2-8 18-13.5 37.5T404-360h-4q-71 0-127.5 18T180-306q-9 5-14.5 14t-5.5 20v32h252q6 21 16 41.5t22 38.5H80Zm560 40-12-60q-12-5-22.5-10.5T584-204l-58 18-40-68 46-40q-2-14-2-26t2-26l-46-40 40-68 58 18q11-8 21.5-13.5T628-460l12-60h80l12 60q12 5 22.5 11t21.5 15l58-20 40 70-46 40q2 12 2 25t-2 25l46 40-40 68-58-18q-11 8-21.5 13.5T732-180l-12 60h-80Zm40-120q33 0 56.5-23.5T760-320q0-33-23.5-56.5T680-400q-33 0-56.5 23.5T600-320q0 33 23.5 56.5T680-240ZM400-560q33 0 56.5-23.5T480-640q0-33-23.5-56.5T400-720q-33 0-56.5 23.5T320-640q0 33 23.5 56.5T400-560Zm0-80Zm12 400Z"/>
+                <a
+                        th:href="@{/users/{username}(username=${loggedUsername})}"
+                >
+                    <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            height="22"
+                            viewBox="0 -960 960 960"
+                            width="22"
+                    >
+                        <path
+                                fill="#662179"
+                                d="M400-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM80-160v-112q0-33 17-62t47-44q51-26 115-44t141-18h14q6 0 12 2-8 18-13.5 37.5T404-360h-4q-71 0-127.5 18T180-306q-9 5-14.5 14t-5.5 20v32h252q6 21 16 41.5t22 38.5H80Zm560 40-12-60q-12-5-22.5-10.5T584-204l-58 18-40-68 46-40q-2-14-2-26t2-26l-46-40 40-68 58 18q11-8 21.5-13.5T628-460l12-60h80l12 60q12 5 22.5 11t21.5 15l58-20 40 70-46 40q2 12 2 25t-2 25l46 40-40 68-58-18q-11 8-21.5 13.5T732-180l-12 60h-80Zm40-120q33 0 56.5-23.5T760-320q0-33-23.5-56.5T680-400q-33 0-56.5 23.5T600-320q0 33 23.5 56.5T680-240ZM400-560q33 0 56.5-23.5T480-640q0-33-23.5-56.5T400-720q-33 0-56.5 23.5T320-640q0 33 23.5 56.5T400-560Zm0-80Zm12 400Z"
+                        />
                     </svg>
                     Account
                 </a>
-                <form th:action="@{/logout}" method="post" class="logout-form" style="margin:0;">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <form
+                        th:action="@{/logout}"
+                        method="post"
+                        class="logout-form"
+                        style="margin: 0"
+                >
+                    <input
+                            type="hidden"
+                            th:name="${_csrf.parameterName}"
+                            th:value="${_csrf.token}"
+                    />
                     <button type="submit" class="logout-link">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="22" height="22" fill="#662179">
-                            <path d="M 2.174 2.314 C 0.018 4.610, 0 4.949, 0 44.140 L 0 83.651 2.250 85.699 C 4.901 88.111, 28.126 96, 32.577 96 C 36.811 96, 40 92.427, 40 87.686 L 40 84 48.050 84 C 62.336 84, 64.223 81.596, 63.785 63.959 L 63.500 52.500 61 52.500 C 58.510 52.500, 58.498 52.544, 58 63.834 C 57.397 77.497, 57 78, 46.809 78 L 40 78 40 45.174 C 40 12.406, 39.996 12.345, 37.750 10.302 C 36.513 9.176, 34.150 7.783, 32.500 7.206 C 30.082 6.361, 31.839 6.143, 41.559 6.079 C 57.716 5.973, 57.360 5.669, 58 20.166 C 58.498 31.456, 58.510 31.500, 61 31.500 L 63.500 31.500 63.785 20.041 C 63.962 12.888, 63.628 7.515, 62.894 5.744 C 60.667 0.367, 58.579 -0, 30.224 0 C 4.470 0, 4.338 0.011, 2.174 2.314 M 7.095 7.305 C 5.842 8.558, 5.527 78.748, 6.765 80.596 C 7.169 81.199, 12.970 83.514, 19.655 85.741 C 28.459 88.673, 32.113 89.487, 32.905 88.695 C 34.158 87.442, 34.473 17.252, 33.235 15.404 C 32.831 14.801, 27.030 12.486, 20.345 10.259 C 11.541 7.327, 7.887 6.513, 7.095 7.305 M 75.667 24.667 C 74.049 26.284, 75.348 28.918, 80.041 33.538 L 85.083 38.500 68.791 39 L 52.500 39.500 52.500 42 L 52.500 44.500 68.940 44.776 L 85.381 45.051 80.094 50.405 C 74.652 55.915, 73.730 59.132, 77.392 59.837 C 79.568 60.256, 96 44.506, 96 42 C 96 39.981, 79.926 24, 77.896 24 C 77.036 24, 76.033 24.300, 75.667 24.667"/>
+                        <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 96 96"
+                                width="22"
+                                height="22"
+                                fill="#662179"
+                        >
+                            <path
+                                    d="M 2.174 2.314 C 0.018 4.610, 0 4.949, 0 44.140 L 0 83.651 2.250 85.699 C 4.901 88.111, 28.126 96, 32.577 96 C 36.811 96, 40 92.427, 40 87.686 L 40 84 48.050 84 C 62.336 84, 64.223 81.596, 63.785 63.959 L 63.500 52.500 61 52.500 C 58.510 52.500, 58.498 52.544, 58 63.834 C 57.397 77.497, 57 78, 46.809 78 L 40 78 40 45.174 C 40 12.406, 39.996 12.345, 37.750 10.302 C 36.513 9.176, 34.150 7.783, 32.500 7.206 C 30.082 6.361, 31.839 6.143, 41.559 6.079 C 57.716 5.973, 57.360 5.669, 58 20.166 C 58.498 31.456, 58.510 31.500, 61 31.500 L 63.500 31.500 63.785 20.041 C 63.962 12.888, 63.628 7.515, 62.894 5.744 C 60.667 0.367, 58.579 -0, 30.224 0 C 4.470 0, 4.338 0.011, 2.174 2.314 M 7.095 7.305 C 5.842 8.558, 5.527 78.748, 6.765 80.596 C 7.169 81.199, 12.970 83.514, 19.655 85.741 C 28.459 88.673, 32.113 89.487, 32.905 88.695 C 34.158 87.442, 34.473 17.252, 33.235 15.404 C 32.831 14.801, 27.030 12.486, 20.345 10.259 C 11.541 7.327, 7.887 6.513, 7.095 7.305 M 75.667 24.667 C 74.049 26.284, 75.348 28.918, 80.041 33.538 L 85.083 38.500 68.791 39 L 52.500 39.500 52.500 42 L 52.500 44.500 68.940 44.776 L 85.381 45.051 80.094 50.405 C 74.652 55.915, 73.730 59.132, 77.392 59.837 C 79.568 60.256, 96 44.506, 96 42 C 96 39.981, 79.926 24, 77.896 24 C 77.036 24, 76.033 24.300, 75.667 24.667"
+                            />
                         </svg>
                         Logout
                     </button>
@@ -56,352 +156,2470 @@
             </div>
         </div>
         <div class="header-user">
-            <a th:href="@{/users/{username}(username=${loggedUsername})}" class="header-link">
-                <img th:src="${user.icon}" class="header-avatar" alt="User Avatar" width="32" height="32">
+            <a
+                    th:href="@{/users/{username}(username=${loggedUsername})}"
+                    class="header-link"
+            >
+                <img
+                        th:src="${user.icon}"
+                        class="header-avatar"
+                        alt="User Avatar"
+                        width="32"
+                        height="32"
+                />
             </a>
         </div>
     </div>
 </header>
 
+<!-- Global Loading Indicator -->
+<div id="global-loading-indicator" class="global-loading-indicator">
+    <div class="loading-spinner"></div>
+    <div class="loading-indicator-text">
+        <div class="loading-indicator-title" id="loading-title">
+            Loading...
+        </div>
+        <div
+                class="loading-indicator-details"
+                id="loading-details"
+        ></div>
+    </div>
+    <button
+            id="cancel-requests-btn"
+            class="cancel-requests-btn"
+            title="Cancel all active requests"
+    >
+        ✕
+    </button>
+</div>
+
 <main>
-    <!-- Filters Section -->
-    <section class="filters-section">
-        <h3 class="section-title">🔍 Filters & Controls</h3>
-        <div class="filters-grid">
-            <div class="filter-card">
-                <label>📅 Year</label>
-                <select id="filter-year">
-                    <option value="2025">2025</option>
-                    <option value="2024">2024</option>
-                    <option value="2023">2023</option>
-                </select>
+    <!-- Onglets -->
+    <nav class="tabs">
+        <button class="tab-btn is-active" data-pane="live">Real-time</button>
+        <button class="tab-btn" data-pane="history">History</button>
+    </nav>
+
+    <!-- ===== Panneau LIVE ===== -->
+    <section id="pane-live">
+        <!-- Filters Section - Real-time only -->
+        <section class="filters-section">
+            <h3 class="section-title">🔍 Real-time Filters</h3>
+            <div class="filters-grid">
+                <div class="filter-card">
+                    <label>📍 Building</label>
+                    <select id="filter-building" class="form-select">
+                        <option value="CHATEAUDUN" selected>Châteaudun</option>
+                        <option value="LEVALLOIS">Levallois</option>
+                    </select>
+                </div>
+                <div class="filter-card">
+                    <label>🏢 Floor</label>
+                    <select id="filter-floor">
+                        <option value="all">All Floors</option>
+                        <option value="0">Ground Floor</option>
+                        <option value="1" selected>Floor 1</option>
+                        <option value="2">Floor 2</option>
+                        <option value="3">Floor 3</option>
+                        <option value="4">Floor 4</option>
+                        <option value="5">Floor 5</option>
+                        <option value="6">Floor 6</option>
+                    </select>
+                </div>
+                <div class="filter-card">
+                    <label>📊 Sensor Type</label>
+                    <select id="filter-sensor-type">
+                        <option value="all">All Sensors</option>
+                        <option value="DESK" selected>Desk Occupancy</option>
+                        <option value="COUNT">People Counter</option>
+                        <option value="CO2">CO₂ Air Quality</option>
+                        <option value="TEMP">Temperature</option>
+                        <option value="TEMPEX">HVAC Flow</option>
+                        <option value="LIGHT">Light Levels</option>
+                        <option value="MOTION">Motion Detection</option>
+                        <option value="NOISE">Noise Levels</option>
+                        <option value="HUMIDITY">Humidity</option>
+                        <option value="ENERGY">Energy Consumption</option>
+                    </select>
+                </div>
             </div>
-            <div class="filter-card">
-                <label>📆 Month</label>
-                <select id="filter-month">
-                    <option value="all">All</option>
-                    <option value="01">January</option>
-                    <option value="02">February</option>
-                    <option value="03">March</option>
-                    <option value="04">April</option>
-                    <option value="05">May</option>
-                    <option value="06">June</option>
-                    <option value="07">July</option>
-                    <option value="08">August</option>
-                    <option value="09">September</option>
-                    <option value="10">October</option>
-                    <option value="11" selected>November</option>
-                    <option value="12">December</option>
-                </select>
+            <div
+                    class="last-refresh"
+                    style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        gap: 1rem;
+                    "
+            >
+                    <span
+                    >🔄 Last refresh:
+                        <strong id="last-refresh-time"
+                        >17/11/2025 11:23:47</strong
+                        ></span
+                    >
             </div>
-            <div class="filter-card">
-                <label>📍 Building</label>
-                <select id="filter-building">
-                    <option value="all">All Buildings</option>
-                    <option value="chateaudun" selected>Châteaudun Office</option>
-                    <option value="levallois">Levallois Office</option>
-                    <option value="lille">Lille Office</option>
-                </select>
+        </section>
+
+        <!-- Alerts Section -->
+        <section class="alerts-section">
+            <h3 class="section-title">🚨 Active Alerts</h3>
+            <div class="alerts-loading" id="alerts-loading">
+                <span>Loading alerts...</span>
             </div>
-            <div class="filter-card">
-                <label>🏢 Floor</label>
-                <select id="filter-floor">
-                    <option value="all">All Floors</option>
-                    <option value="0">Ground Floor</option>
-                    <option value="1" selected>Floor 1</option>
-                    <option value="2">Floor 2</option>
-                    <option value="3">Floor 3</option>
-                    <option value="4">Floor 4</option>
-                    <option value="5">Floor 5</option>
-                    <option value="6">Floor 6</option>
-                </select>
+            <div class="alerts-grid">
+                <!-- Alerts will be dynamically populated here -->
             </div>
-            <div class="filter-card">
-                <label>📊 Sensor Type</label>
-                <select id="filter-sensor-type">
-                    <option value="DESK" selected>Desk Occupancy</option>
-                    <option value="CO2">CO₂ Air Quality</option>
-                    <option value="TEMP">Temperature</option>
-                    <option value="LIGHT">Light Levels</option>
-                    <option value="MOTION">Motion Detection</option>
-                    <option value="NOISE">Noise Levels</option>
-                    <option value="HUMIDITY">Humidity</option>
-                    <option value="TEMPEX">HVAC Flow (TEMPex)</option>
-                    <option value="PR">Presence & Light</option>
-                    <option value="SECURITY">Security Alerts</option>
-                </select>
+        </section>
+
+        <!-- Live Data Section - Building Averages -->
+        <div id="desk-state-averages-section" style="display:none;">
+            <div class="analytics-grid" id="desk-avg-cards"></div>
+        </div>
+
+            <div class="live-data-section">
+                <h3 class="section-title">📊 Live Building Data</h3>
+                <div class="live-metrics-grid">
+                    <!-- Temperature Average -->
+                    <div class="metric-card">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                            🌡️
+                        </div>
+
+                        <div class="metric-content metric-split">
+                            <div class="metric-label">Avg Temperature</div>
+
+                            <div class="metric-split-values">
+                                <div class="metric-scope">
+                                    <span class="scope-label">INT</span>
+                                    <span class="metric-value" id="live-avg-temperature-int">--</span>
+                                </div>
+
+                                <div class="metric-divider"></div>
+
+                                <div class="metric-scope">
+                                    <span class="scope-label">EXT</span>
+                                    <span class="metric-value" id="live-avg-temperature-ext">--</span>
+                                </div>
+                            </div>
+
+                            <div class="metric-unit">°C</div>
+                        </div>
+                    </div>
+
+
+                    <!-- Humidity Average -->
+                    <!-- Humidity Average -->
+                    <div class="metric-card">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                            💧
+                        </div>
+
+                        <div class="metric-content metric-split">
+                            <div class="metric-label">Avg Humidity</div>
+
+                            <div class="metric-split-values">
+                                <div class="metric-scope">
+                                    <span class="scope-label">INT</span>
+                                    <span class="metric-value" id="live-avg-humidity-int">--</span>
+                                </div>
+
+                                <div class="metric-divider"></div>
+
+                                <div class="metric-scope">
+                                    <span class="scope-label">EXT</span>
+                                    <span class="metric-value" id="live-avg-humidity-ext">--</span>
+                                </div>
+                            </div>
+
+                            <div class="metric-unit">%</div>
+                        </div>
+                    </div>
+
+                    <!-- Sound Average -->
+                    <div class="metric-card">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Avg Sound Level</div>
+                            <div class="metric-value" id="live-avg-sound">--</div>
+                            <div class="metric-unit">dB</div>
+                        </div>
+                    </div>
+
+                    <!-- CO2 Average -->
+                    <div class="metric-card">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💨</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Avg CO₂ Level</div>
+                            <div class="metric-value" id="live-avg-co2">--</div>
+                            <div class="metric-unit">ppm</div>
+                        </div>
+                    </div>
+
+                    <!-- Real-time Energy -->
+                    <div class="metric-card">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">⚡</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Power Now</div>
+                            <div class="metric-value" id="live-current-power">--</div>
+                            <div class="metric-unit">kW</div>
+                        </div>
+                    </div>
+
+                    <!-- Daily Energy Accumulation -->
+                    <div class="metric-card metric-card--highlight">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">⚡</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Today's Energy</div>
+                            <div class="metric-value" id="live-daily-energy">--</div>
+                            <div class="metric-unit">kWh</div>
+                        </div>
+                    </div>
+
+                    <!-- Desk Usage Percentage -->
+                    <div class="metric-card">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">💡</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Desk Usage</div>
+                            <div class="metric-value" id="live-desk-usage">--</div>
+                            <div class="metric-unit">desks</div>
+                        </div>
+                    </div>
+
+                    <!-- Light Level Average -->
+                    <div class="metric-card">
+                        <div class="metric-icon" style="background: linear-gradient(135deg, #fbbf24, #f59e0b);">🔆</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Avg Light Level</div>
+                            <div class="metric-value" id="live-avg-light">--</div>
+                            <div class="metric-unit">lux</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="filter-card">
-                <label>⏰ Time Slot</label>
-                <select id="filter-time">
-                    <option value="all">All Day</option>
-                    <option value="morning">Morning (08:00-12:00)</option>
-                    <option value="afternoon" selected>Afternoon (12:00-19:00)</option>
-                    <option value="evening">Evening (19:00-22:00)</option>
-                </select>
+        <!-- Sensor List Container -->
+        <div
+                class="sensor-list-container"
+                id="sensor-list-container"
+                style="display: none; margin-top: 20px"
+        >
+            <div class="sensor-list-header">
+                        <span
+                        >Available Sensors (<span id="sensor-count">0</span
+                        >)</span
+                        >
+                <button
+                        id="select-all-sensors-btn"
+                        class="select-all-btn"
+                >
+                    Select All
+                </button>
+            </div>
+            <div class="sensor-list" id="sensor-list">
+                <div class="sensor-list-placeholder">
+                    Sensors will load automatically based on your
+                    filters...
+                </div>
             </div>
         </div>
-        <div class="last-refresh">
-            <span>🔄 Last refresh: <strong id="last-refresh-time">17/11/2025 11:23:47</strong></span>
-        </div>
+
+        <!-- Live Sensor Data Section -->
+        <section class="live-section">
+            <h3 class="section-title" id="live-section-title">
+                📊 Live Desk Occupancy - Châteaudun Office
+            </h3>
+            <div class="live-occupancy-layout">
+                <!-- LEFT: 3D Building Visualization (60%) -->
+                <div class="floor-plan-card" style="flex: 0 0 58%; min-width: 0;">
+                    <div class="building-3d-header">
+                        <h4 id="building-title">
+                            🏢 Châteaudun Office Building
+                        </h4>
+                        <button
+                                id="back-to-3d-btn"
+                                class="back-to-building"
+                                style="display: none"
+                                onclick="return3DView()"
+                        >
+                            ← Back to 3D View
+                        </button>
+                    </div>
+
+                    <!-- 3D Canvas Container -->
+                    <div
+                            id="building-3d-container"
+                            class="building-3d-container"
+                            data-site="CHATEAUDUN"
+                    >
+                        <canvas id="building-canvas"></canvas>
+                        <div class="building-controls">
+                            <div class="control-hint">
+                                <span>🖱️ Rotate: Left Click + Drag</span>
+                                <span>🔍 Zoom: Scroll</span>
+                                <span>👆 Click floor to enter</span>
+                            </div>
+                        </div>
+                        <div
+                                id="floor-info-overlay"
+                                class="floor-info-overlay"
+                        ></div>
+                    </div>
+
+                    <!-- 2D Floor Plan View (Hidden by default) -->
+                    <div
+                            id="floor-plan-2d"
+                            class="floor-plan-2d"
+                            style="display: none"
+                    >
+                        <div class="floor-plan-header">
+                            <h4 id="current-floor-title">
+                                Floor 1 - Ceiling View
+                            </h4>
+                        </div>
+
+                        <div class="floor-plan">
+                            <!-- Desk Grid -->
+                            <div class="desk-grid" id="desk-grid">
+                                <!-- Desks will be dynamically generated -->
+                            </div>
+
+                            <!-- Legend -->
+                            <div class="floor-legend">
+                                <div class="legend-item">
+                                    <span class="legend-dot free"></span>
+                                    <span>Free</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="legend-dot used"></span>
+                                    <span>Used</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="legend-dot invalid"></span>
+                                    <span>Invalid</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT: Floor Stats Grid (40%) - Dynamically populated based on building -->
+                <div id="sensor-stats-container" class="office-stats">
+                    <!-- Stats cards will be dynamically generated by JavaScript based on building zones -->
+                </div>
+            </div>
+        </section>
     </section>
 
-    <!-- Alerts Section -->
-    <section class="alerts-section">
-        <h3 class="section-title">🚨 Active Alerts</h3>
-        <div class="alerts-grid">
-            <div class="alert-card critical">
-                <div class="alert-icon">⚠️</div>
-                <div class="alert-content">
-                    <h4>Critical CO2 Level</h4>
-                    <p>Sensor CO2-B2 detected 1200 ppm</p>
-                    <span class="alert-time">2 minutes ago</span>
-                </div>
-            </div>
+    <!-- ===== Panneau HISTORIQUE ===== -->
+    <section id="pane-history" class="hidden">
+        <h3 class="section-title">📊 History & Analysis</h3>
 
-            <div class="alert-card warning">
-                <div class="alert-icon">🔔</div>
-                <div class="alert-content">
-                    <h4>High Temperature</h4>
-                    <p>Room A-103 temperature at 28°C</p>
-                    <span class="alert-time">15 minutes ago</span>
+        <!-- Filtres de période -->
+        <div class="history-filters card">
+            <div class="filter-grid">
+                <div class="filter-item">
+                    <label for="hist-from">📅 Start Date</label>
+                    <input type="datetime-local" id="hist-from" step="3600">
                 </div>
-            </div>
-
-            <div class="alert-card info">
-                <div class="alert-icon">ℹ️</div>
-                <div class="alert-content">
-                    <h4>Sensor Offline</h4>
-                    <p>DESK-F1-12 not responding</p>
-                    <span class="alert-time">1 hour ago</span>
+                <div class="filter-item">
+                    <label for="hist-to">📅 End Date</label>
+                    <input type="datetime-local" id="hist-to" step="3600">
                 </div>
-            </div>
-
-            <div class="alert-card success">
-                <div class="alert-icon">✅</div>
-                <div class="alert-content">
-                    <h4>System Restored</h4>
-                    <p>Gateway rpi-mantu back online</p>
-                    <span class="alert-time">2 hours ago</span>
+                <div class="filter-item">
+                    <label for="hist-filter-building">📍 Building</label>
+                    <select id="hist-filter-building" class="form-select">
+                        <option value="LEVALLOIS" selected>Levallois</option>
+                        <option value="CHATEAUDUN">Châteaudun</option>
+                    </select>
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Live Sensor Data Section -->
-    <section class="live-section">
-        <h3 class="section-title" id="live-section-title">📊 Live Desk Occupancy - Châteaudun Office</h3>
-        <div class="live-grid">
-            <!-- 3D Building Visualization -->
-            <div class="floor-plan-card">
-                <div class="building-3d-header">
-                    <h4 id="building-title">🏢 Châteaudun Office Building</h4>
-                    <button id="back-to-3d-btn" class="back-to-building" style="display: none;" onclick="return3DView()">
-                        ← Back to 3D View
+                <div class="filter-item" style="align-self:end;">
+                    <button id="hist-load" class="btn btn-primary">
+                        <svg id="hist-load-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: none; margin-right: 0.5rem; animation: spin 0.8s linear infinite;">
+                            <circle cx="12" cy="12" r="10" opacity="0.25"/>
+                            <path d="M12 2 A10 10 0 0 1 22 12" opacity="1"/>
+                        </svg>
+                        <svg id="hist-load-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 0.5rem;">
+                            <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5z"/>
+                        </svg>
+                        Load Data
                     </button>
                 </div>
-                
-                <!-- 3D Canvas Container -->
-                <div id="building-3d-container" class="building-3d-container">
-                    <canvas id="building-canvas"></canvas>
-                    <div class="building-controls">
-                        <div class="control-hint">
-                            <span>🖱️ Rotate: Left Click + Drag</span>
-                            <span>🔍 Zoom: Scroll</span>
-                            <span>👆 Click floor to enter</span>
+            </div>
+        </div>
+
+        <!-- Sub-Navigation Tabs -->
+        <nav class="history-sub-tabs" style="margin: 2rem 0 1rem; background: white; border-radius: 12px; padding: 0.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button class="history-sub-tab-btn is-active" data-section="occupancy" style="flex: 1; min-width: 150px; padding: 0.75rem 1.5rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                📊 Occupancy Rate
+            </button>
+            <button class="history-sub-tab-btn" data-section="energy" style="flex: 1; min-width: 150px; padding: 0.75rem 1.5rem; border: 2px solid #e5e7eb; background: white; color: #6b7280; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                ⚡ Energy Consumption
+            </button>
+            <button class="history-sub-tab-btn" data-section="environment" style="flex: 1; min-width: 150px; padding: 0.75rem 1.5rem; border: 2px solid #e5e7eb; background: white; color: #6b7280; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                🌡️ Environment
+            </button>
+        </nav>
+
+        <!-- Occupancy Section -->
+        <div class="history-sub-section" data-section-content="occupancy">
+            <h3 class="section-title">📊 Occupation Rate Analytics</h3>
+
+            <!-- 1. Desk-Bureau-Standard Section -->
+        <div class="chart-card full-width" style="margin-bottom: 2rem;">
+            <div class="section-header" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
+                <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>💼</span>
+                    <span>1. Desk-Standard</span>
+                </h4>
+            </div>
+            <div style="padding: 1.5rem;">
+                <!-- Statistiques Globales (NOUVEAU: 4 cartes pour Desk-Standard) -->
+                <div class="stats-summary" id="desk-global-stats" style="margin-bottom: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div class="stat-card" style="flex: 1;">
+                        <span class="stat-label">📊 Global Occupancy Rate</span>
+                        <span class="stat-value" id="desk-global-rate" style="font-size: 2.5rem;">--</span>
+                        <span class="stat-info" id="desk-global-period" style="font-size: 0.85rem; color: #666; display: block; margin-top: 0.3rem;">--</span>
+                        <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Working hours: 9h→12h30 / 14h→18h30</span>
+                    </div>
+                    <div class="stat-card" style="flex: 1;">
+                        <span class="stat-label">🔢 Number of Sensors</span>
+                        <span class="stat-value" id="desk-total-sensors" style="font-size: 2.5rem;">--</span>
+                        <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
+                    </div>
+                    <div class="stat-card" style="flex: 1;">
+                        <span class="stat-label">📉 Avg Low Usage Rate</span>
+                        <span class="stat-value" id="desk-low-usage-avg" style="font-size: 2.5rem; color: #f59e0b;">--</span>
+                        <span class="stat-info" style="font-size: 0.85rem; color: #666;">Average of desks ≤12.5%</span>
+                        <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Over selected period</span>
+                    </div>
+                    <div class="stat-card performance-stat" style="flex: 1;">
+                        <span class="stat-label">📈 Performance Distribution</span>
+                        <div>
+                            <div class="performance-item excellent">
+                                <span class="performance-number" style="color: #10b981;" id="desk-perf-excellent">--</span>
+                                <span class="performance-label" style="color: #059669;">
+                                    <span>🟢 Excellent</span>
+                                    <span class="performance-badge" style="color: #059669;">≥70%</span>
+                                </span>
+                            </div>
+                            <div class="performance-item good">
+                                <span class="performance-number" style="color: #f59e0b;" id="desk-perf-good">--</span>
+                                <span class="performance-label" style="color: #d97706;">
+                                    <span>🟡 Good</span>
+                                    <span class="performance-badge" style="color: #d97706;">30-69%</span>
+                                </span>
+                            </div>
+                            <div class="performance-item poor">
+                                <span class="performance-number" style="color: #ef4444;" id="desk-perf-poor">--</span>
+                                <span class="performance-label" style="color: #dc2626;">
+                                    <span>🔴 Poor</span>
+                                    <span class="performance-badge" style="color: #dc2626;"><30%</span>
+                                </span>
+                            </div>
                         </div>
                     </div>
-                    <div id="floor-info-overlay" class="floor-info-overlay"></div>
                 </div>
-                
-                <!-- 2D Floor Plan View (Hidden by default) -->
-                <div id="floor-plan-2d" class="floor-plan-2d" style="display: none;">
-                    <div class="floor-plan-header">
-                        <h4 id="current-floor-title">Floor 1 - Ceiling View</h4>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-controls">
+                    <button id="desk-prev-btn" disabled>
+                        ◄ Previous
+                    </button>
+                    <span id="desk-page-info">Page 1/1</span>
+                    <button id="desk-next-btn" disabled>
+                        Next ►
+                    </button>
+                </div>
+
+                <!-- Tableau des capteurs (NOUVEAU: colonnes par jour) -->
+                <div class="history-table-container" style="overflow-x: auto; overflow-y: auto; max-height: 600px; position: relative;">
+                    <table class="history-table analytics-table" id="desk-daily-table" style="position: relative;">
+                        <thead id="desk-table-head">
+                        <tr>
+                            <th>Sensor</th>
+                            <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
+                        </tr>
+                        </thead>
+                        <tbody id="desk-analytics-tbody">
+                        <tr>
+                            <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
+                                🔄 Waiting for data loading...
+                            </td>
+                        </tr>
+                        </tbody>
+                        <tfoot id="desk-table-foot" style="position: sticky; bottom: 0; z-index: 10;">
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Graphique Taux par Capteur -->
+                <div class="chart-container" style="margin-top: 2rem; height: 400px;">
+                    <canvas id="desk-chart-overall"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Salle de Réunion Section -->
+        <div class="chart-card full-width" style="margin-bottom: 2rem;">
+            <div class="section-header" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
+                <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>🏢</span>
+                    <span>2. Meeting Room</span>
+                </h4>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="stats-summary" id="meeting-global-stats" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+                    <div class="stat-card" style="flex: 1;">
+                        <span class="stat-label">📊 Global Occupancy Rate</span>
+                        <span class="stat-value" id="meeting-global-rate" style="font-size: 2.5rem;">--</span>
+                        <span class="stat-info" id="meeting-global-period" style="font-size: 0.85rem; color: #666; display: block; margin-top: 0.3rem;">--</span>
+                        <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Working hours: 9h→12h30 / 14h→18h30</span>
                     </div>
-                    
-                    <div class="floor-plan">
-                        <!-- Desk Grid -->
-                        <div class="desk-grid" id="desk-grid">
-                            <!-- Desks will be dynamically generated -->
+                    <div class="stat-card" style="flex: 1;">
+                        <span class="stat-label">🔢 Number of Sensors</span>
+                        <span class="stat-value" id="meeting-total-sensors" style="font-size: 2.5rem;">--</span>
+                        <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
+                    </div>
+                    <div class="stat-card performance-stat" style="flex: 1;">
+                        <span class="stat-label">📈 Performance Distribution</span>
+                        <div>
+                            <div class="performance-item excellent">
+                                <span class="performance-number" style="color: #10b981;" id="meeting-perf-excellent">--</span>
+                                <span class="performance-label" style="color: #059669;">
+                                    <span>🟢 Excellent</span>
+                                    <span class="performance-badge" style="color: #059669;">≥70%</span>
+                                </span>
+                            </div>
+                            <div class="performance-item good">
+                                <span class="performance-number" style="color: #f59e0b;" id="meeting-perf-good">--</span>
+                                <span class="performance-label" style="color: #d97706;">
+                                    <span>🟡 Good</span>
+                                    <span class="performance-badge" style="color: #d97706;">30-69%</span>
+                                </span>
+                            </div>
+                            <div class="performance-item poor">
+                                <span class="performance-number" style="color: #ef4444;" id="meeting-perf-poor">--</span>
+                                <span class="performance-label" style="color: #dc2626;">
+                                    <span>🔴 Poor</span>
+                                    <span class="performance-badge" style="color: #dc2626;"><30%</span>
+                                </span>
+                            </div>
                         </div>
-                        
-                        <!-- Legend -->
-                        <div class="floor-legend">
-                            <div class="legend-item">
-                                <span class="legend-dot free"></span>
-                                <span>Free</span>
+                    </div>
+                </div>
+
+                <div class="pagination-controls">
+                    <button id="meeting-prev-btn" disabled>
+                        ◄ Previous
+                    </button>
+                    <span id="meeting-page-info">Page 1/1</span>
+                    <button id="meeting-next-btn" disabled>
+                        Next ►
+                    </button>
+                </div>
+
+                <div class="history-table-container" style="overflow-x: auto;">
+                    <table class="history-table analytics-table" id="meeting-daily-table">
+                        <thead id="meeting-table-head">
+                        <tr>
+                            <th>Room</th>
+                            <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
+                        </tr>
+                        </thead>
+                        <tbody id="meeting-analytics-tbody">
+                        <tr>
+                            <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
+                                🔄 Waiting for data loading...
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="chart-container" style="margin-top: 2rem; height: 300px;">
+                    <canvas id="meeting-chart-overall"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Phone Booth Section -->
+        <div class="chart-card full-width" style="margin-bottom: 2rem;">
+            <div class="section-header" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
+                <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>📞</span>
+                    <span>3. Phone Booth</span>
+                </h4>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="stats-summary" id="phone-global-stats" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+                    <div class="stat-card" style="flex: 1;">
+                        <span class="stat-label">📊 Global Occupancy Rate</span>
+                        <span class="stat-value" id="phone-global-rate" style="font-size: 2.5rem;">--</span>
+                        <span class="stat-info" id="phone-global-period" style="font-size: 0.85rem; color: #666; display: block; margin-top: 0.3rem;">--</span>
+                        <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Working hours: 9h→12h30 / 14h→18h30</span>
+                    </div>
+                    <div class="stat-card" style="flex: 1;">
+                        <span class="stat-label">🔢 Number of Sensors</span>
+                        <span class="stat-value" id="phone-total-sensors" style="font-size: 2.5rem;">--</span>
+                        <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
+                    </div>
+                    <div class="stat-card performance-stat" style="flex: 1;">
+                        <span class="stat-label">📈 Performance Distribution</span>
+                        <div>
+                            <div class="performance-item excellent">
+                                <span class="performance-number" style="color: #10b981;" id="phone-perf-excellent">--</span>
+                                <span class="performance-label" style="color: #059669;">
+                                    <span>🟢 Excellent</span>
+                                    <span class="performance-badge" style="color: #059669;">≥70%</span>
+                                </span>
                             </div>
-                            <div class="legend-item">
-                                <span class="legend-dot used"></span>
-                                <span>Used</span>
+                            <div class="performance-item good">
+                                <span class="performance-number" style="color: #f59e0b;" id="phone-perf-good">--</span>
+                                <span class="performance-label" style="color: #d97706;">
+                                    <span>🟡 Good</span>
+                                    <span class="performance-badge" style="color: #d97706;">30-69%</span>
+                                </span>
                             </div>
-                            <div class="legend-item">
-                                <span class="legend-dot invalid"></span>
-                                <span>Invalid</span>
+                            <div class="performance-item poor">
+                                <span class="performance-number" style="color: #ef4444;" id="phone-perf-poor">--</span>
+                                <span class="performance-label" style="color: #dc2626;">
+                                    <span>🔴 Poor</span>
+                                    <span class="performance-badge" style="color: #dc2626;"><30%</span>
+                                </span>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div class="pagination-controls">
+                    <button id="phone-prev-btn" disabled>
+                        ◄ Previous
+                    </button>
+                    <span id="phone-page-info">Page 1/1</span>
+                    <button id="phone-next-btn" disabled>
+                        Next ►
+                    </button>
+                </div>
+
+                <div class="history-table-container" style="overflow-x: auto;">
+                    <table class="history-table analytics-table" id="phone-daily-table">
+                        <thead id="phone-table-head">
+                        <tr>
+                            <th>Booth</th>
+                            <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
+                        </tr>
+                        </thead>
+                        <tbody id="phone-analytics-tbody">
+                        <tr>
+                            <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
+                                🔄 Waiting for data loading...
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="chart-container" style="margin-top: 2rem; height: 300px;">
+                    <canvas id="phone-chart-overall"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Interview Room Section -->
+        <div class="chart-card full-width" style="margin-bottom: 2rem;">
+            <div class="section-header" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
+                <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>🎯</span>
+                    <span>4. Interview Room</span>
+                </h4>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="stats-summary" id="interview-global-stats" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+                    <div class="stat-card" style="flex: 1;">
+                        <span class="stat-label">📊 Global Occupancy Rate</span>
+                        <span class="stat-value" id="interview-global-rate" style="font-size: 2.5rem;">--</span>
+                        <span class="stat-info" id="interview-global-period" style="font-size: 0.85rem; color: #666; display: block; margin-top: 0.3rem;">--</span>
+                        <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Working hours: 9h→12h30 / 14h→18h30</span>
+                    </div>
+                    <div class="stat-card" style="flex: 1;">
+                        <span class="stat-label">🔢 Number of Sensors</span>
+                        <span class="stat-value" id="interview-total-sensors" style="font-size: 2.5rem;">--</span>
+                        <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
+                    </div>
+                    <div class="stat-card performance-stat" style="flex: 1;">
+                        <span class="stat-label">📈 Performance Distribution</span>
+                        <div>
+                            <div class="performance-item excellent">
+                                <span class="performance-number" style="color: #10b981;" id="interview-perf-excellent">--</span>
+                                <span class="performance-label" style="color: #059669;">
+                                    <span>🟢 Excellent</span>
+                                    <span class="performance-badge" style="color: #059669;">≥70%</span>
+                                </span>
+                            </div>
+                            <div class="performance-item good">
+                                <span class="performance-number" style="color: #f59e0b;" id="interview-perf-good">--</span>
+                                <span class="performance-label" style="color: #d97706;">
+                                    <span>🟡 Good</span>
+                                    <span class="performance-badge" style="color: #d97706;">30-69%</span>
+                                </span>
+                            </div>
+                            <div class="performance-item poor">
+                                <span class="performance-number" style="color: #ef4444;" id="interview-perf-poor">--</span>
+                                <span class="performance-label" style="color: #dc2626;">
+                                    <span>🔴 Poor</span>
+                                    <span class="performance-badge" style="color: #dc2626;"><30%</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pagination-controls">
+                    <button id="interview-prev-btn" disabled>
+                        ◄ Previous
+                    </button>
+                    <span id="interview-page-info">Page 1/1</span>
+                    <button id="interview-next-btn" disabled>
+                        Next ►
+                    </button>
+                </div>
+
+                <div class="history-table-container" style="overflow-x: auto;">
+                    <table class="history-table analytics-table" id="interview-daily-table">
+                        <thead id="interview-table-head">
+                        <tr>
+                            <th>Room</th>
+                            <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
+                        </tr>
+                        </thead>
+                        <tbody id="interview-analytics-tbody">
+                        <tr>
+                            <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
+                                🔄 Waiting for data loading...
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="chart-container" style="margin-top: 2rem; height: 300px;">
+                    <canvas id="interview-chart-overall"></canvas>
+                </div>
+            </div>
+        </div>
+        </div>
+        <!-- End Occupancy Section -->
+
+        <!-- Energy Consumption Section -->
+        <div class="history-sub-section" data-section-content="energy" style="display: none;">
+            <h3 class="section-title">⚡ Energy Consumption Analytics</h3>
+
+            <!-- Histogram Chart -->
+            <div class="chart-card full-width" style="margin-bottom: 2rem;">
+                <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div class="chart-title">
+                            <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🔴</span>
+                            <span>Total Consumption</span>
+                        </div>
+                        <div class="chart-info">
+                            <span class="kpi-value" id="energy-total-value">--</span> kWh for selected period
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; background: #f3f4f6; padding: 0.25rem; border-radius: 8px;">
+                        <button id="chart-type-bar" class="chart-type-btn active" data-type="bar" style="padding: 0.5rem 1rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                            📊 Bars
+                        </button>
+                        <button id="chart-type-line" class="chart-type-btn" data-type="line" style="padding: 0.5rem 1rem; border: none; background: transparent; color: #6b7280; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                            📈 Line
+                        </button>
+                        <button id="chart-type-doughnut" class="chart-type-btn" data-type="doughnut" style="padding: 0.5rem 1rem; border: none; background: transparent; color: #6b7280; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                            🍩 Donut
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-container" style="height: 400px; min-height: 400px; max-height: 400px; position: relative;">
+                    <canvas id="energy-consumption-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Energy Breakdown Table -->
+            <div class="chart-card full-width" style="margin-bottom: 2rem;">
+                <div class="section-header" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
+                    <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <span>📊</span>
+                        <span>Energy Consumption by Category</span>
+                    </h4>
+                </div>
+                <div style="padding: 1.5rem;">
+                    <!-- Pagination Controls -->
+                    <div class="pagination-controls">
+                        <button id="energy-prev-page" disabled>
+                            ◄ Previous
+                        </button>
+                        <span id="energy-page-info">Page 1/1</span>
+                        <button id="energy-next-page" disabled>
+                            Next ►
+                        </button>
+                    </div>
+
+                    <!-- Energy Table -->
+                    <div class="history-table-container">
+                        <table class="history-table" id="energy-table">
+                            <thead>
+                                <tr>
+                                    <th style="position: sticky; left: 0; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; z-index: 10; font-weight: 600;">Category</th>
+                                    <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
+                                </tr>
+                            </thead>
+                            <tbody id="energy-analytics-tbody">
+                                <tr>
+                                    <td style="font-weight: 600; background: linear-gradient(135deg, #ef444420, #dc262620);">🔴 Red Outlets</td>
+                                    <td colspan="10" style="text-align: center; color: #999; padding: 1rem;">
+                                        🔄 Waiting for data loading...
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600; background: linear-gradient(135deg, #3b82f620, #2563eb20);">⚪ White Outlets & Lighting</td>
+                                    <td colspan="10" style="text-align: center; color: #999; padding: 1rem;">
+                                        🔄 Waiting for data loading...
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600; background: linear-gradient(135deg, #10b98120, #05966920);">💨 Ventilation & Heaters</td>
+                                    <td colspan="10" style="text-align: center; color: #999; padding: 1rem;">
+                                        🔄 Waiting for data loading...
+                                    </td>
+                                </tr>
+                                <tr style="font-weight: 700; background: #f9fafb; border-top: 2px solid #e5e7eb;">
+                                    <td style="font-weight: 700;">⚡ Total Power</td>
+                                    <td colspan="10" style="text-align: center; color: #999; padding: 1rem;">
+                                        🔄 Waiting for data loading...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
 
-            <!-- Dynamic Sensor Stats -->
-            <div class="office-stats" id="sensor-stats-container">
-                <!-- Stats cards will be dynamically generated based on sensor type -->
-                <div class="stat-card">
-                    <h4 id="stat-card-1-title">Open_05-01</h4>
-                    <div class="donut-chart">
-                        <canvas id="chart-office-1"></canvas>
+            <!-- Energy Cost Subsection -->
+            <div class="chart-card full-width" style="margin-bottom: 2rem; margin-top: 2rem;">
+                <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div class="chart-title">
+                            <span class="chart-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">💰</span>
+                            <span>Energy Cost</span>
+                        </div>
+                        <div class="chart-info">
+                            Total: <span class="kpi-value" id="energy-cost-total">--</span> <span id="energy-cost-currency">€</span>
+                        </div>
                     </div>
-                    <div class="stat-legend" id="stat-legend-1">
-                        <div><span class="dot free"></span> Free (57%)</div>
-                        <div><span class="dot used"></span> Used (42%)</div>
-                        <div><span class="dot invalid"></span> Invalid (1%)</div>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <h4 id="stat-card-2-title">Open_05-02</h4>
-                    <div class="donut-chart">
-                        <canvas id="chart-office-2"></canvas>
-                    </div>
-                    <div class="stat-legend" id="stat-legend-2">
-                        <div><span class="dot free"></span> Free (75%)</div>
-                        <div><span class="dot used"></span> Used (25%)</div>
-                        <div><span class="dot invalid"></span> Invalid (0%)</div>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <h4 id="stat-card-3-title">Meeting Room A</h4>
-                    <div class="donut-chart">
-                        <canvas id="chart-meeting-a"></canvas>
-                    </div>
-                    <div class="stat-legend" id="stat-legend-3">
-                        <div><span class="dot free"></span> Free (66%)</div>
-                        <div><span class="dot used"></span> Used (34%)</div>
-                        <div><span class="dot invalid"></span> Invalid (0%)</div>
+                    <div style="display: flex; gap: 0.5rem; background: #f3f4f6; padding: 0.25rem; border-radius: 8px;">
+                        <button class="cost-chart-btn active" data-type="table" style="padding: 0.5rem 1rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                            📋 Table
+                        </button>
+                        <button class="cost-chart-btn" data-type="bar" style="padding: 0.5rem 1rem; border: none; background: transparent; color: #6b7280; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                            📊 Bars
+                        </button>
+                        <button class="cost-chart-btn" data-type="line" style="padding: 0.5rem 1rem; border: none; background: transparent; color: #6b7280; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                            📈 Line
+                        </button>
+                        <button class="cost-chart-btn" data-type="doughnut" style="padding: 0.5rem 1rem; border: none; background: transparent; color: #6b7280; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                            🍩 Donut
+                        </button>
                     </div>
                 </div>
-
-                <!-- <div class="stat-card">
-                    <h4 id="stat-card-4-title">Meeting Room B</h4>
-                    <div class="donut-chart">
-                        <canvas id="chart-meeting-b"></canvas>
+                <!-- Cost Table View (Default) -->
+                <div id="energy-cost-table-view" style="padding: 1.5rem;">
+                    <!-- Header Table (fixed) -->
+                    <table class="history-table" style="width: 100%; table-layout: fixed; margin-bottom: 0;">
+                        <thead>
+                            <tr>
+                                <th style="background: linear-gradient(135deg, #662179, #8b2fa3); color: white; padding: 0.75rem 1rem; width: 33.33%;">Date</th>
+                                <th style="background: linear-gradient(135deg, #662179, #8b2fa3); color: white; padding: 0.75rem 1rem; width: 33.33%;">Energy (kWh)</th>
+                                <th style="background: linear-gradient(135deg, #662179, #8b2fa3); color: white; padding: 0.75rem 1rem; width: 33.34%;">Cost/Day</th>
+                            </tr>
+                        </thead>
+                    </table>
+                    <!-- Scrollable Body -->
+                    <div style="max-height: 250px; overflow-y: auto; border: 1px solid #e5e7eb; border-top: none; border-bottom: none;">
+                        <table class="history-table" id="energy-cost-table" style="width: 100%; table-layout: fixed; margin: 0;">
+                            <tbody id="energy-cost-tbody">
+                                <tr>
+                                    <td colspan="3" style="text-align: center; color: #999; padding: 2rem;">
+                                        Select a period and click "Load Data" to view energy costs
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="stat-legend" id="stat-legend-4">
-                        <div><span class="dot free"></span> Free (50%)</div>
-                        <div><span class="dot used"></span> Used (45%)</div>
-                        <div><span class="dot invalid"></span> Invalid (5%)</div>
+                    <!-- Footer Table (fixed) -->
+                    <table class="history-table" style="width: 100%; table-layout: fixed; margin-top: 0;">
+                        <tfoot>
+                            <tr style="font-weight: 700; background: linear-gradient(135deg, #662179, #8b2fa3); color: white;">
+                                <td style="font-weight: 700; padding: 0.75rem 1rem; text-align: left; width: 33.33%;">Total</td>
+                                <td id="energy-cost-total-kwh" style="padding: 0.75rem 1rem; text-align: center; width: 33.33%;">--</td>
+                                <td id="energy-cost-total-cost" style="padding: 0.75rem 1rem; text-align: center; width: 33.34%;">--</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <!-- Cost Chart View (Hidden by default) -->
+                <div id="energy-cost-chart-view" style="display: none; height: 400px; padding: 1rem;">
+                    <canvas id="energy-cost-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- CO2 Emissions Subsection -->
+            <div class="chart-card full-width" style="margin-bottom: 2rem;">
+                <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div class="chart-title">
+                            <span class="chart-icon" style="background: linear-gradient(135deg, #10b981, #059669);">🌿</span>
+                            <span>CO₂ Emissions</span>
+                        </div>
+                        <div class="chart-info">
+                            Total: <span class="kpi-value" id="co2-emissions-total">--</span> kg CO₂
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; background: #f3f4f6; padding: 0.25rem; border-radius: 8px;">
+                        <button class="co2-chart-btn active" data-type="bar" style="padding: 0.5rem 1rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                            📊 Bars
+                        </button>
+                        <button class="co2-chart-btn" data-type="line" style="padding: 0.5rem 1rem; border: none; background: transparent; color: #6b7280; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                            📈 Line
+                        </button>
                     </div>
                 </div>
+                <div class="chart-container" style="height: 300px; padding: 1rem;">
+                    <canvas id="co2-emissions-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        <!-- End Energy Section -->
 
-                <div class="stat-card">
-                    <h4 id="stat-card-5-title">Meeting Room C</h4>
-                    <div class="donut-chart">
-                        <canvas id="chart-meeting-c"></canvas>
-                    </div>
-                    <div class="stat-legend" id="stat-legend-5">
-                        <div><span class="dot free"></span> Free (80%)</div>
-                        <div><span class="dot used"></span> Used (20%)</div>
-                        <div><span class="dot invalid"></span> Invalid (0%)</div>
-                    </div>
-                </div> -->
+        <!-- Environment Section -->
+        <div class="history-sub-section" data-section-content="environment" style="display: none;">
+            <h3 class="section-title">🌡️ Environment Analytics</h3>
 
-                <div class="stat-card">
-                    <h4 id="stat-card-6-title">Total Live Data</h4>
-                    <div class="donut-chart">
-                        <canvas id="chart-total"></canvas>
+            <div class="charts-section">
+                <div class="charts-grid charts-grid--2col">
+                    <!-- Temperature Chart -->
+                    <div class="chart-card">
+                        <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div class="chart-title">
+                                    <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🌡️</span>
+                                    <span>Temperature History</span>
+                                </div>
+                                <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                    Avg: <span class="kpi-value" id="env-temp-avg" style="font-weight: 600; color: #ef4444;">--</span> °C
+                                </div>
+                            </div>
+                            <div class="env-chart-toggle" data-chart="temperature" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+                                <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    📈 Line
+                                </button>
+                                <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    📊 Bar
+                                </button>
+                                <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    🍩 Donut
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="height: 280px; position: relative;">
+                            <canvas id="hist-temperature-chart"></canvas>
+                        </div>
                     </div>
-                    <div class="stat-legend" id="stat-legend-6">
-                        <div><span class="dot free"></span> Free (64%)</div>
-                        <div><span class="dot used"></span> Used (36%)</div>
-                        <div><span class="dot invalid"></span> Invalid (0%)</div>
+
+                    <!-- Humidity Chart -->
+                    <div class="chart-card">
+                        <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div class="chart-title">
+                                    <span class="chart-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">💧</span>
+                                    <span>Humidity History</span>
+                                </div>
+                                <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                    Avg: <span class="kpi-value" id="env-humidity-avg" style="font-weight: 600; color: #3b82f6;">--</span> %
+                                </div>
+                            </div>
+                            <div class="env-chart-toggle" data-chart="humidity" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+                                <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    📈 Line
+                                </button>
+                                <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    📊 Bar
+                                </button>
+                                <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    🍩 Donut
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="height: 280px; position: relative;">
+                            <canvas id="hist-humidity-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- CO2 Chart -->
+                    <div class="chart-card">
+                        <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div class="chart-title">
+                                    <span class="chart-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💨</span>
+                                    <span>CO₂ History</span>
+                                </div>
+                                <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                    Avg: <span class="kpi-value" id="env-co2-avg" style="font-weight: 600; color: #10b981;">--</span> ppm
+                                </div>
+                            </div>
+                            <div class="env-chart-toggle" data-chart="co2" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+                                <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    📈 Line
+                                </button>
+                                <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    📊 Bar
+                                </button>
+                                <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    🍩 Donut
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="height: 280px; position: relative;">
+                            <canvas id="hist-co2-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Sound Level Chart -->
+                    <div class="chart-card">
+                        <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div class="chart-title">
+                                    <span class="chart-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</span>
+                                    <span>Sound Level History</span>
+                                </div>
+                                <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                                    Avg: <span class="kpi-value" id="env-sound-avg" style="font-weight: 600; color: #f59e0b;">--</span> dB
+                                </div>
+                            </div>
+                            <div class="env-chart-toggle" data-chart="sound" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+                                <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    📈 Line
+                                </button>
+                                <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    📊 Bar
+                                </button>
+                                <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
+                                    🍩 Donut
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="height: 280px; position: relative;">
+                            <canvas id="hist-sound-chart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
+        <!-- End Environment Section -->
 
-    <!-- Historical Data Section -->
-    <section class="historical-section">
-        <h3 class="section-title" id="historical-section-title">📈 Historical Sensor Data - Châteaudun Office</h3>
-        <div class="historical-grid">
-            <!-- Global Stats -->
+        <!-- ========================================
+             OLD SECTIONS (KEPT FOR REFERENCE)
+             ======================================== -->
+        <!--
+        <h3 class="section-title" style="margin-top: 3rem;">⚡ Energy Rate Analytics</h3>
+        <div class="analytics-grid">
             <div class="chart-card">
-                <h4 id="global-chart-title">Global Statistics</h4>
-                <div class="global-occupation">
-                    <div class="global-donut">
-                        <canvas id="chart-global"></canvas>
-                        <div class="global-percentage" id="global-percentage-value">32.93%</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Daily History Table -->
-            <div class="chart-card">
-                <h4>Desk Occupation History</h4>
+                <h4>📅 Daily Energy Rate</h4>
                 <div class="history-table-container">
                     <table class="history-table">
                         <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Occupancy</th>
-                            </tr>
+                        <tr>
+                            <th>Date</th>
+                            <th>Total Energy</th>
+                            <th>Peak Power</th>
+                            <th>Avg Power</th>
+                            <th>Efficiency</th>
+                        </tr>
                         </thead>
-                        <tbody>
-                            <tr><td>17/10/2025</td><td>29%</td></tr>
-                            <tr><td>16/10/2025</td><td>30%</td></tr>
-                            <tr><td>15/10/2025</td><td>37%</td></tr>
-                            <tr><td>14/10/2025</td><td>36%</td></tr>
-                            <tr><td>13/10/2025</td><td>35%</td></tr>
-                            <tr><td>10/10/2025</td><td>18%</td></tr>
-                            <tr><td>09/10/2025</td><td>35%</td></tr>
-                            <tr><td>08/10/2025</td><td>24%</td></tr>
-                            <tr><td>07/10/2025</td><td>35%</td></tr>
+                        <tbody id="daily-energy-tbody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #999;">
+                                Load data to view daily energy rates
+                            </td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-            
-            <!-- Daily Sensor Cost Chart -->
+
             <div class="chart-card">
-                <h4>Daily Sensor Cost</h4>
-                <div class="cost-summary">
-                    <div class="cost-total">
-                        <span class="cost-label">Total Monthly Cost</span>
-                        <span class="cost-value">€842.50</span>
-                    </div>
-                    <div class="cost-average">
-                        <span class="cost-label">Average Daily Cost</span>
-                        <span class="cost-value">€27.82</span>
-                    </div>
+                <h4>📆 Monthly Energy Rate</h4>
+                <div class="history-table-container">
+                    <table class="history-table">
+                        <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Total Energy</th>
+                            <th>Avg Daily</th>
+                            <th>Cost</th>
+                        </tr>
+                        </thead>
+                        <tbody id="monthly-energy-tbody">
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: #999;">
+                                Load data to view monthly energy rates
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
                 </div>
-                <canvas id="chart-sensor-cost"></canvas>
-            </div>
-            <!-- Bar Chart -->
-            <div class="chart-card large">
-                <h4 id="historical-chart-title">Sensor Data Trends (08:00 - 19:00)</h4>
-                <canvas id="chart-historical-bar"></canvas>
             </div>
         </div>
+
+        <div class="charts-section" id="consumption-histogram-section">
+            <h4 class="subsection-title">⚡ Energy Consumption</h4>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">
+                        <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🔴</span>
+                        <span>Total consumption</span>
+                    </div>
+                    <div class="chart-info">
+                        <span class="kpi-value" id="hist-total-total">--</span> kWh for selected period
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="histConsumptionAll"></canvas>
+                </div>
+            </div>
+            <br>
+        </div>
+
+        <h3 class="section-title">📈 Historical Data Analysis</h3>
+        <div class="charts-section">
+            <div class="charts-grid charts-grid--2col">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <span class="chart-icon"
+                                  style="background: linear-gradient(135deg, #ef4444, #dc2626);">🌡️</span>
+                            <span>Temperature History</span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="hist-temperature-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <span class="chart-icon"
+                                  style="background: linear-gradient(135deg, #3b82f6, #2563eb);">💧</span>
+                            <span>Humidity History</span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="hist-humidity-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <span class="chart-icon"
+                                  style="background: linear-gradient(135deg, #10b981, #059669);">💨</span>
+                            <span>CO₂ History</span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="hist-co2-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <span class="chart-icon"
+                                  style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</span>
+                            <span>Sound Level History</span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="hist-sound-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="section-title">💰 Cost Analysis</h3>
+        <div class="cost-analysis-section">
+            <div class="analytics-grid">
+                <div class="chart-card">
+                    <h4>📊 Cost Summary</h4>
+                    <div class="cost-summary">
+                        <div>
+                            <div class="cost-card">
+                                <span class="cost-label">Total Monthly Cost</span>
+                                <span class="cost-value" id="hist-monthly-cost">€--</span>
+                            </div>
+                            <div class="cost-card">
+                                <span class="cost-label">Average Daily Cost</span>
+                                <span class="cost-value" id="hist-daily-cost">€--</span>
+                            </div>
+                            <div class="cost-card">
+                                <span class="cost-label">Energy Cost Rate</span>
+                                <span class="cost-value" id="hist-cost-rate">€--/kWh</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h4>💵 Cost Breakdown</h4>
+                    <div class="chart-container">
+                        <canvas id="chart-sensor-cost"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-card full-width" style="margin-top: 2rem;">
+                <div class="chart-header">
+                    <div class="chart-title">
+                        <span class="chart-icon" style="background: linear-gradient(135deg, #10b981, #059669);">📈</span>
+                        <span>Energy Cost Trend Over Time</span>
+                    </div>
+                </div>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="chart-cost-area"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card full-width" style="margin-top: 2rem;">
+                <div class="chart-header">
+                    <div class="chart-title">
+                        <span class="chart-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">🔵</span>
+                        <span>Cost vs Energy Consumption Analysis</span>
+                    </div>
+                </div>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="chart-cost-scatter"></canvas>
+                </div>
+            </div>
+        </div>
+        -->
+        <!-- ======================================== -->
     </section>
 </main>
 
+<script src="/javascript/deskSensorConfig.js"></script>
 <script src="/javascript/sensorOverlays.js"></script>
+<script src="/javascript/floorElementsManager.js"></script>
 <script src="/javascript/architecturalFloorPlan.js"></script>
 <script src="/javascript/building3D.js"></script>
 <script src="/javascript/alerts.js"></script>
+<script src="/javascript/sseManager.js" defer></script>
+<script src="/javascript/alertCacheManager.js" defer></script>
+<script src="/javascript/dashboard.js" defer></script>
+<script src="/javascript/occupancy-analytics-daily.js"></script>
 <script>
-    function toggleMenu() {
-        document.getElementById("dropdownMenu").classList.toggle("show");
-    }
+    // Tab switching functionality
+    function showPane(which) {
+        const live = document.getElementById("pane-live");
+        const hist = document.getElementById("pane-history");
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('is-active', b.dataset.pane === which));
 
-    window.onclick = function(event) {
-        if (!event.target.closest('.dropdown')) {
-            document.getElementById("dropdownMenu").classList.remove("show");
+        if (which === 'live') {
+            hist.classList.add('hidden');
+            live.classList.remove('hidden');
+        } else {
+            live.classList.add('hidden');
+            hist.classList.remove('hidden');
         }
     }
+
+    // Tab switching event listener
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => showPane(btn.dataset.pane));
+        });
+
+        // History sub-tabs navigation
+        document.querySelectorAll('.history-sub-tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const section = this.dataset.section;
+
+                // Update buttons
+                document.querySelectorAll('.history-sub-tab-btn').forEach(b => {
+                    b.classList.remove('is-active');
+                    b.style.background = 'white';
+                    b.style.color = '#6b7280';
+                    b.style.border = '2px solid #e5e7eb';
+                });
+
+                this.classList.add('is-active');
+                this.style.background = 'linear-gradient(135deg, var(--primary), var(--primary-light))';
+                this.style.color = 'white';
+                this.style.border = 'none';
+
+                // Update sections
+                document.querySelectorAll('.history-sub-section').forEach(s => {
+                    s.style.display = 'none';
+                });
+
+                const targetSection = document.querySelector(`[data-section-content="${section}"]`);
+                if (targetSection) {
+                    targetSection.style.display = 'block';
+                }
+            });
+        });
+
+        // Initialize Energy Consumption Chart
+        initializeEnergyConsumptionChart();
+
+        // Load all history data when hist-load button is clicked
+        const histLoadBtn = document.getElementById('hist-load');
+        if (histLoadBtn) {
+            histLoadBtn.addEventListener('click', async function() {
+                // Load energy config FIRST (wait for it), then load energy data
+                await loadEnergyCostData();
+                loadHistoricalEnergyData();
+                loadEnvironmentData();
+            });
+        }
+
+        // Energy Cost chart type toggle
+        document.querySelectorAll('.cost-chart-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.cost-chart-btn').forEach(b => {
+                    b.classList.remove('active');
+                    b.style.background = 'transparent';
+                    b.style.color = '#6b7280';
+                });
+                this.classList.add('active');
+                this.style.background = 'linear-gradient(135deg, var(--primary), var(--primary-light))';
+                this.style.color = 'white';
+
+                const chartType = this.dataset.type;
+                if (chartType === 'table') {
+                    document.getElementById('energy-cost-table-view').style.display = 'block';
+                    document.getElementById('energy-cost-chart-view').style.display = 'none';
+                } else {
+                    document.getElementById('energy-cost-table-view').style.display = 'none';
+                    document.getElementById('energy-cost-chart-view').style.display = 'block';
+                    renderEnergyCostChart(chartType);
+                }
+            });
+        });
+
+        // CO2 chart type toggle
+        document.querySelectorAll('.co2-chart-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.co2-chart-btn').forEach(b => {
+                    b.classList.remove('active');
+                    b.style.background = 'transparent';
+                    b.style.color = '#6b7280';
+                });
+                this.classList.add('active');
+                this.style.background = 'linear-gradient(135deg, var(--primary), var(--primary-light))';
+                this.style.color = 'white';
+                renderCo2Chart(this.dataset.type);
+            });
+        });
+    });
+
+    let energyConsumptionChart = null;
+
+    async function loadHistoricalEnergyData() {
+        const fromDate = document.getElementById('hist-from')?.value;
+        const toDate = document.getElementById('hist-to')?.value;
+
+        if (!fromDate || !toDate) {
+            alert('Please select both start and end dates');
+            return;
+        }
+
+        // Show loading spinner
+        const spinner = document.getElementById('hist-load-spinner');
+        const icon = document.getElementById('hist-load-icon');
+        const button = document.getElementById('hist-load');
+
+        if (spinner && icon && button) {
+            spinner.style.display = 'inline-block';
+            icon.style.display = 'none';
+            button.disabled = true;
+        }
+
+        try {
+            // ALWAYS load occupancy analytics regardless of energy data success
+            console.log('🔄 Triggering Occupancy Analytics load...');
+            if (window.analyticsManager) {
+                await window.analyticsManager.loadAllSections();
+            } else {
+                console.warn('⚠️ analyticsManager not found on window');
+            }
+
+            // Try to load energy data (optional, don't block analytics)
+            try {
+                // Extract date only (YYYY-MM-DD) from datetime-local input
+                let startDate = fromDate;
+                let endDate = toDate;
+                if (startDate.includes('T')) {
+                    startDate = startDate.split('T')[0];
+                }
+                if (endDate.includes('T')) {
+                    endDate = endDate.split('T')[0];
+                }
+
+                const params = new URLSearchParams({
+                    sensorId: 'conso-squid-03-01',
+                    customStartDate: startDate,
+                    customEndDate: endDate
+                });
+
+                console.log('🔄 Loading Energy channels:', `/api/dashboard/energy-channels?${params.toString()}`);
+                const response = await fetch(`/api/dashboard/energy-channels?${params.toString()}`);
+                if (!response.ok) {
+                    console.warn('⚠️ Energy data not available:', response.status, response.statusText);
+                } else {
+                    const data = await response.json();
+                    console.log('✅ Energy data received:', data);
+                    updateEnergyConsumptionChart(data);
+                }
+            } catch (error) {
+                console.error('❌ Energy data loading failed:', error);
+            }
+        } finally {
+            // Hide loading spinner
+            if (spinner && icon && button) {
+                spinner.style.display = 'none';
+                icon.style.display = 'inline-block';
+                button.disabled = false;
+            }
+        }
+    }
+
+    function initializeEnergyConsumptionChart() {
+        const canvas = document.getElementById('energy-consumption-chart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        energyConsumptionChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Red Outlets',
+                        data: [],
+                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                        borderColor: 'rgb(239, 68, 68)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'White Outlets & Lighting',
+                        data: [],
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        borderColor: 'rgb(59, 130, 246)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Ventilation & Heaters',
+                        data: [],
+                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                        borderColor: 'rgb(16, 185, 129)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: false,
+                        ticks: {
+                            autoSkip: true,
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    },
+                    y: {
+                        stacked: false,
+                        beginAtZero: true,
+                        grace: '5%',
+                        title: {
+                            display: true,
+                            text: 'Consumption (kWh)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Consumption (kWh) - Daily'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            }
+        });
+    }
+
+    // Energy table pagination
+    let energyTableData = [];
+    let energyCurrentPage = 0;
+    const ENERGY_ITEMS_PER_PAGE = 7; // One week per page
+
+    // Store original chart data to prevent undefined values when switching types
+    let originalChartData = {
+        labels: [],
+        datasets: []
+    };
+
+    function updateEnergyConsumptionChart(data) {
+        if (!energyConsumptionChart || !data) {
+            console.warn('⚠️ No energy chart or data');
+            return;
+        }
+
+        console.log('📊 Processing energy data:', data);
+
+        const labels = [];
+        const redOutlets = [];
+        const whiteOutlets = [];
+        const ventilation = [];
+        const others = [];
+        let totalKWh = 0;
+
+        const dataPoints = data.dataPoints || [];
+
+        if (!Array.isArray(dataPoints) || dataPoints.length === 0) {
+            console.warn('⚠️ No data points found in energy response');
+            return;
+        }
+
+        console.log(`✅ Found ${dataPoints.length} energy data points`);
+
+        // Process each DAILY data point with channel breakdown
+        // Channel mapping: 0-2: Red, 3-5: White, 6-8: Vent, 9-11: Other
+        // Data is already in kWh (converted in API)
+        dataPoints.forEach(entry => {
+            if (entry.date && entry.channels) {
+                // Format date nicely (e.g., "20 Jan")
+                const dateParts = entry.date.split('-'); // "2026-01-20" -> ["2026", "01", "20"]
+                const dateObj = new Date(entry.date);
+                const dateLabel = dateObj.toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short'
+                });
+
+                labels.push(dateLabel);
+
+                // Calculate categories (already in kWh)
+                // Red Outlets = ch0 + ch1 + ch2
+                // White Outlets & Lighting = (ch6 + ch7 + ch8) - (ch3 + ch4 + ch5)
+                // Ventilation & Heaters = ch6 + ch7 + ch8
+
+                let redSum = 0, whiteSum = 0, ventSum = 0;
+                let sum_ch6_7_8 = 0, sum_ch3_4_5 = 0;
+
+                // DEBUG: Log first entry to see ALL channel values
+                if (dateLabel === labels[0] || labels.length === 0) {
+                    console.log('=== DEBUG ENERGY CHANNELS FOR', entry.date, '===');
+                    console.log('CH0:', entry.channels["0"], 'kWh');
+                    console.log('CH1:', entry.channels["1"], 'kWh');
+                    console.log('CH2:', entry.channels["2"], 'kWh');
+                    console.log('CH3:', entry.channels["3"], 'kWh');
+                    console.log('CH4:', entry.channels["4"], 'kWh');
+                    console.log('CH5:', entry.channels["5"], 'kWh');
+                    console.log('CH6:', entry.channels["6"], 'kWh');
+                    console.log('CH7:', entry.channels["7"], 'kWh');
+                    console.log('CH8:', entry.channels["8"], 'kWh');
+                    console.log('--- MAPPING CURRENT ---');
+                    console.log('Red Outlets = CH0+1+2');
+                    console.log('White Outlets = (CH6+7+8) - (CH3+4+5)');
+                    console.log('Ventilation = CH6+7+8');
+                }
+
+                // Red Outlets: channels 0, 1, 2
+                for (let ch = 0; ch <= 2; ch++) {
+                    const val = entry.channels[String(ch)];  // FIX: Use string key
+                    if (val !== undefined && val !== null) {
+                        redSum += val;
+                    }
+                }
+
+                // For White calculation, we need ch3+4+5 and ch6+7+8
+                for (let ch = 3; ch <= 5; ch++) {
+                    const val = entry.channels[String(ch)];  // FIX: Use string key
+                    if (val !== undefined && val !== null) {
+                        sum_ch3_4_5 += val;
+                    }
+                }
+                for (let ch = 6; ch <= 8; ch++) {
+                    const val = entry.channels[String(ch)];  // FIX: Use string key
+                    if (val !== undefined && val !== null) {
+                        sum_ch6_7_8 += val;
+                    }
+                }
+
+                // White Outlets & Lighting = (ch6+7+8) - (ch3+4+5)
+                whiteSum = sum_ch6_7_8 - sum_ch3_4_5;
+
+                // Ventilation & Heaters = ch6+7+8
+                ventSum = sum_ch6_7_8;
+
+                // DEBUG: Log calculated sums for first entry
+                if (dateLabel === labels[0] || labels.length === 0) {
+                    console.log('--- CALCULATED SUMS ---');
+                    console.log('Red (CH0+1+2):', redSum.toFixed(2), 'kWh');
+                    console.log('sum_ch3_4_5:', sum_ch3_4_5.toFixed(2), 'kWh');
+                    console.log('sum_ch6_7_8:', sum_ch6_7_8.toFixed(2), 'kWh');
+                    console.log('White (CH6+7+8 - CH3+4+5):', whiteSum.toFixed(2), 'kWh');
+                    console.log('Ventilation (CH6+7+8):', ventSum.toFixed(2), 'kWh');
+                    console.log('TOTAL:', (redSum + whiteSum + ventSum).toFixed(2), 'kWh');
+                }
+
+                redOutlets.push(redSum);
+                whiteOutlets.push(whiteSum);
+                ventilation.push(ventSum);
+
+                totalKWh += (redSum + whiteSum + ventSum);
+            }
+        });
+
+        // Store data for table
+        energyTableData = [];
+        for (let i = 0; i < labels.length; i++) {
+            energyTableData.push({
+                date: labels[i],
+                redOutlets: redOutlets[i].toFixed(2),
+                whiteOutlets: whiteOutlets[i].toFixed(2),
+                ventilation: ventilation[i].toFixed(2),
+                total: (redOutlets[i] + whiteOutlets[i] + ventilation[i]).toFixed(2)
+            });
+        }
+
+        // Store original data for chart type switching
+        originalChartData = {
+            labels: [...labels],
+            datasets: [
+                {
+                    label: 'Red Outlets',
+                    data: [...redOutlets],
+                    backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                    borderColor: 'rgb(239, 68, 68)',
+                    borderWidth: 2,
+                    borderRadius: 4,
+                    fill: false
+                },
+                {
+                    label: 'White Outlets & Lighting',
+                    data: [...whiteOutlets],
+                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 2,
+                    borderRadius: 4,
+                    fill: false
+                },
+                {
+                    label: 'Ventilation & Heaters',
+                    data: [...ventilation],
+                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                    borderColor: 'rgb(16, 185, 129)',
+                    borderWidth: 2,
+                    borderRadius: 4,
+                    fill: false
+                }
+            ]
+        };
+
+        // Update chart
+        energyConsumptionChart.data.labels = labels;
+        energyConsumptionChart.data.datasets[0].data = redOutlets;
+        energyConsumptionChart.data.datasets[1].data = whiteOutlets;
+        energyConsumptionChart.data.datasets[2].data = ventilation;
+        energyConsumptionChart.update();
+
+        // Update total KPI
+        const totalEl = document.getElementById('energy-total-value');
+        if (totalEl) {
+            totalEl.textContent = totalKWh.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        // Initialize table
+        energyCurrentPage = 0;
+        renderEnergyTable();
+
+        // Trigger energy cost and CO2 calculations now that data is ready
+        if (typeof calculateEnergyCosts === 'function') {
+            calculateEnergyCosts();
+        }
+    }
+
+    function renderEnergyTable() {
+        const tbody = document.getElementById('energy-analytics-tbody');
+        if (!tbody || energyTableData.length === 0) return;
+
+        const start = energyCurrentPage * ENERGY_ITEMS_PER_PAGE;
+        const end = Math.min(start + ENERGY_ITEMS_PER_PAGE, energyTableData.length);
+        const pageData = energyTableData.slice(start, end);
+
+        // Build table rows for 3 categories
+        let redRow = '<td style="font-weight: 600; background: linear-gradient(135deg, #ef444420, #dc262620); position: sticky; left: 0; z-index: 5;">🔴 Red Outlets</td>';
+        let whiteRow = '<td style="font-weight: 600; background: linear-gradient(135deg, #3b82f620, #2563eb20); position: sticky; left: 0; z-index: 5;">⚪ White Outlets & Lighting</td>';
+        let ventRow = '<td style="font-weight: 600; background: linear-gradient(135deg, #10b98120, #05966920); position: sticky; left: 0; z-index: 5;">💨 Ventilation & Heaters</td>';
+        let totalRow = '<td style="font-weight: 700; background: linear-gradient(135deg, #f3f4f6, #e5e7eb); position: sticky; left: 0; z-index: 5;">⚡ Total Power</td>';
+
+        pageData.forEach(item => {
+            redRow += `<td style="text-align: center; vertical-align: middle; padding: 0.75rem;">${item.redOutlets} kWh</td>`;
+            whiteRow += `<td style="text-align: center; vertical-align: middle; padding: 0.75rem;">${item.whiteOutlets} kWh</td>`;
+            ventRow += `<td style="text-align: center; vertical-align: middle; padding: 0.75rem;">${item.ventilation} kWh</td>`;
+            totalRow += `<td style="font-weight: 700; text-align: center; vertical-align: middle; padding: 0.75rem;">${item.total} kWh</td>`;
+        });
+
+        tbody.innerHTML = `
+            <tr>${redRow}</tr>
+            <tr>${whiteRow}</tr>
+            <tr>${ventRow}</tr>
+            <tr style="font-weight: 700; background: #f9fafb; border-top: 2px solid #e5e7eb;">${totalRow}</tr>
+        `;
+
+        // Update table header with dates
+        const thead = tbody.closest('table').querySelector('thead tr');
+        if (thead && pageData.length > 0) {
+            let headerRow = '<th style="position: sticky; left: 0; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; z-index: 10; font-weight: 600; padding: 0.75rem; vertical-align: middle;">Category</th>';
+            pageData.forEach(item => {
+                headerRow += `<th style="text-align: center; vertical-align: middle; padding: 0.75rem; font-weight: 600;">${item.date}</th>`;
+            });
+            thead.innerHTML = headerRow;
+        }
+
+        // Update pagination
+        const totalPages = Math.ceil(energyTableData.length / ENERGY_ITEMS_PER_PAGE);
+        const pageInfo = document.getElementById('energy-page-info');
+        if (pageInfo) {
+            pageInfo.textContent = `Page ${energyCurrentPage + 1} / ${totalPages}`;
+        }
+
+        // Update button states
+        document.getElementById('energy-prev-page').disabled = energyCurrentPage === 0;
+        document.getElementById('energy-next-page').disabled = energyCurrentPage >= totalPages - 1;
+    }
+
+    // Energy pagination handlers
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('energy-prev-page')?.addEventListener('click', function() {
+            if (energyCurrentPage > 0) {
+                energyCurrentPage--;
+                renderEnergyTable();
+            }
+        });
+
+        document.getElementById('energy-next-page')?.addEventListener('click', function() {
+            const totalPages = Math.ceil(energyTableData.length / ENERGY_ITEMS_PER_PAGE);
+            if (energyCurrentPage < totalPages - 1) {
+                energyCurrentPage++;
+                renderEnergyTable();
+            }
+        });
+
+        // Chart type switcher handlers
+        const chartTypeBtns = document.querySelectorAll('.chart-type-btn');
+        chartTypeBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const newType = this.getAttribute('data-type');
+                changeEnergyChartType(newType);
+
+                // Update active button style
+                chartTypeBtns.forEach(b => {
+                    b.style.background = 'transparent';
+                    b.style.color = '#6b7280';
+                    b.classList.remove('active');
+                });
+                this.style.background = 'linear-gradient(135deg, var(--primary), var(--primary-light))';
+                this.style.color = 'white';
+                this.classList.add('active');
+            });
+        });
+    });
+
+    function changeEnergyChartType(newType) {
+        if (!energyConsumptionChart || !originalChartData.datasets.length) return;
+
+        const canvas = document.getElementById('energy-consumption-chart');
+
+        // Destroy old chart
+        energyConsumptionChart.destroy();
+
+        // Create new chart with different type
+        const ctx = canvas.getContext('2d');
+
+        if (newType === 'doughnut') {
+            // For doughnut, aggregate all data points using ORIGINAL saved data
+            const datasets = originalChartData.datasets;
+            const labels = datasets.map(ds => ds.label);
+            const data = datasets.map(ds => {
+                return ds.data.reduce((sum, val) => sum + (val || 0), 0);
+            });
+
+            energyConsumptionChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(16, 185, 129, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgb(239, 68, 68)',
+                            'rgb(59, 130, 246)',
+                            'rgb(16, 185, 129)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'right'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Total Consumption by Category (kWh)'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    return label + ': ' + value.toFixed(2) + ' kWh';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            // For bar or line, use time series data from ORIGINAL saved data
+            energyConsumptionChart = new Chart(ctx, {
+                type: newType,
+                data: {
+                    labels: [...originalChartData.labels],
+                    datasets: originalChartData.datasets.map(ds => ({
+                        label: ds.label,
+                        data: [...ds.data],
+                        backgroundColor: ds.backgroundColor,
+                        borderColor: ds.borderColor,
+                        borderWidth: ds.borderWidth,
+                        borderRadius: newType === 'bar' ? 4 : 0,
+                        fill: false,
+                        tension: newType === 'line' ? 0.4 : 0
+                    }))
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: false,
+                            ticks: {
+                                autoSkip: true,
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            stacked: false,
+                            beginAtZero: true,
+                            grace: '5%',
+                            title: {
+                                display: true,
+                                text: 'Consumption (kWh)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Consumption (kWh) - Daily'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // =====================================================
+    // ENVIRONMENT CHARTS - Temperature, Humidity, CO2, Sound
+    // =====================================================
+
+    const envCharts = {
+        temperature: null,
+        humidity: null,
+        co2: null,
+        sound: null
+    };
+
+    const envChartData = {
+        temperature: { labels: [], data: [] },
+        humidity: { labels: [], data: [] },
+        co2: { labels: [], data: [] },
+        sound: { labels: [], data: [] }
+    };
+
+    const envChartTypes = {
+        temperature: 'line',
+        humidity: 'line',
+        co2: 'line',
+        sound: 'line'
+    };
+
+    const envChartColors = {
+        temperature: { bg: 'rgba(239, 68, 68, 0.2)', border: 'rgb(239, 68, 68)' },
+        humidity: { bg: 'rgba(59, 130, 246, 0.2)', border: 'rgb(59, 130, 246)' },
+        co2: { bg: 'rgba(16, 185, 129, 0.2)', border: 'rgb(16, 185, 129)' },
+        sound: { bg: 'rgba(245, 158, 11, 0.2)', border: 'rgb(245, 158, 11)' }
+    };
+
+    const envChartUnits = {
+        temperature: '°C',
+        humidity: '%',
+        co2: 'ppm',
+        sound: 'dB'
+    };
+
+    function initializeEnvironmentCharts() {
+        ['temperature', 'humidity', 'co2', 'sound'].forEach(type => {
+            const canvasId = type === 'temperature' ? 'hist-temperature-chart' :
+                            type === 'humidity' ? 'hist-humidity-chart' :
+                            type === 'co2' ? 'hist-co2-chart' : 'hist-sound-chart';
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            envCharts[type] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: type.charAt(0).toUpperCase() + type.slice(1),
+                        data: [],
+                        backgroundColor: envChartColors[type].bg,
+                        borderColor: envChartColors[type].border,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.parsed.y.toFixed(1)} ${envChartUnits[type]}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 12 }
+                        },
+                        y: {
+                            beginAtZero: type !== 'temperature',
+                            title: { display: true, text: envChartUnits[type] }
+                        }
+                    }
+                }
+            });
+        });
+    }
+
+    async function loadEnvironmentData() {
+        const fromDateRaw = document.getElementById('hist-from')?.value;
+        const toDateRaw = document.getElementById('hist-to')?.value;
+        const building = document.getElementById('hist-filter-building')?.value || '';
+
+        if (!fromDateRaw || !toDateRaw) {
+            console.warn('⚠️ Environment: Please select date range');
+            return;
+        }
+
+        // Convert datetime-local format (2026-02-01T10:47) to ISO date (2026-02-01)
+        const fromDate = fromDateRaw.split('T')[0];
+        const toDate = toDateRaw.split('T')[0];
+
+        console.log('🌡️ Environment params:', { fromDate, toDate, building });
+
+        try {
+            const params = new URLSearchParams({ from: fromDate, to: toDate });
+            if (building && building !== 'all') params.set('building', building);
+
+            console.log('🌡️ Loading environment data...');
+            const response = await fetch(`/api/dashboard/environment/history?${params}`);
+
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const data = await response.json();
+            console.log('✅ Environment data received:', data);
+
+            updateEnvironmentCharts(data);
+        } catch (error) {
+            console.error('❌ Environment data loading failed:', error);
+        }
+    }
+
+    function updateEnvironmentCharts(data) {
+        ['temperature', 'humidity', 'co2', 'sound'].forEach(type => {
+            const chartData = data[type] || [];
+
+            // Store original data
+            envChartData[type].labels = chartData.map(d => formatEnvTimeBucket(d.timeBucket));
+            envChartData[type].data = chartData.map(d => d.aggregatedValue);
+
+            // Calculate and display average
+            const avg = envChartData[type].data.length > 0
+                ? envChartData[type].data.reduce((a, b) => a + b, 0) / envChartData[type].data.length
+                : 0;
+
+            const avgElement = document.getElementById(`env-${type === 'temperature' ? 'temp' : type}-avg`);
+            if (avgElement) avgElement.textContent = avg.toFixed(1);
+
+            // Update chart
+            renderEnvChart(type, envChartTypes[type]);
+        });
+    }
+
+    function formatEnvTimeBucket(timeBucket) {
+        if (!timeBucket) return '';
+        // Format: "2026-02-19 08" (YYYY-MM-DD HH) -> "19/02 08h"
+        const parts = timeBucket.split(' ');
+        if (parts.length >= 2) {
+            const dateParts = parts[0].split('-');
+            const hour = parts[1].padStart(2, '0');
+            return `${dateParts[2]}/${dateParts[1]} ${hour}h`;
+        }
+        return timeBucket;
+    }
+
+    function renderEnvChart(type, chartType) {
+        const chart = envCharts[type];
+        if (!chart) return;
+
+        const canvasId = type === 'temperature' ? 'hist-temperature-chart' :
+                        type === 'humidity' ? 'hist-humidity-chart' :
+                        type === 'co2' ? 'hist-co2-chart' : 'hist-sound-chart';
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+
+        // Destroy existing chart
+        chart.destroy();
+
+        const ctx = canvas.getContext('2d');
+        const labels = envChartData[type].labels;
+        const data = envChartData[type].data;
+
+        if (chartType === 'doughnut') {
+            // For doughnut, group data by ranges
+            const ranges = getDataRanges(type, data);
+            envCharts[type] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ranges.labels,
+                    datasets: [{
+                        data: ranges.values,
+                        backgroundColor: ranges.colors,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' },
+                        title: { display: true, text: `Distribution (${envChartUnits[type]})` },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.label}: ${ctx.parsed} readings`
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            // Line or Bar
+            envCharts[type] = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: type.charAt(0).toUpperCase() + type.slice(1),
+                        data: data,
+                        backgroundColor: envChartColors[type].bg,
+                        borderColor: envChartColors[type].border,
+                        borderWidth: 2,
+                        fill: chartType === 'line',
+                        tension: chartType === 'line' ? 0.4 : 0,
+                        borderRadius: chartType === 'bar' ? 4 : 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.parsed.y.toFixed(1)} ${envChartUnits[type]}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 12 }
+                        },
+                        y: {
+                            beginAtZero: type !== 'temperature',
+                            title: { display: true, text: envChartUnits[type] }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    function getDataRanges(type, data) {
+        // Define ranges based on type
+        const ranges = {
+            temperature: [
+                { min: -Infinity, max: 18, label: '< 18°C (Cold)', color: 'rgba(59, 130, 246, 0.8)' },
+                { min: 18, max: 22, label: '18-22°C (Cool)', color: 'rgba(16, 185, 129, 0.8)' },
+                { min: 22, max: 26, label: '22-26°C (Optimal)', color: 'rgba(34, 197, 94, 0.8)' },
+                { min: 26, max: 30, label: '26-30°C (Warm)', color: 'rgba(245, 158, 11, 0.8)' },
+                { min: 30, max: Infinity, label: '> 30°C (Hot)', color: 'rgba(239, 68, 68, 0.8)' }
+            ],
+            humidity: [
+                { min: -Infinity, max: 30, label: '< 30% (Dry)', color: 'rgba(245, 158, 11, 0.8)' },
+                { min: 30, max: 50, label: '30-50% (Optimal)', color: 'rgba(34, 197, 94, 0.8)' },
+                { min: 50, max: 70, label: '50-70% (Humid)', color: 'rgba(59, 130, 246, 0.8)' },
+                { min: 70, max: Infinity, label: '> 70% (Very Humid)', color: 'rgba(239, 68, 68, 0.8)' }
+            ],
+            co2: [
+                { min: -Infinity, max: 600, label: '< 600 ppm (Excellent)', color: 'rgba(34, 197, 94, 0.8)' },
+                { min: 600, max: 800, label: '600-800 ppm (Good)', color: 'rgba(16, 185, 129, 0.8)' },
+                { min: 800, max: 1000, label: '800-1000 ppm (Fair)', color: 'rgba(245, 158, 11, 0.8)' },
+                { min: 1000, max: Infinity, label: '> 1000 ppm (Poor)', color: 'rgba(239, 68, 68, 0.8)' }
+            ],
+            sound: [
+                { min: -Infinity, max: 40, label: '< 40 dB (Quiet)', color: 'rgba(34, 197, 94, 0.8)' },
+                { min: 40, max: 55, label: '40-55 dB (Moderate)', color: 'rgba(16, 185, 129, 0.8)' },
+                { min: 55, max: 70, label: '55-70 dB (Loud)', color: 'rgba(245, 158, 11, 0.8)' },
+                { min: 70, max: Infinity, label: '> 70 dB (Very Loud)', color: 'rgba(239, 68, 68, 0.8)' }
+            ]
+        };
+
+        const typeRanges = ranges[type] || [];
+        const counts = typeRanges.map(() => 0);
+
+        data.forEach(value => {
+            for (let i = 0; i < typeRanges.length; i++) {
+                if (value >= typeRanges[i].min && value < typeRanges[i].max) {
+                    counts[i]++;
+                    break;
+                }
+            }
+        });
+
+        // Filter out empty ranges
+        const filteredLabels = [];
+        const filteredValues = [];
+        const filteredColors = [];
+
+        counts.forEach((count, i) => {
+            if (count > 0) {
+                filteredLabels.push(typeRanges[i].label);
+                filteredValues.push(count);
+                filteredColors.push(typeRanges[i].color);
+            }
+        });
+
+        return { labels: filteredLabels, values: filteredValues, colors: filteredColors };
+    }
+
+    // Environment chart toggle handlers
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeEnvironmentCharts();
+
+        // Add click handlers for environment chart toggle buttons
+        document.querySelectorAll('.env-chart-toggle').forEach(toggle => {
+            const chartType = toggle.getAttribute('data-chart');
+
+            toggle.querySelectorAll('.env-chart-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const newType = this.getAttribute('data-type');
+                    envChartTypes[chartType] = newType;
+
+                    // Update button styles
+                    toggle.querySelectorAll('.env-chart-btn').forEach(b => {
+                        b.style.background = 'transparent';
+                        b.style.color = '#6b7280';
+                        b.classList.remove('active');
+                    });
+                    this.style.background = 'linear-gradient(135deg, var(--primary), var(--primary-light))';
+                    this.style.color = 'white';
+                    this.classList.add('active');
+
+                    // Re-render chart
+                    if (envChartData[chartType].data.length > 0) {
+                        renderEnvChart(chartType, newType);
+                    }
+                });
+            });
+        });
+
+        // Environment charts are loaded via the unified hist-load handler above
+    });
+
+    // ========================================
+    // ENERGY COST & CO2 EMISSIONS
+    // ========================================
+    let energyCostChart = null;
+    let co2EmissionsChart = null;
+    let energyCostData = { labels: [], energyValues: [], costValues: [], co2Values: [] };
+    let currentEnergyConfig = { costPerKwh: 0, co2Factor: 0, currency: 'EUR' };
+
+    async function loadEnergyCostData() {
+        const fromDate = document.getElementById('hist-from')?.value;
+        const toDate = document.getElementById('hist-to')?.value;
+        const building = document.getElementById('hist-filter-building')?.value || 'LEVALLOIS';
+
+        if (!fromDate || !toDate) return;
+
+        try {
+            // Fetch energy config for the building
+            const configResponse = await fetch(`/api/dashboard/energy/cost?from=${fromDate.split('T')[0]}&to=${toDate.split('T')[0]}&building=${building}`);
+            if (configResponse.ok) {
+                const config = await configResponse.json();
+                currentEnergyConfig.costPerKwh = config.costPerKwh || 0;
+                currentEnergyConfig.co2Factor = config.co2Factor || 0;
+                currentEnergyConfig.currency = config.currency || 'EUR';
+                console.log('Energy config loaded:', currentEnergyConfig);
+            }
+        } catch (error) {
+            console.error('Error loading energy cost config:', error);
+        }
+    }
+
+    function calculateEnergyCosts() {
+        // Use the data from the energy consumption chart
+        if (!originalChartData || !originalChartData.labels || originalChartData.labels.length === 0) {
+            console.warn('No energy data available for cost calculation');
+            return;
+        }
+
+        const labels = originalChartData.labels;
+        const datasets = originalChartData.datasets || [];
+
+        // Sum all dataset values per time bucket
+        const energyValues = [];
+        for (let i = 0; i < labels.length; i++) {
+            let total = 0;
+            datasets.forEach(ds => {
+                if (ds.data && ds.data[i]) {
+                    total += parseFloat(ds.data[i]) || 0;
+                }
+            });
+            energyValues.push(total);
+        }
+
+        const costValues = energyValues.map(e => e * currentEnergyConfig.costPerKwh);
+        const co2Values = energyValues.map(e => e * currentEnergyConfig.co2Factor);
+
+        energyCostData = { labels, energyValues, costValues, co2Values };
+
+        // Update totals
+        const totalEnergy = energyValues.reduce((a, b) => a + b, 0);
+        const totalCost = costValues.reduce((a, b) => a + b, 0);
+        const totalCo2 = co2Values.reduce((a, b) => a + b, 0);
+
+        document.getElementById('energy-cost-total').textContent = totalCost.toFixed(2);
+        document.getElementById('energy-cost-currency').textContent = getCurrencySymbol(currentEnergyConfig.currency);
+        document.getElementById('co2-emissions-total').textContent = totalCo2.toFixed(2);
+
+        // Update table
+        updateEnergyCostTable();
+
+        // Render CO2 chart (default is bar)
+        renderCo2Chart('bar');
+    }
+
+    function getCurrencySymbol(currency) {
+        const symbols = { 'EUR': '€', 'USD': '$', 'GBP': '£' };
+        return symbols[currency] || currency;
+    }
+
+    function updateEnergyCostTable() {
+        const tbody = document.getElementById('energy-cost-tbody');
+        if (!tbody || energyCostData.labels.length === 0) return;
+
+        let totalEnergy = 0;
+        let totalCost = 0;
+        const currency = getCurrencySymbol(currentEnergyConfig.currency);
+
+        tbody.innerHTML = energyCostData.labels.map((label, i) => {
+            const energy = energyCostData.energyValues[i] || 0;
+            const cost = energyCostData.costValues[i] || 0;
+            totalEnergy += energy;
+            totalCost += cost;
+            return `<tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 0.75rem 1rem; text-align: left;">${label}</td>
+                <td style="padding: 0.75rem 1rem; text-align: center;">${energy.toFixed(2)} kWh</td>
+                <td style="padding: 0.75rem 1rem; text-align: center;">${currency}${cost.toFixed(2)}</td>
+            </tr>`;
+        }).join('');
+
+        document.getElementById('energy-cost-total-kwh').textContent = `${totalEnergy.toFixed(2)} kWh`;
+        document.getElementById('energy-cost-total-cost').textContent = `${currency}${totalCost.toFixed(2)}`;
+    }
+
+    function renderEnergyCostChart(chartType) {
+        const canvas = document.getElementById('energy-cost-chart');
+        if (!canvas || energyCostData.labels.length === 0) return;
+
+        if (energyCostChart) energyCostChart.destroy();
+        const ctx = canvas.getContext('2d');
+        const currency = getCurrencySymbol(currentEnergyConfig.currency);
+
+        if (chartType === 'doughnut') {
+            energyCostChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: energyCostData.labels,
+                    datasets: [{ data: energyCostData.costValues, backgroundColor: generateColors(energyCostData.labels.length) }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+            });
+        } else {
+            energyCostChart = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: energyCostData.labels,
+                    datasets: [{
+                        label: `Cost (${currency})`,
+                        data: energyCostData.costValues,
+                        backgroundColor: 'rgba(139, 92, 246, 0.6)',
+                        borderColor: 'rgba(139, 92, 246, 1)',
+                        borderWidth: 2,
+                        fill: chartType === 'line',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, title: { display: true, text: `Cost (${currency})` } } }
+                }
+            });
+        }
+    }
+
+    function renderCo2Chart(chartType) {
+        const canvas = document.getElementById('co2-emissions-chart');
+        if (!canvas || energyCostData.labels.length === 0) return;
+
+        if (co2EmissionsChart) co2EmissionsChart.destroy();
+        const ctx = canvas.getContext('2d');
+
+        if (chartType === 'doughnut') {
+            co2EmissionsChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: energyCostData.labels,
+                    datasets: [{ data: energyCostData.co2Values, backgroundColor: generateColors(energyCostData.labels.length, 'green') }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+            });
+        } else {
+            co2EmissionsChart = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: energyCostData.labels,
+                    datasets: [{
+                        label: 'CO₂ Emissions (kg)',
+                        data: energyCostData.co2Values,
+                        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 2,
+                        fill: chartType === 'line',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'CO₂ (kg)' } } }
+                }
+            });
+        }
+    }
+
+    function generateColors(count, hue = 'purple') {
+        const colors = [];
+        const baseHues = hue === 'green' ? [120, 150, 180] : [270, 280, 290];
+        for (let i = 0; i < count; i++) {
+            const h = baseHues[i % baseHues.length];
+            const l = 40 + (i * 5) % 30;
+            colors.push(`hsl(${h}, 70%, ${l}%)`);
+        }
+        return colors;
+    }
+
+    function toggleMenu() {
+        document
+            .getElementById("dropdownMenu")
+            .classList.toggle("show");
+    }
+
+    window.onclick = function (event) {
+        if (!event.target.closest(".dropdown")) {
+            const menu = document.getElementById("dropdownMenu");
+            if (menu) {
+                menu.classList.remove("show");
+            }
+        }
+    };
 </script>
 </body>
 </html>

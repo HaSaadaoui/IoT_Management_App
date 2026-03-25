@@ -23,6 +23,19 @@ public class User {
         this.icon = icon;
     }
 
+    public User(
+            String username, String firstname, String lastname,
+            String password, String role, String email, String icon, String phone) {
+        this.username = username;
+        this.firstname = firstname;
+        this.lastname = lastname;
+        this.password = password;
+        this.role = role;
+        this.email = email;
+        this.icon = icon;
+        this.phone = phone;
+    }
+
     @Id
     @Column("username")
     private String username;
@@ -44,5 +57,8 @@ public class User {
 
     @Column("icon")
     private String icon;
+
+    @Column("phone")
+    private String phone;
 
 }

@@ -1,16 +1,15 @@
 package com.amaris.sensorprocessor.controller;
 
 import com.amaris.sensorprocessor.constant.Constants;
-import com.amaris.sensorprocessor.entity.Gateway;
-import com.amaris.sensorprocessor.entity.Sensor;
-import com.amaris.sensorprocessor.entity.User;
-import com.amaris.sensorprocessor.service.GatewayService;
-import com.amaris.sensorprocessor.service.SensorService;
-import com.amaris.sensorprocessor.service.UserService;
+import com.amaris.sensorprocessor.entity.*;
+import com.amaris.sensorprocessor.service.*;
+import com.amaris.sensorprocessor.service.BrandService;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -24,7 +23,12 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.security.Principal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,7 +46,6 @@ public class SensorController {
     private static final String SENSOR_EDIT = "sensorEdit";
     private static final String ERROR_DELETE = "errorDelete";
 
-    // Regex TTN pour device_id
     private static final Pattern DEVICE_ID_PATTERN = Pattern.compile("^[a-z0-9](?:[-]?[a-z0-9]){2,}$");
     private static final Pattern HEX16 = Pattern.compile("^[A-Fa-f0-9]{16}$");
     private static final Pattern HEX32 = Pattern.compile("^[A-Fa-f0-9]{32}$");
@@ -50,19 +53,30 @@ public class SensorController {
     private final SensorService sensorService;
     private final GatewayService gatewayService;
     private final UserService userService;
+    private final ProtocolService protocolService;
+    private final BrandService brandService;
+    private final DeviceTypeService deviceTypeService;
+    private final BuildingService buildingService;
     private final com.amaris.sensorprocessor.service.SensorLorawanService sensorLorawanService;
     private final com.amaris.sensorprocessor.service.SensorSyncService sensorSyncService;
 
     @Autowired
-    public SensorController(SensorService sensorService, GatewayService gatewayService, UserService userService,
-                           com.amaris.sensorprocessor.service.SensorLorawanService sensorLorawanService,
-                           com.amaris.sensorprocessor.service.SensorSyncService sensorSyncService) {
+    public SensorController(SensorService sensorService, GatewayService gatewayService,
+                            UserService userService, SensorLorawanService sensorLorawanService,
+                            SensorSyncService sensorSyncService, ProtocolService protocolService,
+                            BrandService brandService, DeviceTypeService deviceTypeService,
+                            BuildingService buildingService) {
         this.sensorService = sensorService;
         this.gatewayService = gatewayService;
         this.userService = userService;
         this.sensorLorawanService = sensorLorawanService;
         this.sensorSyncService = sensorSyncService;
+        this.protocolService = protocolService;
+        this.brandService = brandService;
+        this.deviceTypeService = deviceTypeService;
+        this.buildingService = buildingService;
     }
+
 
     /* ===================== LISTE ===================== */
 
@@ -89,7 +103,6 @@ public class SensorController {
 
         model.addAttribute(SENSOR_ADD, sensor);
 
-        // device_id (TTN)
         if (isBlank(sensor.getIdSensor())) {
             bindingResult.addError(new FieldError(SENSOR_ADD, "idSensor", "Sensor ID is required"));
         } else if (!DEVICE_ID_PATTERN.matcher(sensor.getIdSensor()).matches()) {
@@ -97,9 +110,8 @@ public class SensorController {
                     "Use lowercase a-z, 0-9 and single '-' (min 3 chars, no leading/trailing '-')"));
         }
 
-        // Requis DB
-        if (isBlank(sensor.getDeviceType())) {
-            bindingResult.addError(new FieldError(SENSOR_ADD, "deviceType", "Device Type is required"));
+        if (sensor.getIdDeviceType() == null) { // ✅ idDeviceType au lieu de deviceType
+            bindingResult.addError(new FieldError(SENSOR_ADD, "idDeviceType", "Device Type is required"));
         }
         if (isBlank(sensor.getBuildingName())) {
             bindingResult.addError(new FieldError(SENSOR_ADD, "buildingName", "Building Name is required"));
@@ -107,13 +119,9 @@ public class SensorController {
         if (sensor.getFloor() == null) {
             bindingResult.addError(new FieldError(SENSOR_ADD, "floor", "Floor is required"));
         }
-
-        // Gateway obligatoire
         if (isBlank(sensor.getIdGateway())) {
             bindingResult.addError(new FieldError(SENSOR_ADD, "idGateway", "Gateway is required"));
         }
-
-        // DevEUI / JoinEUI / AppKey (OTAA)
         if (isBlank(sensor.getDevEui()) || !HEX16.matcher(sensor.getDevEui()).matches()) {
             bindingResult.addError(new FieldError(SENSOR_ADD, "devEui", "DevEUI must be 16 hex characters"));
         }
@@ -123,8 +131,12 @@ public class SensorController {
         if (isBlank(sensor.getAppKey()) || !HEX32.matcher(sensor.getAppKey()).matches()) {
             bindingResult.addError(new FieldError(SENSOR_ADD, "appKey", "AppKey must be 32 hex characters"));
         }
-
-        // Frequency plan : si vide, déduire de la gateway
+        if (sensor.getBrandId() == null) {
+            bindingResult.addError(new FieldError(SENSOR_ADD, "brandId", "Brand is required"));
+        }
+        if (sensor.getProtocolId() == null) {
+            bindingResult.addError(new FieldError(SENSOR_ADD, "protocolId", "Protocol is required"));
+        }
         if (isBlank(sensor.getFrequencyPlan()) && !isBlank(sensor.getIdGateway())) {
             Optional<Gateway> gw = gatewayService.findById(sensor.getIdGateway());
             gw.ifPresent(g -> sensor.setFrequencyPlan(g.getFrequencyPlan()));
@@ -139,6 +151,19 @@ public class SensorController {
 
         try {
             sensorService.create(sensor);
+            // ✅ Push du payload formatter TTN selon la marque
+            String decoder = brandService.getDecoder(sensor.getBrandId());
+            if (decoder != null && !decoder.isBlank()) {
+                try {
+                    sensorLorawanService.pushPayloadFormatter(
+                            sensor.getIdGateway(),
+                            sensor.getIdSensor(),
+                            decoder
+                    );
+                } catch (Exception e) {
+                    log.warn("[Sensors] Payload push to TTN failed for {}: {}", sensor.getIdSensor(), e.getMessage());
+                }
+            }
         } catch (IllegalArgumentException | IllegalStateException e) {
             bindingResult.addError(new FieldError(SENSOR_ADD, "idSensor", e.getMessage()));
             prepareModel(model);
@@ -156,21 +181,28 @@ public class SensorController {
         return redirectWithTimestamp();
     }
 
+    /* ===================== MONITORING ===================== */
+
     @GetMapping("/manage-sensors/monitoring/{idSensor}")
-    public String monitorSensor(@PathVariable String idSensor, Model model, Principal principal, HttpSession session) {
+    public String monitorSensor(@PathVariable String idSensor, Model model,
+                                Principal principal, HttpSession session) {
         Sensor s = sensorService.getOrThrow(idSensor);
         model.addAttribute("sensor", s);
+
+        // ✅ Récupérer le label du device type via le service
+        String deviceTypeLabel = deviceTypeService.findById(s.getIdDeviceType())
+                .map(DeviceType::getLabel)
+                .orElse("GENERIC");
+        model.addAttribute("deviceTypeLabel", deviceTypeLabel);
 
         gatewayService.findById(s.getIdGateway()).ifPresent(gw -> {
             String label = (gw.getBuildingName() != null && !gw.getBuildingName().isBlank())
                     ? gw.getBuildingName() + " (" + gw.getGatewayId() + ")"
                     : gw.getGatewayId();
-
             model.addAttribute("gatewayName", label);
             model.addAttribute("gatewayIp", gw.getIpAddress());
         });
 
-        // --- Token SSE par session + capteur (évite les appels hors page)
         String sseToken = UUID.randomUUID().toString();
         session.setAttribute("SSE_TOKEN__" + idSensor, sseToken);
         model.addAttribute("sseToken", sseToken);
@@ -205,7 +237,8 @@ public class SensorController {
     }
 
     @GetMapping("/manage-sensors/edit")
-    public String handleEditGet(@RequestParam(required = false) String idSensor, Model model, Principal principal) {
+    public String handleEditGet(@RequestParam(required = false) String idSensor,
+                                Model model, Principal principal) {
         if (idSensor == null) return redirectWithTimestamp();
         User user = userService.searchUserByUsername(principal.getName());
         model.addAttribute("user", user);
@@ -245,47 +278,6 @@ public class SensorController {
 
     /* ===================== DELETE ===================== */
 
-    /**
-     * Endpoint REST pour récupérer les sensors depuis TTN par gateway
-     * GET /api/sensors/gateway/{gatewayId}/devices
-     */
-    @GetMapping("/api/sensors/gateway/{gatewayId}/devices")
-    @ResponseBody
-    public String getDevicesFromTTN(@PathVariable String gatewayId) {
-        try {
-            return sensorLorawanService.fetchDevicesForGateway(gatewayId);
-        } catch (Exception e) {
-            log.error("[API] Error fetching devices for gateway {}: {}", gatewayId, e.getMessage());
-            return "{\"error\":\"" + e.getMessage() + "\"}";
-        }
-    }
-
-    /**
-     * Endpoint REST pour synchroniser les sensors depuis TTN vers la DB
-     * POST /api/sensors/gateway/{gatewayId}/sync
-     */
-    @PostMapping("/api/sensors/gateway/{gatewayId}/sync")
-    @ResponseBody
-    public String syncSensorsFromTTN(@PathVariable String gatewayId) {
-        try {
-            int syncCount = sensorSyncService.syncSensorsFromTTN(gatewayId);
-            return "{\"success\":true,\"syncCount\":" + syncCount + ",\"message\":\"Synchronized " + syncCount + " sensors from TTN\"}";
-        } catch (Exception e) {
-            log.error("[API] Error syncing sensors for gateway {}: {}", gatewayId, e.getMessage());
-            return "{\"success\":false,\"error\":\"" + e.getMessage() + "\"}";
-        }
-    }
-
-    /**
-     * Endpoint REST pour comparer les sensors DB vs TTN
-     * GET /api/sensors/gateway/{gatewayId}/compare
-     */
-    @GetMapping("/api/sensors/gateway/{gatewayId}/compare")
-    @ResponseBody
-    public com.amaris.sensorprocessor.service.SensorSyncService.SyncReport compareSensorsWithTTN(@PathVariable String gatewayId) {
-        return sensorSyncService.compareWithTTN(gatewayId);
-    }
-
     @PostMapping("/manage-sensors/delete/{idSensor}")
     public String deleteSensor(@PathVariable String idSensor, Model model) {
         BindingResult br = new BeanPropertyBindingResult(new Sensor(), "deleteSensor");
@@ -305,11 +297,43 @@ public class SensorController {
         return redirectWithTimestamp();
     }
 
+    /* ===================== TTN API ===================== */
+
+    @GetMapping("/api/sensors/gateway/{gatewayId}/devices")
+    @ResponseBody
+    public String getDevicesFromTTN(@PathVariable String gatewayId) {
+        try {
+            return sensorLorawanService.fetchDevicesForGateway(gatewayId);
+        } catch (Exception e) {
+            log.error("[API] Error fetching devices for gateway {}: {}", gatewayId, e.getMessage());
+            return "{\"error\":\"" + e.getMessage() + "\"}";
+        }
+    }
+
+    @PostMapping("/api/sensors/gateway/{gatewayId}/sync")
+    @ResponseBody
+    public String syncSensorsFromTTN(@PathVariable String gatewayId) {
+        try {
+            int syncCount = sensorSyncService.syncGateway(gatewayId);
+            return "{\"success\":true,\"syncCount\":" + syncCount + ",\"message\":\"Synchronized " + syncCount + " sensors from TTN\"}";
+        } catch (Exception e) {
+            log.error("[API] Error syncing sensors for gateway {}: {}", gatewayId, e.getMessage());
+            return "{\"success\":false,\"error\":\"" + e.getMessage() + "\"}";
+        }
+    }
+
+    @GetMapping("/api/sensors/gateway/{gatewayId}/compare")
+    @ResponseBody
+    public com.amaris.sensorprocessor.service.SensorSyncService.SyncReport compareSensorsWithTTN(@PathVariable String gatewayId) {
+        return sensorSyncService.compareWithTTN(gatewayId);
+    }
+
+    /* ===================== SSE STREAM ===================== */
+
     @GetMapping(value = "/manage-sensors/monitoring/{idSensor}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamSensor(@PathVariable String idSensor,
                                    @RequestParam(name = "token") String token,
                                    HttpSession session) {
-        // --- Vérif token SSE : empêche les appels “fantômes”
         String expected = (String) session.getAttribute("SSE_TOKEN__" + idSensor);
         if (expected == null || !expected.equals(token)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid SSE token");
@@ -317,28 +341,35 @@ public class SensorController {
 
         Sensor sensor = sensorService.getOrThrow(idSensor);
 
+        // ✅ Récupérer le label du device type
+        String deviceTypeLabel = deviceTypeService.findById(sensor.getIdDeviceType())
+                .map(DeviceType::getLabel)
+                .orElse("GENERIC");
+
         String appId = gatewayService.findById(sensor.getIdGateway())
                 .map(Gateway::getGatewayId)
                 .map(gid -> "leva-rpi-mantu".equalsIgnoreCase(gid) ? "lorawan-network-mantu" : gid + "-appli")
                 .orElseThrow(() -> new IllegalStateException("Gateway introuvable pour le capteur " + idSensor));
 
-        String threadId = "sensor-" + idSensor + "-" + session.getId() + "-" + System.currentTimeMillis();
+        SseEmitter emitter = new SseEmitter(3600000L);
 
-        SseEmitter emitter = new SseEmitter(3600000L); // 1h
-
-        emitter.onCompletion(() -> sensorService.stopMonitoring(idSensor, threadId));
+        emitter.onCompletion(() -> log.info("[Sensors] SSE completed for {}", idSensor));
         emitter.onTimeout(() -> {
-            sensorService.stopMonitoring(idSensor, threadId);
+            log.info("[Sensors] SSE timeout for {}", idSensor);
             emitter.complete();
         });
 
         var normalizer = new SensorEventNormalizer();
-        var subscription = sensorService.getMonitoringData(appId, idSensor, threadId)
-                .map(json -> normalizer.normalizeToMonitoringSensorDataJson(json, appId, sensor))
+
+        var subscription = sensorService.getMonitoringData(appId, idSensor)
+                .map(json -> normalizer.normalizeToMonitoringSensorDataJson(json, appId, sensor, deviceTypeLabel)) // ✅ label passé
                 .subscribe(
                         normalizedJson -> {
-                            try { emitter.send(normalizedJson); }
-                            catch (IOException e) { emitter.completeWithError(e); }
+                            try {
+                                emitter.send(normalizedJson);
+                            } catch (IOException e) {
+                                emitter.completeWithError(e);
+                            }
                         },
                         err -> {
                             log.error("[Sensors] SSE error for {}: {}", idSensor, err.toString());
@@ -353,18 +384,90 @@ public class SensorController {
         return emitter;
     }
 
+    /* ===================== DATA API ===================== */
+
+    @GetMapping(value = "/manage-sensors/monitoring/{idGateway}/{idSensor}/{valueType}")
+    @ResponseBody
+    public LinkedHashMap<LocalDateTime, String> getSensorDataByPeriod(
+            @PathVariable String idGateway,
+            @PathVariable String idSensor,
+            @PathVariable PayloadValueType valueType,
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date endDate) {
+        try {
+            return sensorService.findSensorDataByPeriodAndType(idSensor, startDate, endDate, valueType, Optional.empty());
+        } catch (Exception e) {
+            log.error("[API] Error fetching data for sensor {}: {}", idSensor, e.getMessage(), e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error fetching sensor data", e);
+        }
+    }
+
+    @GetMapping(value = "/manage-sensors/monitoring/{idGateway}/{idSensor}/history")
+    @ResponseBody
+    public Map<String, Object> getSensorHistory(
+            @PathVariable String idGateway,
+            @PathVariable String idSensor,
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Date startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Date endDate) {
+
+        Map<PayloadValueType, LinkedHashMap<LocalDateTime, String>> dataGroupedByValueType =
+                sensorService.findSensorDataByPeriod(idSensor, startDate, endDate);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("idSensor", idSensor);
+        response.put("idGateway", idGateway);
+        response.put("startDate", startDate != null ? startDate : "beginning");
+        response.put("endDate", endDate != null ? endDate : "now");
+        response.put("data", dataGroupedByValueType);
+        return response;
+    }
+
+    @GetMapping(value = "/manage-sensors/monitoring/{idGateway}/{idSensor}/consumption")
+    @ResponseBody
+    public Map<Date, Double> getSensorConsumptionByChannels(
+            @PathVariable String idGateway,
+            @PathVariable String idSensor,
+            @RequestParam("startDate") String startDateStr,
+            @RequestParam("endDate") String endDateStr,
+            @RequestParam("channels") List<String> channels) {
+        try {
+            Date startDate = Date.from(java.time.Instant.parse(startDateStr));
+            Date endDate = Date.from(java.time.Instant.parse(endDateStr));
+            return sensorService.getConsumptionByChannels(idSensor, startDate, endDate, channels);
+        } catch (java.time.format.DateTimeParseException e) {
+            log.error("[API] Invalid date format. startDate='{}', endDate='{}'", startDateStr, endDateStr, e);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid date format. Please use ISO 8601 format.", e);
+        }
+    }
+
+    @GetMapping("/manage-sensors/monitoring/{idSensor}/consumption/current")
+    @ResponseBody
+    public ResponseEntity<Map<String, Double>> getCurrentConsumption(
+            @PathVariable String idSensor,
+            @RequestParam("channels") List<String> channels,
+            @RequestParam(value = "minutes", defaultValue = "10") int minutes) {
+        Double consumption = sensorService.getCurrentConsumption(idSensor, channels, minutes);
+        if (consumption == null) {
+            return ResponseEntity.ok(Map.of("consumption", 0.0));
+        }
+        return ResponseEntity.ok(Map.of("consumption", consumption));
+    }
+
     /* ===================== PRIVÉS ===================== */
 
     private void prepareModel(Model model) {
         List<Sensor> sensors = sensorService.findAll();
         List<Gateway> gateways = gatewayService.getAllGateways();
+
         model.addAttribute("sensors", sensors);
         model.addAttribute("gateways", gateways);
+        model.addAttribute("protocols", protocolService.findAll());
+        model.addAttribute("brands", brandService.findAll());
+        model.addAttribute("deviceTypes", deviceTypeService.findAll()); // ✅ AJOUT
 
-        List<String> buildings = Stream.concat(
-                        sensors.stream().map(Sensor::getBuildingName),
-                        gateways.stream().map(Gateway::getBuildingName)
-                )
+        List<String> buildingNames = buildingService.getAllBuildings()
+                .stream()
+                .map(Building::getName)
                 .filter(Objects::nonNull)
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
@@ -372,10 +475,16 @@ public class SensorController {
                 .sorted()
                 .collect(Collectors.toList());
 
-        model.addAttribute("buildings", buildings);
+        model.addAttribute("buildings", buildingNames);
 
-        if (!model.containsAttribute("sensorAdd")) {
-            model.addAttribute("sensorAdd", new Sensor());
+        record BuildingFloors(String name, int floorsCount) {}
+        List<BuildingFloors> buildingFloors = buildingService.getAllBuildings().stream()
+                .map(b -> new BuildingFloors(b.getName(), b.getFloorsCount()))
+                .collect(Collectors.toList());
+        model.addAttribute("buildingFloors", buildingFloors);
+
+        if (!model.containsAttribute(SENSOR_ADD)) {
+            model.addAttribute(SENSOR_ADD, new Sensor());
         }
     }
 
@@ -387,28 +496,36 @@ public class SensorController {
         return s == null || s.trim().isEmpty();
     }
 
-    // --- Normalizer simple & lisible (profil = deviceType) ---
+    /* ===================== NORMALIZER ===================== */
+
     static class SensorEventNormalizer {
         private final com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
 
-        public String normalizeToMonitoringSensorDataJson(String json, String appId, Sensor sensor) {
+        // ✅ Signature mise à jour avec deviceTypeLabel
+        public String normalizeToMonitoringSensorDataJson(String json, String appId,
+                                                          Sensor sensor, String deviceTypeLabel) {
             try {
-                var root   = om.readTree(json);
-                var result = root.has("result") ? root.get("result") : root;  // events vs storage
-                var up     = result.path("uplink_message");
+                var root = om.readTree(json);
+                if (root.has("raw") && root.get("raw").isObject()) {
+                    root = root.get("raw");
+                }
+                var result = root.has("result") ? root.get("result") : root;
+                var up = result.path("uplink_message");
                 var endIds = result.path("end_device_ids");
-                var rx0    = up.path("rx_metadata").isArray() && up.path("rx_metadata").size() > 0
+                var rx0 = up.path("rx_metadata").isArray() && up.path("rx_metadata").size() > 0
                         ? up.path("rx_metadata").get(0) : null;
-                var lora   = up.path("settings").path("data_rate").path("lora");
+                var lora = up.path("settings").path("data_rate").path("lora");
                 var netIds = up.path("network_ids");
-                var dp     = up.path("decoded_payload");
+                var dp = up.path("decoded_payload");
+                if (dp.isMissingNode() || dp.isNull() || !dp.isObject()) {
+                    return om.writeValueAsString(root);
+                }
 
                 String deviceId = textOr(endIds.path("device_id"), sensor.getIdSensor());
-                String profile  = sensor.getDeviceType() != null ? sensor.getDeviceType().toUpperCase() : "GENERIC";
+                String profile = deviceTypeLabel != null ? deviceTypeLabel.toUpperCase() : "GENERIC"; // ✅ utilise le label
 
                 var dto = com.amaris.sensorprocessor.entity.MonitoringSensorData.now();
 
-                // ids
                 var ids = new com.amaris.sensorprocessor.entity.MonitoringSensorData.Ids();
                 ids.setApplicationId(appId);
                 ids.setDeviceId(deviceId);
@@ -418,7 +535,6 @@ public class SensorController {
                 ids.setProfile(profile);
                 dto.setIds(ids);
 
-                // link
                 var link = new com.amaris.sensorprocessor.entity.MonitoringSensorData.LinkInfo();
                 link.setFPort(intOrNull(up.path("f_port")));
                 link.setFCnt(intOrNull(up.path("f_cnt")));
@@ -447,7 +563,6 @@ public class SensorController {
                 link.setConsumedAirtime(textOr(up.path("consumed_airtime"), null));
                 dto.setLink(link);
 
-                // payload — tri manuel par type
                 var payload = new com.amaris.sensorprocessor.entity.MonitoringSensorData.Payload();
                 switch (profile) {
                     case "COUNT" -> {
@@ -456,20 +571,17 @@ public class SensorController {
                         payload.setPeriodOut(firstNumber(dp, "period_out"));
                     }
                     case "CO2" -> {
-                        payload.setCo2Ppm(firstNumber(dp, "co2"));           // 864
-                        payload.setTemperature(firstNumber(dp, "temperature")); // 23.4
-                        payload.setHumidity(firstNumber(dp, "humidity"));       // 41
-                        payload.setVdd(firstNumber(dp, "vdd"));                 // 3677
-                        payload.setLight(firstAny(dp, "light"));                // 99
-                        Object motion = firstAny(dp, "motion");
-                        payload.setPresence(motion);
+                        payload.setCo2Ppm(firstNumber(dp, "co2"));
+                        payload.setTemperature(firstNumber(dp, "temperature"));
+                        payload.setHumidity(firstNumber(dp, "humidity"));
+                        payload.setVdd(firstNumber(dp, "vdd"));
+                        payload.setLight(firstAny(dp, "light"));
+                        payload.setPresence(firstAny(dp, "motion"));
                     }
                     case "OCCUP" -> {
                         payload.setPresence(firstAny(dp, "occupancy"));
-                        // TTN envoie 'distance' pour ce capteur, pas 'illuminance'
-                        Object distanceOrIllum = firstAny(dp, "distance");
-                        if (distanceOrIllum == null) distanceOrIllum = firstAny(dp, "illuminance");
-                        payload.setLight(distanceOrIllum);
+                        payload.setDistance(firstNumber(dp, "distance"));
+                        payload.setLight(firstAny(dp, "illuminance"));
                         payload.setBattery(firstNumber(dp, "battery"));
                     }
                     case "TEMPEX" -> {
@@ -477,7 +589,6 @@ public class SensorController {
                         payload.setHumidity(firstNumber(dp, "humidity"));
                         payload.setBattery(firstNumber(dp, "battery"));
                     }
-
                     case "PIR_LIGHT" -> {
                         payload.setPresence(firstAny(dp, "pir"));
                         payload.setLight(firstAny(dp, "daylight"));
@@ -503,23 +614,19 @@ public class SensorController {
                         payload.setTemperature(firstNumber(dp, "temperature"));
                         payload.setHumidity(firstNumber(dp, "humidity"));
                         payload.setVdd(firstNumber(dp, "vdd"));
+                        payload.setBattery(firstNumber(dp, "battery"));
                     }
                     case "ENERGY", "CONSO" -> {
-                        // Pour les capteurs d'énergie, on passe tout le decoded_payload
-                        // car il contient la structure complexe avec les canaux
                         if (dp != null && dp.isObject()) {
                             @SuppressWarnings("unchecked")
                             java.util.Map<String, Object> energyMap = om.convertValue(dp, java.util.Map.class);
                             payload.setEnergyData(energyMap);
                         }
-                        // Pas de battery pour CONSO car connecté à un générateur
                     }
-
                     default -> payload.setBattery(firstNumber(dp, "battery"));
                 }
                 dto.setPayload(payload);
 
-                // network
                 var net = new com.amaris.sensorprocessor.entity.MonitoringSensorData.NetworkInfo();
                 net.setNetId(textOr(netIds.path("net_id"), null));
                 net.setNsId(textOr(netIds.path("ns_id"), null));
@@ -528,7 +635,6 @@ public class SensorController {
                 net.setClusterAddress(textOr(netIds.path("cluster_address"), null));
                 dto.setNetwork(net);
 
-                // raw (debug)
                 var raw = new com.amaris.sensorprocessor.entity.MonitoringSensorData.Raw();
                 raw.setFrmPayloadBase64(textOr(up.path("frm_payload"), null));
                 if (dp != null && dp.isObject()) {
@@ -536,18 +642,16 @@ public class SensorController {
                 }
                 dto.setRaw(raw);
 
-                // timestamp
                 String receivedAt = textOr(result.path("received_at"), null);
                 if (receivedAt == null) receivedAt = textOr(up.path("received_at"), null);
                 if (receivedAt != null) dto.setTimestamp(receivedAt);
 
                 return om.writeValueAsString(dto);
             } catch (Exception e) {
-                return json; // ne casse pas l'UI si erreur
+                return json;
             }
         }
 
-        /* -------- Helpers -------- */
         private static String textOr(com.fasterxml.jackson.databind.JsonNode n, String fallback) {
             return (n != null && n.isTextual()) ? n.asText() : fallback;
         }
@@ -566,7 +670,7 @@ public class SensorController {
         private static Object firstAny(com.fasterxml.jackson.databind.JsonNode dp, String key) {
             var n = dp.path(key);
             if (n.isMissingNode()) return null;
-            if (n.isNumber())  return n.numberValue();
+            if (n.isNumber()) return n.numberValue();
             if (n.isBoolean()) return n.booleanValue();
             if (n.isTextual()) return n.asText();
             return n.toString();

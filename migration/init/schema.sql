@@ -32,43 +32,6 @@ CREATE TABLE sensors (
         NULL
 );
 
--- Création de la table data_emsdesk
-CREATE TABLE data_emsdesk (
-    id_sensor VARCHAR(50),
-    timestamp DATE,
-    humidity INTEGER,
-    occupancy INTEGER,
-    temperature REAL,
-    PRIMARY KEY (id_sensor, timestamp),
-    FOREIGN KEY (id_sensor) REFERENCES Sensors(id_sensor) ON DELETE CASCADE
-);
-
--- Création de la table data_pirlight
-CREATE TABLE data_pirlight (
-    id_sensor VARCHAR(50),
-    timestamp DATE,
-    light_statut INT,
-    pir_statut INT,
-    PRIMARY KEY (id_sensor, timestamp),
-    FOREIGN KEY (id_sensor) REFERENCES Sensors(id_sensor) ON DELETE CASCADE
-);
-
--- Création de la table Signal
-CREATE TABLE `signal` (
-    id_sensor VARCHAR(50),
-    timestamp DATE,
-    value_battery FLOAT,
-    rssi INT,
-    fport INT,
-    fcntup INT,
-    snr FLOAT,
-    fcntdown INT,
-    sf INT,
-    frequency_offset FLOAT,
-    PRIMARY KEY (id_sensor, timestamp),
-    FOREIGN KEY (id_sensor) REFERENCES Sensors(id_sensor) ON DELETE CASCADE
-);
-
 -- Création de la table Users
 CREATE TABLE users (
     username VARCHAR(50) PRIMARY KEY NOT NULL,
@@ -93,4 +56,136 @@ CREATE TABLE pending_users (
     expires_at TEXT NOT NULL,
     resend_count INTEGER DEFAULT 0,
     last_resend_at TEXT
+);
+
+-- Création de la table des valeurs senseurs
+-- sql_mode=only_full_group_by doit etre activé sur le serveur MySQL
+CREATE TABLE sensor_data (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_sensor VARCHAR(50),
+    received_at TIMESTAMP(6),
+    string_value TEXT, -- TODO: ajouter une limit
+    value_type ENUM(
+        'UNKNOWN',
+        'APPLICATION_ID',
+        'BATTERY',
+        'CHANNEL_INDEX',
+        'CHANNEL_RSSI',
+        'CO2',
+        'CONFIRMED',
+        'CONSUMED_AIRTIME',
+        'DEV_ADDR',
+        'DEV_EUI',
+        'DEVICE_ID',
+        'DISTANCE',
+        'F_CNT',
+        'F_PORT',
+        'FREQUENCY_OFFSET',
+        'FRM_PAYLOAD',
+        'GATEWAY_EUI',
+        'GATEWAY_ID',
+        'GPS_TIME',
+        'HUMIDITY',
+        'ILLUMINANCE',
+        'LAEQ',
+        'LAI',
+        'LAIMAX',
+        'LAST_BATTERY_PERCENTAGE_F_CNT',
+        'LAST_BATTERY_PERCENTAGE_RECEIVED_AT',
+        'LAST_BATTERY_PERCENTAGE_VALUE',
+        'LAST_BATTERY_PERCENTAGE',
+        'LIGHT',
+        'LOCATION_ALTITUDE',
+        'LOCATION_LATITUDE',
+        'LOCATION_LONGITUDE',
+        'LOCATION_SOURCE',
+        'LORA_BANDWIDTH',
+        'LORA_CODING_RATE',
+        'LORA_SPREADING_FACTOR',
+        'MOTION',
+        'NETWORK_CLUSTER_ADDRESS',
+        'NETWORK_CLUSTER_ID',
+        'NETWORK_NET_ID',
+        'NETWORK_NS_ID',
+        'NETWORK_TENANT_ID',
+        'OCCUPANCY',
+        'PACKET_ERROR_RATE',
+        'PERIOD_IN',
+        'PERIOD_OUT',
+        'RECEIVED_AT',
+        'RSSI',
+        'SETTINGS_FREQUENCY',
+        'SETTINGS_TIME',
+        'SETTINGS_TIMESTAMP',
+        'SNR',
+        'TEMPERATURE',
+        'TIME',
+        'TIMESTAMP',
+        'VDD',
+        'DAYLIGHT',
+        'PIR',
+        'CONSUMPTION_CHANNEL_0',
+        'CONSUMPTION_CHANNEL_1',
+        'CONSUMPTION_CHANNEL_2',
+        'CONSUMPTION_CHANNEL_3',
+        'CONSUMPTION_CHANNEL_4',
+        'CONSUMPTION_CHANNEL_5',
+        'CONSUMPTION_CHANNEL_6',
+        'CONSUMPTION_CHANNEL_7',
+        'CONSUMPTION_CHANNEL_8',
+        'CONSUMPTION_CHANNEL_9',
+        'CONSUMPTION_CHANNEL_10',
+        'CONSUMPTION_CHANNEL_11',
+        'CONSUMPTION_CHANNEL_12',
+        'CONSUMPTION_CHANNEL_13',
+        'CONSUMPTION_CHANNEL_14',
+        'CONSUMPTION_CHANNEL_15',
+        'CONSUMPTION_CHANNEL_16'
+    ) NOT NULL,
+    FOREIGN KEY (id_sensor) REFERENCES Sensors(id_sensor) ON DELETE CASCADE,
+    CONSTRAINT unique_id_received_at UNIQUE (id_sensor, received_at, value_type)
+);
+
+ALTER TABLE sensor_data
+ADD COLUMN numeric_value DECIMAL(18,8)
+GENERATED ALWAYS AS (
+    CASE
+        -- 1. Handle "Positive" Status Strings (Map to 1.0)
+        WHEN string_value IN ('occupied', 'used', 'triggered', 'active', 'motion', 'detected', 'true', '1') THEN 1.0
+
+        -- 2. Handle "Negative" Status Strings (Map to 0.0)
+        WHEN string_value IN ('free', 'vacant', 'empty', 'none', 'inactive', 'false', '0') THEN 0.0
+
+        -- 3. Handle Numeric Types (Temperature, Battery, GPS, etc.)
+        -- The Regex ensures we don't crash on "Error" or "Null" strings
+        WHEN string_value REGEXP '^-?[0-9]+(\.[0-9]+)?$'
+            THEN CAST(string_value AS DECIMAL(18,8))
+
+        -- 4. Default (Invalid data becomes NULL)
+        ELSE NULL
+    END
+) VIRTUAL;
+
+CREATE INDEX idx_received_at ON sensor_data (received_at);
+
+-- This allows MySQL to fetch the answer without touching the heavy "TEXT" column.
+CREATE INDEX idx_sensor_readings_fast
+ON sensor_data(id_sensor, value_type, received_at, numeric_value);
+
+CREATE INDEX idx_value_readings_fast
+ON sensor_data(value_type, received_at, numeric_value);
+
+-- Création de la table de configuration des alertes
+CREATE TABLE alert_configuration (
+    id INT PRIMARY KEY,
+    data_max_age_minutes INT,
+    co2_critical DOUBLE,
+    co2_warning DOUBLE,
+    temp_critical_high DOUBLE,
+    temp_critical_low DOUBLE,
+    temp_warning_high DOUBLE,
+    temp_warning_low DOUBLE,
+    humidity_warning_high DOUBLE,
+    humidity_warning_low DOUBLE,
+    noise_warning DOUBLE
 );

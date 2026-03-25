@@ -3,6 +3,9 @@ var modalCreate = document.getElementById("createGatewayPopup");
 var modalEdit = document.getElementById("editGatewayPopup");
 var modalDelete = document.getElementById("deleteGatewayPopup");
 
+// Permissions (injectées par Thymeleaf)
+const CAN_EDIT_GATEWAYS = !!window.CAN_EDIT_GATEWAYS;
+
 // Bouton ouvrir Create
 var btnCreate = document.getElementById("openCreateBtn");
 
@@ -11,18 +14,23 @@ var exitCreate = document.getElementById("closeCreate");
 var exitEdit = document.getElementById("closeEdit");
 var exitDelete = document.getElementById("closeDelete");
 
-// Ouvrir la popup Create
-if (btnCreate) {
-    btnCreate.addEventListener("click", () => {
-        refreshCsrfToken();
-        modalCreate.style.display = "block";
-        const select = modalCreate.querySelector("select[name='frequencyPlan']");
-        if (select) select.value = "";
-    });
+// Ouvrir la popup Create (uniquement si autorisé)
+if (btnCreate && modalCreate) {
+    if (!CAN_EDIT_GATEWAYS) {
+        btnCreate.classList.add("disabled");
+        btnCreate.setAttribute("aria-disabled", "true");
+    } else {
+        btnCreate.addEventListener("click", () => {
+            refreshCsrfToken();
+            modalCreate.style.display = "block";
+            const select = modalCreate.querySelector("select[name='frequencyPlan']");
+            if (select) select.value = "";
+        });
+    }
 }
 
 // Fermer la popup Create
-if (exitCreate) {
+if (exitCreate && modalCreate) {
     exitCreate.addEventListener("click", () => {
         resetCreateModalFields();
         resetCreateError();
@@ -31,8 +39,7 @@ if (exitCreate) {
 }
 
 // Fermer la popup Edit
-if (document.getElementById("closeEdit")) {
-    var exitEdit = document.getElementById("closeEdit");
+if (exitEdit && modalEdit) {
     exitEdit.addEventListener("click", () => {
         resetEditModalFields();
         resetEditError();
@@ -41,7 +48,7 @@ if (document.getElementById("closeEdit")) {
 }
 
 // Fermer la popup Delete
-if (exitDelete) {
+if (exitDelete && modalDelete) {
     exitDelete.addEventListener("click", () => {
         resetDeleteError();
         modalDelete.style.display = "none";
@@ -56,15 +63,15 @@ window.onclick = function(event) {
             if (modal === modalCreate) {
                 resetCreateModalFields();
                 resetCreateError();
-            }else if (modal === modalEdit) {
+            } else if (modal === modalEdit) {
                 resetEditModalFields();
                 resetEditError();
-            }else if (modal === modalDelete) {
+            } else if (modal === modalDelete) {
                 resetDeleteError();
             }
         }
     });
-}
+};
 
 // Ouvre la popup si erreur détectée
 document.addEventListener("DOMContentLoaded", function () {
@@ -83,6 +90,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // Réinitialiser les champs du formulaire Create
 function resetCreateModalFields() {
+    if (!modalCreate) return;
     const inputs = modalCreate.querySelectorAll("input");
     inputs.forEach(input => input.value = "");
     const select = modalCreate.querySelector("select");
@@ -91,6 +99,7 @@ function resetCreateModalFields() {
 
 // Réinitialiser l'affichage de l'erreur dans Create
 function resetCreateError() {
+    if (!modalCreate) return;
     const errorDiv = modalCreate.querySelector(".alert-danger");
     if (errorDiv) errorDiv.style.display = "none";
     const errorInputs = modalCreate.querySelectorAll(".input-error");
@@ -99,16 +108,16 @@ function resetCreateError() {
 
 // Réinitialiser les champs du formulaire Edit
 function resetEditModalFields() {
+    if (!modalEdit) return;
     const inputs = modalEdit.querySelectorAll("input");
-    inputs.forEach(input => {
-        input.value = "";
-    });
+    inputs.forEach(input => input.value = "");
     const select = modalEdit.querySelector("select");
     if (select) select.value = "";
 }
 
 // Réinitialiser l'affichage de l'erreur dans Edit
 function resetEditError() {
+    if (!modalEdit) return;
     const errorDiv = modalEdit.querySelector(".alert-danger");
     if (errorDiv) errorDiv.style.display = "none";
     const errorInputs = modalEdit.querySelectorAll(".input-error");
@@ -122,25 +131,16 @@ function resetDeleteError() {
         errorDiv.style.display = 'none';
         errorDiv.textContent = '';
     }
-    const deleteBtn = modalDelete.querySelector('button[type="submit"]');
-    if (deleteBtn) deleteBtn.style.display = 'inline-block';
+    if (modalDelete) {
+        const deleteBtn = modalDelete.querySelector('button[type="submit"]');
+        if (deleteBtn) deleteBtn.style.display = 'inline-block';
+    }
 }
 
-// Ouvre la popup delete et met à jour le formulaire
-document.querySelectorAll('.openDeletePopup').forEach(btn => {
-    btn.addEventListener('click', e => {
-        e.preventDefault();
-        const id = btn.getAttribute('data-id');
-        const form = document.getElementById('deleteForm');
-        form.action = `/manage-gateways/delete/${id}`;
-        document.getElementById('deleteGatewayPopup').style.display = 'block';
-    });
-});
-
 // Pour renvoyer les champs date sous le format YYYY-MM-DD
-flatpickr(".datepicker", {
-    dateFormat: "Y-m-d"
-});
+if (typeof flatpickr === "function") {
+    flatpickr(".datepicker", { dateFormat: "Y-m-d" });
+}
 
 // === Navigation back/reload ===
 window.addEventListener('pageshow', function(event) {
@@ -162,13 +162,11 @@ window.addEventListener('pageshow', function(event) {
 
 function refreshCsrfToken() {
     fetch('/csrf-token')
-    .then(response => response.json())
-    .then(data => {
-        const input = document.querySelector('form#myForm input[name="' + data.parameterName + '"]');
-        if (input) {
-            input.value = data.token;
-        }
-    });
+        .then(response => response.json())
+        .then(data => {
+            const input = document.querySelector('form#myForm input[name="' + data.parameterName + '"]');
+            if (input) input.value = data.token;
+        });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -185,7 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentPage = 1;
   let filteredRows = [];
 
-  // Ajoute/enlève la classe "empty" selon la valeur
   function updateBuildingPlaceholderStyle() {
     if (!buildingFilter) return;
     const isEmpty = !buildingFilter.value;
@@ -193,20 +190,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   updateBuildingPlaceholderStyle();
 
-  // Focus/blur border sur search (remplace les attributs inline)
   if (searchInput) {
     searchInput.addEventListener('focus', () => searchInput.style.borderColor = '#440d64');
     searchInput.addEventListener('blur', () => searchInput.style.borderColor = '#662179');
   }
 
-  // Convertit une syntaxe SQL LIKE (avec %) en RegExp JS
   function sqlLikeToRegex(pattern) {
     let escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
     escaped = escaped.replace(/%/g, '.*');
     return new RegExp('^' + escaped + '$', 'i');
   }
 
-  // Vérifie si une valeur matche avec "LIKE %" ou commence par la recherche
   function matchesLikeOrIncludes(value, query) {
     if (!query) return true;
     const v = String(value ?? '');
@@ -216,14 +210,12 @@ document.addEventListener('DOMContentLoaded', () => {
     return v.toLowerCase().startsWith(query.toLowerCase());
   }
 
-  // Remplit le select "Building"
   function populateBuildings() {
     if (!buildingFilter) return;
     const uniques = Array.from(new Set(
       (gateways || []).map(g => (g.buildingName || '').trim()).filter(Boolean)
     )).sort();
 
-    // Nettoie d'abord tout sauf le placeholder
     buildingFilter.querySelectorAll('option:not([value=""])').forEach(o => o.remove());
 
     for (const b of uniques) {
@@ -235,33 +227,45 @@ document.addEventListener('DOMContentLoaded', () => {
     updateBuildingPlaceholderStyle();
   }
 
-  // Construit les lignes HTML (rendu brut, sans pagination)
+  // ✅ Construit les lignes : Edit/Delete grisés si pas autorisé
   function renderRows(rows) {
     if (!tableBody) return;
     tableBody.innerHTML = '';
+
     rows.forEach(gw => {
       const row = document.createElement('tr');
+
+      const freqLabel =
+        gw.frequencyPlan === 'EU_863_870_TTN' ? 'Europe' :
+        gw.frequencyPlan === 'US_902_928_FSB_2' ? 'United States' :
+        gw.frequencyPlan === 'AU_915_928_FSB_2' ? 'Australia' :
+        gw.frequencyPlan === 'CN_470_510_FSB_11' ? 'China' :
+        gw.frequencyPlan === 'AS_920_923' ? 'Asia' : (gw.frequencyPlan ?? '');
+
+      const disabledClass = CAN_EDIT_GATEWAYS ? '' : 'disabled';
+
       row.innerHTML = `
         <td>${gw.gatewayId ?? ''}</td>
         <td>${gw.ipAddress ?? ''}</td>
-        <td>${
-          gw.frequencyPlan === 'EU_863_870_TTN' ? 'Europe' :
-          gw.frequencyPlan === 'US_902_928_FSB_2' ? 'United States' :
-          gw.frequencyPlan === 'AU_915_928_FSB_2' ? 'Australia' :
-          gw.frequencyPlan === 'CN_470_510_FSB_11' ? 'China' :
-          gw.frequencyPlan === 'AS_920_923' ? 'Asia' : (gw.frequencyPlan ?? '')
-        }</td>
+        <td>${freqLabel}</td>
         <td>${gw.createdAt ?? ''}</td>
         <td>${gw.buildingName ?? ''}</td>
         <td>
           <div class="button-container">
-            <a href="/manage-gateways/monitoring/${gw.gatewayId}/view?ip=${gw.ipAddress}">
+            <a href="/manage-gateways/monitoring/${gw.gatewayId}/view?ip=${encodeURIComponent(gw.ipAddress ?? '')}">
               <img src="/image/monitoring-data.svg" alt="Monitor">
             </a>
-            <a href="/manage-gateways/edit/${gw.gatewayId}">
+
+            <a href="/manage-gateways/edit/${gw.gatewayId}"
+               class="${disabledClass}"
+               aria-disabled="${!CAN_EDIT_GATEWAYS}">
               <img src="/image/edit-icon.svg" alt="Edit">
             </a>
-            <a href="#" class="openDeletePopup" data-id="${gw.gatewayId}">
+
+            <a href="#"
+               class="openDeletePopup ${disabledClass}"
+               aria-disabled="${!CAN_EDIT_GATEWAYS}"
+               data-id="${gw.gatewayId}">
               <img src="/image/delete-icon.svg" alt="Delete">
             </a>
           </div>
@@ -270,19 +274,20 @@ document.addEventListener('DOMContentLoaded', () => {
       tableBody.appendChild(row);
     });
 
-    // Re-binde les boutons "delete" ajoutés dynamiquement
-    tableBody.querySelectorAll('.openDeletePopup').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.preventDefault();
-        const id = btn.getAttribute('data-id');
-        const form = document.getElementById('deleteForm');
-        form.action = `/manage-gateways/delete/${id}`;
-        document.getElementById('deleteGatewayPopup').style.display = 'block';
+    // ✅ Listener delete UNIQUEMENT si autorisé
+    if (CAN_EDIT_GATEWAYS) {
+      tableBody.querySelectorAll('.openDeletePopup').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.preventDefault();
+          const id = btn.getAttribute('data-id');
+          const form = document.getElementById('deleteForm');
+          if (form) form.action = `/manage-gateways/delete/${id}`;
+          if (modalDelete) modalDelete.style.display = 'block';
+        });
       });
-    });
+    }
   }
 
-  // Rendu d’une page de la liste filtrée
   function renderRowsPaginated() {
     const total = filteredRows.length;
     const start = (currentPage - 1) * PAGE_SIZE;
@@ -291,14 +296,12 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPagination(total);
   }
 
-  // Contrôles de pagination
   function renderPagination(totalCount) {
     if (!paginationEl) return;
 
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
     currentPage = Math.min(currentPage, totalPages);
 
-    // Si peu d’items, on masque la pagination
     if (totalPages <= 1) {
       paginationEl.innerHTML = '';
       return;
@@ -319,7 +322,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return b;
     };
 
-    // fenêtre de pages (max 5 numéros)
     const totalPagesToShow = 5;
     let startPage = Math.max(1, currentPage - Math.floor(totalPagesToShow / 2));
     let endPage = Math.min(totalPages, startPage + totalPagesToShow - 1);
@@ -339,18 +341,15 @@ document.addEventListener('DOMContentLoaded', () => {
     paginationEl.appendChild(btn('»', totalPages, currentPage === totalPages, false, 'Last page'));
   }
 
-  // Applique tous les filtres puis réinitialise la pagination à la page 1
   function applyFilters() {
     const b = buildingFilter?.value || '';
-    const q = searchInput?.value || '';
+    const q = (searchInput?.value || '').trim();
     const d = (dateInput?.value || '').trim();
 
     let rows = (gateways || []).slice();
 
-    // filtre par building (exact)
     if (b) rows = rows.filter(g => (g.buildingName || '') === b);
 
-    // filtre texte (gatewayId ou ipAddress)
     if (q) {
       rows = rows.filter(g =>
         matchesLikeOrIncludes(g.gatewayId, q) ||
@@ -358,7 +357,6 @@ document.addEventListener('DOMContentLoaded', () => {
       );
     }
 
-    // filtre date >=
     if (d) {
       const dDate = new Date(d);
       rows = rows.filter(g => {
@@ -368,13 +366,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // maj dataset filtré + retour à la page 1
     filteredRows = rows;
     currentPage = 1;
     renderRowsPaginated();
   }
 
-  // Écouteurs
   buildingFilter?.addEventListener('change', () => {
     updateBuildingPlaceholderStyle();
     applyFilters();
@@ -382,7 +378,6 @@ document.addEventListener('DOMContentLoaded', () => {
   searchInput?.addEventListener('input', applyFilters);
   dateInput?.addEventListener('input', applyFilters);
 
-  // Boutons clear (croix)
   document.getElementById('clearBuilding')?.addEventListener('click', () => {
     if (!buildingFilter) return;
     buildingFilter.value = '';

@@ -3,13 +3,13 @@ name: Deploy to Azure Cloud with Docker Compose
 on:
   push:
     branches:
-      - main # STAGING (PRE-PROD)
-      - develop # TEST
-      - pipeline-test # Remove later
+      - main
+      - develop
+      - pipeline-test
   workflow_dispatch:
 
 env:
-  BRANCH: ${{ github.head_ref || github.ref_name }} 
+  BRANCH: ${{ github.head_ref || github.ref_name }}
   GATEWAY_MONITORING_GIT_URL: https://github.com/HaSaadaoui/Gateway_Monitoring_Api.git
 
 jobs:
@@ -30,6 +30,10 @@ jobs:
             echo "USER=azureuser" >> $GITHUB_ENV
             echo "PORT=80" >> $GITHUB_ENV
             echo "GATEWAY_BRANCH=main" >> $GITHUB_ENV
+            echo "NSG_NAME=vm-sensorprocessor-1-nsg" >> $GITHUB_ENV
+            echo "RESOURCE_GROUP=rg-Smart-Building-Mantu" >> $GITHUB_ENV
+            echo "NSG_NAME_2=" >> $GITHUB_ENV
+            echo "RESOURCE_GROUP_2=" >> $GITHUB_ENV
           else
             echo "SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USER_TEST }}" >> $GITHUB_ENV
             echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASS_TEST }}" >> $GITHUB_ENV
@@ -38,12 +42,67 @@ jobs:
             echo "USER=mantu" >> $GITHUB_ENV
             echo "PORT=8080" >> $GITHUB_ENV
             echo "GATEWAY_BRANCH=develop" >> $GITHUB_ENV
+            echo "NSG_NAME=Test-VM-nsg" >> $GITHUB_ENV
+            echo "RESOURCE_GROUP=Test-WebApp-Migration" >> $GITHUB_ENV
+            echo "NSG_NAME_2=vm-sensorprocessor-1-nsg" >> $GITHUB_ENV
+            echo "RESOURCE_GROUP_2=rg-Smart-Building-Mantu" >> $GITHUB_ENV
           fi
           echo "BRANCH=${{ env.BRANCH }}" >> $GITHUB_ENV
           echo "DOCKER_REGISTRY=localhost:5000" >> $GITHUB_ENV
           echo "SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver" >> $GITHUB_ENV
           echo "ACS_CONNECTION_STRING=${{ secrets.ACS_CONNECTION_STRING }}" >> $GITHUB_ENV
-          
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Add runner IP to NSG
+        run: |
+          RUNNER_IP=$(curl -s https://api.ipify.org)
+          echo "RUNNER_IP=$RUNNER_IP" >> $GITHUB_ENV
+
+          # NSG principal (interface réseau)
+          az network nsg rule create \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --nsg-name ${{ env.NSG_NAME }} \
+            --name GitHubActionsSSH \
+            --priority 500 \
+            --source-address-prefixes $RUNNER_IP \
+            --destination-port-ranges 22 \
+            --access Allow \
+            --protocol Tcp \
+            --direction Inbound
+
+          # NSG secondaire (sous-réseau) — uniquement pour develop
+          if [[ -n "${{ env.NSG_NAME_2 }}" ]]; then
+            az network nsg rule create \
+              --resource-group ${{ env.RESOURCE_GROUP_2 }} \
+              --nsg-name ${{ env.NSG_NAME_2 }} \
+              --name GitHubActionsSSH \
+              --priority 500 \
+              --source-address-prefixes $RUNNER_IP \
+              --destination-port-ranges 22 \
+              --access Allow \
+              --protocol Tcp \
+              --direction Inbound
+          fi
+
+          echo "Waiting for NSG rule to propagate..."
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            TARGET_HOST="${{ secrets.AZURE_HOST }}"
+          else
+            TARGET_HOST="${{ secrets.AZURE_HOST_TEST }}"
+          fi
+          for i in {1..12}; do
+            if nc -z -w5 $TARGET_HOST 22 2>/dev/null; then
+              echo "SSH port is open, continuing..."
+              break
+            fi
+            echo "Attempt $i/12: SSH not yet available, waiting 10s..."
+            sleep 10
+          done
+
       - name: ssh-agent setup
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -63,40 +122,23 @@ jobs:
           echo "Compression completed"
           echo "Starting SCP transfer"
           scp -o StrictHostKeyChecking=no sensorprocessor.tar.gz ${{ env.USER }}@${{ env.HOST }}:/home/${{ env.USER }}/sensorprocessor.tar.gz
-          echo "SCP transfer completed"
-          echo "Starting SSH to Azure Cloud"
           ssh -o StrictHostKeyChecking=no ${{ env.USER }}@${{ env.HOST }} '
             sudo bash -c "gunzip -f /home/${{ env.USER }}/sensorprocessor.tar.gz && docker load -i /home/${{ env.USER }}/sensorprocessor.tar"
           '
-          echo "SSH and Docker load completed"
 
       - name: Build and copy Gateway image to Azure Cloud
         run: |
-          echo "Cloning repository"
           git clone ${{ env.GATEWAY_MONITORING_GIT_URL }} tmp_gateway_monitoring_api && cd tmp_gateway_monitoring_api
-          
           if [[ "${{ env.BRANCH }}" != "main" ]]; then
             git checkout develop
           fi
-
-          echo "Build the gateway docker image"
           docker build --platform linux/amd64 -t localhost:5000/gateway:${{ env.GATEWAY_BRANCH }} .
-
-          echo "Saving gateway docker image"
           docker save -o gateway.tar localhost:5000/gateway:${{ env.GATEWAY_BRANCH }}
-
-          echo "Compressing gateway image"
           gzip gateway.tar
-
-          echo "Starting SCP transfer for gateway"
           scp -o StrictHostKeyChecking=no gateway.tar.gz ${{ env.USER }}@${{ env.HOST }}:/home/${{ env.USER }}/gateway.tar.gz
-          echo "SCP transfer for gateway completed"
-          echo "Starting SSH to Azure Cloud for gateway"
-
           ssh -o StrictHostKeyChecking=no ${{ env.USER }}@${{ env.HOST }} '
             sudo bash -c "gunzip -f /home/${{ env.USER }}/gateway.tar.gz && docker load -i /home/${{ env.USER }}/gateway.tar"
           '
-          echo "SSH and Docker load for gateway completed"
 
       - name: Run Docker Compose on Azure Cloud
         run: |
@@ -123,5 +165,19 @@ jobs:
             sudo docker compose -f docker-compose.yml up -d --remove-orphans
           '
 
+      - name: Remove runner IP from NSG
+        if: always()
+        run: |
+          # NSG principal
+          az network nsg rule delete \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --nsg-name ${{ env.NSG_NAME }} \
+            --name GitHubActionsSSH
 
-          
+          # NSG secondaire (sous-réseau) — uniquement pour develop
+          if [[ -n "${{ env.NSG_NAME_2 }}" ]]; then
+            az network nsg rule delete \
+              --resource-group ${{ env.RESOURCE_GROUP_2 }} \
+              --nsg-name ${{ env.NSG_NAME_2 }} \
+              --name GitHubActionsSSH
+          fi

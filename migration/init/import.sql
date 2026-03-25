@@ -50,14 +50,6 @@ ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
 IGNORE 1 ROWS;
 
-LOAD DATA INFILE '/var/lib/mysql-files/csv/Signal.csv'
-REPLACE
-INTO TABLE `signal`
-FIELDS TERMINATED BY ','
-ENCLOSED BY '"'
-LINES TERMINATED BY '\n'
-IGNORE 1 ROWS;
-
 LOAD DATA INFILE '/var/lib/mysql-files/csv/Gateways.csv'
 REPLACE
 INTO TABLE `gateways`
@@ -71,19 +63,3 @@ SET
     antenna_latitude = IF(@antenna_latitude = '', 0, @antenna_latitude),
     antenna_longitude = IF(@antenna_longitude = '', 0, @antenna_longitude),
     antenna_altitude = IF(@antenna_altitude = '', 0, @antenna_altitude);
-
-LOAD DATA INFILE '/var/lib/mysql-files/csv/Data_emsdesk.csv'
-REPLACE
-INTO TABLE `data_emsdesk`
-FIELDS TERMINATED BY ','
-ENCLOSED BY '"'
-LINES TERMINATED BY '\n'
-IGNORE 1 ROWS;
-
-LOAD DATA INFILE '/var/lib/mysql-files/csv/Data_pirlight.csv'
-REPLACE
-INTO TABLE `data_pirlight`
-FIELDS TERMINATED BY ','
-ENCLOSED BY '"'
-LINES TERMINATED BY '\n'
-IGNORE 1 ROWS;

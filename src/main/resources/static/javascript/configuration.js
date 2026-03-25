@@ -1,0 +1,1870 @@
+// ======================================================
+// ===============  GLOBAL VARIABLES  ===================
+// ======================================================
+
+// Gateway Configuration Management
+let gatewayThresholds = {
+    cpu: { warning: 70.0, critical: 85.0 },
+    ram: { warning: 70.0, critical: 85.0 },
+    disk: { warning: 80.0, critical: 90.0 },
+    temperature: { warning: 70.0, critical: 80.0 }
+};
+
+// Ace editor pour le payload
+let editor;
+let defaultSVGFile;
+let blobUrl = "";
+
+// ======================================================
+// ===============  TEMPLATE PAYLOAD ELSYS  =============
+// ======================================================
+
+const defaultPayloadCode = `
+var TYPE_TEMP         = 0x01;
+var TYPE_RH           = 0x02;
+var TYPE_CO2          = 0x06;
+var TYPE_VDD          = 0x07;
+var TYPE_OCCUPANCY    = 0x11;
+
+function bin16dec(bin) {
+    var num = bin & 0xFFFF;
+    if (0x8000 & num) num = - (0x010000 - num);
+    return num;
+}
+
+function decodePayload(bytes){
+    var obj = {};
+    for (let i = 0; i < bytes.length; i++) {
+        switch (bytes[i]) {
+            case TYPE_TEMP:
+                var temp = (bytes[i+1] << 8) | (bytes[i+2]);
+                temp = bin16dec(temp);
+                obj.temperature = temp / 10;
+                i += 2;
+                break;
+            case TYPE_RH:
+                obj.humidity = bytes[i+1];
+                i += 1;
+                break;
+            case TYPE_VDD:
+                obj.vdd = (bytes[i+1] << 8) | (bytes[i+2]);
+                i += 2;
+                break;
+            case TYPE_OCCUPANCY:
+                obj.occupancy = bytes[i+1];
+                i += 1;
+                break;
+            default:
+                i = bytes.length;
+                break;
+        }
+    }
+    return obj;
+}
+`;
+
+// ======================================================
+// ===============  GATEWAY CONFIGURATION  =============
+// ======================================================
+
+/**
+ * Load current gateway thresholds from server
+ */
+async function loadGatewayThresholds() {
+    try {
+        const response = await fetch('/api/gateway-config/thresholds');
+        if (response.ok) {
+            gatewayThresholds = await response.json();
+            updateGatewayThresholdInputs();
+        } else {
+            console.error('Failed to load gateway thresholds');
+        }
+    } catch (error) {
+        console.error('Error loading gateway thresholds:', error);
+    }
+}
+
+/**
+ * Update gateway threshold input fields with current values
+ */
+function updateGatewayThresholdInputs() {
+    // CPU thresholds
+    const cpuCritical = document.getElementById('gateway-cpu-critical');
+    const cpuWarning = document.getElementById('gateway-cpu-warning');
+    if (cpuCritical) cpuCritical.value = gatewayThresholds.cpu.critical;
+    if (cpuWarning) cpuWarning.value = gatewayThresholds.cpu.warning;
+    
+    // RAM thresholds
+    const ramCritical = document.getElementById('gateway-ram-critical');
+    const ramWarning = document.getElementById('gateway-ram-warning');
+    if (ramCritical) ramCritical.value = gatewayThresholds.ram.critical;
+    if (ramWarning) ramWarning.value = gatewayThresholds.ram.warning;
+    
+    // Disk thresholds
+    const diskCritical = document.getElementById('gateway-disk-critical');
+    const diskWarning = document.getElementById('gateway-disk-warning');
+    if (diskCritical) diskCritical.value = gatewayThresholds.disk.critical;
+    if (diskWarning) diskWarning.value = gatewayThresholds.disk.warning;
+    
+    // Temperature thresholds
+    const tempCritical = document.getElementById('gateway-temp-critical');
+    const tempWarning = document.getElementById('gateway-temp-warning');
+    if (tempCritical) tempCritical.value = gatewayThresholds.temperature.critical;
+    if (tempWarning) tempWarning.value = gatewayThresholds.temperature.warning;
+}
+
+/**
+ * Save gateway thresholds to server
+ */
+async function saveGatewayThresholds() {
+    try {
+        // Collect values from form inputs
+        const newThresholds = {
+            cpu: {
+                warning: parseFloat(document.getElementById('gateway-cpu-warning').value),
+                critical: parseFloat(document.getElementById('gateway-cpu-critical').value)
+            },
+            ram: {
+                warning: parseFloat(document.getElementById('gateway-ram-warning').value),
+                critical: parseFloat(document.getElementById('gateway-ram-critical').value)
+            },
+            disk: {
+                warning: parseFloat(document.getElementById('gateway-disk-warning').value),
+                critical: parseFloat(document.getElementById('gateway-disk-critical').value)
+            },
+            temperature: {
+                warning: parseFloat(document.getElementById('gateway-temp-warning').value),
+                critical: parseFloat(document.getElementById('gateway-temp-critical').value)
+            }
+        };
+        
+        // Validate thresholds
+        if (!validateGatewayThresholds(newThresholds)) {
+            return;
+        }
+        
+        // Send to server
+        const response = await fetch('/api/gateway-config/thresholds', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(newThresholds)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            gatewayThresholds = newThresholds;
+            showNotification('✅ Gateway thresholds saved successfully!', 'success');
+        } else {
+            showNotification('❌ Failed to save gateway thresholds: ' + result.message, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error saving gateway thresholds:', error);
+        showNotification('❌ Error saving gateway thresholds: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Validate gateway threshold values
+ */
+function validateGatewayThresholds(thresholds) {
+    // Check CPU thresholds
+    if (thresholds.cpu.warning >= thresholds.cpu.critical) {
+        showNotification('❌ CPU Warning threshold must be less than Critical threshold', 'error');
+        return false;
+    }
+    
+    // Check RAM thresholds
+    if (thresholds.ram.warning >= thresholds.ram.critical) {
+        showNotification('❌ RAM Warning threshold must be less than Critical threshold', 'error');
+        return false;
+    }
+    
+    // Check Disk thresholds
+    if (thresholds.disk.warning >= thresholds.disk.critical) {
+        showNotification('❌ Disk Warning threshold must be less than Critical threshold', 'error');
+        return false;
+    }
+    
+    // Check Temperature thresholds
+    if (thresholds.temperature.warning >= thresholds.temperature.critical) {
+        showNotification('❌ Temperature Warning threshold must be less than Critical threshold', 'error');
+        return false;
+    }
+    
+    // Check reasonable ranges
+    if (thresholds.cpu.critical > 100 || thresholds.ram.critical > 100 || thresholds.disk.critical > 100) {
+        showNotification('❌ CPU, RAM, and Disk thresholds cannot exceed 100%', 'error');
+        return false;
+    }
+    
+    if (thresholds.temperature.critical > 120) {
+        showNotification('❌ Temperature threshold seems too high (>120°C)', 'error');
+        return false;
+    }
+    
+    return true;
+}
+
+/**
+ * Show notification message
+ */
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 5000);
+}
+
+// ======================================================
+// =====================  MAIN ACTION  ===================
+// ======================================================
+
+// Utilitaire hex → bytes
+function hexToBytes(hex) {
+    const clean = hex.replace(/[^0-9a-fA-F]/g, "");
+    const bytes = [];
+    for (let c = 0; c < clean.length; c += 2) {
+        bytes.push(parseInt(clean.substr(c, 2), 16));
+    }
+    return bytes;
+}
+
+// Test du decoder (exécute le code Ace + decodePayload)
+function testDecoder() {
+    if (!editor) {
+        alert("Payload editor not ready.");
+        return;
+    }
+
+    const hexInput = document.getElementById("test-byte-payload").value;
+    if (!hexInput) {
+        alert("Please enter a hex payload!");
+        return;
+    }
+
+    const byteArray = hexToBytes(hexInput);
+    const editorCode = editor.getValue();
+
+    let result = {};
+    try {
+        // On attend que le code définisse function decodePayload(bytes) { ... }
+        const func = new Function("bytes", editorCode + "\nreturn decodePayload(bytes);");
+        result = func(byteArray);
+    } catch (err) {
+        console.error(err);
+        result = { error: err.message };
+    }
+
+    const out = document.getElementById("test-decoded");
+    if (out) {
+        out.innerText = JSON.stringify(result, null, 2);
+    }
+}
+
+// Toggle notification channel inputs
+function toggleNotifChannelInput() {
+    const emailChk = document.getElementById("notif-email");
+    const smsChk   = document.getElementById("notif-sms");
+    const emailDiv = document.getElementById("notif-email-input");
+    const phoneDiv = document.getElementById("notif-phone-input");
+
+    if (emailDiv) emailDiv.style.display = emailChk && emailChk.checked ? "block" : "none";
+    if (phoneDiv) phoneDiv.style.display = smsChk && smsChk.checked ? "block" : "none";
+}
+
+// ======================================================
+// =====================  2D CONFIG  ===================
+// ======================================================
+
+function populateFloorSelect() {
+    const floorSelect = document.getElementById("filter-floor");
+    const floorsEl = document.getElementById("building-floors");
+    const elementSelect = document.getElementById("filter-element");
+
+    if (!floorSelect) {
+        console.warn('Floor select not found (#filter-floor). Skipping floors update.');
+        return;
+    }
+
+    const previousfloorValue = floorSelect.value;
+
+    floorSelect.innerHTML = '';
+    if(!floorsEl || isNaN(floorsEl.value)) {
+        console.warn('Building floors input not found or invalid (#building-floors). Skipping floors update.');
+        return;
+    }
+
+    if (elementSelect && elementSelect.value && elementSelect.value !== "Sensor") {
+        floorSelect.innerHTML = '<option value="">All Floors</option>';
+    }
+
+    // Keep track of previously excluded floors
+    const previouslyExcluded = (window._pendingExcludedFloors !== undefined)
+        ? window._pendingExcludedFloors.map(String)
+        : getExcludedFloors();
+    // On consomme la valeur une seule fois
+    window._pendingExcludedFloors = undefined;
+
+    // Clear hidden select and checkbox list
+    const checkboxList = document.getElementById('floor-checkbox-list');
+    if (checkboxList) checkboxList.innerHTML = '';
+
+    const totalFloors = parseInt(floorsEl.value, 10) || 0;
+
+    for (let i = 0; i < totalFloors; i++) {
+        const isExcluded = previouslyExcluded.includes(String(i));
+        const label = i === 0 ? 'Ground Floor' : `Floor ${i}`;
+
+        // Populate filter-floor select
+        if (!isExcluded){
+            const opt = document.createElement('option');
+            opt.value = String(i);
+            opt.textContent = label;
+            floorSelect.appendChild(opt);
+        }
+
+        // Populate custom checkbox list
+        if (checkboxList) {
+            const item = document.createElement('label');
+            item.className = 'floor-checkbox-item' + (isExcluded ? ' floor-excluded' : '');
+            item.innerHTML = `
+                <span class="floor-custom-checkbox ${isExcluded ? 'checked' : ''}"></span>
+                <input type="checkbox" value="${i}" ${isExcluded ? 'checked' : ''} onchange="onFloorCheckboxChange(this)">
+                <span class="floor-checkbox-label">${label}</span>
+                ${isExcluded ? '<span class="floor-excluded-badge">excluded</span>' : ''}
+            `;
+            checkboxList.prepend(item); // prepend so highest floor is at top
+        }
+    }
+
+    floorSelect.value = previousfloorValue;
+    updateFloorCheckboxSummary();
+}
+
+function getExcludedFloors() {
+    const checkboxes = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function toggleFloorCheckboxPanel() {
+    const panel = document.getElementById('floor-checkbox-panel');
+    const chevron = document.getElementById('floor-checkbox-chevron');
+    if (!panel) return;
+    const isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    if (chevron) chevron.textContent = isOpen ? '▾' : '▴';
+}
+
+function onFloorCheckboxChange(cb) {
+    const item = cb.closest('.floor-checkbox-item');
+    const customCb = item?.querySelector('.floor-custom-checkbox');
+    const badge = item?.querySelector('.floor-excluded-badge');
+
+    if (cb.checked) {
+        item?.classList.add('floor-excluded');
+        customCb?.classList.add('checked');
+        if (!badge) {
+            const b = document.createElement('span');
+            b.className = 'floor-excluded-badge';
+            b.textContent = 'excluded';
+            item?.appendChild(b);
+        }
+    } else {
+        item?.classList.remove('floor-excluded');
+        customCb?.classList.remove('checked');
+        badge?.remove();
+    }
+
+    updateFloorCheckboxSummary();
+    this.applyFormUpdate();
+}
+
+function toggleAllFloors(masterCb) {
+    const checked = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]:checked');
+    const all = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]');
+    all.forEach(cb => {
+        cb.checked = checked.length === all.length ? false : true;
+        onFloorCheckboxChange(cb);
+    });
+    updateMasterCheckboxUI();
+}
+
+function updateFloorCheckboxSummary() {
+    const all = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]');
+    const checked = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]:checked');
+    const summary = document.getElementById('floor-checkbox-summary');
+    if (!summary) return;
+
+    const total = all.length;
+    const excluded = checked.length;
+
+    if (excluded === 0) {
+        summary.textContent = 'All floors visible';
+    } else if (excluded === total) {
+        summary.textContent = 'All floors excluded';
+    } else {
+        summary.textContent = `${excluded} floor${excluded > 1 ? 's' : ''} excluded`;
+    }
+
+    updateMasterCheckboxUI();
+}
+
+function updateMasterCheckboxUI() {
+    const all = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]');
+    const checked = document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]:checked');
+    const masterUI = document.getElementById('master-checkbox-ui');
+    const masterInput = document.getElementById('floor-select-all');
+    if (!masterUI) return;
+
+    if (checked.length === 0) {
+        masterUI.classList.remove('checked', 'indeterminate');
+        if (masterInput) masterInput.checked = false;
+    } else if (checked.length === all.length) {
+        masterUI.classList.add('checked');
+        masterUI.classList.remove('indeterminate');
+        if (masterInput) masterInput.checked = true;
+    } else {
+        masterUI.classList.remove('checked');
+        masterUI.classList.add('indeterminate');
+        if (masterInput) masterInput.checked = false;
+    }
+}
+
+function updateInputSizeLabel() {
+    const elementValue = document.getElementById('filter-element')?.value;
+    const sensorTypeValue = document.getElementById('filter-sensor-type')?.value;
+
+    const sizeInput = document.getElementById('input_size');
+    const sizeLabel = sizeInput?.parentElement?.querySelector('label');
+    if (!sizeLabel) return;
+
+    if (elementValue === 'Sensor' && sensorTypeValue === 'DESK') {
+        sizeLabel.textContent = 'Font Size';
+    } else {
+        sizeLabel.textContent = 'Size';
+    }
+}
+
+function toggleFormFields() {
+    const elementSelect = document.getElementById('filter-element');
+    const sensorTypeSelect = document.getElementById('filter-sensor-type');
+    this.applyFormVisibility(elementSelect.value, sensorTypeSelect.value);
+}
+
+function applyFormVisibility(elementValue, sensorTypeValue) {
+    this.populateFloorSelect(); 
+    const sensorTypeSelect = document.getElementById('filter-sensor-type');
+
+    const sensorTypeContainer = sensorTypeSelect?.parentElement;
+    const inputSizeEl = document.getElementById('input_size');
+    const inputSizeContainer = inputSizeEl?.parentElement;
+    const inputRadiusEl = document.getElementById('input_radius');
+    const inputRadiusContainer = inputRadiusEl?.parentElement;
+    const inputLabelEl = document.getElementById('input_label');
+    const inputLabelContainer = inputLabelEl?.parentElement;
+    const inputWidthEl = document.getElementById('input_width');
+    const inputWidthContainer = inputWidthEl?.parentElement;
+    const inputHeightEl = document.getElementById('input_height');
+    const inputHeightContainer = inputHeightEl?.parentElement;
+    const inputRotationEl = document.getElementById('input_rotation');
+    const inputRotationContainer = inputRotationEl?.parentElement;
+    const selectChairPosition = document.getElementById('chair_top');
+    const selectChairContainer = selectChairPosition?.parentElement;
+    const styleSelect = document.getElementById("filter-style");
+    const styleSelectContainer = styleSelect?.parentElement;
+
+    const sensorMode = (sensorTypeValue ?? sensorTypeSelect?.value ?? 'DESK');
+
+    switch (elementValue) {
+        case "Sensor":
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'block';
+            if (styleSelectContainer) styleSelectContainer.style.display = 'none';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'block';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
+            if (sensorMode === "DESK") {
+                if (inputWidthContainer) inputWidthContainer.style.display = 'block';
+                if (inputHeightContainer) inputHeightContainer.style.display = 'block';
+                if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+                if (selectChairContainer) selectChairContainer.style.display = 'block';
+                if (inputLabelContainer) inputLabelContainer.style.display = 'block';
+            } else {
+                if (inputWidthContainer) inputWidthContainer.style.display = 'none';
+                if (inputHeightContainer) inputHeightContainer.style.display = 'none';
+                if (inputRotationContainer) inputRotationContainer.style.display = 'none';
+                if (selectChairContainer) selectChairContainer.style.display = 'none';
+                if (inputLabelContainer) inputLabelContainer.style.display = 'none';
+            }
+            break;
+
+        case "Wall":
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'block';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
+            if (inputWidthContainer) inputWidthContainer.style.display = 'block';
+            if (inputHeightContainer) inputHeightContainer.style.display = 'none';
+            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+            if (selectChairContainer) selectChairContainer.style.display = 'none';
+            if (inputLabelContainer) inputLabelContainer.style.display = 'none';
+            if (styleSelectContainer) styleSelectContainer.style.display = 'block';
+            break;
+
+        case "Room":
+        case "Door":
+        case "Window":
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'none';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
+            if (inputWidthContainer) inputWidthContainer.style.display = 'block';
+            if (inputHeightContainer) inputHeightContainer.style.display = 'block';
+            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+            if (selectChairContainer) selectChairContainer.style.display = 'none';
+            if (inputLabelContainer) inputLabelContainer.style.display = 'none';
+            if (styleSelectContainer) styleSelectContainer.style.display = 'block';
+            break;
+
+        case "Circle":
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'none';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'block';
+            if (inputWidthContainer) inputWidthContainer.style.display = 'none';
+            if (inputHeightContainer) inputHeightContainer.style.display = 'none';
+            if (inputRotationContainer) inputRotationContainer.style.display = 'none';
+            if (selectChairContainer) selectChairContainer.style.display = 'none';
+            if (inputLabelContainer) inputLabelContainer.style.display = 'none';
+            if (styleSelectContainer) styleSelectContainer.style.display = 'block';
+            break;
+
+        case "Label":
+            if (sensorTypeContainer) sensorTypeContainer.style.display = 'none';
+            if (inputSizeContainer) inputSizeContainer.style.display = 'block';
+            if (inputRadiusContainer) inputRadiusContainer.style.display = 'none';
+            if (inputWidthContainer) inputWidthContainer.style.display = 'none';
+            if (inputHeightContainer) inputHeightContainer.style.display = 'none';
+            if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+            if (selectChairContainer) selectChairContainer.style.display = 'none';
+            if (inputLabelContainer) inputLabelContainer.style.display = 'block';
+            if (styleSelectContainer) styleSelectContainer.style.display = 'block';
+            break;
+    }
+
+    this.updateInputSizeLabel();
+}
+
+function initializeInputs() {
+    const element = document.getElementById("filter-element").value;
+    const sensorType = document.getElementById("filter-sensor-type").value;
+
+    const idInput = document.getElementById("input_id");
+    const sizeInput = document.getElementById("input_size");
+    const widthInput = document.getElementById("input_width");
+    const heightInput = document.getElementById("input_height");
+    const radiusInput = document.getElementById("input_radius");
+    const rotationInput = document.getElementById("input_rotation");
+    const labelInput = document.getElementById("input_label");
+    const chairTop = document.getElementById("chair_top");
+    const chairBottom = document.getElementById("chair_bottom");
+    const chairLeft = document.getElementById("chair_left");
+    const chairRight = document.getElementById("chair_right");
+    const styleSelect = document.getElementById("filter-style");
+
+    // ID auto-généré
+    idInput.value = `${element}_${Date.now()}`;
+    chairTop.value = 0;
+    chairBottom.value = 0;
+    chairLeft.value = 0;
+    chairRight.value = 0;
+    styleSelect.value = "Dark";
+
+    // --- Selon le type d'élément ---
+    switch (element) {
+        case "Sensor":
+            if (sensorType === "DESK") {
+                widthInput.value = 40;
+                heightInput.value = 40;
+                rotationInput.value = 0;
+                sizeInput.value = "";
+                labelInput.value = "Desk Sensor";
+            } else {
+                sizeInput.value = 20;
+                widthInput.value = "";
+                heightInput.value = "";
+                rotationInput.value = 0;
+            }
+            break;
+        case "Wall":
+            sizeInput.value = 120;
+            widthInput.value = 5;
+            heightInput.value = "";
+            radiusInput.value = "";
+            rotationInput.value = 0;
+            labelInput.value = "";
+            break;
+        case "Room":
+            widthInput.value = 80;
+            heightInput.value = 80;
+            sizeInput.value = "";
+            radiusInput.value = "";
+            rotationInput.value = 0;
+            labelInput.value = "";
+            break;
+        case "Door":
+            widthInput.value = 10;
+            heightInput.value = 5;
+            sizeInput.value = "";
+            radiusInput.value = "";
+            rotationInput.value = 0;
+            labelInput.value = "";
+            break;
+        case "Window":
+            widthInput.value = 10;
+            heightInput.value = 2;
+            sizeInput.value = "";
+            radiusInput.value = "";
+            rotationInput.value = 0;
+            labelInput.value = "";
+            break;
+        case "Circle":
+            radiusInput.value = 40;
+            sizeInput.value = "";
+            widthInput.value = "";
+            heightInput.value = "";
+            rotationInput.value = 0;
+            labelInput.value = "";
+            break;
+        case "Label":
+            sizeInput.value = 40;
+            widthInput.value = "";
+            heightInput.value = "";
+            rotationInput.value = 0;
+            labelInput.value = "New Label";
+            break;
+    }
+}
+
+function onChangeSensor() {
+    const sensorTypeSelect = document.getElementById('filter-sensor-type');
+
+    const inputWidthEl = document.getElementById('input_width');
+    const inputWidthContainer = inputWidthEl.parentElement;
+
+    const inputHeightEl = document.getElementById('input_height');
+    const inputHeightContainer = inputHeightEl.parentElement;
+
+    const inputRotationEl = document.getElementById('input_rotation');
+    const inputRotationContainer = inputRotationEl.parentElement;
+
+    const inputLabelEl = document.getElementById('input_label');
+    const inputLabelContainer = inputLabelEl.parentElement;
+
+    const selectChairPosition = document.getElementById('chair_top');
+    const selectChairContainer = selectChairPosition.parentElement;
+
+    if (sensorTypeSelect.value === "DESK") {
+        if (inputWidthContainer) inputWidthContainer.style.display = 'block';
+        if (inputHeightContainer) inputHeightContainer.style.display = 'block';
+        if (inputRotationContainer) inputRotationContainer.style.display = 'block';
+        if (selectChairContainer) selectChairContainer.style.display = 'block';
+        if (inputLabelContainer) inputLabelContainer.style.display = 'block';
+    } else {
+        if (inputWidthContainer) inputWidthContainer.style.display = 'none';
+        if (inputHeightContainer) inputHeightContainer.style.display = 'none';
+        if (inputRotationContainer) inputRotationContainer.style.display = 'none';
+        if (selectChairContainer) selectChairContainer.style.display = 'none';
+        if (inputLabelContainer) inputLabelContainer.style.display = 'none';
+    }
+    this.initializeInputs();
+    this.updateInputSizeLabel();
+}
+
+function onChangeElement() {
+    this.populateFloorSelect();
+    this.initializeInputs();
+    this.toggleFormFields();
+    this.updateInputSizeLabel();
+    
+    const floorSelect = document.getElementById('filter-floor');
+    const sensorTypeSelect = document.getElementById('filter-sensor-type');
+    if (window.building3D) {
+        const floorNumber = parseInt(floorSelect.value, 10);
+        window.building3D.currentFloorNumber = floorNumber;
+        window.building3D.setSensorMode(sensorTypeSelect.value);
+    }
+}
+
+async function populateBuildingSelect() {
+    const select = document.getElementById('filter-building');
+    if (!select) return;
+
+    try {
+        const resp = await fetch('/api/buildings');
+        let buildings = resp.ok ? await resp.json() : [];
+        // Remplissage du select
+        select.innerHTML = '';
+
+        const noneOption = document.createElement('option');
+        noneOption.value = '';
+        noneOption.textContent = 'New Building';
+        select.appendChild(noneOption);
+
+        buildings.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b.id;
+            opt.textContent = b.name;
+            select.appendChild(opt);
+        });
+
+    } catch (e) {
+        console.error('Error loading buildings', e);
+    }
+}
+
+async function initBuildingConfig() {
+    const selectBuilding = document.getElementById('filter-building');
+    const nameEl   = document.getElementById("building-name");
+    const floorsEl = document.getElementById("building-floors");
+    const scaleEl  = document.getElementById("building-scale");
+    const svgInput = document.getElementById("building-svg");
+
+    const buildingId = selectBuilding.value;
+
+    if (!isNaN(buildingId) && buildingId !== null && buildingId !== "") {
+        try {
+            const resp = await fetch(`/api/buildings/${buildingId}`);
+            if (!resp.ok) {
+                throw new Error(`HTTP ${resp.status}`);
+            }
+            const b = await resp.json();
+            nameEl.value   = b.name || "";
+            floorsEl.value = b.floorsCount || 1;
+            scaleEl.value  = b.scale || 0.01;
+            defaultSVGFile = b.svgPlan || "";
+            window._pendingExcludedFloors = b.excludedFloors || [];
+        } catch (e) {
+            console.error("Erreur lors du chargement du bâtiment :", e);
+        }
+    } else {
+        nameEl.value   = "";
+        floorsEl.value = 1;
+        scaleEl.value  = 0.01;
+        defaultSVGFile = "";
+        window._pendingExcludedFloors = [];
+    }
+    svgInput.value = "";
+    this.refresh3DConfig()
+}
+
+function refresh3DConfig(){
+    const selectBuilding = document.getElementById('filter-building');
+    const floorsEl = document.getElementById("building-floors");
+    const scaleEl  = document.getElementById("building-scale");
+
+    const buildingId = selectBuilding.value || "tempKeyConfig";
+    const previouslyExcluded = (window._pendingExcludedFloors !== undefined)
+        ? window._pendingExcludedFloors.map(String)
+        : getExcludedFloors();
+
+    window.building3D.buildingKey = buildingId;
+    window.building3D.isDbBuilding = true;
+    window.building3D.dbShapeCache = null;
+    window.building3D.dbBuildingConfig = {floors: floorsEl.value, scale: scaleEl.value, excludedFloors: previouslyExcluded, svgUrl: defaultSVGFile};
+    window.building3D.config = {id: buildingId, floors: floorsEl.value, excludedFloors: previouslyExcluded, scale: scaleEl.value};
+
+    this.populateFloorSelect();
+
+    // On révoque le blob s'il existe lorsque l'on modifie le paramétrage 3D
+    if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);   
+    }
+}
+
+function applyFormUpdate() {
+    this.refresh3DConfig()
+
+    const svgInput = document.getElementById("building-svg");
+    
+    if (svgInput.value && svgInput.value.trim() !== "") {
+        const file = svgInput.files[0];
+        blobUrl = URL.createObjectURL(file);
+        window.building3D.dbBuildingConfig.svgUrl = blobUrl;
+    }
+
+    window.building3D.setBuilding();
+}
+
+async function deleteBuildingConfig() {
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    
+    if (!csrfMeta || !csrfHeaderMeta) {
+        alert("CSRF token not found. Please refresh the page.");
+        return;
+    }
+    
+    const csrfToken = csrfMeta.getAttribute("content");
+    const csrfHeader = csrfHeaderMeta.getAttribute("content");
+
+    const selectBuilding = document.getElementById('filter-building');
+    const buildingId = selectBuilding.value;
+    if (!isNaN(buildingId) && buildingId !== null && buildingId !== "") {
+
+        try {
+            const response = await fetch("/api/buildings/" + buildingId, {
+                method: "DELETE",
+                headers: {
+                    [csrfHeader]: csrfToken
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            } else {
+                console.log("Building deleted:" + buildingId);
+                alert("Building deleted successfully");
+            }
+            
+        } catch (error) {
+            console.error("Error deleting building:", error);
+            alert("Failed to delete building: " + error.message);
+        }
+
+        populateBuildingSelect();
+
+        const nameEl   = document.getElementById("building-name");
+        const floorsEl = document.getElementById("building-floors");
+        const scaleEl  = document.getElementById("building-scale");
+
+        // Set default values after deletion
+        selectBuilding.value = "";
+        nameEl.value   = "";
+        floorsEl.value = 3;
+        scaleEl.value  = 0.01;
+        defaultSVGFile = "";
+        window._pendingExcludedFloors = [];
+
+        this.refresh3DConfig();
+        window.building3D.setBuilding();
+    } else {
+        alert("Please select a building to delete.");
+    }
+}
+
+async function saveBuildingConfig() {
+    const selectBuilding = document.getElementById('filter-building');
+    const nameEl   = document.getElementById("building-name");
+    const floorsEl = document.getElementById("building-floors");
+    const scaleEl  = document.getElementById("building-scale");
+    const svgInput = document.getElementById("building-svg");
+
+    const name    = (nameEl.value || "").trim();
+    const floors  = parseInt(floorsEl.value, 10) || 1;
+    const scale   = parseFloat(scaleEl.value) || 0.01;
+    svgFile = svgInput.files[0];
+
+    const excludedFloors = Array.from(
+        document.querySelectorAll('#floor-checkbox-list input[type="checkbox"]:checked')
+    ).map(cb => parseInt(cb.value, 10));
+
+    if (!name) {
+        alert("Merci de saisir un nom de bâtiment.");
+        return;
+    }
+
+    if (!svgFile) {
+        // Si création de bâtiment, le SVG est obligatoire
+        if (!isNaN(selectBuilding.value) && selectBuilding.value !== null && selectBuilding.value !== "") {
+            svgFile = new File([], "");
+        } else {
+            alert("Merci de sélectionner un fichier SVG.");
+            return;
+        }
+    }
+
+    // Récupérer le CSRF sur /api/buildings/csrf-token
+    let csrf;
+    try {
+        const csrfResp = await fetch("/api/buildings/csrf-token", {
+            credentials: "same-origin"
+        });
+        if (!csrfResp.ok) {
+            throw new Error("HTTP " + csrfResp.status);
+        }
+        csrf = await csrfResp.json();
+        console.log("CSRF token:", csrf);
+    } catch (e) {
+        console.error("Erreur CSRF:", e);
+        alert("Impossible de récupérer le token CSRF");
+        return;
+    }
+
+    // On récupère le SVG affiché pour le sauvegarder
+    const floorPlan2D   = document.getElementById('floor-plan-2d');
+    if (floorPlan2D && floorPlan2D.style.display === 'block'){
+        const fileName = svgFile.name || defaultSVGFile.split('/').pop() || name;
+        const svgContent = window.building3D.currentArchPlan.exportSVG();
+        if (!svgContent) {
+            alert("Failed to extract SVG content.");
+            return;
+        }
+        // Convert SVG text → Blob (fichier)
+        const blob = new Blob([svgContent], { type: "image/svg+xml" });
+        svgFile = new File([blob], fileName, { type: "image/svg+xml" });
+    } 
+
+    // Construire le FormData
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("floors", floors);
+    formData.append("scale", scale);
+    formData.append("svgFile", svgFile);
+    formData.append(csrf.parameterName, csrf.token);
+    excludedFloors.forEach(f => formData.append("excludedFloors", f));
+
+    // Si aucun bâtiment sélectionné, on appelle la méthode createBuildingConfig sinon updateBuildingConfig
+    if (!isNaN(selectBuilding.value) && selectBuilding.value !== null && selectBuilding.value !== "") {
+        return updateBuildingConfig(formData);
+    } else {
+        return createBuildingConfig(formData);
+    }
+}
+
+async function createBuildingConfig(formData) {
+    const selectBuilding = document.getElementById('filter-building');
+
+    fetch("/api/buildings", {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin"
+    })
+    .then(resp => {
+        if (!resp.ok) {
+            throw new Error("HTTP error " + resp.status);
+        }
+        return resp.json();
+    })
+    .then(data => {
+        console.log("Building created:", data);
+        populateBuildingSelect().then(() => {
+            const values = Array.from(selectBuilding.options)
+                .map(opt => parseFloat(opt.value))
+                .filter(v => !Number.isNaN(v));
+
+            const maxValue = Math.max(...values);
+            selectBuilding.value = isNaN(maxValue) ? "" : maxValue;
+            alert("Building créé avec succès (id=" + (maxValue ?? "?") + ")");
+        });
+
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Erreur lors de la création du building.");
+    });
+}
+
+async function updateBuildingConfig(formData) {
+    const selectBuilding = document.getElementById('filter-building');
+    const buildingId = selectBuilding.value;
+
+    fetch("/api/buildings/" + buildingId, {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin"
+    })
+    .then(resp => {
+        if (!resp.ok) {
+            throw new Error("HTTP error " + resp.status);
+        }
+        return resp.json();
+    })
+    .then(data => {
+        console.log("Building updated :", data);
+        alert("Building modifié avec succès (id=" + (data.id ?? "?") + ")");
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Erreur lors de la modification du building.");
+    });
+}
+
+// ======================================================
+// =====================  SVG ELEMENTS  =================
+// ======================================================
+
+function addElementSVG() {
+    const sensorType  = document.getElementById("filter-sensor-type");
+    const floorNumber = document.getElementById("filter-floor");
+    const elementSelect = document.getElementById('filter-element');
+    const inputIdEl  = document.getElementById("input_id");
+    const inputSizeEl = document.getElementById("input_size");
+    const inputWidthEl = document.getElementById('input_width');
+    const inputHeightEl = document.getElementById('input_height');
+    const inputRotationEl = document.getElementById('input_rotation');
+    const inputRadiusEl = document.getElementById('input_radius');
+    const inputLabelEl = document.getElementById('input_label');
+    const inputStyleEl = document.getElementById('filter-style');
+
+    if (!inputIdEl || inputIdEl.value.trim() === '') {
+        alert("Merci de saisir un ID.");
+        return;
+    }
+
+    const id = CSS.escape(inputIdEl.value);
+    const elementWithID = Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+id));
+    if (elementWithID.length) {
+        alert("Un élément avec cet ID existe déjà.");
+        return;
+    }
+
+    // Récupère le centre du plan (dans le bon repère)
+    const { x: centerX, y: centerY } = getPlanCenterXY();
+
+    if (elementSelect.value === "Sensor"){
+        if (sensorType.value === "DESK") {
+            if (!inputWidthEl || inputWidthEl.value.trim() === '') {
+                alert("Please fill the width input");
+                return;
+            }
+            if (!inputHeightEl || inputHeightEl.value.trim() === '') {
+                alert("Please fill the height input");
+                return;
+            }
+        } else {
+            if (!inputSizeEl || inputSizeEl.value.trim() === '') {
+                alert("Please fill the size input");
+                return;
+            }
+        }
+        const sensor = {
+            id : inputIdEl.value,
+            type : sensorType.value,
+            floor : floorNumber.value,
+            x : centerX,
+            y : centerY,
+            size : parseInt(inputSizeEl.value),
+            width : parseInt(inputWidthEl.value),
+            height : parseInt(inputHeightEl.value),
+            rotation : parseInt(inputRotationEl.value),
+            label : inputLabelEl.value,
+            chairs : {
+                top: parseInt(document.getElementById("chair_top").value || 0),
+                bottom: parseInt(document.getElementById("chair_bottom").value || 0),
+                left: parseInt(document.getElementById("chair_left").value || 0),
+                right: parseInt(document.getElementById("chair_right").value || 0),
+            }
+        }
+        window.building3D.currentArchPlan.overlayManager.drawSensor(sensor);
+    } else {
+        switch (elementSelect.value){
+            case "Wall":
+                if (!inputSizeEl || inputSizeEl.value.trim() === '') {
+                    alert("Please fill the size input");
+                    return;
+                }
+                break;
+            case "Room":
+                if (!inputWidthEl || inputWidthEl.value.trim() === '') {
+                    alert("Please fill the width input");
+                    return;
+                }
+                if (!inputHeightEl || inputHeightEl.value.trim() === '') {
+                    alert("Please fill the height input");
+                    return;
+                }
+                break;
+            case "Door":
+                if (!inputWidthEl || inputWidthEl.value.trim() === '') {
+                    alert("Please fill the width input");
+                    return;
+                }
+                if (!inputHeightEl || inputHeightEl.value.trim() === '') {
+                    alert("Please fill the height input");
+                    return;
+                }
+                break;
+            case "Window":
+                if (!inputWidthEl || inputWidthEl.value.trim() === '') {
+                    alert("Please fill the width input");
+                    return;
+                }
+                if (!inputHeightEl || inputHeightEl.value.trim() === '') {
+                    alert("Please fill the height input");
+                    return;
+                }
+                break;
+            case "Circle":
+                if (!inputRadiusEl || inputRadiusEl.value.trim() === '') {
+                    alert("Please fill the radius input");
+                    return;
+                }
+                break;
+            case "Label":
+                if (!inputLabelEl || inputLabelEl.value.trim() === '') {
+                    alert("Please fill the label input");
+                    return;
+                }
+                break;
+        }
+        const element = {
+            id : inputIdEl.value,
+            type : elementSelect.value,
+            floor : floorNumber.value,
+            x : centerX,
+            y : centerY,
+            size : parseInt(inputSizeEl.value),
+            width : parseInt(inputWidthEl.value),
+            height : parseInt(inputHeightEl.value),
+            radius : parseInt(inputRadiusEl.value),
+            rotation : parseInt(inputRotationEl.value),
+            label : inputLabelEl.value,
+            style : inputStyleEl ? inputStyleEl.value : "Dark"
+        };
+        window.building3D.currentArchPlan.elementsManager.addElement(element);
+    }
+}
+
+function removeElementSVG() {
+    const elementId  = document.getElementById("input_id");
+    const elementSelect = document.getElementById('filter-element');
+
+    if (!elementId || elementId.value.trim() === '') {
+        alert("Merci de saisir un ID.");
+        return;
+    }
+    if (window.building3D && window.building3D.currentArchPlan) {
+        const id = CSS.escape(elementId.value);
+        const elementWithID = Array.from(window.building3D.currentArchPlan.svg.querySelectorAll('#'+id));
+        if (!elementWithID.length) {
+            alert("Aucun élément avec cet ID n'existe.");
+            return;
+        }
+    }
+    if (elementSelect.value === "Sensor"){
+        window.building3D.currentArchPlan.overlayManager.removeSensorMarkerById(elementId.value);
+    } else {
+        window.building3D.currentArchPlan.elementsManager.removeElement(elementId.value);
+    }
+}
+
+function updateElementSVG() {
+    const sensorTypeSelect = document.getElementById('filter-sensor-type');
+    const floorNumberSelect = document.getElementById("filter-floor");
+    const elementSelect = document.getElementById('filter-element');
+
+    const inputIdEl = document.getElementById('input_id');
+    const elementId = inputIdEl.value;
+    if (!elementId || elementId.trim() === '') return;
+
+    const inputSizeEl = document.getElementById('input_size');
+    const inputWidthEl = document.getElementById('input_width');
+    const inputHeightEl = document.getElementById('input_height');
+    const inputRotationEl = document.getElementById('input_rotation');
+    const inputRadiusEl = document.getElementById('input_radius');
+    const inputLabelEl = document.getElementById('input_label');
+    const inputStyleEl = document.getElementById('filter-style');
+
+    let rotation = 0;
+    if (inputRotationEl && inputRotationEl.value.trim() !== '' ){
+        rotation = parseInt(inputRotationEl.value, 10);
+    }
+
+    if (elementSelect.value === "Sensor"){
+        const sensor = {
+            id : inputIdEl.value,
+            type : sensorTypeSelect.value,
+            floor : floorNumberSelect.value,
+            x : parseInt(inputSizeEl.value) || parseInt(inputWidthEl.value),
+            y : parseInt(inputSizeEl.value) || parseInt(inputHeightEl.value),
+            size : parseInt(inputSizeEl.value),
+            width : parseInt(inputWidthEl.value),
+            height : parseInt(inputHeightEl.value),
+            rotation : parseInt(rotation),
+            label : inputLabelEl.value,
+            chairs : {
+                top: parseInt(document.getElementById("chair_top").value || 0),
+                bottom: parseInt(document.getElementById("chair_bottom").value || 0),
+                left: parseInt(document.getElementById("chair_left").value || 0),
+                right: parseInt(document.getElementById("chair_right").value || 0),
+            }
+        }
+        window.building3D.currentArchPlan.overlayManager.updateSensorGeometry(sensor);
+    } else {
+        const element = {
+            id : inputIdEl.value,
+            type : elementSelect.value,
+            floor : floorNumberSelect.value,
+            x : parseInt(inputSizeEl.value) || parseInt(inputWidthEl.value) || parseInt(inputRadiusEl.value),
+            y : parseInt(inputSizeEl.value) || parseInt(inputHeightEl.value) || parseInt(inputRadiusEl.value),
+            size : parseInt(inputSizeEl.value),
+            width : parseInt(inputWidthEl.value),
+            height : parseInt(inputHeightEl.value),
+            radius : parseInt(inputRadiusEl.value),
+            rotation : parseInt(rotation),
+            label : inputLabelEl.value,
+            style : inputStyleEl ? inputStyleEl.value : "Dark"
+        };
+        window.building3D.currentArchPlan.elementsManager.updateElement(element);
+    }
+}
+
+function getPlanCenterXY() {
+    const arch = window.building3D?.currentArchPlan;
+    if (!arch || !arch.svg) {
+        return { x: 600, y: 600 };
+    }
+
+    const svg = arch.svg;
+    const root = svg.querySelector('#content-root') || svg;
+
+    try {
+        // Centre de l'élément SVG à l'écran (pixels)
+        const rect = svg.getBoundingClientRect();
+        const pt = svg.createSVGPoint();
+        pt.x = rect.left + rect.width / 2;
+        pt.y = rect.top + rect.height / 2;
+
+        const ctm = root.getScreenCTM();
+        if (ctm) {
+            const p = pt.matrixTransform(ctm.inverse());
+            return { x: Math.round(p.x), y: Math.round(p.y) };
+        }
+    } catch (e) {
+        // no-op: on tombera sur le fallback viewBox ci-dessous
+    }
+
+    // Fallback: centre du viewBox si disponible
+    const vb = svg.viewBox?.baseVal;
+    if (vb) {
+        return {
+            x: Math.round(vb.x + vb.width / 2),
+            y: Math.round(vb.y + vb.height / 2)
+        };
+    }
+    return { x: 600, y: 600 };
+}
+
+// ======================================================
+// ================== ALERT CONFIG SAVE ==================
+// ======================================================
+
+async function saveAlertConfig() {
+    // 1. Get CSRF Token
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    
+    if (!csrfMeta || !csrfHeaderMeta) {
+        alert("CSRF token not found. Please refresh the page.");
+        return;
+    }
+    
+    const csrfToken = csrfMeta.getAttribute("content");
+    const csrfHeader = csrfHeaderMeta.getAttribute("content");
+
+    // 2. Gather Data
+    const payload = {
+        dataMaxAgeMinutes: parseInt(document.getElementById("alert-data-age").value),
+        co2: {
+            critical: parseFloat(document.getElementById("alert-co2-critical").value),
+            warning: parseFloat(document.getElementById("alert-co2-warning").value)
+        },
+        temperature: {
+            criticalHigh: parseFloat(document.getElementById("alert-temp-crit-high").value),
+            criticalLow: parseFloat(document.getElementById("alert-temp-crit-low").value),
+            warningHigh: parseFloat(document.getElementById("alert-temp-warn-high").value),
+            warningLow: parseFloat(document.getElementById("alert-temp-warn-low").value)
+        },
+        humidity: {
+            warningHigh: parseFloat(document.getElementById("alert-hum-warn-high").value),
+            warningLow: parseFloat(document.getElementById("alert-hum-warn-low").value)
+        },
+        noise: {
+            warning: parseFloat(document.getElementById("alert-noise-warning").value)
+        }
+    };
+
+    // 3. Send Request
+    try {
+        const response = await fetch("/api/configuration/alerts", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                [csrfHeader]: csrfToken
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        alert("Configuration saved successfully!");
+        console.log("Alert config saved:", data);
+        
+    } catch (error) {
+        console.error("Error saving alert config:", error);
+        alert("Failed to save configuration: " + error.message);
+    }
+}
+
+// ======================================================
+// ============== NOTIFICATION CHANNELS ==================
+// ======================================================
+
+async function saveNotificationChannels() {
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    
+    if (!csrfMeta || !csrfHeaderMeta) {
+        alert("CSRF token not found. Please refresh the page.");
+        return;
+    }
+    
+    const csrfToken = csrfMeta.getAttribute("content");
+    const csrfHeader = csrfHeaderMeta.getAttribute("content");
+
+    const parameterType = document.getElementById("notif-parameter").value;
+    const emailEnabled = document.getElementById("notif-email").checked;
+    const smsEnabled = document.getElementById("notif-sms").checked;
+    const customEmail = document.getElementById("notif-custom-email").value.trim();
+    const customPhone = document.getElementById("notif-custom-phone").value.trim();
+
+    const payload = {
+        parameterType: parameterType,
+        emailEnabled: emailEnabled,
+        smsEnabled: smsEnabled,
+        customEmail: customEmail || null,
+        customPhone: customPhone || null
+    };
+
+    try {
+        const response = await fetch("/api/configuration/notifications", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                [csrfHeader]: csrfToken
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        alert("Notification preferences saved successfully!");
+        loadNotificationPreferences();
+        
+    } catch (error) {
+        console.error("Error saving notification preferences:", error);
+        alert("Failed to save notification preferences: " + error.message);
+    }
+}
+
+async function loadNotificationPreferences() {
+    try {
+        const response = await fetch("/api/configuration/notifications");
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const preferences = await response.json();
+        const listDiv = document.getElementById("notification-prefs-list");
+        
+        if (!preferences || preferences.length === 0) {
+            listDiv.innerHTML = '<p class="text-muted">No notification preferences configured yet.</p>';
+            return;
+        }
+        
+        let html = '';
+        preferences.forEach(pref => {
+            const channels = [];
+            if (pref.emailEnabled) channels.push('📧 Email');
+            if (pref.smsEnabled) channels.push('📱 SMS');
+            
+            html += `
+                <div class="notification-item">
+                    <div class="notification-info">
+                        <div class="notification-label">${pref.parameterType}</div>
+                        <div class="notification-details">
+                            Channels: ${channels.join(', ') || 'None'}
+                            ${pref.customEmail ? '<br>Custom Email: ' + pref.customEmail : ''}
+                            ${pref.customPhone ? '<br>Custom Phone: ' + pref.customPhone : ''}
+                        </div>
+                    </div>
+                    <div class="threshold-actions">
+                        <button class="btn-edit" onclick="editNotificationPreference('${pref.id}')">
+                            ✏️ Edit
+                        </button>
+                        <button class="btn-delete" onclick="deleteNotificationPreference('${pref.id}')">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        listDiv.innerHTML = html;
+    } catch (error) {
+        console.error("Error loading notification preferences:", error);
+        document.getElementById("notification-prefs-list").innerHTML = '<p class="text-muted">Error loading preferences.</p>';
+    }
+}
+
+// Update parameter units display based on selected parameter type
+function updateParameterUnits() {
+    const parameterType = document.getElementById("threshold-parameter").value;
+    const units = {
+        "CO2": "ppm",
+        "Temperature": "°C",
+        "Humidity": "%",
+        "Noise": "dB"
+    };
+    
+    const unit = units[parameterType] || "";
+    const unitSpans = document.querySelectorAll("#sensor-threshold-form .input-unit");
+    unitSpans.forEach(span => {
+        span.textContent = unit;
+    });
+}
+
+// Edit notification preference
+async function editNotificationPreference(prefId) {
+    try {
+        const response = await fetch(`/api/configuration/notifications/${prefId}`);
+        if (response.ok) {
+            const pref = await response.json();
+            document.getElementById("notif-parameter").value = pref.parameterType;
+            document.getElementById("notif-email").checked = pref.emailEnabled;
+            document.getElementById("notif-sms").checked = pref.smsEnabled;
+            document.getElementById("notif-custom-email").value = pref.customEmail || '';
+            document.getElementById("notif-custom-phone").value = pref.customPhone || '';
+            
+            // Show/hide custom inputs based on checked status
+            toggleNotifChannelInput('email');
+            toggleNotifChannelInput('sms');
+            
+            // Scroll to form
+            document.getElementById("notif-parameter").scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    } catch (error) {
+        console.error("Error loading notification preference for edit:", error);
+    }
+}
+
+// Delete notification preference
+async function deleteNotificationPreference(prefId) {
+    if (!confirm("Are you sure you want to delete this notification preference?")) {
+        return;
+    }
+    
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    
+    if (!csrfMeta || !csrfHeaderMeta) {
+        alert("CSRF token not found. Please refresh the page.");
+        return;
+    }
+    
+    const csrfToken = csrfMeta.getAttribute("content");
+    const csrfHeader = csrfHeaderMeta.getAttribute("content");
+    
+    try {
+        const response = await fetch(`/api/configuration/notifications/${prefId}`, {
+            method: "DELETE",
+            headers: {
+                [csrfHeader]: csrfToken
+            }
+        });
+        
+        if (response.ok) {
+            alert("Notification preference deleted successfully!");
+            loadNotificationPreferences();
+        } else {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error("Error deleting notification preference:", error);
+        alert("Failed to delete notification preference: " + error.message);
+    }
+}
+
+// ======================================================
+// ================== SENSOR THRESHOLDS ==================
+// ======================================================
+
+function loadSensors() {
+    console.log("loadSensors function called"); // Debug log
+    
+    const select = document.getElementById("sensor-select");
+    if (!select) {
+        console.error("sensor-select element not found!");
+        return;
+    }
+    
+    // Use sensors data passed from server like manageSensors.html does
+    const sensors = window.SENSORS || [];
+    console.log("Sensors from server:", sensors); // Debug log
+    console.log("Number of sensors:", sensors.length); // Debug log
+    
+    // Clear existing options first (except the default one)
+    while (select.children.length > 1) {
+        select.removeChild(select.lastChild);
+    }
+    
+    if (sensors.length === 0) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "No sensors found in database";
+        select.appendChild(option);
+        console.log("Added 'no sensors' option");
+        return;
+    }
+    
+    sensors.forEach((sensor, index) => {
+        console.log(`Processing sensor ${index}:`, sensor); // Debug log
+        
+        const option = document.createElement("option");
+        // Use the same property names as manageSensors.html
+        const sensorId = sensor.idSensor;
+        const deviceType = sensor.deviceType || 'Unknown';
+        
+        console.log(`Sensor ${index} - ID: ${sensorId}, Type: ${deviceType}`); // Debug log
+        
+        if (sensorId) {
+            option.value = sensorId;
+            option.textContent = `${sensorId} (${deviceType})`;
+            select.appendChild(option);
+            console.log("Successfully added sensor option:", sensorId); // Debug log
+        } else {
+            console.warn("Sensor has no valid ID:", sensor);
+        }
+    });
+    
+    console.log("Final select options count:", select.children.length);
+}
+
+function loadSensorThresholds() {
+    const sensorId = document.getElementById("sensor-select").value;
+    const form = document.getElementById("sensor-threshold-form");
+    
+    if (!sensorId) {
+        form.style.display = "none";
+        return;
+    }
+    
+    form.style.display = "block";
+}
+
+async function saveSensorThreshold() {
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    
+    if (!csrfMeta || !csrfHeaderMeta) {
+        alert("CSRF token not found. Please refresh the page.");
+        return;
+    }
+    
+    const csrfToken = csrfMeta.getAttribute("content");
+    const csrfHeader = csrfHeaderMeta.getAttribute("content");
+
+    const sensorId = document.getElementById("sensor-select").value;
+    const parameterType = document.getElementById("threshold-parameter").value;
+    const criticalHigh = parseFloat(document.getElementById("sensor-critical-high").value);
+    const warningHigh = parseFloat(document.getElementById("sensor-warning-high").value);
+    const warningLow = parseFloat(document.getElementById("sensor-warning-low").value);
+    const criticalLow = parseFloat(document.getElementById("sensor-critical-low").value);
+
+    if (!sensorId) {
+        alert("Please select a sensor.");
+        return;
+    }
+
+    const payload = {
+        sensorId: sensorId,
+        parameterType: parameterType,
+        criticalThreshold: criticalHigh || null,
+        warningThreshold: warningHigh || null,
+        warningLow: warningLow || null,
+        criticalLow: criticalLow || null,
+        enabled: true
+    };
+
+    try {
+        const response = await fetch("/api/configuration/sensor-thresholds", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                [csrfHeader]: csrfToken
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        alert("Sensor threshold saved successfully!");
+        loadAllSensorThresholds();
+        
+    } catch (error) {
+        console.error("Error saving sensor threshold:", error);
+        alert("Failed to save sensor threshold: " + error.message);
+    }
+}
+
+async function loadAllSensorThresholds() {
+    try {
+        const response = await fetch("/api/configuration/sensor-thresholds");
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const thresholds = await response.json();
+        const listDiv = document.getElementById("sensor-thresholds-list");
+        
+        if (!thresholds || thresholds.length === 0) {
+            listDiv.innerHTML = '<p class="text-muted">No custom sensor thresholds configured yet.</p>';
+            return;
+        }
+        
+        let html = '';
+        thresholds.forEach(threshold => {
+            const values = [];
+            if (threshold.criticalThreshold) values.push(`Critical High: ${threshold.criticalThreshold}`);
+            if (threshold.warningThreshold) values.push(`Warning High: ${threshold.warningThreshold}`);
+            if (threshold.warningLow) values.push(`Warning Low: ${threshold.warningLow}`);
+            if (threshold.criticalLow) values.push(`Critical Low: ${threshold.criticalLow}`);
+            
+            html += `
+                <div class="threshold-item">
+                    <div class="threshold-info">
+                        <div class="threshold-label">${threshold.sensorId} - ${threshold.parameterType}</div>
+                        <div class="threshold-values">${values.join(' | ')}</div>
+                    </div>
+                    <div class="threshold-actions">
+                        <button class="btn-edit" onclick="editSensorThreshold('${threshold.id}', '${threshold.sensorId}', '${threshold.parameterType}')">
+                            ✏️ Edit
+                        </button>
+                        <button class="btn-delete" onclick="deleteSensorThreshold('${threshold.id}')">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        listDiv.innerHTML = html;
+    } catch (error) {
+        console.error("Error loading sensor thresholds:", error);
+        document.getElementById("sensor-thresholds-list").innerHTML = '<p class="text-muted">Error loading thresholds.</p>';
+    }
+}
+
+// Edit sensor threshold
+async function editSensorThreshold(thresholdId, sensorId, parameterType) {
+    document.getElementById("sensor-select").value = sensorId;
+    document.getElementById("threshold-parameter").value = parameterType;
+    loadSensorThresholds();
+    
+    try {
+        const response = await fetch(`/api/configuration/sensor-thresholds/${thresholdId}`);
+        if (response.ok) {
+            const threshold = await response.json();
+            if (threshold.criticalThreshold) document.getElementById("sensor-critical-high").value = threshold.criticalThreshold;
+            if (threshold.warningThreshold) document.getElementById("sensor-warning-high").value = threshold.warningThreshold;
+            if (threshold.warningLow) document.getElementById("sensor-warning-low").value = threshold.warningLow;
+            if (threshold.criticalLow) document.getElementById("sensor-critical-low").value = threshold.criticalLow;
+            updateParameterUnits();
+        }
+    } catch (error) {
+        console.error("Error loading threshold for edit:", error);
+    }
+}
+
+// Delete sensor threshold
+async function deleteSensorThreshold(thresholdId) {
+    if (!confirm("Are you sure you want to delete this sensor threshold override?")) {
+        return;
+    }
+    
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    
+    if (!csrfMeta || !csrfHeaderMeta) {
+        alert("CSRF token not found. Please refresh the page.");
+        return;
+    }
+    
+    const csrfToken = csrfMeta.getAttribute("content");
+    const csrfHeader = csrfHeaderMeta.getAttribute("content");
+    
+    try {
+        const response = await fetch(`/api/configuration/sensor-thresholds/${thresholdId}`, {
+            method: "DELETE",
+            headers: {
+                [csrfHeader]: csrfToken
+            }
+        });
+        
+        if (response.ok) {
+            alert("Sensor threshold deleted successfully!");
+            loadAllSensorThresholds();
+        } else {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error("Error deleting sensor threshold:", error);
+        alert("Failed to delete sensor threshold: " + error.message);
+    }
+}
+
+function changeEditorLanguage(selectEl) {
+    if (!editor || !selectEl) return;
+
+    const value = (selectEl.value || "").toLowerCase();
+    let mode = "ace/mode/javascript";
+    if (value.includes("python")) mode = "ace/mode/python";
+    else if (value.includes("java")) mode = "ace/mode/java";
+    editor.session.setMode(mode);
+}
+
+// ======================================================
+// ============= ENERGY CONFIGURATION ====================
+// ======================================================
+
+async function loadEnergyConfigs() {
+    try {
+        const response = await fetch('/api/configuration/building-energy');
+        if (!response.ok) throw new Error('Failed to load energy configs');
+        const configs = await response.json();
+        const tbody = document.getElementById('energy-config-tbody');
+        if (!tbody) return;
+        if (configs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No configurations yet.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = configs.map(config => `
+            <tr>
+                <td><strong>${config.buildingName}</strong></td>
+                <td>${config.energyCostPerKwh?.toFixed(4) || '0.0000'}</td>
+                <td>${config.currency || 'EUR'}</td>
+                <td>${config.co2EmissionFactor?.toFixed(4) || '0.0000'}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editEnergyConfig('${config.buildingName}')">Edit</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteEnergyConfig('${config.buildingName}')">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading energy configs:', error);
+    }
+}
+
+async function saveEnergyConfig() {
+    const buildingName = document.getElementById('energy-config-building')?.value;
+    const energyCostPerKwh = parseFloat(document.getElementById('energy-cost-kwh')?.value);
+    const currency = document.getElementById('energy-currency')?.value || 'EUR';
+    const co2EmissionFactor = parseFloat(document.getElementById('co2-emission-factor')?.value) || 0;
+
+    if (!buildingName) { alert('Please select a building'); return; }
+    if (isNaN(energyCostPerKwh) || energyCostPerKwh < 0) { alert('Please enter a valid energy cost'); return; }
+
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    if (!csrfMeta || !csrfHeaderMeta) { alert("CSRF token not found."); return; }
+
+    try {
+        const response = await fetch('/api/configuration/building-energy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', [csrfHeaderMeta.getAttribute("content")]: csrfMeta.getAttribute("content") },
+            body: JSON.stringify({ buildingName, energyCostPerKwh, currency, co2EmissionFactor })
+        });
+        if (response.ok) {
+            alert('Configuration saved!');
+            loadEnergyConfigs();
+            document.getElementById('energy-config-building').value = '';
+            document.getElementById('energy-cost-kwh').value = '';
+            document.getElementById('co2-emission-factor').value = '';
+        } else { throw new Error('Failed to save'); }
+    } catch (error) { alert('Error: ' + error.message); }
+}
+
+async function editEnergyConfig(buildingName) {
+    try {
+        const response = await fetch(`/api/configuration/building-energy/${encodeURIComponent(buildingName)}`);
+        if (!response.ok) throw new Error('Failed to load');
+        const config = await response.json();
+        document.getElementById('energy-config-building').value = config.buildingName;
+        document.getElementById('energy-cost-kwh').value = config.energyCostPerKwh || '';
+        document.getElementById('energy-currency').value = config.currency || 'EUR';
+        document.getElementById('co2-emission-factor').value = config.co2EmissionFactor || '';
+    } catch (error) { alert('Error: ' + error.message); }
+}
+
+async function deleteEnergyConfig(buildingName) {
+    if (!confirm(`Delete config for ${buildingName}?`)) return;
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    if (!csrfMeta || !csrfHeaderMeta) { alert("CSRF token not found."); return; }
+    try {
+        const response = await fetch(`/api/configuration/building-energy/${encodeURIComponent(buildingName)}`, {
+            method: 'DELETE',
+            headers: { [csrfHeaderMeta.getAttribute("content")]: csrfMeta.getAttribute("content") }
+        });
+        if (response.ok) { alert('Deleted!'); loadEnergyConfigs(); }
+        else { throw new Error('Failed'); }
+    } catch (error) { alert('Error: ' + error.message); }
+}
+
+// ======================================================
+// ================== GLOBAL EXPORTS =====================
+// ======================================================
+
+window.initBuildingConfig = initBuildingConfig;
+window.deleteBuildingConfig = deleteBuildingConfig;
+window.changeEditorLanguage = changeEditorLanguage;
+window.testDecoder = testDecoder;
+window.toggleNotifChannelInput = toggleNotifChannelInput;
+window.saveBuildingConfig = saveBuildingConfig;
+window.saveAlertConfig = saveAlertConfig;
+window.saveNotificationChannels = saveNotificationChannels;
+window.loadNotificationPreferences = loadNotificationPreferences;
+window.loadSensors = loadSensors;
+window.loadSensorThresholds = loadSensorThresholds;
+window.saveSensorThreshold = saveSensorThreshold;
+window.loadAllSensorThresholds = loadAllSensorThresholds;
+window.editSensorThreshold = editSensorThreshold;
+window.deleteSensorThreshold = deleteSensorThreshold;
+window.updateParameterUnits = updateParameterUnits;
+window.editNotificationPreference = editNotificationPreference;
+window.deleteNotificationPreference = deleteNotificationPreference;
+window.applyFormVisibility = applyFormVisibility;
+window.saveEnergyConfig = saveEnergyConfig;
+window.editEnergyConfig = editEnergyConfig;
+window.deleteEnergyConfig = deleteEnergyConfig;
+window.loadEnergyConfigs = loadEnergyConfigs;
+
+// Initialize on page load
+document.addEventListener("DOMContentLoaded", function() {
+    if (typeof loadSensors === 'function') loadSensors();
+    if (typeof loadNotificationPreferences === 'function') loadNotificationPreferences();
+    if (typeof loadAllSensorThresholds === 'function') loadAllSensorThresholds();
+    if (typeof populateBuildingSelect === 'function') populateBuildingSelect();
+    if (typeof toggleFormFields === 'function') toggleFormFields();
+    if (typeof updateInputSizeLabel === 'function') updateInputSizeLabel();
+    if (typeof loadEnergyConfigs === 'function') loadEnergyConfigs();
+    if (window.building3D) { window.building3D.isDashboard = false; }
+});
