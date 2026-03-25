@@ -985,46 +985,32 @@ async function updateBuildingConfig(formData) {
 // ======================================================
 
 /**
- * Charge les locations distinctes pour un building/floor donnés
- * et alimente le select.
- * @param {string} buildingId
- * @param {string|number|null} floor
- * @param {string} currentValue - valeur à pré-sélectionner après chargement
+ * Alimente le select location avec toutes les locations du building sélectionné,
+ * en filtrant depuis window.LOCATIONS (injecté par Thymeleaf).
+ * @param {string|number} buildingId
+ * @param {*} _floor - ignoré (conservé pour compatibilité des call sites)
+ * @param {number|null} currentLocationId - valeur à pré-sélectionner
  */
-async function loadLocationOptions(buildingId, floor, currentLocationId = null) {
+function loadLocationOptions(buildingId, _floor, currentLocationId = null) {
     const select = document.getElementById("select_location");
     if (!select) return;
 
-    select.innerHTML = `<option value="">-- Loading... --</option>`;
+    select.innerHTML = `<option value="">None</option>`;
 
-    try {
-        const qs = new URLSearchParams();
-        if (buildingId) qs.set("buildingId", buildingId);
-        if (floor !== null && floor !== undefined && floor !== "") {
-            qs.set("floor", String(floor));
-        }
+    const allLocations = Array.isArray(window.LOCATIONS) ? window.LOCATIONS : [];
+    const filtered = buildingId
+        ? allLocations.filter(l => String(l.buildingId) === String(buildingId))
+        : [];
 
-        const resp = await fetch(`/api/sensors/locations?${qs.toString()}`);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    filtered.forEach(loc => {
+        const opt = document.createElement("option");
+        opt.value = loc.id;
+        opt.textContent = loc.name;
+        select.appendChild(opt);
+    });
 
-        const locations = await resp.json();
-
-        select.innerHTML = `<option value="">None</option>`;
-
-        locations.forEach(loc => {
-            const opt = document.createElement("option");
-            opt.value = loc.id;
-            opt.textContent = loc.name;
-            select.appendChild(opt);
-        });
-
-        if (currentLocationId) {
-            select.value = String(currentLocationId);
-        }
-
-    } catch (e) {
-        console.error("[Location] Failed to load options:", e);
-        select.innerHTML = `<option value="">None</option>`;
+    if (currentLocationId) {
+        select.value = String(currentLocationId);
     }
 }
 
@@ -1088,6 +1074,11 @@ async function saveSensorLocation(sensorId, locationId) {
         console.error(`[Location] Network error for ${sensorId}:`, e);
         return false;
     }
+}
+
+function syncHiddenLocationField(value) {
+    const hidden = document.getElementById("input_location");
+    if (hidden) hidden.value = value || "";
 }
 
 // ======================================================

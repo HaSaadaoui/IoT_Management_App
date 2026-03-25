@@ -881,11 +881,11 @@
                         <div class="config-mini-table-wrapper" style="margin-top:16px;">
                             <table class="config-mini-table" id="locations-table">
                                 <thead>
-                                    <tr>
-                                        <th>Building</th>
-                                        <th>Location Name</th>
-                                        <th style="width:80px">Action</th>
-                                    </tr>
+                                <tr>
+                                    <th>Building</th>
+                                    <th>Location Name</th>
+                                    <th style="width:80px">Action</th>
+                                </tr>
                                 </thead>
                                 <tbody>
                                 <tr th:each="loc : ${locations}"
@@ -922,50 +922,50 @@
 
 <!-- ================= SIDEBAR NAVIGATION (early — must be defined before external scripts finish) ================= -->
 <script>
-function switchSection(clickedLink) {
-    document.querySelectorAll('.cfg-sidebar-nav a').forEach(a => a.classList.remove('active'));
-    clickedLink.classList.add('active');
-    document.querySelectorAll('.cfg-section').forEach(s => s.classList.remove('active'));
-    const targetId = clickedLink.getAttribute('data-section');
-    const target = document.getElementById(targetId);
-    if (target) {
-        target.classList.add('active');
-        target.style.animation = 'none';
-        target.offsetHeight;
-        target.style.animation = '';
+    function switchSection(clickedLink) {
+        document.querySelectorAll('.cfg-sidebar-nav a').forEach(a => a.classList.remove('active'));
+        clickedLink.classList.add('active');
+        document.querySelectorAll('.cfg-section').forEach(s => s.classList.remove('active'));
+        const targetId = clickedLink.getAttribute('data-section');
+        const target = document.getElementById(targetId);
+        if (target) {
+            target.classList.add('active');
+            target.style.animation = 'none';
+            target.offsetHeight;
+            target.style.animation = '';
+        }
+        if (targetId === 'section-building' && window.building3D) {
+            document.getElementById('filter-building').value = "";
+            window.building3D.init();
+            populateBuildingSelect();
+            initBuildingConfig();
+            window.building3D.isDashboard = false;
+            setTimeout(() => {
+                if (window.building3D.renderer) {
+                    window.building3D.renderer.setSize(
+                        document.getElementById('building-3d-container').clientWidth,
+                        document.getElementById('building-3d-container').clientHeight
+                    );
+                }
+            }, 100);
+        }
     }
-    if (targetId === 'section-building' && window.building3D) {
-        document.getElementById('filter-building').value = "";
-        window.building3D.init();
-        populateBuildingSelect();
-        initBuildingConfig();
-        window.building3D.isDashboard = false;
-        setTimeout(() => {
-            if (window.building3D.renderer) {
-                window.building3D.renderer.setSize(
-                    document.getElementById('building-3d-container').clientWidth,
-                    document.getElementById('building-3d-container').clientHeight
-                );
-            }
-        }, 100);
-    }
-}
-document.addEventListener('DOMContentLoaded', function() {
-    const hash = window.location.hash.replace('#', '');
-    if (hash) {
-        const link = document.querySelector(`[data-section="${hash}"]`);
-        if (link) switchSection(link);
-    }
-});
-
-function filterLocationTable() {
-    const select = document.getElementById('loc-building-select');
-    const buildingId = select ? select.value : '';
-    const rows = document.querySelectorAll('#locations-table tbody tr[data-building-id]');
-    rows.forEach(row => {
-        row.style.display = (!buildingId || row.getAttribute('data-building-id') === buildingId) ? '' : 'none';
+    document.addEventListener('DOMContentLoaded', function() {
+        const hash = window.location.hash.replace('#', '');
+        if (hash) {
+            const link = document.querySelector(`[data-section="${hash}"]`);
+            if (link) switchSection(link);
+        }
     });
-}
+
+    function filterLocationTable() {
+        const select = document.getElementById('loc-building-select');
+        const buildingId = select ? select.value : '';
+        const rows = document.querySelectorAll('#locations-table tbody tr[data-building-id]');
+        rows.forEach(row => {
+            row.style.display = (!buildingId || row.getAttribute('data-building-id') === buildingId) ? '' : 'none';
+        });
+    }
 </script>
 
 <!-- ================= SCRIPTS ================= -->
@@ -981,7 +981,8 @@ function filterLocationTable() {
 
 <script th:inline="javascript">
     /*<![CDATA[*/
-    window.SENSORS = /*[[${sensors}]]*/ [];
+    window.SENSORS   = /*[[${sensors}]]*/   [];
+    window.LOCATIONS = /*[[${locations}]]*/ [];
     /*]]>*/
 </script>
 <script src="/javascript/configuration.js"></script>
