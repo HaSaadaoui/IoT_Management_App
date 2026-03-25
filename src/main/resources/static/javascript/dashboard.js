@@ -10,14 +10,14 @@ class DashboardManager {
 		// TTL (ms) : si un device ne remonte plus, on l’enlève du total
 		this.consoTtlMs = 2 * 60 * 1000; // 2 minutes
 
-    this.filters = {
-        year: new Date().getFullYear(),
-        month: new Date().getMonth() + 1,
-        building: null,   // sera défini après loadBuildings()
-        floor: '',
-        sensorType: 'DESK',
-        timeSlot: 'afternoon'
-    };
+		this.filters = {
+			year: new Date().getFullYear(),
+			month: new Date().getMonth() + 1,
+			building: null,   // sera défini après loadBuildings()
+			floor: '',
+			sensorType: 'DESK',
+			timeSlot: 'afternoon'
+		};
 		this.metricSources = {
 			TEMPERATURE_INT: { sensorType: 'ALL', excludeSensorType: 'TEMPEX', unit: '°C' },
 			TEMPERATURE_EXT: { sensorType: 'TEMPEX', unit: '°C' },
@@ -136,8 +136,8 @@ class DashboardManager {
 
 			const filterKey = filterId.replace('-', '');
 			const mappedKey = filterKey === 'sensortype' ? 'sensorType'
-							: filterKey === 'time'       ? 'timeSlot'
-							: filterKey;
+				: filterKey === 'time'       ? 'timeSlot'
+					: filterKey;
 
 			if (this.filters[mappedKey] !== undefined && this.filters[mappedKey] !== null) {
 				element.value = this.filters[mappedKey];
@@ -324,7 +324,7 @@ class DashboardManager {
 		// ✅ Cas spécial BUILDING
 		// =========================
 		if (filterId === 'building') {
-            const building = this.buildings.find(b => String(b.id) === String(value));
+			const building = this.buildings.find(b => String(b.id) === String(value));
 
 			if (!building) {
 				console.warn('Building not found for value:', value);
@@ -390,7 +390,17 @@ class DashboardManager {
 		// ✅ Si on change d'étage : restart SSE (building + floor)
 		if (filterId === 'floor') {
 			const building = this.filters.building;
-			const floor = value || null;
+			//const floor = value || null;
+
+			const floor = value ? parseInt(value, 10) : null;
+
+			if (window.building3D) {
+				if (floor !== null) {
+					window.building3D.enterFloor(floor); // déclenche 2D + animation
+				} else {
+					window.building3D.return3DView();
+				}
+			}
 
 			if (window.ChartUtils?.generateStatCardsForBuilding) {
 				// Génère uniquement les cartes du floor choisi
@@ -535,8 +545,8 @@ class DashboardManager {
 			this.showError('Failed to load dashboard data. Using sample data.');
 		}
 		finally {
-                this.hideLoading(); // ✅ toujours appelé, succès ou erreur
-            }
+			this.hideLoading(); // ✅ toujours appelé, succès ou erreur
+		}
 	}
 
 	scheduleNextRefresh() {
@@ -1708,39 +1718,39 @@ class DashboardManager {
 	// =========================
 
 
-    async loadBuildingFloors(buildingId) {
-        const floorSelect = document.getElementById('filter-floor');
+	async loadBuildingFloors(buildingId) {
+		const floorSelect = document.getElementById('filter-floor');
 
-        if (!floorSelect) {
-            console.warn('Floor select not found (#filter-floor). Skipping floors update.');
-            return;
-        }
+		if (!floorSelect) {
+			console.warn('Floor select not found (#filter-floor). Skipping floors update.');
+			return;
+		}
 
-        let floorsCount = 1;
-        let excludedFloors = [];
+		let floorsCount = 1;
+		let excludedFloors = [];
 
-        try {
-            const resp = await fetch(`/api/buildings/${buildingId}`);
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-            const b = await resp.json();
-            floorsCount = b.floorsCount ?? 1;
-            excludedFloors = b.excludedFloors ?? [];
-        } catch (e) {
-            console.warn(`loadBuildingFloors: failed to fetch floors for building ${buildingId}`, e);
-            floorsCount = 1;
-        }
+		try {
+			const resp = await fetch(`/api/buildings/${buildingId}`);
+			if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+			const b = await resp.json();
+			floorsCount = b.floorsCount ?? 1;
+			excludedFloors = b.excludedFloors ?? [];
+		} catch (e) {
+			console.warn(`loadBuildingFloors: failed to fetch floors for building ${buildingId}`, e);
+			floorsCount = 1;
+		}
 
-        floorSelect.innerHTML = '<option value="">All Floors</option>';
-        for (let i = 0; i < floorsCount; i++) {
-            if (excludedFloors.includes(i)) continue;
-            const opt = document.createElement('option');
-            opt.value = String(i);
-            opt.textContent = i === 0 ? 'Ground Floor' : `Floor ${i}`;
-            floorSelect.appendChild(opt);
-        }
+		floorSelect.innerHTML = '<option value="">All Floors</option>';
+		for (let i = 0; i < floorsCount; i++) {
+			if (excludedFloors.includes(i)) continue;
+			const opt = document.createElement('option');
+			opt.value = String(i);
+			opt.textContent = i === 0 ? 'Ground Floor' : `Floor ${i}`;
+			floorSelect.appendChild(opt);
+		}
 
-        this.filters.floor = '';
-    }
+		this.filters.floor = '';
+	}
 
 	getEffectiveFloorParam() {
 		const f = this.filters.floor;
@@ -2081,12 +2091,12 @@ function startEnvironmentSSE(building) {
 	}
 
 	environmentUnsub = window.SSEManager.subscribeEnvironment(building, ({ type, data }) => {
-        const msg = data;
-        const decoded =
-            msg?.uplink_message?.decoded_payload ??
-            msg?.decoded_payload ??
-            msg?.payload ??
-            {};
+		const msg = data;
+		const decoded =
+			msg?.uplink_message?.decoded_payload ??
+			msg?.decoded_payload ??
+			msg?.payload ??
+			{};
 
 		const temperature = decoded?.temperature;
 		const humidity = decoded?.humidity;
@@ -2172,7 +2182,7 @@ function updateTitles(buildingName) {
 		const info = sensorInfo[sensorType] || sensorInfo.DESK;
 		const liveTitle     = document.getElementById('live-section-title');
 		const histTitle     = document.getElementById('historical-section-title');
-		if (liveTitle)     liveTitle.textContent     = `${info.icon} Live ${info.name} - ${buildingName} Office`;
+		if (liveTitle)     liveTitle.textContent     = `${info.icon} Live Data - ${buildingName} Office`;
 		if (histTitle)     histTitle.textContent     = `📈 Historical ${info.name} Data - ${buildingName} Office`;
 	}
 }
@@ -2217,38 +2227,38 @@ window.addEventListener("beforeunload", () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Initializing Dashboard Manager...');
-    filters.building = document.getElementById('filter-building')?.value;
-    filters.floor = document.getElementById('filter-floor')?.value;
+	console.log('Initializing Dashboard Manager...');
+	filters.building = document.getElementById('filter-building')?.value;
+	filters.floor = document.getElementById('filter-floor')?.value;
 
-    // ✅ 1. Initialiser les instances Chart.js sur les canvas dès le départ
-    initEnvironmentCharts();
+	// ✅ 1. Initialiser les instances Chart.js sur les canvas dès le départ
+	initEnvironmentCharts();
 
-    // ✅ 2. Initialiser les boutons Line/Bar/Donut
-    initEnvChartToggles();
+	// ✅ 2. Initialiser les boutons Line/Bar/Donut
+	initEnvChartToggles();
 
-    window.dashboardManager = new DashboardManager();
-    window.DashboardManager = DashboardManager;
+	window.dashboardManager = new DashboardManager();
+	window.DashboardManager = DashboardManager;
 
-    // ✅ 3. Démarrer le SSE après que le DashboardManager a chargé le bâtiment par défaut
-    //    On attend que loadBuildings() soit terminé pour avoir le bon building ID
-    window.dashboardManager._buildingsLoaded = window.dashboardManager._buildingsLoaded
-        ?? new Promise(resolve => {
-            const original = window.dashboardManager.loadBuildings.bind(window.dashboardManager);
-            // Alternative simple : attendre un court délai post-init
-        });
+	// ✅ 3. Démarrer le SSE après que le DashboardManager a chargé le bâtiment par défaut
+	//    On attend que loadBuildings() soit terminé pour avoir le bon building ID
+	window.dashboardManager._buildingsLoaded = window.dashboardManager._buildingsLoaded
+		?? new Promise(resolve => {
+			const original = window.dashboardManager.loadBuildings.bind(window.dashboardManager);
+			// Alternative simple : attendre un court délai post-init
+		});
 
-    // Délai court pour laisser loadBuildings() finir et définir filters.building
-    setTimeout(() => {
-        const buildingId = document.getElementById('filter-building')?.value;
+	// Délai court pour laisser loadBuildings() finir et définir filters.building
+	setTimeout(() => {
+		const buildingId = document.getElementById('filter-building')?.value;
 		const buildingName = document.getElementById('filter-building')?.selectedOptions[0].text;
-        if (buildingId) {
+		if (buildingId) {
 			update3DConfig(buildingId);
 			updateTitles(buildingName);
-            updateEnvironmentChartsVisibility(buildingId);
-            startEnvironmentSSE(buildingId);
-        }
-    }, 1500);
+			updateEnvironmentChartsVisibility(buildingId);
+			startEnvironmentSSE(buildingId);
+		}
+	}, 1500);
 });
 
 window.DashboardManager = DashboardManager;

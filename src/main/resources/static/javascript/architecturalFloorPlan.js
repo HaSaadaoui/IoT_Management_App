@@ -715,15 +715,14 @@ class ArchitecturalFloorPlan {
                     fetch(`/api/sensors/${encodeURIComponent(inputId.value)}`)
                         .then(r => r.ok ? r.json() : null)
                         .then(data => {
-                            const currentLocation = data?.location || "";
-                            // loadLocationOptions est défini dans configuration.js
+                            const currentLocationId = data?.locationId || null;
                             if (window.loadLocationOptions) {
-                                window.loadLocationOptions(buildingId, floor, currentLocation);
+                                window.loadLocationOptions(buildingId, floor, currentLocationId);
                             }
                         })
                         .catch(() => {
                             if (window.loadLocationOptions) {
-                                window.loadLocationOptions(buildingId, floor, "");
+                                window.loadLocationOptions(buildingId, floor, null);
                             }
                         });
                     }

@@ -155,8 +155,10 @@
                         <option value="" disabled selected>Select a Floor</option>
                     </select>
 
-                    <input type="text" th:field="*{locationDescription}" placeholder="Location Description"
-                           th:classappend="${#fields.hasErrors('locationDescription')} ? 'input-error' : ''"/>
+                    <select id="locationSelectEdit" name="locationId"
+                            th:attr="data-current=${gatewayEdit.locationId}">
+                        <option value="" disabled selected>Select a location</option>
+                    </select>
 
                     <div class="form-buttons">
                         <button type="submit">Update</button>
@@ -228,8 +230,9 @@
                         <option value="" disabled selected>Select a Floor</option>
                     </select>
 
-                    <input type="text" th:field="*{locationDescription}" placeholder="Location Description"
-                           th:classappend="${#fields.hasErrors('locationDescription')} ? 'input-error' : ''"/>
+                    <select id="locationSelectCreate" name="locationId" disabled>
+                        <option value="" disabled selected>Select a location</option>
+                    </select>
 
                     <div class="form-buttons">
                         <button type="submit">Add</button>
@@ -248,6 +251,7 @@
         window.GATEWAYS          = /*[[${gateways}]]*/        [];
         window.AVAILABLE_PROTOCOLS = /*[[${protocolsAvailable}]]*/ [];
         window.BUILDING_FLOORS   = /*[[${buildingFloors}]]*/  [];
+        window.LOCATIONS         = /*[[${locations}]]*/       [];
         window.CAN_EDIT_GATEWAYS = /*[[${#authorization.expression("hasAnyRole('ADMIN','SUPERUSER')")}]]*/ false;
         /*]]>*/
     </script>

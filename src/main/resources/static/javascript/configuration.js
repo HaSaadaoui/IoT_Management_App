@@ -985,76 +985,32 @@ async function updateBuildingConfig(formData) {
 // ======================================================
 
 /**
- * Charge les locations distinctes pour un building/floor donnés
- * et alimente le select.
- * @param {string} buildingId
- * @param {string|number|null} floor
- * @param {string} currentValue - valeur à pré-sélectionner après chargement
+ * Alimente le select location avec toutes les locations du building sélectionné,
+ * en filtrant depuis window.LOCATIONS (injecté par Thymeleaf).
+ * @param {string|number} buildingId
+ * @param {*} _floor - ignoré (conservé pour compatibilité des call sites)
+ * @param {number|null} currentLocationId - valeur à pré-sélectionner
  */
-async function loadLocationOptions(buildingId, floor, currentValue = "") {
+function loadLocationOptions(buildingId, _floor, currentLocationId = null) {
     const select = document.getElementById("select_location");
     if (!select) return;
 
-    // Conserver uniquement les options fixes pendant le chargement
-    select.innerHTML = `
-        <option value="">-- Loading... --</option>
-        <option value="__NEW__">✏️ New Location...</option>
-    `;
+    select.innerHTML = `<option value="">None</option>`;
 
-    try {
-        const qs = new URLSearchParams();
-        if (buildingId) qs.set("buildingId", buildingId);
-        if (floor !== null && floor !== undefined && floor !== "") {
-            qs.set("floor", String(floor));
-        }
+    const allLocations = Array.isArray(window.LOCATIONS) ? window.LOCATIONS : [];
+    const filtered = buildingId
+        ? allLocations.filter(l => String(l.buildingId) === String(buildingId))
+        : [];
 
-        const resp = await fetch(`/api/sensors/locations?${qs.toString()}`);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    filtered.forEach(loc => {
+        const opt = document.createElement("option");
+        opt.value = loc.id;
+        opt.textContent = loc.name;
+        select.appendChild(opt);
+    });
 
-        const locations = await resp.json();
-
-        // Reconstruire le select avec les valeurs récupérées
-        select.innerHTML = `<option value="">None</option>`;
-
-        locations.forEach(loc => {
-            const opt = document.createElement("option");
-            opt.value = loc;
-            opt.textContent = loc;
-            select.appendChild(opt);
-        });
-
-        // Toujours garder l'option "nouvelle valeur" en dernier
-        const newOpt = document.createElement("option");
-        newOpt.value = "__NEW__";
-        newOpt.textContent = "✏️ New location...";
-        select.appendChild(newOpt);
-
-        // Pré-sélectionner la valeur courante si elle existe dans la liste
-        if (currentValue) {
-            const exists = locations.includes(currentValue);
-            if (exists) {
-                select.value = currentValue;
-                syncHiddenLocationField(currentValue);
-            } else if (currentValue.trim() !== "") {
-                // La valeur existe mais pas dans la liste (ex: building différent)
-                // → l'ajouter dynamiquement et la sélectionner
-                const opt = document.createElement("option");
-                opt.value = currentValue;
-                opt.textContent = currentValue;
-                // Insérer avant "__NEW__"
-                select.insertBefore(opt, newOpt);
-                select.value = currentValue;
-                syncHiddenLocationField(currentValue);
-            }
-        }
-
-    } catch (e) {
-        console.error("[Location] Failed to load options:", e);
-        // En cas d'erreur : select minimal opérationnel
-        select.innerHTML = `
-            <option value="">None</option>
-            <option value="__NEW__">✏️ New Location...</option>
-        `;
+    if (currentLocationId) {
+        select.value = String(currentLocationId);
     }
 }
 
@@ -1064,78 +1020,29 @@ async function loadLocationOptions(buildingId, floor, currentValue = "") {
  */
 function onLocationChange() {
     const selectEl = document.getElementById("select_location");
-    const wrapper = document.getElementById("new-location-input-wrapper");
-    const inputNew = document.getElementById("input_location_new");
-    const inputIdEl  = document.getElementById("input_id");
-
-    if (selectEl.value === "__NEW__") {
-        // Afficher le champ libre
-        if (wrapper) wrapper.style.display = "flex";
-        if (inputNew) {
-            inputNew.value = "";
-            inputNew.focus();
-        }
-        syncHiddenLocationField("");
-    } else {
-        // Masquer le champ libre et synchroniser la valeur cachée
-        if (wrapper) wrapper.style.display = "none";
-        if (inputNew) inputNew.value = "";
-        syncHiddenLocationField(selectEl.value);
-    }
-    const locationValue = document.getElementById("input_location")?.value || "";
-    if (inputIdEl && inputIdEl.value.trim() !== '') {
-        this.saveSensorLocation(inputIdEl.value, locationValue);
-    }
-}
-
-function onLocationInputChange() {
-    const selectEl = document.getElementById("select_location");
-    const inputNew = document.getElementById("input_location_new");
-    const inputIdEl  = document.getElementById("input_id");
-    if (selectEl.value === "__NEW__") {
-        syncHiddenLocationField(inputNew.value);
-    } else {
-        syncHiddenLocationField(selectEl.value);
-    }
-    const locationValue = document.getElementById("input_location")?.value || "";
-    if (inputIdEl && inputIdEl.value.trim() !== '') {
-        this.saveSensorLocation(inputIdEl.value, locationValue);
+    const inputIdEl = document.getElementById("input_id");
+    const locationId = selectEl?.value ? parseInt(selectEl.value) : null;
+    if (inputIdEl && inputIdEl.value.trim() !== '' && locationId) {
+        saveSensorLocation(inputIdEl.value, locationId);
     }
 }
 
 /**
- * Synchronise le champ caché #input_location avec la valeur finale.
- * C'est cette valeur qui sera lue par addElementSVG / updateElementSVG.
- */
-function syncHiddenLocationField(value) {
-    const hidden = document.getElementById("input_location");
-    if (hidden) hidden.value = value || "";
-}
-
-/**
- * Retourne la valeur de location à persister,
- * en tenant compte du mode "nouvelle valeur".
- * @returns {string}
+ * Retourne le locationId sélectionné (integer ou null).
  */
 function getLocationValue() {
     const select = document.getElementById("select_location");
-    const inputNew = document.getElementById("input_location_new");
-
-    if (select?.value === "__NEW__") {
-        return (inputNew?.value || "").trim();
-    }
-
-    return (select?.value || "").trim();
+    return select?.value ? parseInt(select.value) : null;
 }
 
 /**
- * Sauvegarde la location d'un capteur via l'API REST
+ * Sauvegarde le locationId d'un capteur via l'API REST
  * @param {string} sensorId - ID du capteur
- * @param {string} location - Valeur de la location
+ * @param {number} locationId - ID de la location
  * @returns {Promise<boolean>}
  */
-async function saveSensorLocation(sensorId, location) {
-    if (!sensorId || location === undefined) return false;
+async function saveSensorLocation(sensorId, locationId) {
+    if (!sensorId || !locationId) return false;
 
     const csrfMeta = document.querySelector('meta[name="_csrf"]');
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
@@ -1151,7 +1058,7 @@ async function saveSensorLocation(sensorId, location) {
                 "Content-Type": "application/json",
                 [csrfHeaderMeta.getAttribute("content")]: csrfMeta.getAttribute("content")
             },
-            body: JSON.stringify({ location: location.trim() })
+            body: JSON.stringify({ locationId: locationId })
         });
 
         if (!response.ok) {
@@ -1160,13 +1067,18 @@ async function saveSensorLocation(sensorId, location) {
             return false;
         }
 
-        console.info(`[Location] Saved for ${sensorId}: "${location}"`);
+        console.info(`[Location] Saved locationId=${locationId} for ${sensorId}`);
         return true;
 
     } catch (e) {
         console.error(`[Location] Network error for ${sensorId}:`, e);
         return false;
     }
+}
+
+function syncHiddenLocationField(value) {
+    const hidden = document.getElementById("input_location");
+    if (hidden) hidden.value = value || "";
 }
 
 // ======================================================
@@ -1185,7 +1097,7 @@ async function addElementSVG() {
     const inputRadiusEl = document.getElementById('input_radius');
     const inputLabelEl = document.getElementById('input_label');
     const inputStyleEl = document.getElementById('filter-style');
-    const locationValue = document.getElementById("input_location")?.value || "";
+    const locationId = getLocationValue();
 
     if (!inputIdEl || inputIdEl.value.trim() === '') {
         if (typeof cfgToast === 'function') cfgToast('Please enter an ID.', 'warning'); else alert('Please enter an ID.');
@@ -1229,7 +1141,7 @@ async function addElementSVG() {
             height : parseInt(inputHeightEl.value),
             rotation : parseInt(inputRotationEl.value),
             label : inputLabelEl.value,
-            location: locationValue,
+            locationId: locationId,
             chairs : {
                 top: parseInt(document.getElementById("chair_top").value || 0),
                 bottom: parseInt(document.getElementById("chair_bottom").value || 0),
@@ -1238,7 +1150,7 @@ async function addElementSVG() {
             }
         }
         window.building3D.currentArchPlan.overlayManager.drawSensor(sensor);
-        await saveSensorLocation(sensor.id, locationValue);
+        if (locationId) await saveSensorLocation(sensor.id, locationId);
     } else {
         switch (elementSelect.value){
             case "Wall":

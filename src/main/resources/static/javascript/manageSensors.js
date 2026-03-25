@@ -22,6 +22,7 @@ const exitDelete  = document.getElementById("closeDelete");
 const SENSORS  = Array.isArray(window.SENSORS)  ? window.SENSORS  : [];
 const GATEWAYS = Array.isArray(window.GATEWAYS) ? window.GATEWAYS : [];
 const BUILDING_FLOORS = Array.isArray(window.BUILDING_FLOORS) ? window.BUILDING_FLOORS : [];
+const LOCATIONS = Array.isArray(window.LOCATIONS) ? window.LOCATIONS : [];
 // -----------------------
 // Helpers UI
 // -----------------------
@@ -65,6 +66,37 @@ function populateFloors(selectEl, building, currentFloor = null) {
   }
 }
 
+function populateLocations(selectEl, buildingId, currentLocationId = null) {
+  if (!selectEl) return;
+
+  selectEl.innerHTML = '<option value="" disabled selected>Select a location</option>';
+
+  if (!buildingId) {
+    selectEl.disabled = true;
+    return;
+  }
+
+  const filtered = LOCATIONS.filter(l => String(l.buildingId) === String(buildingId));
+
+  if (filtered.length === 0) {
+    selectEl.disabled = true;
+    return;
+  }
+
+  filtered.forEach(loc => {
+    const opt = document.createElement('option');
+    opt.value = loc.id;
+    opt.textContent = loc.name;
+    selectEl.appendChild(opt);
+  });
+
+  selectEl.disabled = false;
+
+  if (currentLocationId != null) {
+    selectEl.value = String(currentLocationId);
+  }
+}
+
 function sqlLikeToRegex(pattern) {
   let escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
   escaped = escaped.replace(/%/g, '.*');
@@ -101,7 +133,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const gatewaySelect      = document.getElementById('gatewaySelect');
   const protocolSelect     = document.getElementById('protocolSelect');
   const frequencyPlanWrapper = document.getElementById('frequencyPlanWrapper');
-  const floorSelect       = document.getElementById('floorSelect');
+  const floorSelect        = document.getElementById('floorSelect');
+  const locationSelect     = document.getElementById('locationSelect');
   const frequencyPlanInput = document.getElementById('frequencyPlanInput');
   const buildingNameInput  = document.getElementById('buildingNameInput');
   const devEuiInput        = document.getElementById('devEuiInput');
@@ -113,7 +146,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const gatewaySelectEdit      = document.getElementById('gatewaySelectEdit');
   const frequencyPlanInputEdit = document.getElementById('frequencyPlanInputEdit');
   const buildingNameInputEdit  = document.getElementById('buildingNameInputEdit');
-  const floorSelectEdit   = document.getElementById('floorSelectEdit');
+  const floorSelectEdit        = document.getElementById('floorSelectEdit');
+  const locationSelectEdit     = document.getElementById('locationSelectEdit');
 
   // État pagination
   const PAGE_SIZE = 10;
@@ -177,7 +211,7 @@ function toggleFrequencyPlan() {
   function applyGatewayHintsCreate() {
     if (!gatewaySelect) return;
     const opt = gatewaySelect.selectedOptions[0];
-    if (!opt) return;
+    if (!opt || !opt.value) return;
     const freq = opt.getAttribute('data-freq')     || '';
     const bldg = opt.getAttribute('data-building') || '';
 
@@ -191,14 +225,17 @@ function toggleFrequencyPlan() {
       buildingNameInput.value = match ? bldg : '';
     }
 
-    populateFloors(floorSelect, buildingNameInput?.value || '');
+    const selectedBuilding = buildingNameInput?.value || '';
+    populateFloors(floorSelect, selectedBuilding);
+    populateLocations(locationSelect, selectedBuilding);
   }
 
   gatewaySelect?.addEventListener('change', applyGatewayHintsCreate);
 
-// Floor dynamique selon building (Add)
+// Floor + Location dynamiques selon building (Add)
 buildingNameInput?.addEventListener('change', () => {
   populateFloors(floorSelect, buildingNameInput.value);
+  populateLocations(locationSelect, buildingNameInput.value);
 });
 
   // -----------------------
@@ -238,7 +275,7 @@ buildingNameInput?.addEventListener('change', () => {
           </span>
         </td>
         <td>${buildingDisplay}</td>
-        <td>${s.location ?? ''}</td>
+        <td>${LOCATIONS.find(l => l.id === s.locationId)?.name ?? ''}</td>
         <td>${s.idGateway ?? ''}</td>
         <td>
           <div class="button-container">
@@ -417,11 +454,12 @@ buildingNameInput?.addEventListener('change', () => {
 
   // EDIT
 if (modalEdit && floorSelectEdit) {
-  // ✅ Building récupéré depuis data-building (pas depuis un select)
-  const buildingEdit  = floorSelectEdit.dataset.building || '';
-  const currentFloor  = floorSelectEdit.dataset.current  || '';
+  const buildingEdit      = floorSelectEdit.dataset.building || '';
+  const currentFloor      = floorSelectEdit.dataset.current  || '';
+  const currentLocationId = locationSelectEdit?.dataset.current || null;
+
   populateFloors(floorSelectEdit, buildingEdit, currentFloor);
-  // Pas d'event change building : on ne change pas le building en Edit
+  populateLocations(locationSelectEdit, buildingEdit, currentLocationId);
 }
 
 if (closeEditBtn && modalEdit) {

@@ -6,7 +6,9 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -19,6 +21,12 @@ public class SensorDao {
             "SELECT s.* " +                                                    // ✅ s.* suffit, device_type est déjà dans la table
                     "FROM sensors s " +
                     "LEFT JOIN device_type dt ON s.id_device_type = dt.id_device_type ";
+
+    private static final String ENV_SELECT =
+            "SELECT s.id_sensor, s.location, dt.type_name " +
+                    "FROM sensors s " +
+                    "LEFT JOIN device_type dt ON s.id_device_type = dt.id_device_type ";
+
     @Autowired
     public SensorDao(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
@@ -55,7 +63,7 @@ public class SensorDao {
         return jdbcTemplate.update(
                 "INSERT INTO sensors (" +
                         "id_sensor, id_device_type, commissioning_date, status, " +
-                        "building_id, floor, location, id_gateway, " +  // ✅ building_id
+                        "building_id, floor, location_id, id_gateway, " +
                         "dev_eui, join_eui, app_key, frequency_plan, " +
                         "brand_id, protocol_id" +
                         ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -63,9 +71,9 @@ public class SensorDao {
                 sensor.getIdDeviceType(),
                 sensor.getCommissioningDate(),
                 sensor.getStatus(),
-                sensor.getBuildingId(),  // ✅ getBuildingId()
+                sensor.getBuildingId(),
                 sensor.getFloor(),
-                sensor.getLocation(),
+                sensor.getLocationId(),
                 sensor.getIdGateway(),
                 sensor.getDevEui(),
                 sensor.getJoinEui(),
@@ -96,10 +104,10 @@ public class SensorDao {
         return count != null && count > 0;
     }
 
-    public List<Sensor> findAllByLocation(String location) {
+    public List<Sensor> findAllByLocationId(Integer locationId) {
         return jdbcTemplate.query(
-                BASE_SELECT + "WHERE s.location = ?",
-                new BeanPropertyRowMapper<>(Sensor.class), location);
+                BASE_SELECT + "WHERE s.location_id = ?",
+                new BeanPropertyRowMapper<>(Sensor.class), locationId);
     }
 
     public List<Sensor> findAllByBuildingAndFloor(String buildingId, Integer floorNumber) {
@@ -114,9 +122,9 @@ public class SensorDao {
                         "id_device_type = ?, " +
                         "commissioning_date = ?, " +
                         "status = ?, " +
-                        "building_id  = ?, " +
+                        "building_id = ?, " +
                         "floor = ?, " +
-                        "location = ?, " +
+                        "location_id = ?, " +
                         "id_gateway = ?, " +
                         "dev_eui = ?, " +
                         "join_eui = ?, " +
@@ -130,7 +138,7 @@ public class SensorDao {
                 sensor.getStatus(),
                 sensor.getBuildingId(),
                 sensor.getFloor(),
-                sensor.getLocation(),
+                sensor.getLocationId(),
                 sensor.getIdGateway(),
                 sensor.getDevEui(),
                 sensor.getJoinEui(),
@@ -153,4 +161,26 @@ public class SensorDao {
                 new BeanPropertyRowMapper<>(Sensor.class), devEui);
         return sensors.isEmpty() ? Optional.empty() : Optional.of(sensors.get(0));
     }
+
+
+    public List<Map<String, Object>> findAllByBuildingAndFloor(String building, int floor, boolean isAllFloors) {
+        // Ajouter dans la condition si nous connaissons tous les types qui seront pris en compte pour les stats
+        // AND dt.type_name IN ('CO2', 'SON', 'TEMPEX')
+
+        StringBuilder sql = new StringBuilder(
+                ENV_SELECT + " WHERE s.building_id = ? AND s.status = 1 AND dt.type_name IN ('CO2', 'SON', 'TEMPEX')"
+        );
+
+        List<Object> params = new ArrayList<>();
+        params.add(Integer.parseInt(building));
+
+        //condition dynamique
+        if (!isAllFloors) {
+            sql.append(" AND s.floor = ?");
+            params.add(floor);
+        }
+
+        return jdbcTemplate.queryForList(sql.toString(), params.toArray());
+    }
+
 }

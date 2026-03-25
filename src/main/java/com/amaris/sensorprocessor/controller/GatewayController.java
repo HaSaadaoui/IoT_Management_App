@@ -32,7 +32,8 @@ public class GatewayController {
     private final GatewayLorawanService gatewayLorawanService;
     private final UserService userService;
     private final BuildingService buildingService;
-    private  final ProtocolService protocolService;
+    private final ProtocolService protocolService;
+    private final LocationService locationService;
 
     private static final String ERROR_ADD = "errorAdd";
     private static final String GATEWAY_ADD = "gatewayAdd";
@@ -45,13 +46,16 @@ public class GatewayController {
                              InputValidationService inputValidationService,
                              GatewayLorawanService gatewayLorawanService,
                              UserService userService,
-                             BuildingService buildingService, ProtocolService protocolService) {
+                             BuildingService buildingService,
+                             ProtocolService protocolService,
+                             LocationService locationService) {
         this.gatewayService = gatewayService;
         this.inputValidationService = inputValidationService;
         this.gatewayLorawanService = gatewayLorawanService;
         this.userService = userService;
         this.buildingService = buildingService;
         this.protocolService = protocolService;
+        this.locationService = locationService;
     }
 
     @GetMapping("/manage-gateways")
@@ -248,12 +252,20 @@ public class GatewayController {
      * @return Nom de la vue Thymeleaf "monitoringGateway"
      */
     @GetMapping("/manage-gateways/monitoring/{id}/view")
-    public String monitoringView(@PathVariable("id") String id, @RequestParam("ip") String ip, Model model , Principal principal) {
+    public String monitoringView(@PathVariable("id") String id, @RequestParam("ip") String ip, Model model, Principal principal) {
         model.addAttribute(Constants.BINDING_GATEWAY_ID, id);
         model.addAttribute("ipAddress", ip);
         User user = userService.searchUserByUsername(principal.getName());
         model.addAttribute("user", user);
-        model.addAttribute("loggedUsername", user.getUsername());;
+        model.addAttribute("loggedUsername", user.getUsername());
+
+        String locationName = gatewayService.findById(id)
+                .filter(gw -> gw.getLocationId() != null)
+                .flatMap(gw -> locationService.findById(gw.getLocationId()))
+                .map(loc -> loc.getName())
+                .orElse(null);
+        model.addAttribute("gatewayLocationName", locationName);
+
         return Constants.PAGE_MONITORING_GATEWAYS;
     }
 
@@ -330,6 +342,7 @@ public class GatewayController {
                 })
                 .collect(java.util.stream.Collectors.toList());
         model.addAttribute("buildingFloors", buildingFloors);
+        model.addAttribute("locations", locationService.findAll());
 
         if (!model.containsAttribute(GATEWAY_ADD)) {
             model.addAttribute(GATEWAY_ADD, new Gateway());
