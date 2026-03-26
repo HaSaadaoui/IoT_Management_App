@@ -116,7 +116,7 @@
             <p class="error-message" th:if="${globalError}" th:text="${globalError}"></p>
 
             <div style="margin-top: 10px;">
-                <button type="submit">Udpate</button>
+                <button type="submit">Update</button>
                 <button type="button" onclick="closeModal()">Cancel</button>
             </div>
         </form>
@@ -146,7 +146,7 @@
             <p class="success-message" th:if="${successEdit}" th:text="${successEdit}"></p>
 
             <div style="margin-top: 10px;">
-                <button type="submit">Udapte</button>
+                <button type="submit">Update</button>
                 <button type="button" onclick="closeEditModal()">Cancel</button>
             </div>
         </form>
@@ -162,9 +162,7 @@
             <input type="file" name="avatar" accept="image/*" required>
             <div style="margin-top: 10px;">
                 <button type="submit">Upload</button>
-                <button type="button" onclick="closeAvatarModal()" style="background:#ccc;color:#000;margin-left:10px;">
-                    Cancel
-                </button>
+                <button type="button" onclick="closeAvatarModal()">Cancel</button>
             </div>
         </form>
     </div>

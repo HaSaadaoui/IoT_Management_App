@@ -59,17 +59,17 @@ body {
 
 main {
     max-width: 1400px;
-    margin: 2rem auto;
-    padding: 1rem;
+    margin: 0 auto;
+    padding: 0.75rem 1rem;
 }
 
 /* ===== SECTION TITLES ===== */
 .section-title {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 700;
     color: var(--text-primary);
-    margin: 2rem 0 1rem;
-    padding-bottom: 0.75rem;
+    margin: 1rem 0 0.5rem;
+    padding-bottom: 0.5rem;
     border-bottom: 3px solid var(--primary);
     position: relative;
 }
@@ -87,10 +87,10 @@ main {
 /* ===== FILTERS & CONTROLS ===== */
 .filters-section {
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    padding: 2.5rem;
-    border-radius: 20px;
+    padding: 1.25rem 1.5rem;
+    border-radius: 16px;
     box-shadow: var(--shadow-md), 0 0 0 1px rgba(102, 33, 121, 0.08);
-    margin-bottom: 2.5rem;
+    margin-bottom: 1rem;
     border: 1px solid var(--border);
     position: relative;
     overflow: hidden;
@@ -217,7 +217,7 @@ main {
 .building-3d-container {
     position: relative;
     width: 100%;
-    height: 600px;
+    height: clamp(400px, 50vh, 600px);
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
     border-radius: 12px;
     overflow: hidden;
@@ -476,7 +476,7 @@ main {
 .floor-plan {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
 }
 
 .desk-grid {
@@ -545,7 +545,7 @@ main {
     flex-direction: column;
     justify-content: center;
     padding: 1rem;
-    gap: 2 rem;
+    gap: 1rem;
     font-size: 0.85rem;
     background: var(--bg-main);
     border-radius: 8px;
@@ -584,7 +584,7 @@ main {
     padding-top: 10px;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
+    gap: 1rem;
     max-width: 100%;
     animation: fadeInUp 0.5s ease;
 }
@@ -770,18 +770,8 @@ main {
 .chart-card.large {
     grid-column: span 3;
     min-height: 400px;
-    /* max-height: fit-content; */
 }
 
-.chart-card.large canvas {
-    /* height: auto; */
-}
-
-.filter-item-building {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
 
 .filter-item-building label {
     font-size: 0.9rem;
@@ -956,10 +946,6 @@ main {
     color: var(--primary);
 }
 
-#chart-sensor-cost {
-    /* height: 250px !important; */
-}
-
 /* ===== ALERTS SECTION ===== */
 .alerts-section {
     margin-bottom: 2rem;
@@ -1089,179 +1075,175 @@ main {
     }
 }
 
-
 /* MEDIA QUERY pour petits écrans */
-
 @media (max-width: 480px) {
     .doughnut-labels {
-        flex: 0 0 auto;   /* Ne pas grandir ou rétrécir */
-        min-width: 100%;  /* Toujours visible */
+        flex: 0 0 auto;
+        min-width: 100%;
         gap: 0.25rem;
         font-size: 0.8rem;
         align-items: center;
     }
 
-    @media (max-width: 480px) {
-        .doughnut-container {
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .doughnut-chart {
-            flex: 0 0 auto;  /* taille auto selon le canvas */
-            max-width: 180px;
-        }
-    }
-
-
-
-    @media (max-width: 768px) {
-        .stat-card {
-            padding: 0.75rem;
-        }
-
-        .stat-card h4 {
-            font-size: 0.95rem;
-            margin-bottom: 0.75rem;
-        }
-
-        .chart-office {
-            max-width: 140px;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .stat-card {
-            padding: 0.5rem;
-        }
-    }
-
-    /* Dashboard / Stats only */
-    .stat-chart-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-
-        background: white;
-        border-radius: 16px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-        border: 1px solid #e5e7eb;
-
-        width: 100%;
-        height: 100%;
-        padding: 1rem;
-
-        box-sizing: border-box;
-
-        padding: 0.5rem;   /* 🔥 clé : pas de padding massif */
-        width: 100%;
-
-        border-radius: 16px;
-        box-shadow: 0 4px 16px rgba(102, 33, 121, 0.15);
-        border: 1px solid #e5e7eb;
-    }
-
-    /* Canvas du chart */
-    .stat-card .chart-office {
-        width: 100% !important;
-        height: 100% !important;
-    }
-
-    .doughnut-labels {
-        min-width: 110px;
-        flex-shrink: 0;
-    }
-
-    .custom-label,
-    .stat-legend div {
-        white-space: nowrap;
-    }
-
-    .stat-card .chart-office {
-        min-height: 260px; /* ou la taille souhaitée */
-        flex-shrink: 0;    /* empêche le donut d'écraser la légende */
-    }
-
-    .doughnut-labels div {
-        flex-shrink: 0;
-    }
-
-
-    /* Tablette */
-    @media (max-width: 768px) {
-        .office-stats {
-            grid-template-columns: 1fr; /* une seule colonne */
-        }
-    }
-
-    /* Mobile */
-    @media (max-width: 480px) {
-        .office-stats {
-            grid-template-columns: 1fr; /* une seule colonne */
-            gap: 0.5rem;
-        }
-    }
-
-    .building-layout {
-        display: flex;
-        gap: 1.5rem;
-        height: 600px;
-    }
-
-
-    .live-occupancy-layout {
-        display: flex;
-        gap: 1.5rem;
-        width: 100%;
-        height: 600px;
-    }
-
-    /* 3D */
-    .left-panel {
-        flex: 0 0 50%;
-        min-width: 0;
-    }
-
-    /* 2D */
-    .right-panel {
-        display: none;
-    }
-
-    .floor-plan-2d {
-        position: relative;
-    }
-
-    /* Canvas prend toute la place */
-    .building-3d-container {
-        width: 100%;
-        height: 100%;
-        min-height: 500px;
-    }
-
-    /* 2D prend toute la hauteur */
-    .floor-plan {
-        flex: 1;
-        display: flex;
+    .doughnut-container {
         flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
     }
 
-    .desk-grid {
-        flex: 1;
-        overflow: auto;
+    .doughnut-chart {
+        flex: 0 0 auto;
+        max-width: 180px;
     }
 
+    .stat-card {
+        padding: 0.5rem;
+    }
+
+    .office-stats {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .stat-card {
+        padding: 0.75rem;
+    }
+
+    .stat-card h4 {
+        font-size: 0.95rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .chart-office {
+        max-width: 140px;
+    }
+
+    .office-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Dashboard / Stats only */
+.stat-chart-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(102, 33, 121, 0.15);
+    border: 1px solid #e5e7eb;
+    width: 100%;
+    height: 100%;
+    padding: 0.5rem;
+    box-sizing: border-box;
+}
+
+/* Canvas du chart */
+.stat-card .chart-office {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 260px;
+    flex-shrink: 0;
+}
+
+.doughnut-labels {
+    min-width: 110px;
+    flex-shrink: 0;
+}
+
+.doughnut-labels div {
+    flex-shrink: 0;
+}
+
+.custom-label,
+.stat-legend div {
+    white-space: nowrap;
+}
+
+/* ============================================================
+   BUILDING LAYOUT — 3D/2D Panels
+   ============================================================ */
+.building-layout {
+    display: flex;
+    gap: 1rem;
+    height: clamp(400px, 50vh, 600px);
+    align-items: stretch;
+}
+
+.live-occupancy-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+}
+
+/* 3D Panel */
+.left-panel {
+    flex: 1 1 50%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 2D Panel */
+.right-panel {
+    display: none;
+    flex: 1 1 50%;
+    min-width: 0;
+    animation: slideIn 0.3s ease;
+}
+
+.floor-plan-2d {
+    position: relative;
+}
+
+/* .building-3d-container height inherited from .building-layout via flex — see line ~217 for main definition */
+
+.floor-plan {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.desk-grid {
+    flex: 1;
+    overflow: auto;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Dashboard bottom section */
+.dashboard-bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+/* Responsive: stack panels on smaller screens */
+@media (max-width: 1024px) {
+    .building-layout {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .left-panel,
     .right-panel {
-        animation: slideIn 0.3s ease;
+        flex: 1 1 auto;
     }
 
-    @keyframes slideIn {
-        from {
-            transform: translateX(20px);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
+    .building-3d-container {
+        min-height: 400px;
     }
+}
