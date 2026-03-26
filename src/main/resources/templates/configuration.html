@@ -222,14 +222,14 @@
             <div class="config-card">
                 <h2>
                     <span class="card-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
-                    Energy Management
+                    <span data-i18n="energy.title">Energy Management</span>
                 </h2>
-                <p>Configure energy cost and CO&#8322; emission factors per building.</p>
+                <p data-i18n="energy.description">Configure energy cost and CO&#8322; emission factors per building.</p>
 
                 <div class="mb-4">
-                    <label class="form-label fw-semibold">Select Building</label>
+                    <label class="form-label fw-semibold" data-i18n="energy.building_select_label">Select Building</label>
                     <select id="energy-config-building" class="form-select">
-                        <option value="">-- Select a building --</option>
+                        <option value="" data-i18n="energy.building_default">-- Select a building --</option>
                         <option value="Levallois-Building">Levallois Building</option>
                         <option value="Châteaudun-Building">Ch&#226;teaudun Building</option>
                         <option value="Strasbourg-Building">Strasbourg Building</option>
@@ -241,45 +241,45 @@
                 <form id="energy-config-form" onsubmit="event.preventDefault(); saveEnergyConfig();">
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Energy Cost per kWh</label>
+                            <label class="form-label fw-semibold" data-i18n="energy.cost_label">Energy Cost per kWh</label>
                             <div class="input-group">
-                                <input type="number" id="energy-cost-kwh" class="form-control" step="0.01" min="0" placeholder="0.21" required>
+                                <input type="number" id="energy-cost-kwh" class="form-control" step="0.01" min="0" data-i18n-placeholder="energy.cost_placeholder" placeholder="0.21" required>
                                 <select id="energy-currency" class="form-select" style="max-width:90px;">
                                     <option value="EUR">&#8364;</option>
                                     <option value="USD">$</option>
                                     <option value="GBP">&#163;</option>
                                 </select>
                             </div>
-                            <small class="text-muted">Cost per kilowatt-hour for this building</small>
+                            <small class="text-muted" data-i18n="energy.cost_help">Cost per kilowatt-hour for this building</small>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">CO&#8322; Emission Factor</label>
+                            <label class="form-label fw-semibold" data-i18n="energy.co2_label">CO&#8322; Emission Factor</label>
                             <div class="input-group">
-                                <input type="number" id="co2-emission-factor" class="form-control" step="0.001" min="0" placeholder="0.052" required>
-                                <span class="input-group-text">kg CO&#8322;/kWh</span>
+                                <input type="number" id="co2-emission-factor" class="form-control" step="0.001" min="0" data-i18n-placeholder="energy.co2_placeholder" placeholder="0.052" required>
+                                <span class="input-group-text" data-i18n="energy.co2_unit">kg CO&#8322;/kWh</span>
                             </div>
-                            <small class="text-muted">CO&#8322; emissions per kWh based on location</small>
+                            <small class="text-muted" data-i18n="energy.co2_help">CO&#8322; emissions per kWh based on location</small>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-violet" style="margin-top:8px;">Save Configuration</button>
+                    <button type="submit" class="btn btn-violet" style="margin-top:8px;" data-i18n="energy.save_button">Save Configuration</button>
                 </form>
 
                 <hr class="card-divider">
 
-                <h4 style="font-size:1rem;font-weight:600;margin-bottom:12px;">Current Building Configurations</h4>
+                <h4 style="font-size:1rem;font-weight:600;margin-bottom:12px;" data-i18n="energy.config_table_title">Current Building Configurations</h4>
                 <div class="table-responsive">
                     <table class="table table-striped" id="energy-config-table">
                         <thead>
                         <tr>
-                            <th>Building</th>
-                            <th>Energy Cost</th>
-                            <th>Currency</th>
-                            <th>CO&#8322; Factor</th>
-                            <th>Actions</th>
+                            <th data-i18n="energy.config_table.building">Building</th>
+                            <th data-i18n="energy.config_table.energy_cost">Energy Cost</th>
+                            <th data-i18n="energy.config_table.currency">Currency</th>
+                            <th data-i18n="energy.config_table.co2_factor">CO&#8322; Factor</th>
+                            <th data-i18n="energy.config_table.actions">Actions</th>
                         </tr>
                         </thead>
                         <tbody id="energy-config-tbody">
-                        <tr><td colspan="5" class="text-center text-muted">Loading configurations...</td></tr>
+                        <tr><td colspan="5" class="text-center text-muted" data-i18n="energy.config_table.loading">Loading configurations...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -293,30 +293,30 @@
             <div class="config-card">
                 <h2>
                     <span class="card-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></span>
-                    Occupancy &amp; Space Usage
+                    <span data-i18n="occupancy.title">Occupancy &amp; Space Usage</span>
                 </h2>
-                <p>Configure occupancy monitoring zones and presence alert thresholds.</p>
+                <p data-i18n="occupancy.description">Configure occupancy monitoring zones and presence alert thresholds.</p>
 
                 <form>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label">Building Zone</label>
-                            <input type="text" class="form-control" placeholder="e.g. Floor 2 - Open Space">
+                            <label class="form-label" data-i18n="occupancy.zone_label">Building Zone</label>
+                            <input type="text" class="form-control" data-i18n-placeholder="occupancy.zone_placeholder" placeholder="e.g. Floor 2 - Open Space">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Presence Alert Threshold</label>
-                            <input type="number" class="form-control" placeholder="e.g. 80">
+                            <label class="form-label" data-i18n="occupancy.threshold_label">Presence Alert Threshold</label>
+                            <input type="number" class="form-control" data-i18n-placeholder="occupancy.threshold_placeholder" placeholder="e.g. 80">
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Period</label>
+                        <label class="form-label" data-i18n="occupancy.period_label">Period</label>
                         <select class="form-select" style="max-width:200px;">
-                            <option>Daily</option>
-                            <option>Weekly</option>
-                            <option>Monthly</option>
+                            <option data-i18n="occupancy.period_daily">Daily</option>
+                            <option data-i18n="occupancy.period_weekly">Weekly</option>
+                            <option data-i18n="occupancy.period_monthly">Monthly</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-violet">Save</button>
+                    <button type="submit" class="btn btn-violet" data-i18n="occupancy.save_button">Save</button>
                 </form>
             </div>
         </div>
@@ -330,9 +330,9 @@
             <div class="config-card">
                 <h2>
                     <span class="card-icon"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg></span>
-                    Global Threshold Configuration
+                    <span data-i18n="alerts.title">Global Threshold Configuration</span>
                 </h2>
-                <p>Default thresholds applied to all sensors of each type.</p>
+                <p data-i18n="alerts.description">Default thresholds applied to all sensors of each type.</p>
 
                 <form onsubmit="event.preventDefault(); saveAlertConfig();" class="threshold-form">
 
@@ -340,23 +340,23 @@
                     <div class="threshold-group mb-4">
                         <div class="row">
                             <div class="col-md-4">
-                                <label class="form-label fw-semibold">Data Max Age</label>
+                                <label class="form-label fw-semibold" data-i18n="alerts.data_max_age_label">Data Max Age</label>
                                 <div class="input-with-unit">
                                     <input type="number" id="alert-data-age" class="form-control"
                                            th:value="${alertConfig.dataMaxAgeMinutes}" step="1" min="1">
-                                    <span class="input-unit">min</span>
+                                    <span class="input-unit" data-i18n="alerts.data_max_age_unit">min</span>
                                 </div>
-                                <small class="text-muted">Maximum age before sensor is considered offline</small>
+                                <small class="text-muted" data-i18n="alerts.data_max_age_help">Maximum age before sensor is considered offline</small>
                             </div>
                         </div>
                     </div>
 
                     <!-- CO2 -->
                     <div class="threshold-group mb-4">
-                        <h5 class="parameter-title">CO&#8322; (ppm)</h5>
+                        <h5 class="parameter-title" data-i18n="alerts.co2_title">CO&#8322; (ppm)</h5>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Critical Threshold</label>
+                                <label class="form-label" data-i18n="alerts.co2_critical">Critical Threshold</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="alert-co2-critical" class="form-control"
                                            th:value="${alertConfig.co2.critical}" placeholder="e.g. 1000.0">
@@ -364,7 +364,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Warning Threshold</label>
+                                <label class="form-label" data-i18n="alerts.co2_warning">Warning Threshold</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="alert-co2-warning" class="form-control"
                                            th:value="${alertConfig.co2.warning}" placeholder="e.g. 800.0">
@@ -376,10 +376,10 @@
 
                     <!-- Temperature -->
                     <div class="threshold-group mb-4">
-                        <h5 class="parameter-title">Temperature (&#176;C)</h5>
+                        <h5 class="parameter-title" data-i18n="alerts.temperature_title">Temperature (&#176;C)</h5>
                         <div class="row g-3">
                             <div class="col-md-3">
-                                <label class="form-label">Critical High</label>
+                                <label class="form-label" data-i18n="alerts.temperature_critical_high">Critical High</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="alert-temp-crit-high" class="form-control"
                                            th:value="${alertConfig.temperature.criticalHigh}" placeholder="30.0">
@@ -387,7 +387,7 @@
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Warning High</label>
+                                <label class="form-label" data-i18n="alerts.temperature_warning_high">Warning High</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="alert-temp-warn-high" class="form-control"
                                            th:value="${alertConfig.temperature.warningHigh}" placeholder="26.0">
@@ -395,7 +395,7 @@
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Warning Low</label>
+                                <label class="form-label" data-i18n="alerts.temperature_warning_low">Warning Low</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="alert-temp-warn-low" class="form-control"
                                            th:value="${alertConfig.temperature.warningLow}" placeholder="19.0">
@@ -403,7 +403,7 @@
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Critical Low</label>
+                                <label class="form-label" data-i18n="alerts.temperature_critical_low">Critical Low</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="alert-temp-crit-low" class="form-control"
                                            th:value="${alertConfig.temperature.criticalLow}" placeholder="16.0">
@@ -415,10 +415,10 @@
 
                     <!-- Humidity -->
                     <div class="threshold-group mb-4">
-                        <h5 class="parameter-title">Humidity (%)</h5>
+                        <h5 class="parameter-title" data-i18n="alerts.humidity_title">Humidity (%)</h5>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Warning High</label>
+                                <label class="form-label" data-i18n="alerts.humidity_warning_high">Warning High</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="alert-hum-warn-high" class="form-control"
                                            th:value="${alertConfig.humidity.warningHigh}" placeholder="70.0">
@@ -426,7 +426,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Warning Low</label>
+                                <label class="form-label" data-i18n="alerts.humidity_warning_low">Warning Low</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="alert-hum-warn-low" class="form-control"
                                            th:value="${alertConfig.humidity.warningLow}" placeholder="30.0">
@@ -438,10 +438,10 @@
 
                     <!-- Noise -->
                     <div class="threshold-group mb-4">
-                        <h5 class="parameter-title">Noise (dB)</h5>
+                        <h5 class="parameter-title" data-i18n="alerts.noise_title">Noise (dB)</h5>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Warning Threshold</label>
+                                <label class="form-label" data-i18n="alerts.noise_warning">Warning Threshold</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="alert-noise-warning" class="form-control"
                                            th:value="${alertConfig.noise.warning}" placeholder="70.0">
@@ -453,12 +453,12 @@
 
                     <!-- Gateway Monitoring -->
                     <div class="threshold-group mb-4">
-                        <h5 class="parameter-title">Gateway System Monitoring</h5>
-                        <p class="text-muted" style="margin-bottom:12px;">Configure alert thresholds for gateway system resources</p>
+                        <h5 class="parameter-title" data-i18n="alerts.gateway_title">Gateway System Monitoring</h5>
+                        <p class="text-muted" style="margin-bottom:12px;" data-i18n="alerts.gateway_description">Configure alert thresholds for gateway system resources</p>
 
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label class="form-label">CPU Critical</label>
+                                <label class="form-label" data-i18n="alerts.gateway_cpu_critical">CPU Critical</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="gateway-cpu-critical" class="form-control"
                                            th:value="${gatewayConfig != null ? gatewayConfig.cpu.critical : 85.0}" placeholder="85.0">
@@ -466,7 +466,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">CPU Warning</label>
+                                <label class="form-label" data-i18n="alerts.gateway_cpu_warning">CPU Warning</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="gateway-cpu-warning" class="form-control"
                                            th:value="${gatewayConfig != null ? gatewayConfig.cpu.warning : 70.0}" placeholder="70.0">
@@ -476,7 +476,7 @@
                         </div>
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label class="form-label">RAM Critical</label>
+                                <label class="form-label" data-i18n="alerts.gateway_ram_critical">RAM Critical</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="gateway-ram-critical" class="form-control"
                                            th:value="${gatewayConfig != null ? gatewayConfig.ram.critical : 85.0}" placeholder="85.0">
@@ -484,7 +484,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">RAM Warning</label>
+                                <label class="form-label" data-i18n="alerts.gateway_ram_warning">RAM Warning</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="gateway-ram-warning" class="form-control"
                                            th:value="${gatewayConfig != null ? gatewayConfig.ram.warning : 70.0}" placeholder="70.0">
@@ -494,7 +494,7 @@
                         </div>
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label class="form-label">Disk Critical</label>
+                                <label class="form-label" data-i18n="alerts.gateway_disk_critical">Disk Critical</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="gateway-disk-critical" class="form-control"
                                            th:value="${gatewayConfig != null ? gatewayConfig.disk.critical : 90.0}" placeholder="90.0">
@@ -502,7 +502,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Disk Warning</label>
+                                <label class="form-label" data-i18n="alerts.gateway_disk_warning">Disk Warning</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="gateway-disk-warning" class="form-control"
                                            th:value="${gatewayConfig != null ? gatewayConfig.disk.warning : 80.0}" placeholder="80.0">
@@ -512,7 +512,7 @@
                         </div>
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label class="form-label">Temperature Critical</label>
+                                <label class="form-label" data-i18n="alerts.gateway_temp_critical">Temperature Critical</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="gateway-temp-critical" class="form-control"
                                            th:value="${gatewayConfig != null ? gatewayConfig.temperature.critical : 80.0}" placeholder="80.0">
@@ -520,7 +520,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Temperature Warning</label>
+                                <label class="form-label" data-i18n="alerts.gateway_temp_warning">Temperature Warning</label>
                                 <div class="input-with-unit">
                                     <input type="number" step="0.1" id="gateway-temp-warning" class="form-control"
                                            th:value="${gatewayConfig != null ? gatewayConfig.temperature.warning : 70.0}" placeholder="70.0">
@@ -531,8 +531,8 @@
                     </div>
 
                     <div class="d-flex justify-content-end" style="gap:10px;">
-                        <button type="submit" class="btn btn-violet">Save Global Thresholds</button>
-                        <button type="button" class="btn btn-violet" onclick="saveGatewayThresholds()">Save Gateway Thresholds</button>
+                        <button type="submit" class="btn btn-violet" data-i18n="alerts.save_global_button">Save Global Thresholds</button>
+                        <button type="button" class="btn btn-violet" onclick="saveGatewayThresholds()" data-i18n="alerts.save_gateway_button">Save Gateway Thresholds</button>
                     </div>
                 </form>
             </div>
@@ -541,24 +541,24 @@
             <div class="config-card">
                 <h2>
                     <span class="card-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
-                    Per-Sensor Threshold Override
+                    <span data-i18n="alerts.per_sensor.title">Per-Sensor Threshold Override</span>
                 </h2>
-                <p>Set custom thresholds for specific sensors (overrides global defaults).</p>
+                <p data-i18n="alerts.per_sensor.description">Set custom thresholds for specific sensors (overrides global defaults).</p>
 
                 <div class="row g-3 mb-4">
                     <div class="col-md-5">
-                        <label class="form-label fw-semibold">Select Sensor</label>
+                        <label class="form-label fw-semibold" data-i18n="alerts.per_sensor.select_label">Select Sensor</label>
                         <select id="sensor-select" class="form-select" onchange="loadSensorThresholds()">
-                            <option value="">-- Select a sensor --</option>
+                            <option value="" data-i18n="alerts.per_sensor.select_default">-- Select a sensor --</option>
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Parameter Type</label>
+                        <label class="form-label fw-semibold" data-i18n="alerts.per_sensor.parameter_label">Parameter Type</label>
                         <select id="threshold-parameter" class="form-select">
-                            <option value="TEMPERATURE">Temperature</option>
-                            <option value="CO2">CO2</option>
-                            <option value="HUMIDITY">Humidity</option>
-                            <option value="NOISE">Noise Level</option>
+                            <option value="TEMPERATURE" data-i18n="alerts.per_sensor.parameter_temperature">Temperature</option>
+                            <option value="CO2" data-i18n="alerts.per_sensor.parameter_co2">CO2</option>
+                            <option value="HUMIDITY" data-i18n="alerts.per_sensor.parameter_humidity">Humidity</option>
+                            <option value="NOISE" data-i18n="alerts.per_sensor.parameter_noise">Noise Level</option>
                         </select>
                     </div>
                 </div>
@@ -566,28 +566,28 @@
                 <div id="sensor-threshold-form" class="threshold-inputs" style="display:none;">
                     <div class="row g-3 mb-4">
                         <div class="col-md-3">
-                            <label class="form-label">Critical High</label>
+                            <label class="form-label" data-i18n="alerts.per_sensor.critical_high">Critical High</label>
                             <div class="input-with-unit">
                                 <input type="number" step="0.1" id="sensor-critical-high" class="form-control" placeholder="e.g. 1000">
                                 <span class="input-unit" id="unit-1">unit</span>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Warning High</label>
+                            <label class="form-label" data-i18n="alerts.per_sensor.warning_high">Warning High</label>
                             <div class="input-with-unit">
                                 <input type="number" step="0.1" id="sensor-warning-high" class="form-control" placeholder="e.g. 800">
                                 <span class="input-unit" id="unit-2">unit</span>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Warning Low</label>
+                            <label class="form-label" data-i18n="alerts.per_sensor.warning_low">Warning Low</label>
                             <div class="input-with-unit">
                                 <input type="number" step="0.1" id="sensor-warning-low" class="form-control" placeholder="e.g. 18">
                                 <span class="input-unit" id="unit-3">unit</span>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Critical Low</label>
+                            <label class="form-label" data-i18n="alerts.per_sensor.critical_low">Critical Low</label>
                             <div class="input-with-unit">
                                 <input type="number" step="0.1" id="sensor-critical-low" class="form-control" placeholder="e.g. 16">
                                 <span class="input-unit" id="unit-4">unit</span>
@@ -595,15 +595,15 @@
                         </div>
                     </div>
                     <div class="d-flex justify-content-end">
-                        <button type="button" class="btn btn-violet" onclick="saveSensorThreshold()">Save Sensor Threshold</button>
+                        <button type="button" class="btn btn-violet" onclick="saveSensorThreshold()" data-i18n="alerts.per_sensor.save_button">Save Sensor Threshold</button>
                     </div>
                 </div>
 
                 <hr class="card-divider">
 
-                <h4 style="font-size:0.95rem;font-weight:600;margin-bottom:10px;">Active Sensor Overrides</h4>
+                <h4 style="font-size:0.95rem;font-weight:600;margin-bottom:10px;" data-i18n="alerts.per_sensor.overrides_title">Active Sensor Overrides</h4>
                 <div id="sensor-thresholds-list" class="thresholds-list">
-                    <p class="text-muted">No custom sensor thresholds configured yet.</p>
+                    <p class="text-muted" data-i18n="alerts.per_sensor.empty">No custom sensor thresholds configured yet.</p>
                 </div>
             </div>
         </div>
@@ -615,65 +615,65 @@
             <div class="config-card">
                 <h2>
                     <span class="card-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
-                    Notification Channels
+                    <span data-i18n="notifications.title">Notification Channels</span>
                 </h2>
-                <p>Configure how you want to receive alerts for different sensor parameters.</p>
+                <p data-i18n="notifications.description">Configure how you want to receive alerts for different sensor parameters.</p>
 
                 <form onsubmit="event.preventDefault(); saveNotificationChannels();">
                     <div class="notification-config">
                         <div class="mb-4">
-                            <label class="form-label fw-bold">Parameter to Monitor</label>
+                            <label class="form-label fw-bold" data-i18n="notifications.parameter_label">Parameter to Monitor</label>
                             <select id="notif-parameter" class="form-select" style="max-width:300px;">
-                                <option value="TEMPERATURE">Temperature</option>
-                                <option value="CO2">CO2</option>
-                                <option value="HUMIDITY">Humidity</option>
-                                <option value="NOISE">Noise Level</option>
+                                <option value="TEMPERATURE" data-i18n="notifications.parameter_temperature">Temperature</option>
+                                <option value="CO2" data-i18n="notifications.parameter_co2">CO2</option>
+                                <option value="HUMIDITY" data-i18n="notifications.parameter_humidity">Humidity</option>
+                                <option value="NOISE" data-i18n="notifications.parameter_noise">Noise Level</option>
                             </select>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Notification Channels</label>
+                            <label class="form-label fw-bold" data-i18n="notifications.channels_label">Notification Channels</label>
                             <div class="channel-options">
                                 <div class="channel-option">
                                     <input class="form-check-input" type="checkbox" id="notif-email" onchange="toggleNotifChannelInput()">
                                     <label class="form-check-label" for="notif-email">
                                         <span class="channel-icon">&#9993;</span>
-                                        <span class="channel-name">Email Notifications</span>
+                                        <span class="channel-name" data-i18n="notifications.channel_email">Email Notifications</span>
                                     </label>
                                 </div>
                                 <div class="channel-option">
                                     <input class="form-check-input" type="checkbox" id="notif-sms" onchange="toggleNotifChannelInput()">
                                     <label class="form-check-label" for="notif-sms">
                                         <span class="channel-icon">&#128241;</span>
-                                        <span class="channel-name">SMS Notifications</span>
+                                        <span class="channel-name" data-i18n="notifications.channel_sms">SMS Notifications</span>
                                     </label>
                                 </div>
                             </div>
                         </div>
 
                         <div id="notif-email-input" style="display:none;" class="mb-3 mt-4">
-                            <label class="form-label">Email Address</label>
-                            <input type="email" id="notif-custom-email" class="form-control" style="max-width:400px;" placeholder="Leave empty to use account email">
-                            <small class="text-muted">Optional: Override your account email for this parameter</small>
+                            <label class="form-label" data-i18n="notifications.email_label">Email Address</label>
+                            <input type="email" id="notif-custom-email" class="form-control" style="max-width:400px;" data-i18n-placeholder="notifications.email_placeholder" placeholder="Leave empty to use account email">
+                            <small class="text-muted" data-i18n="notifications.email_help">Optional: Override your account email for this parameter</small>
                         </div>
 
                         <div id="notif-phone-input" style="display:none;" class="mb-3 mt-4">
-                            <label class="form-label">Phone Number</label>
-                            <input type="text" id="notif-custom-phone" class="form-control" style="max-width:400px;" placeholder="+33 6 12 34 56 78">
-                            <small class="text-muted">International format recommended</small>
+                            <label class="form-label" data-i18n="notifications.phone_label">Phone Number</label>
+                            <input type="text" id="notif-custom-phone" class="form-control" style="max-width:400px;" data-i18n-placeholder="notifications.phone_placeholder" placeholder="+33 6 12 34 56 78">
+                            <small class="text-muted" data-i18n="notifications.phone_help">International format recommended</small>
                         </div>
 
                         <div class="d-flex justify-content-end mt-4">
-                            <button type="submit" class="btn btn-violet">Save Notification Preferences</button>
+                            <button type="submit" class="btn btn-violet" data-i18n="notifications.save_button">Save Notification Preferences</button>
                         </div>
                     </div>
                 </form>
 
                 <hr class="card-divider">
 
-                <h4 style="font-size:0.95rem;font-weight:600;margin-bottom:10px;">Your Notification Preferences</h4>
+                <h4 style="font-size:0.95rem;font-weight:600;margin-bottom:10px;" data-i18n="notifications.prefs_title">Your Notification Preferences</h4>
                 <div id="notification-prefs-list" class="notification-list">
-                    <p class="text-muted">Loading...</p>
+                    <p class="text-muted" data-i18n="notifications.prefs_loading">Loading...</p>
                 </div>
             </div>
         </div>
@@ -685,33 +685,33 @@
             <div class="config-card">
                 <h2>
                     <span class="card-icon"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="9" y1="6" x2="9" y2="6.01"/><line x1="15" y1="6" x2="15" y2="6.01"/><line x1="9" y1="10" x2="9" y2="10.01"/><line x1="15" y1="10" x2="15" y2="10.01"/><line x1="9" y1="14" x2="9" y2="14.01"/><line x1="15" y1="14" x2="15" y2="14.01"/><path d="M9 18h6v4H9z"/></svg></span>
-                    Building Modeling
+                    <span data-i18n="building.title">Building Modeling</span>
                 </h2>
-                <p>Configure building geometry, upload SVG floor plans, and manage 3D visualization.</p>
+                <p data-i18n="building.description">Configure building geometry, upload SVG floor plans, and manage 3D visualization.</p>
 
                 <div class="row mb-3">
                     <div class="filter-card">
-                        <label>Building</label>
+                        <label data-i18n="building.select_label">Building</label>
                         <select id="filter-building" class="form-select" style="min-width:200px;" onchange="initBuildingConfig()">
-                            <option value="" selected>New Building</option>
+                            <option value="" selected data-i18n="building.select_new">New Building</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="row mb-3">
                     <div class="col-md-4">
-                        <label class="form-label">Building Name</label>
+                        <label class="form-label" data-i18n="building.name_label">Building Name</label>
                         <input type="text" id="building-name" class="form-control">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Number of Floors</label>
+                        <label class="form-label" data-i18n="building.floors_label">Number of Floors</label>
                         <input type="number" id="building-floors" class="form-control" value="3" min="1" onchange="applyFormUpdate()">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Exclude Floors</label>
+                        <label class="form-label" data-i18n="building.exclude_floors_label">Exclude Floors</label>
                         <div id="excluded-floors-wrapper" class="floor-checkbox-wrapper">
                             <div class="floor-checkbox-header" onclick="toggleFloorCheckboxPanel()">
-                                <span id="floor-checkbox-summary">All floors visible</span>
+                                <span id="floor-checkbox-summary" data-i18n="building.exclude_all_visible">All floors visible</span>
                                 <span class="floor-checkbox-chevron" id="floor-checkbox-chevron">&#9662;</span>
                             </div>
                             <div id="floor-checkbox-panel" class="floor-checkbox-panel" style="display:none;">
@@ -723,20 +723,20 @@
 
                 <div class="row mb-3">
                     <div class="col-md-4">
-                        <label class="form-label">Scale (optional)</label>
+                        <label class="form-label" data-i18n="building.scale_label">Scale (optional)</label>
                         <input type="number" id="building-scale" class="form-control" value="0.01" step="0.001" onchange="applyFormUpdate()">
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Building SVG Contour</label>
+                    <label class="form-label" data-i18n="building.svg_label">Building SVG Contour</label>
                     <input type="file" id="building-svg" class="form-control" accept=".svg" onchange="applyFormUpdate()">
-                    <small class="text-muted">Upload the SVG outline of the building (1 path only).</small>
+                    <small class="text-muted" data-i18n="building.svg_help">Upload the SVG outline of the building (1 path only).</small>
                 </div>
 
                 <div class="d-flex" style="gap:10px;margin-top:16px;">
-                    <button class="btn btn-violet" type="button" onclick="saveBuildingConfig()">Save Building</button>
-                    <button class="btn btn-danger" type="button" onclick="deleteBuildingConfig()">Delete Building</button>
+                    <button class="btn btn-violet" type="button" onclick="saveBuildingConfig()" data-i18n="building.save_button">Save Building</button>
+                    <button class="btn btn-danger" type="button" onclick="deleteBuildingConfig()" data-i18n="building.delete_button">Delete Building</button>
                 </div>
 
                 <hr class="card-divider">
@@ -744,16 +744,16 @@
                 <!-- 3D Building Visualization -->
                 <div id="floor-plan-card" class="floor-plan-card" style="display:none"></div>
                 <div class="building-3d-header">
-                    <button id="back-to-3d-btn" class="btn btn-violet" style="display:none" onclick="return3DView()">&#8592; Back to 3D View</button>
+                    <button id="back-to-3d-btn" class="btn btn-violet" style="display:none" onclick="return3DView()" data-i18n="building.back_to_3d_button">&#8592; Back to 3D View</button>
                 </div>
 
                 <div id="building-3d-container" class="building-3d-container">
                     <canvas id="building-canvas"></canvas>
                     <div class="building-controls">
                         <div class="control-hint">
-                            <span>Rotate: Left Click + Drag</span>
-                            <span>Zoom: Scroll</span>
-                            <span>Click floor to enter</span>
+                            <span data-i18n="building.3d.rotate">Rotate: Left Click + Drag</span>
+                            <span data-i18n="building.3d.zoom">Zoom: Scroll</span>
+                            <span data-i18n="building.3d.click_floor">Click floor to enter</span>
                         </div>
                     </div>
                     <div id="floor-info-overlay" class="floor-info-overlay"></div>
@@ -770,108 +770,108 @@
 
                     <!-- 2D Element Parameters -->
                     <div class="filter-card">
-                        <label>Element</label>
+                        <label data-i18n="building.2d.element_label">Element</label>
                         <select id="filter-element" class="form-select" onchange="onChangeElement()">
-                            <option value="Sensor" selected>Sensor</option>
-                            <option value="Wall">Wall</option>
-                            <option value="Room">Room</option>
-                            <option value="Door">Door</option>
-                            <option value="Window">Window</option>
-                            <option value="Circle">Circle</option>
-                            <option value="Label">Label</option>
+                            <option value="Sensor" selected data-i18n="building.2d.element_sensor">Sensor</option>
+                            <option value="Wall" data-i18n="building.2d.element_wall">Wall</option>
+                            <option value="Room" data-i18n="building.2d.element_room">Room</option>
+                            <option value="Door" data-i18n="building.2d.element_door">Door</option>
+                            <option value="Window" data-i18n="building.2d.element_window">Window</option>
+                            <option value="Circle" data-i18n="building.2d.element_circle">Circle</option>
+                            <option value="Label" data-i18n="building.2d.element_label_option">Label</option>
                         </select>
                     </div>
 
                     <div class="filter-card">
-                        <label>Sensor Type</label>
+                        <label data-i18n="building.2d.sensor_type_label">Sensor Type</label>
                         <select id="filter-sensor-type" class="form-select" onchange="onChangeSensor()">
-                            <option value="DESK" selected>Desk Occupancy</option>
-                            <option value="LIGHT">Light Levels</option>
-                            <option value="CO2">CO&#8322; Air Quality</option>
-                            <option value="TEMP">Temperature</option>
-                            <option value="MOTION">Motion Detection</option>
-                            <option value="NOISE">Noise Levels</option>
-                            <option value="HUMIDITY">Humidity</option>
-                            <option value="TEMPEX">HVAC Flow</option>
-                            <option value="PR">Presence &amp; Light</option>
-                            <option value="SECURITY">Security Alerts</option>
-                            <option value="COUNT">People Counter</option>
-                            <option value="ENERGY">Energy Consumption</option>
+                            <option value="DESK" selected data-i18n="building.2d.sensor_type_desk">Desk Occupancy</option>
+                            <option value="LIGHT" data-i18n="building.2d.sensor_type_light">Light Levels</option>
+                            <option value="CO2" data-i18n="building.2d.sensor_type_co2">CO&#8322; Air Quality</option>
+                            <option value="TEMP" data-i18n="building.2d.sensor_type_temp">Temperature</option>
+                            <option value="MOTION" data-i18n="building.2d.sensor_type_motion">Motion Detection</option>
+                            <option value="NOISE" data-i18n="building.2d.sensor_type_noise">Noise Levels</option>
+                            <option value="HUMIDITY" data-i18n="building.2d.sensor_type_humidity">Humidity</option>
+                            <option value="TEMPEX" data-i18n="building.2d.sensor_type_tempex">HVAC Flow</option>
+                            <option value="PR" data-i18n="building.2d.sensor_type_pr">Presence &amp; Light</option>
+                            <option value="SECURITY" data-i18n="building.2d.sensor_type_security">Security Alerts</option>
+                            <option value="COUNT" data-i18n="building.2d.sensor_type_count">People Counter</option>
+                            <option value="ENERGY" data-i18n="building.2d.sensor_type_energy">Energy Consumption</option>
                         </select>
                     </div>
 
                     <div class="filter-card">
-                        <label>Floor</label>
+                        <label data-i18n="building.2d.floor_label">Floor</label>
                         <select id="filter-floor" class="form-select">
-                            <option value="0" selected>Ground Floor</option>
-                            <option value="1">Floor 1</option>
+                            <option value="0" selected data-i18n="building.2d.floor_ground">Ground Floor</option>
+                            <option value="1" data-i18n="building.2d.floor_1">Floor 1</option>
                         </select>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-4">
-                            <label class="form-label">ID</label>
+                            <label class="form-label" data-i18n="building.2d.id_label">ID</label>
                             <input type="text" id="input_id" class="form-control">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Text</label>
+                            <label class="form-label" data-i18n="building.2d.text_label">Text</label>
                             <input type="text" id="input_label" class="form-control" onchange="updateElementSVG()">
                         </div>
                         <div class="col-md-4" id="input-location-container">
-                            <label class="form-label" for="select_location">Location</label>
+                            <label class="form-label" for="select_location" data-i18n="building.2d.location_label">Location</label>
                             <select id="select_location" class="form-select" onchange="onLocationChange()">
-                                <option value="">None</option>
+                                <option value="" data-i18n="building.2d.location_none">None</option>
                             </select>
                         </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-4">
-                            <label class="form-label">Size</label>
+                            <label class="form-label" data-i18n="building.2d.size_label">Size</label>
                             <input type="number" id="input_size" min="0" max="1000" step="10" value="20" class="form-control" onchange="updateElementSVG()">
                         </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-3">
-                            <label class="form-label">Radius</label>
+                            <label class="form-label" data-i18n="building.2d.radius_label">Radius</label>
                             <input type="number" id="input_radius" min="0" max="1000" step="10" value="20" class="form-control" onchange="updateElementSVG()">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Width</label>
+                            <label class="form-label" data-i18n="building.2d.width_label">Width</label>
                             <input type="number" id="input_width" min="0" max="1000" step="10" value="20" class="form-control" onchange="updateElementSVG()">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Height</label>
+                            <label class="form-label" data-i18n="building.2d.height_label">Height</label>
                             <input type="number" id="input_height" min="0" max="1000" step="10" value="20" class="form-control" onchange="updateElementSVG()">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Rotation</label>
+                            <label class="form-label" data-i18n="building.2d.rotation_label">Rotation</label>
                             <input type="number" id="input_rotation" min="0" max="360" step="5" value="0" class="form-control" onchange="updateElementSVG()">
                         </div>
                     </div>
 
                     <div class="filter-card">
-                        <label>Desk Chair:</label>
-                        <label>Top</label>
+                        <label data-i18n="building.2d.chair_label">Desk Chair:</label>
+                        <label data-i18n="building.2d.chair_top">Top</label>
                         <input type="number" id="chair_top" min="0" max="10" value="0" class="form-control" style="width:70px;" onchange="updateElementSVG()">
-                        <label>Bottom</label>
+                        <label data-i18n="building.2d.chair_bottom">Bottom</label>
                         <input type="number" id="chair_bottom" min="0" max="10" value="0" class="form-control" style="width:70px;" onchange="updateElementSVG()">
-                        <label>Left</label>
+                        <label data-i18n="building.2d.chair_left">Left</label>
                         <input type="number" id="chair_left" min="0" max="10" value="0" class="form-control" style="width:70px;" onchange="updateElementSVG()">
-                        <label>Right</label>
+                        <label data-i18n="building.2d.chair_right">Right</label>
                         <input type="number" id="chair_right" min="0" max="10" value="0" class="form-control" style="width:70px;" onchange="updateElementSVG()">
                     </div>
 
                     <div class="filter-card">
-                        <label>Style</label>
+                        <label data-i18n="building.2d.style_label">Style</label>
                         <select id="filter-style" class="form-select" onchange="updateElementSVG()">
-                            <option value="Dark" selected>Dark</option>
-                            <option value="Light">Light</option>
+                            <option value="Dark" selected data-i18n="building.2d.style_dark">Dark</option>
+                            <option value="Light" data-i18n="building.2d.style_light">Light</option>
                         </select>
                     </div>
 
                     <div class="d-flex" style="gap:10px;margin-top:16px;">
-                        <button class="btn btn-violet" onclick="addElementSVG()">Add Element</button>
-                        <button class="btn btn-danger" onclick="removeElementSVG()">Remove Element</button>
+                        <button class="btn btn-violet" onclick="addElementSVG()" data-i18n="building.2d.add_element_button">Add Element</button>
+                        <button class="btn btn-danger" onclick="removeElementSVG()" data-i18n="building.2d.remove_element_button">Remove Element</button>
                     </div>
                 </div>
             </div>
@@ -1577,7 +1577,7 @@
                 display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.5);">
         <div style="padding:1rem 1.5rem; border-bottom:1px solid #333; display:flex;
                     justify-content:space-between; align-items:center;">
-            <h3 style="color:#fff; margin:0; font-size:1rem;">Payload Decoder &#8212;
+            <h3 style="color:#fff; margin:0; font-size:1rem;"><span data-i18n="modal.decoder.title">Payload Decoder</span> &#8212;
                 <span id="decoder-brand-name" style="color:#a78bfa;"></span>
             </h3>
             <button onclick="closeDecoderModal()"
@@ -1587,17 +1587,17 @@
         <div style="padding:1rem 1.5rem; border-top:1px solid #333; background:#16213e;">
             <div style="display:flex; gap:0.75rem; align-items:flex-end; flex-wrap:wrap;">
                 <div style="flex:1; min-width:200px;">
-                    <label style="color:#94a3b8; font-size:0.8rem; display:block; margin-bottom:4px;">Test Payload (hex)</label>
+                    <label style="color:#94a3b8; font-size:0.8rem; display:block; margin-bottom:4px;" data-i18n="modal.decoder.test_payload_label">Test Payload (hex)</label>
                     <input id="test-payload-hex" type="text" class="form-control"
-                           placeholder="e.g. 01006400C8FF"
+                           data-i18n-placeholder="modal.decoder.test_payload_placeholder" placeholder="e.g. 01006400C8FF"
                            style="font-family:monospace; background:#0f0f23; color:#e2e8f0; border:1px solid #444;">
                 </div>
                 <div>
-                    <label style="color:#94a3b8; font-size:0.8rem; display:block; margin-bottom:4px;">fPort</label>
+                    <label style="color:#94a3b8; font-size:0.8rem; display:block; margin-bottom:4px;" data-i18n="modal.decoder.fport_label">fPort</label>
                     <input id="test-fport" type="number" value="1" class="form-control"
                            style="width:70px; background:#0f0f23; color:#e2e8f0; border:1px solid #444;">
                 </div>
-                <button onclick="testDecoderNow()" class="btn btn-violet">&#9654; Run Test</button>
+                <button onclick="testDecoderNow()" class="btn btn-violet" data-i18n="modal.decoder.run_test_button">&#9654; Run Test</button>
             </div>
             <pre id="test-result"
                  style="display:none; margin-top:0.75rem; padding:0.75rem; background:#0f0f23;
@@ -1606,8 +1606,8 @@
         </div>
         <div style="padding:1rem 1.5rem; border-top:1px solid #333;
                     display:flex; justify-content:flex-end; gap:0.75rem;">
-            <button onclick="closeDecoderModal()" class="btn" style="background:#374151; color:#fff;">Cancel</button>
-            <button onclick="saveDecoderNow()" class="btn btn-violet">Save Decoder</button>
+            <button onclick="closeDecoderModal()" class="btn" style="background:#374151; color:#fff;" data-i18n="modal.decoder.cancel">Cancel</button>
+            <button onclick="saveDecoderNow()" class="btn btn-violet" data-i18n="modal.decoder.save">Save Decoder</button>
         </div>
     </div>
 </div>
@@ -1667,7 +1667,7 @@
         .then(data => {
             if (data.success) {
                 closeDecoderModal();
-                cfgToast('Decoder saved successfully!', 'success');
+                cfgToast(i18n.t('modal.decoder.save_success'), 'success');
             }
         });
     }
@@ -1681,13 +1681,13 @@
         if (!payload) {
             resultEl.style.display = 'block';
             resultEl.style.color   = '#fbbf24';
-            resultEl.textContent   = 'Please enter a hex payload (e.g. 01006400C8)';
+            resultEl.textContent   = i18n.t('modal.decoder.error_empty');
             return;
         }
 
         resultEl.style.display = 'block';
         resultEl.style.color   = '#94a3b8';
-        resultEl.textContent   = 'Running...';
+        resultEl.textContent   = i18n.t('modal.decoder.test_running');
 
         fetch('/configuration/brands/test-decoder', {
             method: 'POST',
