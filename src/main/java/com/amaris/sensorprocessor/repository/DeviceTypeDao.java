@@ -52,4 +52,10 @@ public class DeviceTypeDao {
                 new BeanPropertyRowMapper<>(DeviceType.class), label);
         return result.isEmpty() ? null : result.get(0);
     }
+
+    public int update(Integer id, String label) {
+        return jdbcTemplate.update(
+                "UPDATE device_type SET type_name = ? WHERE id_device_type = ?",
+                label, id);
+    }
 }

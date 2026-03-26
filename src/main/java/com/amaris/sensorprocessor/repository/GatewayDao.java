@@ -88,6 +88,20 @@ public class GatewayDao {
         );
     }
 
+    public List<Gateway> findByLocationId(Integer locationId) {
+        return jdbcTemplate.query(
+                "SELECT * FROM gateways WHERE location_id = ?",
+                new BeanPropertyRowMapper<>(Gateway.class),
+                locationId);
+    }
+
+    public List<Gateway> findByProtocolId(Integer protocolId) {
+        return jdbcTemplate.query(
+                "SELECT * FROM gateways WHERE protocol_id = ?",
+                new BeanPropertyRowMapper<>(Gateway.class),
+                protocolId);
+    }
+
     public int updateGatewayInDatabase(Gateway gateway) {
         return jdbcTemplate.update(
                 "UPDATE gateways SET " +

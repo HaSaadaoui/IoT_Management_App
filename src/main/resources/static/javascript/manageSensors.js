@@ -311,7 +311,9 @@ buildingNameInput?.addEventListener('change', () => {
           const id = btn.getAttribute('data-id');
           const form = document.getElementById('deleteForm');
           if (form) form.action = `/manage-sensors/delete/${id}`;
-          if (modalDelete) modalDelete.style.display = 'block';
+          const idLabel = document.getElementById('deleteSensorId');
+          if (idLabel) idLabel.textContent = id;
+          if (modalDelete) modalDelete.style.display = 'flex';
         });
       });
     } else {

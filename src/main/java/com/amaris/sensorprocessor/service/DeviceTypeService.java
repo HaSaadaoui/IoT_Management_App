@@ -30,6 +30,12 @@ public class DeviceTypeService {
         deviceTypeDao.deleteById(id);
     }
 
+    public DeviceType updateLabel(Integer id, String label) {
+        int updated = deviceTypeDao.update(id, label.trim().toUpperCase());
+        if (updated == 0) throw new IllegalArgumentException("Device type not found: " + id);
+        return deviceTypeDao.findById(id).orElseThrow();
+    }
+
     public DeviceType createByLabel(String label) {
         return deviceTypeDao.insert(label);
     }
