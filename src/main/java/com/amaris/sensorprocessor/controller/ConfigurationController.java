@@ -193,27 +193,26 @@ public class ConfigurationController {
     }
 
     @PostMapping("/configuration/brands/add")
-    public String addBrand(@RequestParam("name") String name, Model model, Principal principal) {
+    @ResponseBody
+    public ResponseEntity<?> addBrand(@RequestParam("name") String name) {
         try {
             brandService.createByName(name);
-            model.addAttribute("configMessage", "Brand added successfully");
+            return ResponseEntity.ok(Map.of("message", "Brand added successfully"));
         } catch (Exception e) {
-            model.addAttribute("configError", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-        return configuration(model, principal);
     }
 
     @PostMapping("/configuration/protocols/add")
-    public String addProtocol(@RequestParam("name") String name,
-                              @RequestParam(value = "available", required = false) Boolean available,
-                              Model model, Principal principal) {
+    @ResponseBody
+    public ResponseEntity<?> addProtocol(@RequestParam("name") String name,
+                                         @RequestParam(value = "available", required = false) Boolean available) {
         try {
             protocolService.createByName(name, available);
-            model.addAttribute("configMessage", "Protocol added successfully");
+            return ResponseEntity.ok(Map.of("message", "Protocol added successfully"));
         } catch (Exception e) {
-            model.addAttribute("configError", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-        return configuration(model, principal);
     }
 
     @PostMapping("/configuration/sensors/add")
@@ -228,47 +227,47 @@ public class ConfigurationController {
     }
 
     @PostMapping("/configuration/brands/delete")
-    public String deleteBrand(@RequestParam("id") Integer id, Model model, Principal principal) {
+    @ResponseBody
+    public ResponseEntity<?> deleteBrand(@RequestParam("id") Integer id) {
         try {
             brandService.deleteById(id);
-            model.addAttribute("configMessage", "Brand deleted successfully");
+            return ResponseEntity.ok(Map.of("message", "Brand deleted successfully"));
         } catch (Exception e) {
-            model.addAttribute("configError", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-        return configuration(model, principal);
     }
 
     @PostMapping("/configuration/device-types/add")
-    public String addDeviceType(@RequestParam("name") String name, Model model, Principal principal) {
+    @ResponseBody
+    public ResponseEntity<?> addDeviceType(@RequestParam("name") String name) {
         try {
             deviceTypeService.createByLabel(name.toUpperCase());
-            model.addAttribute("configMessage", "Device type added successfully");
+            return ResponseEntity.ok(Map.of("message", "Device type added successfully"));
         } catch (Exception e) {
-            model.addAttribute("configError", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-        return configuration(model, principal);
     }
 
     @PostMapping("/configuration/device-types/delete")
-    public String deleteDeviceType(@RequestParam("id") Integer id, Model model, Principal principal) {
+    @ResponseBody
+    public ResponseEntity<?> deleteDeviceType(@RequestParam("id") Integer id) {
         try {
             deviceTypeService.deleteById(id);
-            model.addAttribute("configMessage", "Device type deleted successfully");
+            return ResponseEntity.ok(Map.of("message", "Device type deleted successfully"));
         } catch (Exception e) {
-            model.addAttribute("configError", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-        return configuration(model, principal);
     }
 
     @PostMapping("/configuration/protocols/delete")
-    public String deleteProtocol(@RequestParam("id") Integer id, Model model, Principal principal) {
+    @ResponseBody
+    public ResponseEntity<?> deleteProtocol(@RequestParam("id") Integer id) {
         try {
             protocolService.deleteById(id);
-            model.addAttribute("configMessage", "Protocol deleted successfully");
+            return ResponseEntity.ok(Map.of("message", "Protocol deleted successfully"));
         } catch (Exception e) {
-            model.addAttribute("configError", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-        return configuration(model, principal);
     }
 
     // ==================== BUILDING ENERGY CONFIG ====================
