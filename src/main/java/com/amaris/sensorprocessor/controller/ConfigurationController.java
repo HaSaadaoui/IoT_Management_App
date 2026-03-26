@@ -4,6 +4,7 @@ import com.amaris.sensorprocessor.config.AlertThresholdConfig;
 import com.amaris.sensorprocessor.entity.*;
 import com.amaris.sensorprocessor.repository.AlertConfigurationDao;
 import com.amaris.sensorprocessor.repository.BuildingEnergyConfigDao;
+import com.amaris.sensorprocessor.repository.GatewayDao;
 import com.amaris.sensorprocessor.repository.SensorDao;
 import com.amaris.sensorprocessor.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,7 @@ public class ConfigurationController {
     private final SensorThresholdService sensorThresholdService;
     private final UserService userService;
     private final SensorDao sensorDao;
+    private final GatewayDao gatewayDao;
     private final AlertConfigurationDao alertConfigurationDao;
     private final BrandService brandService;
     private final ProtocolService protocolService;
@@ -42,6 +44,7 @@ public class ConfigurationController {
                                    SensorThresholdService sensorThresholdService,
                                    UserService userService,
                                    SensorDao sensorDao,
+                                   GatewayDao gatewayDao,
                                    AlertConfigurationDao alertConfigurationDao,
                                    BrandService brandService,
                                    ProtocolService protocolService,
@@ -56,6 +59,7 @@ public class ConfigurationController {
         this.sensorThresholdService = sensorThresholdService;
         this.userService = userService;
         this.sensorDao = sensorDao;
+        this.gatewayDao = gatewayDao;
         this.alertConfigurationDao = alertConfigurationDao;
         this.brandService = brandService;
         this.protocolService = protocolService;
@@ -363,6 +367,70 @@ public class ConfigurationController {
         }
     }
 
+    // ==================== CHECK-DELETE ====================
 
+    @GetMapping("/api/configuration/brands/{id}/check-delete")
+    @ResponseBody
+    public ResponseEntity<?> checkDeleteBrand(@PathVariable Integer id) {
+        List<Sensor> sensors = sensorDao.findAllByBrandId(id);
+        boolean canDelete = sensors.isEmpty();
+        return ResponseEntity.ok(Map.of("canDelete", canDelete, "sensors", sensors, "gateways", List.of()));
+    }
+
+    @GetMapping("/api/configuration/device-types/{id}/check-delete")
+    @ResponseBody
+    public ResponseEntity<?> checkDeleteDeviceType(@PathVariable Integer id) {
+        List<Sensor> sensors = sensorDao.findAllByDeviceTypeId(id);
+        boolean canDelete = sensors.isEmpty();
+        return ResponseEntity.ok(Map.of("canDelete", canDelete, "sensors", sensors, "gateways", List.of()));
+    }
+
+    @GetMapping("/api/configuration/protocols/{id}/check-delete")
+    @ResponseBody
+    public ResponseEntity<?> checkDeleteProtocol(@PathVariable Integer id) {
+        List<Sensor> sensors = sensorDao.findAllByProtocolId(id);
+        List<Gateway> gateways = gatewayDao.findByProtocolId(id);
+        boolean canDelete = sensors.isEmpty() && gateways.isEmpty();
+        return ResponseEntity.ok(Map.of("canDelete", canDelete, "sensors", sensors, "gateways", gateways));
+    }
+
+    // ==================== UPDATE ====================
+
+    @PutMapping("/api/configuration/brands/{id}")
+    @ResponseBody
+    public ResponseEntity<?> updateBrand(@PathVariable Integer id, @RequestBody Map<String, String> body) {
+        try {
+            Brand updated = brandService.updateName(id, body.get("name"));
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/api/configuration/device-types/{id}")
+    @ResponseBody
+    public ResponseEntity<?> updateDeviceType(@PathVariable Integer id, @RequestBody Map<String, String> body) {
+        try {
+            DeviceType updated = deviceTypeService.updateLabel(id, body.get("label"));
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/api/configuration/protocols/{id}")
+    @ResponseBody
+    public ResponseEntity<?> updateProtocol(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
+        try {
+            String name = (String) body.get("name");
+            Boolean availableForGateway = body.get("availableForGateway") instanceof Boolean
+                    ? (Boolean) body.get("availableForGateway")
+                    : Boolean.parseBoolean(String.valueOf(body.get("availableForGateway")));
+            Protocol updated = protocolService.update(id, name, availableForGateway);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 
 }

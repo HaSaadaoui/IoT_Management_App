@@ -110,6 +110,24 @@ public class SensorDao {
                 new BeanPropertyRowMapper<>(Sensor.class), locationId);
     }
 
+    public List<Sensor> findAllByBrandId(Integer brandId) {
+        return jdbcTemplate.query(
+                BASE_SELECT + "WHERE s.brand_id = ?",
+                new BeanPropertyRowMapper<>(Sensor.class), brandId);
+    }
+
+    public List<Sensor> findAllByDeviceTypeId(Integer deviceTypeId) {
+        return jdbcTemplate.query(
+                BASE_SELECT + "WHERE s.id_device_type = ?",
+                new BeanPropertyRowMapper<>(Sensor.class), deviceTypeId);
+    }
+
+    public List<Sensor> findAllByProtocolId(Integer protocolId) {
+        return jdbcTemplate.query(
+                BASE_SELECT + "WHERE s.protocol_id = ?",
+                new BeanPropertyRowMapper<>(Sensor.class), protocolId);
+    }
+
     public List<Sensor> findAllByBuildingAndFloor(String buildingId, Integer floorNumber) {
         return jdbcTemplate.query(
                 BASE_SELECT + "WHERE s.building_id = ? AND s.floor = ?",

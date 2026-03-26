@@ -46,6 +46,13 @@ public class BrandService {
         brandRepository.deleteById(id);
     }
 
+    public Brand updateName(Integer id, String name) {
+        Brand brand = brandRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Brand not found: " + id));
+        brand.setName(name.trim());
+        return brandRepository.save(brand);
+    }
+
     public void updateDecoder(Integer id, String decoder) {
         Brand brand = brandRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Brand not found: " + id));
