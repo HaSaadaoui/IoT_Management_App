@@ -2,6 +2,12 @@
 
 // Charge un SVG via URL et renvoie { shape, centerX, centerZ }
 async function loadSVGShapeFromUrl(url) {
+    // Pre-check: ensure the SVG file actually exists before handing off to THREE.SVGLoader
+    const check = await fetch(url, { method: 'HEAD' }).catch(() => null);
+    if (!check || !check.ok) {
+        throw new Error(`SVG not found (HTTP ${check ? check.status : 'network error'}): ${url}`);
+    }
+
     return new Promise((resolve, reject) => {
         const loader = new THREE.SVGLoader();
         loader.load(
@@ -118,16 +124,36 @@ class Building3D {
     }
 
     async init() {
-        this.setupScene();
-        this.setupCamera();
-        this.setupRenderer();
-        this.setupLights();
-        this.setupControls();
-        await this.loadConfig();
-        await this.setBuilding();
+        try {
+            this.setupScene();
+            this.setupCamera();
+            this.setupRenderer();
+            this.setupLights();
+            this.setupControls();
+            await this.loadConfig();
+            await this.setBuilding();
 
-        this.setupEventListeners();
-        this.animate();
+            this.setupEventListeners();
+            this.animate();
+        } catch (e) {
+            console.error('[Building3D] init failed:', e);
+            this.showFallbackUI('3D view could not be loaded.');
+        }
+    }
+
+    showFallbackUI(message) {
+        if (!this.container) return;
+        this.container.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                        width:100%;height:100%;min-height:300px;background:linear-gradient(135deg,#0f172a,#1e293b);
+                        border-radius:12px;color:#94a3b8;text-align:center;padding:2rem;box-sizing:border-box;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#662179" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <path d="M3 9h18M9 21V9"/>
+                </svg>
+                <p style="margin:1rem 0 0.5rem;font-size:1.1rem;font-weight:600;color:#e2e8f0;">${message}</p>
+                <p style="margin:0;font-size:0.85rem;color:#64748b;">Please check the building SVG file or select a different building.</p>
+            </div>`;
     }
 
     getDeskSensor(floorNumber, deskId) {
@@ -450,7 +476,13 @@ class Building3D {
 
         if (!this.dbShapeCache) {
             console.log("Loading DB building SVG from:", this.dbBuildingConfig.svgUrl);
-            this.dbShapeCache = await loadSVGShapeFromUrl(this.dbBuildingConfig.svgUrl);
+            try {
+                this.dbShapeCache = await loadSVGShapeFromUrl(this.dbBuildingConfig.svgUrl);
+            } catch (svgErr) {
+                console.error('[Building3D] SVG load failed:', svgErr);
+                this.showFallbackUI('Building SVG not found or invalid.');
+                return;
+            }
         }
         dbScale       = this.dbBuildingConfig.scale || 1;
         buildingShape = this.dbShapeCache.shape;
@@ -710,8 +742,11 @@ class Building3D {
         const layout = document.querySelector('.building-layout');
         if (layout) layout.style.display = 'flex';
 
-        const floorPlan2D = document.getElementById('floor-plan-2d');
-        if (floorPlan2D) floorPlan2D.style.display = 'block'; // 🔥 FIX
+        // Hide placeholder, show floor content
+        const placeholder = document.getElementById('floor-plan-placeholder');
+        const content = document.getElementById('floor-plan-content');
+        if (placeholder) placeholder.style.display = 'none';
+        if (content) content.style.display = 'flex';
 
         const backBtn = document.getElementById('back-to-3d-btn');
         if (backBtn) backBtn.style.display = 'block';
@@ -739,14 +774,6 @@ class Building3D {
         }
 
         deskGrid.innerHTML = '';
-        deskGrid.style.gridTemplateColumns = '1fr';
-        deskGrid.style.display = 'flex';
-        deskGrid.style.justifyContent = 'center';
-        deskGrid.style.alignItems = 'center';
-        deskGrid.style.minHeight = '600px'; // important pour le centrage vertical
-        deskGrid.style.background = '#ffffff';
-        deskGrid.style.borderRadius = '12px';
-        deskGrid.style.border = '2px solid #e2e8f0';
 
         const floorData = this.floorData[floorNumber] || {};
         const floorsCount = this.getFloorsCount();
@@ -818,8 +845,11 @@ class Building3D {
     return3DView() {
         this.isIn3DView = true;
 
-        const floorPlan2D = document.getElementById('floor-plan-2d');
-        if (floorPlan2D) floorPlan2D.style.display = 'none';
+        // Show placeholder, hide floor content
+        const placeholder = document.getElementById('floor-plan-placeholder');
+        const content = document.getElementById('floor-plan-content');
+        if (placeholder) placeholder.style.display = '';
+        if (content) content.style.display = 'none';
 
         const layout = document.querySelector('.building-layout');
         if (layout) layout.style.display = 'flex';
@@ -827,9 +857,8 @@ class Building3D {
         const backBtn = document.getElementById('back-to-3d-btn');
         if (backBtn) backBtn.style.display = 'none';
 
-
-        document.querySelector('.left-panel').style.flex = '1';
-        document.querySelector('.right-panel').style.flex = '0';
+        document.querySelector('.left-panel').style.flex = '';
+        document.querySelector('.right-panel').style.flex = '';
 
         requestAnimationFrame(() => this.resize3D());
 
@@ -878,11 +907,14 @@ class Building3D {
         const left = document.querySelector('.left-panel');
         const right = document.querySelector('.right-panel');
 
-        if (left) left.style.flex = '1';
-        if (right) {
-            right.style.flex = '0';
-            right.style.display = 'none';
-        }
+        if (left) left.style.flex = '';
+        if (right) right.style.flex = '';
+
+        // Show placeholder, hide floor content
+        const placeholder = document.getElementById('floor-plan-placeholder');
+        const content = document.getElementById('floor-plan-content');
+        if (placeholder) placeholder.style.display = '';
+        if (content) content.style.display = 'none';
 
         const layout = document.querySelector('.building-layout');
         if (layout) layout.style.display = 'flex';
@@ -999,12 +1031,16 @@ class Building3D {
         this.resetLayout();
 
         const container3D   = document.getElementById('building-3d-container');
-        const floorPlan2D   = document.getElementById('floor-plan-2d');
         const backBtn       = document.getElementById('back-to-3d-btn');
 
         if (container3D) container3D.style.display = 'block';
-        if (floorPlan2D) floorPlan2D.style.display = 'none';
         if (backBtn)     backBtn.style.display     = 'none';
+
+        // Show placeholder, hide floor content (resetLayout already does this, but be explicit)
+        const placeholder = document.getElementById('floor-plan-placeholder');
+        const content = document.getElementById('floor-plan-content');
+        if (placeholder) placeholder.style.display = '';
+        if (content) content.style.display = 'none';
 
         if (!this.buildingKey || this.buildingKey.trim() === ''){
             this.clearBuilding();
@@ -1018,10 +1054,15 @@ class Building3D {
             return;
         }
 
-        await this.createBuilding();
-        this.resetCameraForBuilding();
-        this.loadRealOccupancyData();
-        this.startOccupancySSE();
+        try {
+            await this.createBuilding();
+            this.resetCameraForBuilding();
+            this.loadRealOccupancyData();
+            this.startOccupancySSE();
+        } catch (e) {
+            console.error('[Building3D] setBuilding failed:', e);
+            this.showFallbackUI('Failed to render building.');
+        }
     }
 
     clearBuilding() {

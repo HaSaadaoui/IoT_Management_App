@@ -319,19 +319,45 @@
             <!-- Popup de confirmation suppression -->
             <div id="deleteSensorPopup"
                  class="modal"
-                 style="display:none;"
+                 style="display:none; align-items:center; justify-content:center;"
                  th:classappend="${!canEdit} ? ' disabled' : ''"
                  th:attr="aria-disabled=${!canEdit}">
-                <div class="modal-content-delete">
-                    <h2>Confirm delete?</h2>
-                    <div th:if="${errorDelete}" class="error-message-delete alert-danger">
-                        <p th:text="${errorDelete}"></p>
+                <div style="background:#fff; border-radius:16px; width:420px; max-width:94vw;
+                            box-shadow:0 20px 60px rgba(0,0,0,0.18); overflow:hidden; font-family:'Inter',sans-serif;">
+                    <!-- Header -->
+                    <div style="background:#fef2f2; padding:1.25rem 1.5rem; display:flex; align-items:center; gap:0.75rem; border-bottom:1px solid #fecaca;">
+                        <div style="width:40px; height:40px; border-radius:50%; background:#fee2e2; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div style="font-weight:700; font-size:1rem; color:#991b1b;">Supprimer le capteur</div>
+                            <div style="font-size:0.8rem; color:#b91c1c; margin-top:2px;">Cette action est irréversible</div>
+                        </div>
                     </div>
+                    <!-- Body -->
+                    <div style="padding:1.25rem 1.5rem;">
+                        <p style="margin:0 0 0.5rem; color:#1a1d23; font-size:0.9rem;">
+                            Êtes-vous sûr de vouloir supprimer le capteur
+                            <strong id="deleteSensorId" style="color:#662179; font-family:monospace;"></strong> ?
+                        </p>
+                        <div th:if="${errorDelete}" class="error-message-delete alert-danger" style="margin-top:0.75rem;">
+                            <p th:text="${errorDelete}" style="margin:0;"></p>
+                        </div>
+                    </div>
+                    <!-- Footer -->
                     <form th:action="@{/manage-sensors/delete/__id__}" method="post" id="deleteForm">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                        <div class="form-buttons-delete">
-                            <button type="submit">Delete</button>
-                            <button type="button" id="closeDelete">Cancel</button>
+                        <div style="padding:1rem 1.5rem; background:#f9fafb; display:flex; justify-content:flex-end; gap:0.75rem; border-top:1px solid #e3e8ef;">
+                            <button type="button" id="closeDelete"
+                                    style="background:#f3f4f6; color:#1a1d23; border:1px solid #e3e8ef; padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;">
+                                Annuler
+                            </button>
+                            <button type="submit"
+                                    style="background:#ef4444; color:#fff; border:none; padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;">
+                                Oui, supprimer
+                            </button>
                         </div>
                     </form>
                 </div>

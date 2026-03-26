@@ -45,4 +45,12 @@ public class ProtocolService {
     public void deleteById(Integer id) {
         protocolRepository.deleteById(id);
     }
+
+    public Protocol update(Integer id, String name, Boolean availableForGateway) {
+        Protocol protocol = protocolRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Protocol not found: " + id));
+        protocol.setName(name.trim());
+        protocol.setAvailableForGateway(availableForGateway != null ? availableForGateway : false);
+        return protocolRepository.save(protocol);
+    }
 }

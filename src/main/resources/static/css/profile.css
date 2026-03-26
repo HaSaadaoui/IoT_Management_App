@@ -1,49 +1,193 @@
-body, html {
-    background-image: url('/image/mantu-background.jpg');
-    background-size: 100% 120vh;
-    min-height: 100vh;
-    margin: 0;
-    background-repeat: no-repeat;
-    background-position: center top;
+/* ============================================================
+   PROFILE.CSS — Premium Dark Glass Design
+   Same background as Login/Auth page (mantu-background.jpg)
+   ============================================================ */
+
+:root {
+    --profile-primary: #662179;
+    --profile-primary-dark: #4b0c68;
+    --profile-primary-light: #8b2fa3;
+    --profile-accent: #a78bfa;
+    --profile-accent-blue: #3a7bd5;
+    --profile-font: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
 }
 
+/* ============================================================
+   PAGE BACKGROUND — Same as Auth Page
+   ============================================================ */
+.profile-page {
+    font-family: var(--profile-font);
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background:
+        linear-gradient(135deg,
+            rgba(15, 5, 33, 0.82) 0%,
+            rgba(26, 10, 46, 0.78) 25%,
+            rgba(45, 18, 69, 0.75) 50%,
+            rgba(26, 16, 64, 0.80) 75%,
+            rgba(15, 5, 33, 0.85) 100%),
+        url('/image/mantu-background.jpg') center / cover no-repeat fixed;
+    background-size: 400% 400%, cover;
+    animation: profileGradientShift 20s ease infinite;
+    overflow-x: hidden;
+}
+
+@keyframes profileGradientShift {
+    0%   { background-position: 0% 50%, center; }
+    50%  { background-position: 100% 50%, center; }
+    100% { background-position: 0% 50%, center; }
+}
+
+/* Ambient particles */
+.profile-page::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+        radial-gradient(2px 2px at 20% 30%, rgba(155, 89, 182, 0.3), transparent),
+        radial-gradient(2px 2px at 80% 20%, rgba(58, 123, 213, 0.25), transparent),
+        radial-gradient(2px 2px at 40% 70%, rgba(155, 89, 182, 0.2), transparent),
+        radial-gradient(2px 2px at 70% 80%, rgba(58, 123, 213, 0.3), transparent),
+        radial-gradient(1px 1px at 10% 90%, rgba(255, 255, 255, 0.15), transparent),
+        radial-gradient(1px 1px at 90% 50%, rgba(255, 255, 255, 0.1), transparent);
+    animation: profileParticlesDrift 30s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes profileParticlesDrift {
+    0%   { transform: translateY(0) translateX(0); }
+    50%  { transform: translateY(-20px) translateX(10px); }
+    100% { transform: translateY(0) translateX(0); }
+}
+
+/* ============================================================
+   GLASS HEADER — Same as Prediction Page
+   ============================================================ */
+.profile-page .app-header {
+    background: rgba(255, 255, 255, 0.06) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    position: relative;
+    z-index: 100;
+}
+
+.profile-page .app-header .back-btn svg circle { stroke: rgba(255, 255, 255, 0.6) !important; }
+.profile-page .app-header .back-btn svg path,
+.profile-page .app-header .back-btn svg line { stroke: rgba(255, 255, 255, 0.6) !important; }
+.profile-page .header-title-gateway { color: rgba(255, 255, 255, 0.9) !important; }
+.profile-page .menu-btn svg { fill: rgba(255, 255, 255, 0.8) !important; }
+.profile-page .menu-btn svg path { stroke: rgba(255, 255, 255, 0.8) !important; }
+.profile-page .header-avatar { border-color: rgba(255, 255, 255, 0.4) !important; }
+
+/* Dropdown readable on dark bg */
+.profile-page .dropdown-content {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+.profile-page .dropdown-content a,
+.profile-page .dropdown-content .logout-link { color: #662179 !important; }
+.profile-page .dropdown-content a svg path,
+.profile-page .dropdown-content .logout-link svg path { fill: #662179 !important; }
+
+/* ============================================================
+   PROFILE CONTAINER
+   ============================================================ */
 .profile-container {
     display: flex;
     justify-content: center;
     margin-top: 40px;
+    padding: 0 20px 60px;
+    position: relative;
+    z-index: 1;
+    animation: profileEntrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+@keyframes profileEntrance {
+    0%   { opacity: 0; transform: translateY(30px) scale(0.96); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ============================================================
+   PROFILE CARD — Glass Morphism
+   ============================================================ */
 .profile-box {
     display: flex;
-    gap: 50px;
+    gap: 48px;
     align-items: flex-start;
-    padding: 40px;
-    background: #fff;
-    border-radius: 20px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-    max-width: 1000px;
+    padding: 44px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 28px;
+    box-shadow:
+        0 8px 60px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    max-width: 960px;
     width: 100%;
-    transition: box-shadow 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .profile-box:hover {
-    box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+    border-color: rgba(155, 89, 182, 0.2);
+    box-shadow:
+        0 12px 80px rgba(102, 33, 121, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
+/* ============================================================
+   LEFT PANEL — Avatar & Email
+   ============================================================ */
 .profile-left {
-    flex: 0 0 280px;
+    flex: 0 0 240px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: 24px;
 }
 
-/* Avatar wrapper with hover effect */
 .avatar-wrapper {
     position: relative;
-    width: 240px;
-    height: 240px;
+    width: 180px;
+    height: 180px;
     cursor: pointer;
+}
+
+/* Animated glowing ring around avatar */
+.avatar-wrapper::before {
+    content: '';
+    position: absolute;
+    top: -6px; left: -6px; right: -6px; bottom: -6px;
+    border-radius: 50%;
+    background: conic-gradient(
+        from 0deg,
+        #662179, #a78bfa, #3a7bd5, #8b2fa3, #662179
+    );
+    animation: avatarRingSpin 6s linear infinite;
+    opacity: 0.5;
+    transition: opacity 0.4s ease;
+}
+
+.avatar-wrapper:hover::before {
+    opacity: 0.85;
+}
+
+.avatar-wrapper::after {
+    content: '';
+    position: absolute;
+    top: -3px; left: -3px; right: -3px; bottom: -3px;
+    border-radius: 50%;
+    background: rgba(15, 5, 33, 0.9);
+}
+
+@keyframes avatarRingSpin {
+    0%   { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 .user-avatar {
@@ -51,14 +195,16 @@ body, html {
     height: 100%;
     border-radius: 50%;
     object-fit: cover;
-    border: 4px solid #662179;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0 4px 12px rgba(102, 33, 121, 0.2);
+    border: 3px solid rgba(255, 255, 255, 0.15);
+    position: relative;
+    z-index: 2;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .avatar-wrapper:hover .user-avatar {
-    transform: scale(1.02);
-    box-shadow: 0 8px 20px rgba(102, 33, 121, 0.3);
+    transform: scale(1.04);
+    box-shadow: 0 12px 40px rgba(102, 33, 121, 0.4);
 }
 
 /* Avatar edit overlay */
@@ -66,18 +212,19 @@ body, html {
     position: absolute;
     bottom: 10px;
     right: 10px;
-    width: 50px;
-    height: 50px;
-    background: #662179;
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, var(--profile-primary), var(--profile-accent));
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     opacity: 0;
+    z-index: 3;
     transition: opacity 0.3s ease, transform 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    border: 3px solid #fff;
+    box-shadow: 0 4px 20px rgba(102, 33, 121, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .avatar-wrapper:hover .avatar-edit-overlay {
@@ -94,63 +241,82 @@ body, html {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 20px;
-    background: linear-gradient(135deg, #f8f4fb 0%, #f0e8f5 100%);
-    border-radius: 12px;
-    border: 1px solid rgba(102, 33, 121, 0.1);
+    padding: 12px 18px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     width: 100%;
     box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+.profile-email:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(155, 89, 182, 0.2);
 }
 
 .profile-email svg {
     flex-shrink: 0;
+    fill: var(--profile-accent) !important;
 }
 
 .profile-email span {
-    font-size: 14px;
-    color: #662179;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
     font-weight: 500;
     word-break: break-all;
 }
 
-/* Right section */
+/* ============================================================
+   RIGHT PANEL — Info & Actions
+   ============================================================ */
 .profile-right {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 20px;
 }
 
 .profile-right h2 {
-    margin: 0 0 8px 0;
-    color: #662179;
-    font-size: 32px;
-    font-weight: 700;
+    margin: 0 0 4px 0;
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ffffff, var(--profile-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
 }
 
 /* Info sections */
 .info-section {
-    background: #f9f9f9;
-    padding: 20px;
-    border-radius: 12px;
-    border: 1px solid #e5e5e5;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 22px 26px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    transition: all 0.3s ease;
+}
+
+.info-section:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(155, 89, 182, 0.15);
 }
 
 .section-title {
     margin: 0 0 16px 0;
-    color: #662179;
-    font-size: 16px;
-    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border-bottom: 2px solid #662179;
-    padding-bottom: 8px;
+    letter-spacing: 1.5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-bottom: 12px;
 }
 
 .info-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    gap: 18px;
 }
 
 .info-item {
@@ -160,56 +326,68 @@ body, html {
 }
 
 .info-item label {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
-    color: #888;
+    color: rgba(255, 255, 255, 0.35);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
 }
 
 .info-item p {
     margin: 0;
-    font-size: 16px;
-    color: #333;
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.9);
     font-weight: 500;
-    padding: 8px 12px;
-    background: #fff;
-    border-radius: 6px;
-    border: 1px solid #e0e0e0;
+    padding: 11px 16px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.3s ease;
+}
+
+.info-item p:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(155, 89, 182, 0.15);
 }
 
 .role-badge {
     display: inline-block;
-    padding: 8px 16px !important;
-    background: linear-gradient(135deg, #662179 0%, #8b2fa8 100%) !important;
-    color: #fff !important;
+    padding: 9px 20px !important;
+    background: linear-gradient(135deg, rgba(102, 33, 121, 0.6), rgba(58, 123, 213, 0.4)) !important;
+    color: #ffffff !important;
     border-radius: 20px !important;
     font-weight: 600 !important;
+    font-size: 13px !important;
     text-align: center;
-    border: none !important;
-    box-shadow: 0 2px 8px rgba(102, 33, 121, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 4px 20px rgba(102, 33, 121, 0.3);
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(10px);
 }
 
+/* ============================================================
+   ACTION BUTTONS
+   ============================================================ */
 .profile-actions {
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
-    margin-top: 8px;
+    margin-top: 4px;
 }
 
-/* Action buttons with icons */
 .btn-action {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 12px 24px;
+    padding: 12px 26px;
     border: none;
-    border-radius: 10px;
-    font-size: 15px;
+    border-radius: 12px;
+    font-family: var(--profile-font);
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    letter-spacing: 0.3px;
 }
 
 .btn-action svg {
@@ -217,41 +395,48 @@ body, html {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #662179 0%, #8b2fa8 100%);
-    color: #fff;
+    background: linear-gradient(135deg, rgba(102, 33, 121, 0.7), rgba(58, 123, 213, 0.5));
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 20px rgba(102, 33, 121, 0.35);
+    backdrop-filter: blur(10px);
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, #4b0c68 0%, #6b1f88 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 33, 121, 0.3);
+    background: linear-gradient(135deg, rgba(102, 33, 121, 0.9), rgba(58, 123, 213, 0.7));
+    transform: translateY(-3px);
+    box-shadow: 0 8px 32px rgba(102, 33, 121, 0.5);
+    border-color: rgba(255, 255, 255, 0.25);
 }
 
 .btn-secondary {
-    background: #fff;
-    color: #662179;
-    border: 2px solid #662179;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(10px);
 }
 
 .btn-secondary:hover {
-    background: #662179;
-    color: #fff;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 33, 121, 0.3);
+    border-color: rgba(155, 89, 182, 0.3);
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 24px rgba(102, 33, 121, 0.2);
 }
 
 .btn-action:active {
     transform: translateY(0);
 }
 
-
-/* --- Modal --- */
+/* ============================================================
+   MODALS — Glass on Dark Background
+   ============================================================ */
 .modal {
     display: none;
     position: fixed;
     z-index: 1000;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
     justify-content: center;
     align-items: center;
 }
@@ -261,199 +446,216 @@ body, html {
 }
 
 .modal-content {
-    background: #fff;
-    padding: 25px;
-    border-radius: 12px;
-    width: 400px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 36px;
+    border-radius: 24px;
+    width: 420px;
     max-width: 90%;
-    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
-    animation: fadeIn 0.3s ease-out;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+    animation: modalFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: translateY(-15px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .modal-content h3 {
     margin-top: 0;
-    margin-bottom: 15px;
+    margin-bottom: 28px;
     text-align: center;
-    font-family: Arial, sans-serif;
-    color: #662179;
+    font-family: var(--profile-font);
+    color: #ffffff;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.3px;
 }
 
 .modal-content label {
     display: block;
-    margin-top: 12px;
-    font-weight: bold;
-    color: #4b0c68;
+    margin-top: 16px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
 .modal-content input {
     width: 100%;
-    padding: 8px 10px;
-    margin-top: 5px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
+    padding: 13px 16px;
+    margin-top: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
     font-size: 14px;
+    font-family: var(--profile-font);
     box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.modal-content input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.modal-content input:hover {
+    border-color: rgba(155, 89, 182, 0.3);
 }
 
 .modal-content input:focus {
-    outline: none;
-    border-color: #662179;
-    box-shadow: 0 0 4px rgba(102, 33, 121, 0.4);
+    border-color: var(--profile-accent);
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.15);
 }
 
 .modal-content button {
-    padding: 10px 16px;
+    padding: 12px 24px;
     border: none;
-    border-radius: 6px;
+    border-radius: 12px;
     cursor: pointer;
     font-size: 14px;
-    margin: 10px 5px 0 0;
+    font-weight: 600;
+    font-family: var(--profile-font);
+    margin: 18px 10px 0 0;
+    transition: all 0.3s ease;
 }
 
 .modal-content button[type="submit"] {
-    background-color: #662179;
-    color: white;
-    transition: background-color 0.3s ease;
+    background: linear-gradient(135deg, rgba(102, 33, 121, 0.7), rgba(58, 123, 213, 0.5));
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 20px rgba(102, 33, 121, 0.35);
 }
 
 .modal-content button[type="submit"]:hover {
-    background-color: #4b0c68;
+    background: linear-gradient(135deg, rgba(102, 33, 121, 0.9), rgba(58, 123, 213, 0.7));
+    box-shadow: 0 6px 30px rgba(102, 33, 121, 0.5);
+    transform: translateY(-2px);
 }
 
 .modal-content button[type="button"] {
-    background-color: #ccc;
-    color: #333;
-    transition: background-color 0.3s ease;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .modal-content button[type="button"]:hover {
-    background-color: #aaa;
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
 }
 
-/* --- Messages --- */
+/* ============================================================
+   MESSAGES
+   ============================================================ */
 .error-message {
-    color: #d32f2f;
-    font-size: 14px;
+    color: #fca5a5;
+    font-size: 13px;
     margin: 8px 0;
     padding: 10px 14px;
-    background: #ffebee;
-    border-left: 4px solid #d32f2f;
-    border-radius: 6px;
-}
-
-.success-message {
-    color: #2e7d32;
-    font-size: 14px;
-    margin: 8px 0;
-    padding: 10px 14px;
-    background: #e8f5e9;
-    border-left: 4px solid #2e7d32;
-    border-radius: 6px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 10px;
     font-weight: 500;
 }
 
-/* --- Animation --- */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+.success-message {
+    color: #86efac;
+    font-size: 13px;
+    margin: 8px 0;
+    padding: 10px 14px;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 10px;
+    font-weight: 500;
 }
 
-/* ===== RESPONSIVE DESIGN ===== */
+/* ============================================================
+   RESPONSIVE DESIGN
+   ============================================================ */
 @media (max-width: 768px) {
     .profile-container {
         margin-top: 20px;
-        padding: 0 15px;
+        padding: 0 15px 40px;
     }
-    
+
     .profile-box {
         flex-direction: column;
-        gap: 20px;
-        padding: 20px;
+        gap: 28px;
+        padding: 28px;
         max-width: 100%;
     }
-    
+
     .profile-left {
         flex: none;
         align-self: center;
     }
-    
-    .user-avatar {
+
+    .avatar-wrapper {
         width: 150px;
-        min-width: 150px;
         height: 150px;
-        min-height: 150px;
     }
-    
+
     .profile-right {
         text-align: center;
     }
-    
-    .profile-actions {
-        margin-top: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
+
+    .profile-right h2 {
+        font-size: 24px;
     }
-    
-    .profile-actions button {
-        margin-right: 0;
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-actions {
+        margin-top: 16px;
+        flex-direction: column;
+    }
+
+    .profile-actions .btn-action {
         width: 100%;
+        justify-content: center;
     }
 }
 
 @media (max-width: 480px) {
     .profile-container {
         margin-top: 10px;
-        padding: 0 10px;
+        padding: 0 10px 30px;
     }
-    
+
     .profile-box {
-        padding: 15px;
+        padding: 20px;
+        border-radius: 20px;
     }
-    
-    .user-avatar {
+
+    .avatar-wrapper {
         width: 120px;
-        min-width: 120px;
         height: 120px;
-        min-height: 120px;
     }
-    
+
+    .avatar-edit-overlay {
+        width: 36px;
+        height: 36px;
+    }
+
+    .avatar-edit-overlay svg {
+        width: 18px;
+        height: 18px;
+    }
+
     .modal-content {
         width: 95%;
-        padding: 20px;
+        padding: 24px;
     }
-}
 
-/* ===== ENHANCED INTERACTIVITY ===== */
-.profile-box {
-    transition: all 0.3s ease;
-}
-
-.profile-box:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-}
-
-.btn-change-avatar,
-.btn-change-password,
-.btn-edit-user {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.btn-change-avatar:hover {
-    background: #4b0c68;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 33, 121, 0.3);
-}
-
-.modal-content {
-    transition: all 0.3s ease;
-}
-
-.modal-content input {
-    transition: all 0.3s ease;
-}
-
-.modal-content input:hover {
-    border-color: #8b2fa3;
+    .profile-right h2 {
+        font-size: 22px;
+    }
 }

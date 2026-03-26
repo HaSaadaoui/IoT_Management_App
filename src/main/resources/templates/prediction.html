@@ -2,7 +2,8 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
     <head>
         <meta charset="UTF-8" />
-        <title>Prediction - Energy Forecast</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Prediction - Coming Soon</title>
 
         <!-- Shared styles -->
         <link rel="stylesheet" href="/css/styles.css" />
@@ -10,20 +11,15 @@
         <link rel="stylesheet" href="/css/monitoringSensor.css" />
         <!-- Prediction-specific overrides -->
         <link rel="stylesheet" href="/css/prediction.css" />
-
-        <!-- Chart.js + Annotation plugin for day boundaries -->
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
-        <!-- Shared chart utilities -->
-        <script src="/javascript/chartUtils.js"></script>
     </head>
 
-    <body>
+    <body class="prediction-coming-soon-body">
         <header class="app-header">
             <a
-                href="/home"
+                href="javascript:void(0)"
+                onclick="history.back()"
                 class="back-btn"
-                title="Back to home"
+                title="Go back"
                 style="margin-right: 20px"
             >
                 <svg
@@ -60,7 +56,7 @@
                 </svg>
             </a>
             <div class="header-title-gateway">
-                <span>⚡ Energy Consumption Prediction</span>
+                <span>Prediction</span>
             </div>
             <div class="header-right">
                 <div class="dropdown">
@@ -160,275 +156,87 @@
             </div>
         </header>
 
-        <main class="prediction-main">
-            <!-- Top-level tabs (reusing .tabs and .tab-btn from monitoringSensor.css) -->
-            <nav class="tabs">
-                <button class="tab-btn" data-tab="online">⚡ Online</button>
-                <button class="tab-btn is-active" data-tab="historical">
-                    📚 Historical
-                </button>
-                <button class="tab-btn" data-tab="scenarios">
-                    🧪 Scenarios
-                </button>
-            </nav>
+        <!-- ==================== COMING SOON PAGE ==================== -->
+        <main class="coming-soon-main">
+            <div class="coming-soon-container">
+                <!-- Animated Icon -->
+                <div class="coming-soon-icon">
+                    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Outer ring (faint) -->
+                        <circle cx="40" cy="40" r="36" stroke="url(#cs-grad)" stroke-width="2.5" opacity="0.15"/>
+                        <!-- Spinning arc -->
+                        <circle cx="40" cy="40" r="36" stroke="url(#cs-grad)" stroke-width="3" stroke-dasharray="40 190" stroke-linecap="round" class="cs-orbit"/>
+                        <!-- Inner ring -->
+                        <circle cx="40" cy="40" r="24" stroke="url(#cs-grad)" stroke-width="2" opacity="0.12"/>
+                        <!-- Gear / cog center -->
+                        <circle cx="40" cy="40" r="10" fill="url(#cs-grad)" opacity="0.25"/>
+                        <circle cx="40" cy="40" r="6" fill="url(#cs-grad)" opacity="0.6"/>
+                        <!-- Pulse dots on orbit -->
+                        <circle cx="40" cy="4" r="3" fill="url(#cs-grad)" opacity="0.8" class="cs-orbit"/>
+                        <circle cx="76" cy="40" r="2.5" fill="url(#cs-grad)" opacity="0.5" class="cs-orbit" style="animation-delay: -1.3s;"/>
+                        <circle cx="40" cy="76" r="2" fill="url(#cs-grad)" opacity="0.35" class="cs-orbit" style="animation-delay: -2.6s;"/>
+                        <defs>
+                            <linearGradient id="cs-grad" x1="0" y1="0" x2="80" y2="80">
+                                <stop offset="0%" stop-color="#a78bfa"/>
+                                <stop offset="100%" stop-color="#818cf8"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
 
-            <!-- ONLINE PANEL -->
-            <section class="prediction-panel" id="panel-online">
-                <div class="prediction-subheader">
-                    <h2>Online Predictions</h2>
-                    <p>Real-time forecast based on latest sensor data.</p>
+                <!-- Title -->
+                <h1 class="coming-soon-title"><span>Coming Soon</span></h1>
 
-                    <!-- подтабы горизонтов -->
-                    <div class="horizon-tabs">
-                        <button class="horizon-tab active" data-horizon="1d">
-                            +1 day
-                        </button>
-                        <button class="horizon-tab" data-horizon="1w">
-                            +1 week
-                        </button>
-                        <button class="horizon-tab" data-horizon="1m">
-                            +1 month
-                        </button>
-                        <button class="horizon-tab" data-horizon="3m">
-                            +3 months
-                        </button>
+                <!-- Description -->
+                <p class="coming-soon-desc">
+                    We're building AI-powered energy prediction and forecasting tools.
+                    <br/>This feature will be available in a future update.
+                </p>
+
+                <!-- Feature preview cards -->
+                <div class="coming-soon-features">
+                    <div class="cs-feature-card">
+                        <span class="cs-feature-icon">&#9889;</span>
+                        <span class="cs-feature-label">Online Predictions</span>
+                    </div>
+                    <div class="cs-feature-card">
+                        <span class="cs-feature-icon">&#128218;</span>
+                        <span class="cs-feature-label">Historical Backtest</span>
+                    </div>
+                    <div class="cs-feature-card">
+                        <span class="cs-feature-icon">&#129514;</span>
+                        <span class="cs-feature-label">What-If Scenarios</span>
+                    </div>
+                    <div class="cs-feature-card">
+                        <span class="cs-feature-icon">&#128200;</span>
+                        <span class="cs-feature-label">Correlation Analysis</span>
                     </div>
                 </div>
 
-                <!-- Tab-specific filters -->
-                <div class="histogram-controls-section">
-                    <div class="histogram-controls-grid">
-                        <div class="control-group">
-                            <label for="online-building-select">Building</label>
-                            <select
-                                id="online-building-select"
-                                data-filter="building"
-                            >
-                                <option value="">All Buildings</option>
-                            </select>
-                        </div>
-
-                        <div class="control-group">
-                            <label for="online-floor-select">Floor</label>
-                            <select
-                                id="online-floor-select"
-                                data-filter="floor"
-                            >
-                                <option value="">All Floors</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="prediction-grid">
-                    <div class="card chart-card" id="card-online-1d">
-                        <h4>Next 24 hours</h4>
-                        <canvas id="chart-online-1d"></canvas>
-                        <div class="chart-summary">
-                            <span
-                                ><strong>Energy Prediction:</strong>
-                                <span id="energy-predict-1d">--</span> kWh</span
-                            >
-                        </div>
-                    </div>
-
-                    <div class="card chart-card hidden" id="card-online-1w">
-                        <h4>Next 7 days</h4>
-                        <canvas id="chart-online-1w"></canvas>
-                        <div class="chart-summary">
-                            <span
-                                ><strong>Energy Prediction:</strong>
-                                <span id="energy-predict-1w">--</span> kWh</span
-                            >
-                        </div>
-                    </div>
-
-                    <div class="card chart-card hidden" id="card-online-1m">
-                        <h4>Next 4 weeks</h4>
-                        <canvas id="chart-online-1m"></canvas>
-                        <div class="chart-summary">
-                            <span
-                                ><strong>Energy Prediction:</strong>
-                                <span id="energy-predict-1m">--</span> kWh</span
-                            >
-                        </div>
-                    </div>
-
-                    <div class="card chart-card hidden" id="card-online-3m">
-                        <h4>Next 12 weeks</h4>
-                        <canvas id="chart-online-3m"></canvas>
-                        <div class="chart-summary">
-                            <span
-                                ><strong>Energy Prediction:</strong>
-                                <span id="energy-predict-3m">--</span> kWh</span
-                            >
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- HISTORICAL PANEL -->
-            <section class="prediction-panel active" id="panel-historical">
-                <div class="prediction-subheader">
-                    <h2>Historical Predictions</h2>
-                    <p>
-                        Backtesting and comparison of past forecasts vs real
-                        consumption.
-                    </p>
-                </div>
-
-                <!-- Control section (reusing histogram-controls-section from styles.css) -->
-                <div class="histogram-controls-section">
-                    <div class="histogram-controls-grid">
-                        <div class="control-group">
-                            <label for="historical-building-select"
-                                >Building</label
-                            >
-                            <select
-                                id="historical-building-select"
-                                data-filter="building"
-                            >
-                                <option value="">All Buildings</option>
-                                <!-- Options populated dynamically -->
-                            </select>
-                        </div>
-
-                        <div class="control-group">
-                            <label for="historical-floor-select">Floor</label>
-                            <select
-                                id="historical-floor-select"
-                                data-filter="floor"
-                            >
-                                <option value="">All Floors</option>
-                                <!-- Options populated dynamically -->
-                            </select>
-                        </div>
-
-                        <div class="control-group">
-                            <label for="historical-horizon-select"
-                                >Horizon</label
-                            >
-                            <select id="historical-horizon-select">
-                                <option value="1h" selected>+1 hour</option>
-                                <option value="1d">+1 day</option>
-                                <option value="1w">+1 week</option>
-                                <option value="3m">+3 months</option>
-                            </select>
-                        </div>
-
-                        <div class="control-group">
-                            <label for="historical-t0-select">t0</label>
-                            <select id="historical-t0-select">
-                                <option value="">Loading...</option>
-                            </select>
-                        </div>
-
-                        <button id="historical-load-btn" class="refresh-btn">
-                            Run backtest
-                        </button>
-                    </div>
-                    <div class="controls-footer">
-                        <span
-                            id="historical-status"
-                            class="prediction-status"
-                        ></span>
-                        <span
-                            id="historical-last-refresh"
-                            class="last-refresh"
-                        ></span>
-                    </div>
-                </div>
-
-                <div class="prediction-grid">
-                    <div class="card chart-card">
-                        <h4>Predicted vs Real</h4>
-                        <canvas id="chart-historical-backtest"></canvas>
-                        <div
-                            id="historical-summary"
-                            class="chart-summary"
-                        ></div>
-                    </div>
-
-                    <div class="card chart-card">
-                        <h4>Absolute Error</h4>
-                        <canvas id="chart-historical-scenarios"></canvas>
-                        <div id="error-summary" class="chart-summary"></div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="panel-scenarios" class="prediction-panel">
-                <div class="prediction-subheader">
-                    <h2>Scenarios</h2>
-                    <p>
-                        Impact of occupancy and temperature on predicted daily
-                        energy consumption.
-                    </p>
-                </div>
-
-                <!-- Tab-specific filters -->
-                <div class="histogram-controls-section">
-                    <div class="histogram-controls-grid">
-                        <div class="control-group">
-                            <label for="scenarios-building-select"
-                                >Building</label
-                            >
-                            <select
-                                id="scenarios-building-select"
-                                data-filter="building"
-                            >
-                                <option value="">All Buildings</option>
-                            </select>
-                        </div>
-
-                        <div class="control-group">
-                            <label for="scenarios-floor-select">Floor</label>
-                            <select
-                                id="scenarios-floor-select"
-                                data-filter="floor"
-                            >
-                                <option value="">All Floors</option>
-                            </select>
-                        </div>
-
-                        <div class="control-group">
-                            <label for="scenarios-metric-select"
-                                >Metric Type</label
-                            >
-                            <select id="scenarios-metric-select">
-                                <option value="occupancy" selected>
-                                    Occupancy
-                                </option>
-                                <option value="temperature">Temperature</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card chart-card">
-                    <canvas id="chart-scenarios"></canvas>
-                    <div id="scenarios-info" class="chart-summary">
-                        <span
-                            ><strong>Energy Prediction (+1 day):</strong>
-                            <span id="scenarios-baseline">6.2 kWh</span></span
-                        >
-                        <span
-                            ><strong>Energy Prediction With Low Occupancy (+1 day):</strong>
-                            <span id="scenarios-low">4.8 kWh</span></span
-                        >
-                        <span
-                            ><strong>Energy Prediction With High Occupancy (+1 day)</strong>
-                            <span id="scenarios-high">7.6 kWh</span></span
-                        >
-                    </div>
-                </div>
-            </section>
+                <!-- Back to home button -->
+                <a href="/home" class="coming-soon-btn">Back to Home</a>
+            </div>
         </main>
 
-        <!-- JS для предикта -->
-        <script src="/javascript/prediction.js"></script>
+        <!--
+        ============================================================
+        ORIGINAL PREDICTION PAGE CONTENT (COMMENTED OUT)
+        Uncomment when the prediction feature is ready.
+        ============================================================
 
-        <!-- Скрипт меню такой же, как в dashboard -->
+        <main class="prediction-main">
+            <nav class="tabs">
+                <button class="tab-btn" data-tab="online">Online</button>
+                <button class="tab-btn is-active" data-tab="historical">Historical</button>
+                <button class="tab-btn" data-tab="scenarios">Scenarios</button>
+            </nav>
+
+            [Online Panel, Historical Panel, Scenarios Panel were here]
+            [See git history for full content]
+        </main>
+        <script src="/javascript/prediction.js"></script>
+        -->
+
         <script>
             function toggleMenu() {
                 document

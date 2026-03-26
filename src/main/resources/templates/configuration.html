@@ -85,17 +85,26 @@
                         </form>
                         <div class="config-mini-table-wrapper">
                             <table class="config-mini-table">
-                                <thead><tr><th>Name</th><th style="width:80px">Action</th></tr></thead>
+                                <thead><tr><th>Name</th><th style="width:120px">Action</th></tr></thead>
                                 <tbody>
                                 <tr th:each="dt : ${deviceTypes}">
                                     <td th:text="${dt.label}">DESK</td>
-                                    <td>
-                                        <form th:action="@{/configuration/device-types/delete}" method="post"
-                                              onsubmit="return confirm('Delete device type: ' + [[${dt.label}]] + ' ?');">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                            <input type="hidden" name="id" th:value="${dt.idDeviceType}"/>
-                                            <button type="submit" class="btn-danger-mini">Delete</button>
-                                        </form>
+                                    <td style="display:flex;gap:6px;align-items:center;">
+                                        <button type="button" class="btn-decoder-mini"
+                                                th:data-dtype-id="${dt.idDeviceType}"
+                                                th:data-dtype-label="${dt.label}"
+                                                onclick="openEditDtypeModal(this.dataset.dtypeId, this.dataset.dtypeLabel)">
+                                            Edit
+                                        </button>
+                                        <button type="button" class="btn-danger-mini"
+                                                th:data-id="${dt.idDeviceType}"
+                                                th:data-name="${dt.label}"
+                                                th:data-check-url="${'/api/configuration/device-types/' + dt.idDeviceType + '/check-delete'}"
+                                                th:data-post-url="'/configuration/device-types/delete'"
+                                                th:data-redirect="'#section-sensors'"
+                                                onclick="openDeleteModal(this.dataset.id, this.dataset.name, this.dataset.checkUrl, this.dataset.postUrl, this.dataset.redirect)">
+                                            Delete
+                                        </button>
                                     </td>
                                 </tr>
                                 <tr th:if="${deviceTypes == null || #lists.isEmpty(deviceTypes)}">
@@ -116,7 +125,7 @@
                         </form>
                         <div class="config-mini-table-wrapper">
                             <table class="config-mini-table">
-                                <thead><tr><th>Name</th><th style="width:140px">Action</th></tr></thead>
+                                <thead><tr><th>Name</th><th style="width:180px">Action</th></tr></thead>
                                 <tbody>
                                 <tr th:each="b : ${brands}">
                                     <td th:text="${b.name}">Elsys</td>
@@ -124,12 +133,21 @@
                                         <button type="button" class="btn-decoder-mini"
                                                 th:data-brand-id="${b.id}" th:data-brand-name="${b.name}"
                                                 onclick="openDecoderEditor(this.dataset.brandId, this.dataset.brandName)">Decoder</button>
-                                        <form th:action="@{/configuration/brands/delete}" method="post"
-                                              onsubmit="return confirm('Delete brand: ' + [[${b.name}]] + ' ?');">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                            <input type="hidden" name="id" th:value="${b.id}"/>
-                                            <button type="submit" class="btn-danger-mini">Delete</button>
-                                        </form>
+                                        <button type="button" class="btn-decoder-mini"
+                                                th:data-brand-id="${b.id}"
+                                                th:data-brand-name="${b.name}"
+                                                onclick="openEditBrandModal(this.dataset.brandId, this.dataset.brandName)">
+                                            Edit
+                                        </button>
+                                        <button type="button" class="btn-danger-mini"
+                                                th:data-id="${b.id}"
+                                                th:data-name="${b.name}"
+                                                th:data-check-url="${'/api/configuration/brands/' + b.id + '/check-delete'}"
+                                                th:data-post-url="'/configuration/brands/delete'"
+                                                th:data-redirect="'#section-sensors'"
+                                                onclick="openDeleteModal(this.dataset.id, this.dataset.name, this.dataset.checkUrl, this.dataset.postUrl, this.dataset.redirect)">
+                                            Delete
+                                        </button>
                                     </td>
                                 </tr>
                                 <tr th:if="${brands == null || #lists.isEmpty(brands)}">
@@ -154,20 +172,30 @@
                         </form>
                         <div class="config-mini-table-wrapper">
                             <table class="config-mini-table">
-                                <thead><tr><th style="width:60%">Name</th><th style="width:20%;text-align:center;">Gateway</th><th style="width:20%">Action</th></tr></thead>
+                                <thead><tr><th style="width:60%">Name</th><th style="width:20%;text-align:center;">Gateway</th><th style="width:30%">Action</th></tr></thead>
                                 <tbody>
                                 <tr th:each="p : ${protocols}">
                                     <td th:text="${p.name}">LoRaWAN</td>
                                     <td style="text-align:center;font-size:18px;">
                                         <span th:text="${p.availableForGateway ? '✅' : '❌'}"></span>
                                     </td>
-                                    <td>
-                                        <form th:action="@{/configuration/protocols/delete}" method="post"
-                                              onsubmit="return confirm('Delete protocol: ' + [[${p.name}]] + ' ?');">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                            <input type="hidden" name="id" th:value="${p.id}"/>
-                                            <button type="submit" class="btn-danger-mini">Delete</button>
-                                        </form>
+                                    <td style="display:flex;gap:6px;align-items:center;">
+                                        <button type="button" class="btn-decoder-mini"
+                                                th:data-proto-id="${p.id}"
+                                                th:data-proto-name="${p.name}"
+                                                th:data-proto-gw="${p.availableForGateway}"
+                                                onclick="openEditProtoModal(this.dataset.protoId, this.dataset.protoName, this.dataset.protoGw)">
+                                            Edit
+                                        </button>
+                                        <button type="button" class="btn-danger-mini"
+                                                th:data-id="${p.id}"
+                                                th:data-name="${p.name}"
+                                                th:data-check-url="${'/api/configuration/protocols/' + p.id + '/check-delete'}"
+                                                th:data-post-url="'/configuration/protocols/delete'"
+                                                th:data-redirect="'#section-sensors'"
+                                                onclick="openDeleteModal(this.dataset.id, this.dataset.name, this.dataset.checkUrl, this.dataset.postUrl, this.dataset.redirect)">
+                                            Delete
+                                        </button>
                                     </td>
                                 </tr>
                                 <tr th:if="${protocols == null || #lists.isEmpty(protocols)}">
@@ -884,7 +912,7 @@
                                 <tr>
                                     <th>Building</th>
                                     <th>Location Name</th>
-                                    <th style="width:80px">Action</th>
+                                    <th style="width:120px">Action</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -894,13 +922,20 @@
                                         <span th:each="b : ${buildings}" th:if="${b.id == loc.buildingId}" th:text="${b.name}"></span>
                                     </td>
                                     <td th:text="${loc.name}"></td>
-                                    <td>
-                                        <form th:action="@{/configuration/locations/delete}" method="post"
-                                              onsubmit="return confirm('Delete location?')">
-                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                                            <input type="hidden" name="id" th:value="${loc.id}"/>
-                                            <button type="submit" class="btn-danger-mini">Delete</button>
-                                        </form>
+                                    <td style="display:flex;gap:6px;align-items:center;">
+                                        <button type="button" class="btn-decoder-mini"
+                                                th:data-loc-id="${loc.id}"
+                                                th:data-loc-name="${loc.name}"
+                                                th:data-loc-building="${loc.buildingId}"
+                                                onclick="openEditLocationModal(this.dataset.locId, this.dataset.locName, this.dataset.locBuilding)">
+                                            Edit
+                                        </button>
+                                        <button type="button" class="btn-danger-mini"
+                                                th:data-loc-id="${loc.id}"
+                                                th:data-loc-name="${loc.name}"
+                                                onclick="openDeleteLocationModal(this.dataset.locId, this.dataset.locName)">
+                                            Delete
+                                        </button>
                                     </td>
                                 </tr>
                                 <tr th:if="${locations == null || #lists.isEmpty(locations)}">
@@ -951,10 +986,19 @@
         }
     }
     document.addEventListener('DOMContentLoaded', function() {
-        const hash = window.location.hash.replace('#', '');
+        const storedHash = sessionStorage.getItem('cfgNavHash');
+        const hash = storedHash || window.location.hash.replace('#', '');
+        if (storedHash) sessionStorage.removeItem('cfgNavHash');
         if (hash) {
             const link = document.querySelector(`[data-section="${hash}"]`);
             if (link) switchSection(link);
+        }
+        const toastMsg  = sessionStorage.getItem('cfgToastMsg');
+        const toastType = sessionStorage.getItem('cfgToastType') || 'success';
+        if (toastMsg) {
+            sessionStorage.removeItem('cfgToastMsg');
+            sessionStorage.removeItem('cfgToastType');
+            cfgToast(toastMsg, toastType);
         }
     });
 
@@ -987,6 +1031,488 @@
 </script>
 <script src="/javascript/configuration.js"></script>
 
+
+<!-- ================= BRAND EDIT MODAL ================= -->
+<div id="brand-edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
+     z-index:9998; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:16px; width:420px; max-width:94vw;
+                box-shadow:0 20px 60px rgba(0,0,0,0.18); overflow:hidden; font-family:'Inter',sans-serif;">
+        <div style="background:var(--cfg-primary-subtle); padding:1.25rem 1.5rem; display:flex; align-items:center; gap:0.75rem; border-bottom:1px solid var(--cfg-primary-ring);">
+            <div style="width:40px; height:40px; border-radius:50%; background:rgba(102,33,121,0.12); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#662179" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </div>
+            <div>
+                <div style="font-weight:700; font-size:1rem; color:var(--cfg-primary);">Modifier la marque</div>
+                <div style="font-size:0.8rem; color:var(--cfg-text-secondary); margin-top:2px;" id="brand-edit-subtitle">–</div>
+            </div>
+            <button onclick="document.getElementById('brand-edit-modal').style.display='none'" style="margin-left:auto; background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer; line-height:1;">&#10005;</button>
+        </div>
+        <div style="padding:1.25rem 1.5rem;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--cfg-text-secondary); margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em;">Nom de la marque</label>
+            <input id="brand-edit-name" type="text" class="form-control" style="width:100%; box-sizing:border-box;"/>
+        </div>
+        <div style="padding:1rem 1.5rem; background:#f9fafb; display:flex; justify-content:flex-end; gap:0.75rem; border-top:1px solid var(--cfg-border);">
+            <button onclick="document.getElementById('brand-edit-modal').style.display='none'" style="background:#f3f4f6; color:var(--cfg-text); border:1px solid var(--cfg-border); padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer;">Annuler</button>
+            <button id="brand-edit-save-btn" onclick="saveBrandEdit()" style="background:var(--cfg-primary); color:#fff; border:none; padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer;">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= DEVICE TYPE EDIT MODAL ================= -->
+<div id="dtype-edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
+     z-index:9998; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:16px; width:420px; max-width:94vw;
+                box-shadow:0 20px 60px rgba(0,0,0,0.18); overflow:hidden; font-family:'Inter',sans-serif;">
+        <div style="background:var(--cfg-primary-subtle); padding:1.25rem 1.5rem; display:flex; align-items:center; gap:0.75rem; border-bottom:1px solid var(--cfg-primary-ring);">
+            <div style="width:40px; height:40px; border-radius:50%; background:rgba(102,33,121,0.12); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#662179" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </div>
+            <div>
+                <div style="font-weight:700; font-size:1rem; color:var(--cfg-primary);">Modifier le type de capteur</div>
+                <div style="font-size:0.8rem; color:var(--cfg-text-secondary); margin-top:2px;" id="dtype-edit-subtitle">–</div>
+            </div>
+            <button onclick="document.getElementById('dtype-edit-modal').style.display='none'" style="margin-left:auto; background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer; line-height:1;">&#10005;</button>
+        </div>
+        <div style="padding:1.25rem 1.5rem;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--cfg-text-secondary); margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em;">Label du type</label>
+            <input id="dtype-edit-label" type="text" class="form-control" style="width:100%; box-sizing:border-box;"/>
+        </div>
+        <div style="padding:1rem 1.5rem; background:#f9fafb; display:flex; justify-content:flex-end; gap:0.75rem; border-top:1px solid var(--cfg-border);">
+            <button onclick="document.getElementById('dtype-edit-modal').style.display='none'" style="background:#f3f4f6; color:var(--cfg-text); border:1px solid var(--cfg-border); padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer;">Annuler</button>
+            <button id="dtype-edit-save-btn" onclick="saveDtypeEdit()" style="background:var(--cfg-primary); color:#fff; border:none; padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer;">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= PROTOCOL EDIT MODAL ================= -->
+<div id="proto-edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
+     z-index:9998; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:16px; width:420px; max-width:94vw;
+                box-shadow:0 20px 60px rgba(0,0,0,0.18); overflow:hidden; font-family:'Inter',sans-serif;">
+        <div style="background:var(--cfg-primary-subtle); padding:1.25rem 1.5rem; display:flex; align-items:center; gap:0.75rem; border-bottom:1px solid var(--cfg-primary-ring);">
+            <div style="width:40px; height:40px; border-radius:50%; background:rgba(102,33,121,0.12); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#662179" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </div>
+            <div>
+                <div style="font-weight:700; font-size:1rem; color:var(--cfg-primary);">Modifier le protocole</div>
+                <div style="font-size:0.8rem; color:var(--cfg-text-secondary); margin-top:2px;" id="proto-edit-subtitle">–</div>
+            </div>
+            <button onclick="document.getElementById('proto-edit-modal').style.display='none'" style="margin-left:auto; background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer; line-height:1;">&#10005;</button>
+        </div>
+        <div style="padding:1.25rem 1.5rem; display:flex; flex-direction:column; gap:1rem;">
+            <div>
+                <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--cfg-text-secondary); margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em;">Nom du protocole</label>
+                <input id="proto-edit-name" type="text" class="form-control" style="width:100%; box-sizing:border-box;"/>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <input id="proto-edit-gw" type="checkbox" style="width:18px; height:18px; cursor:pointer; accent-color:var(--cfg-primary);"/>
+                <label for="proto-edit-gw" style="font-size:0.88rem; font-weight:500; color:var(--cfg-text); cursor:pointer; margin:0;">Disponible pour les Gateways</label>
+            </div>
+        </div>
+        <div style="padding:1rem 1.5rem; background:#f9fafb; display:flex; justify-content:flex-end; gap:0.75rem; border-top:1px solid var(--cfg-border);">
+            <button onclick="document.getElementById('proto-edit-modal').style.display='none'" style="background:#f3f4f6; color:var(--cfg-text); border:1px solid var(--cfg-border); padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer;">Annuler</button>
+            <button id="proto-edit-save-btn" onclick="saveProtoEdit()" style="background:var(--cfg-primary); color:#fff; border:none; padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer;">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= LOCATION EDIT MODAL ================= -->
+<div id="loc-edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
+     z-index:9998; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:16px; width:460px; max-width:94vw;
+                box-shadow:0 20px 60px rgba(0,0,0,0.18); overflow:hidden; font-family:'Inter',sans-serif;">
+        <!-- Header -->
+        <div style="background:var(--cfg-primary-subtle); padding:1.25rem 1.5rem; display:flex; align-items:center; gap:0.75rem; border-bottom:1px solid var(--cfg-primary-ring);">
+            <div style="width:40px; height:40px; border-radius:50%; background:rgba(102,33,121,0.12); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#662179" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+            </div>
+            <div>
+                <div style="font-weight:700; font-size:1rem; color:var(--cfg-primary);">Modifier la location</div>
+                <div style="font-size:0.8rem; color:var(--cfg-text-secondary); margin-top:2px;" id="loc-edit-subtitle">–</div>
+            </div>
+            <button onclick="closeEditLocationModal()" style="margin-left:auto; background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer; line-height:1;">&#10005;</button>
+        </div>
+        <!-- Body -->
+        <div style="padding:1.25rem 1.5rem; display:flex; flex-direction:column; gap:1rem;">
+            <div>
+                <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--cfg-text-secondary); margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em;">Nom de la location</label>
+                <input id="loc-edit-name" type="text" class="form-control" placeholder="Nom de la location"
+                       style="width:100%; box-sizing:border-box;"/>
+            </div>
+            <div>
+                <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--cfg-text-secondary); margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em;">Bâtiment</label>
+                <select id="loc-edit-building" class="form-control" style="width:100%; box-sizing:border-box;">
+                    <option th:each="b : ${buildings}" th:value="${b.id}" th:text="${b.name}"></option>
+                </select>
+            </div>
+        </div>
+        <!-- Footer -->
+        <div style="padding:1rem 1.5rem; background:#f9fafb; display:flex; justify-content:flex-end; gap:0.75rem; border-top:1px solid var(--cfg-border);">
+            <button onclick="closeEditLocationModal()" style="background:#f3f4f6; color:var(--cfg-text); border:1px solid var(--cfg-border); padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer;">
+                Annuler
+            </button>
+            <button id="loc-edit-save-btn" onclick="saveEditLocation()" style="background:var(--cfg-primary); color:#fff; border:none; padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer;">
+                Enregistrer
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= LOCATION DELETE — CONFIRM MODAL ================= -->
+<div id="loc-confirm-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
+     z-index:9998; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:16px; width:420px; max-width:94vw;
+                box-shadow:0 20px 60px rgba(0,0,0,0.18); overflow:hidden; font-family:'Inter',sans-serif;">
+        <!-- Header -->
+        <div style="background:var(--cfg-danger-bg); padding:1.25rem 1.5rem; display:flex; align-items:center; gap:0.75rem; border-bottom:1px solid #fecaca;">
+            <div style="width:40px; height:40px; border-radius:50%; background:#fee2e2; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                </svg>
+            </div>
+            <div>
+                <div style="font-weight:700; font-size:1rem; color:#991b1b;">Supprimer la location</div>
+                <div style="font-size:0.8rem; color:#b91c1c; margin-top:2px;">Cette action est irréversible</div>
+            </div>
+        </div>
+        <!-- Body -->
+        <div style="padding:1.25rem 1.5rem;">
+            <p style="margin:0; color:var(--cfg-text); font-size:0.9rem;">
+                Êtes-vous sûr de vouloir supprimer la location
+                <strong id="loc-confirm-name" style="color:var(--cfg-primary);"></strong> ?
+            </p>
+        </div>
+        <!-- Footer -->
+        <div style="padding:1rem 1.5rem; background:#f9fafb; display:flex; justify-content:flex-end; gap:0.75rem; border-top:1px solid var(--cfg-border);">
+            <button onclick="closeDeleteLocationModal()" class="btn" style="background:#f3f4f6; color:var(--cfg-text); border:1px solid var(--cfg-border); padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer;">
+                Annuler
+            </button>
+            <button id="loc-confirm-btn" onclick="confirmDelete()" style="background:var(--cfg-danger); color:#fff; border:none; padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer; transition:background 0.15s;">
+                Oui, supprimer
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= LOCATION DELETE — IN USE ERROR MODAL ================= -->
+<div id="loc-inuse-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
+     z-index:9998; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:16px; width:500px; max-width:94vw; max-height:85vh;
+                box-shadow:0 20px 60px rgba(0,0,0,0.18); overflow:hidden; font-family:'Inter',sans-serif; display:flex; flex-direction:column;">
+        <!-- Header -->
+        <div style="background:#fffbeb; padding:1.25rem 1.5rem; display:flex; align-items:center; gap:0.75rem; border-bottom:1px solid #fde68a; flex-shrink:0;">
+            <div style="width:40px; height:40px; border-radius:50%; background:#fef3c7; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+            </div>
+            <div>
+                <div style="font-weight:700; font-size:1rem; color:#92400e;">Suppression impossible</div>
+                <div style="font-size:0.8rem; color:#b45309; margin-top:2px;">La location est encore utilisée</div>
+            </div>
+            <button onclick="closeInuseModal()" style="margin-left:auto; background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer; line-height:1;">&#10005;</button>
+        </div>
+        <!-- Body -->
+        <div style="padding:1.25rem 1.5rem; overflow-y:auto; flex:1;">
+            <p style="margin:0 0 1rem; color:var(--cfg-text); font-size:0.9rem;">
+                Impossible de supprimer <strong id="loc-inuse-name" style="color:var(--cfg-primary);"></strong>.
+                Veuillez d'abord modifier les éléments suivants :
+            </p>
+            <div id="loc-inuse-gateways-section" style="display:none; margin-bottom:1rem;">
+                <div style="font-size:0.8rem; font-weight:700; color:var(--cfg-text-secondary); text-transform:uppercase; letter-spacing:.05em; margin-bottom:0.5rem;">
+                    Gateways utilisant cette location
+                </div>
+                <ul id="loc-inuse-gateways-list" style="margin:0; padding-left:1.25rem; color:var(--cfg-text); font-size:0.875rem; display:flex; flex-direction:column; gap:4px; list-style:none; padding:0;">
+                </ul>
+            </div>
+            <div id="loc-inuse-sensors-section" style="display:none;">
+                <div style="font-size:0.8rem; font-weight:700; color:var(--cfg-text-secondary); text-transform:uppercase; letter-spacing:.05em; margin-bottom:0.5rem;">
+                    Capteurs utilisant cette location
+                </div>
+                <ul id="loc-inuse-sensors-list" style="margin:0; padding:0; color:var(--cfg-text); font-size:0.875rem; display:flex; flex-direction:column; gap:4px; list-style:none;">
+                </ul>
+            </div>
+        </div>
+        <!-- Footer -->
+        <div style="padding:1rem 1.5rem; background:#f9fafb; display:flex; justify-content:flex-end; border-top:1px solid var(--cfg-border); flex-shrink:0;">
+            <button onclick="closeInuseModal()" style="background:var(--cfg-primary); color:#fff; border:none; padding:8px 20px; border-radius:8px; font-weight:600; cursor:pointer;">
+                Compris
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    var LOC_CSRF_TOKEN  = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+    var LOC_CSRF_HEADER = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+    function reloadWithToast(msg, navHash) {
+        sessionStorage.setItem('cfgToastMsg',  msg);
+        sessionStorage.setItem('cfgToastType', 'success');
+        if (navHash) sessionStorage.setItem('cfgNavHash', navHash.replace('#', ''));
+        window.location.reload();
+    }
+
+    // ================================================================
+    // GENERIC DELETE MODAL (used for all entities)
+    // ================================================================
+    var _deleteId       = null;
+    var _deleteName     = null;
+    var _deleteCheckUrl = null;
+    var _deletePostUrl  = null;
+    var _deleteRedirect = null;
+
+    function openDeleteModal(id, name, checkUrl, postUrl, redirect) {
+        _deleteId       = id;
+        _deleteName     = name;
+        _deleteCheckUrl = checkUrl;
+        _deletePostUrl  = postUrl;
+        _deleteRedirect = redirect || window.location.hash || '#';
+        document.getElementById('loc-confirm-name').textContent = name;
+        document.getElementById('loc-confirm-modal').style.display = 'flex';
+    }
+
+    // Location-specific wrapper
+    function openDeleteLocationModal(id, name) {
+        openDeleteModal(id, name,
+            '/api/locations/' + id + '/check-delete',
+            '/configuration/locations/delete',
+            '#section-locations');
+    }
+    function closeDeleteLocationModal() { closeDeleteModal(); }
+
+    function closeDeleteModal() {
+        document.getElementById('loc-confirm-modal').style.display = 'none';
+        _deleteId = _deleteName = _deleteCheckUrl = _deletePostUrl = _deleteRedirect = null;
+    }
+
+    function closeInuseModal() {
+        document.getElementById('loc-inuse-modal').style.display = 'none';
+    }
+
+    function confirmDelete() {
+        if (!_deleteId || !_deleteCheckUrl || !_deletePostUrl) return;
+        var id       = _deleteId;
+        var redirect = _deleteRedirect;
+        var btn      = document.getElementById('loc-confirm-btn');
+        btn.disabled    = true;
+        btn.textContent = '...';
+
+        fetch(_deleteCheckUrl)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                closeDeleteModal();
+                if (data.canDelete) {
+                    fetch(_deletePostUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            [LOC_CSRF_HEADER]: LOC_CSRF_TOKEN
+                        },
+                        body: 'id=' + id
+                    }).then(function() {
+                        reloadWithToast('"' + (_deleteName || 'Élément') + '" supprimé avec succès.', redirect);
+                    });
+                } else {
+                    showInuseModal(data, _deleteName);
+                }
+            })
+            .catch(function() {
+                closeDeleteModal();
+                cfgToast('Une erreur est survenue lors de la vérification.', 'error');
+            })
+            .finally(function() {
+                btn.disabled    = false;
+                btn.textContent = 'Oui, supprimer';
+            });
+    }
+
+    function showInuseModal(data, entityName) {
+        document.getElementById('loc-inuse-name').textContent = entityName || '–';
+
+        var gwSection = document.getElementById('loc-inuse-gateways-section');
+        var gwList    = document.getElementById('loc-inuse-gateways-list');
+        var sSection  = document.getElementById('loc-inuse-sensors-section');
+        var sList     = document.getElementById('loc-inuse-sensors-list');
+
+        gwList.innerHTML = '';
+        sList.innerHTML  = '';
+
+        if (data.gateways && data.gateways.length > 0) {
+            gwSection.style.display = 'block';
+            data.gateways.forEach(function(gw) {
+                var li = document.createElement('li');
+                li.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0;';
+                li.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#662179" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>'
+                    + '<span style="font-family:monospace;font-size:0.85rem;color:#1a1d23;">' + (gw.gatewayId || gw.gateway_id || '-') + '</span>';
+                gwList.appendChild(li);
+            });
+        } else {
+            gwSection.style.display = 'none';
+        }
+
+        if (data.sensors && data.sensors.length > 0) {
+            sSection.style.display = 'block';
+            data.sensors.forEach(function(s) {
+                var li = document.createElement('li');
+                li.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0;';
+                li.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#662179" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M20.188 10.934a8.1 8.1 0 010 2.132M17.657 7.757a6 6 0 010 8.485M6.343 7.757a6 6 0 000 8.485M3.812 10.934a8.1 8.1 0 000 2.132"/></svg>'
+                    + '<span style="font-family:monospace;font-size:0.85rem;color:#1a1d23;">' + (s.idSensor || s.id_sensor || '-') + '</span>';
+                sList.appendChild(li);
+            });
+        } else {
+            sSection.style.display = 'none';
+        }
+
+        document.getElementById('loc-inuse-modal').style.display = 'flex';
+    }
+
+    document.getElementById('loc-confirm-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeDeleteModal();
+    });
+    document.getElementById('loc-inuse-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeInuseModal();
+    });
+    document.getElementById('loc-edit-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeEditLocationModal();
+    });
+    document.getElementById('brand-edit-modal').addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
+    });
+    document.getElementById('dtype-edit-modal').addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
+    });
+    document.getElementById('proto-edit-modal').addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
+    });
+
+    // ================================================================
+    // LOCATION EDIT
+    // ================================================================
+    var _editingLocId = null;
+
+    function openEditLocationModal(id, name, buildingId) {
+        _editingLocId = id;
+        document.getElementById('loc-edit-subtitle').textContent = name;
+        document.getElementById('loc-edit-name').value = name;
+        document.getElementById('loc-edit-building').value = buildingId;
+        document.getElementById('loc-edit-modal').style.display = 'flex';
+        document.getElementById('loc-edit-name').focus();
+    }
+
+    function closeEditLocationModal() {
+        document.getElementById('loc-edit-modal').style.display = 'none';
+        _editingLocId = null;
+    }
+
+    function saveEditLocation() {
+        if (!_editingLocId) return;
+        var name       = document.getElementById('loc-edit-name').value.trim();
+        var buildingId = document.getElementById('loc-edit-building').value;
+        if (!name) { document.getElementById('loc-edit-name').focus(); return; }
+        var btn = document.getElementById('loc-edit-save-btn');
+        btn.disabled = true; btn.textContent = '...';
+        fetch('/api/locations/' + _editingLocId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', [LOC_CSRF_HEADER]: LOC_CSRF_TOKEN },
+            body: JSON.stringify({ name: name, buildingId: parseInt(buildingId) })
+        })
+        .then(function(r) { if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Erreur'); }); closeEditLocationModal(); reloadWithToast('Location mise à jour avec succès.', 'section-locations'); })
+        .catch(function(err) { cfgToast(err.message || 'Erreur lors de la mise à jour.', 'error'); })
+        .finally(function() { btn.disabled = false; btn.textContent = 'Enregistrer'; });
+    }
+
+    // ================================================================
+    // BRAND EDIT
+    // ================================================================
+    var _editingBrandId = null;
+
+    function openEditBrandModal(id, name) {
+        _editingBrandId = id;
+        document.getElementById('brand-edit-subtitle').textContent = name;
+        document.getElementById('brand-edit-name').value = name;
+        document.getElementById('brand-edit-modal').style.display = 'flex';
+        document.getElementById('brand-edit-name').focus();
+    }
+
+    function saveBrandEdit() {
+        if (!_editingBrandId) return;
+        var name = document.getElementById('brand-edit-name').value.trim();
+        if (!name) { document.getElementById('brand-edit-name').focus(); return; }
+        var btn = document.getElementById('brand-edit-save-btn');
+        btn.disabled = true; btn.textContent = '...';
+        fetch('/api/configuration/brands/' + _editingBrandId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', [LOC_CSRF_HEADER]: LOC_CSRF_TOKEN },
+            body: JSON.stringify({ name: name })
+        })
+        .then(function(r) { if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Erreur'); }); document.getElementById('brand-edit-modal').style.display = 'none'; reloadWithToast('Marque mise à jour avec succès.', 'section-sensors'); })
+        .catch(function(err) { cfgToast(err.message || 'Erreur lors de la mise à jour.', 'error'); })
+        .finally(function() { btn.disabled = false; btn.textContent = 'Enregistrer'; });
+    }
+
+    // ================================================================
+    // DEVICE TYPE EDIT
+    // ================================================================
+    var _editingDtypeId = null;
+
+    function openEditDtypeModal(id, label) {
+        _editingDtypeId = id;
+        document.getElementById('dtype-edit-subtitle').textContent = label;
+        document.getElementById('dtype-edit-label').value = label;
+        document.getElementById('dtype-edit-modal').style.display = 'flex';
+        document.getElementById('dtype-edit-label').focus();
+    }
+
+    function saveDtypeEdit() {
+        if (!_editingDtypeId) return;
+        var label = document.getElementById('dtype-edit-label').value.trim();
+        if (!label) { document.getElementById('dtype-edit-label').focus(); return; }
+        var btn = document.getElementById('dtype-edit-save-btn');
+        btn.disabled = true; btn.textContent = '...';
+        fetch('/api/configuration/device-types/' + _editingDtypeId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', [LOC_CSRF_HEADER]: LOC_CSRF_TOKEN },
+            body: JSON.stringify({ label: label })
+        })
+        .then(function(r) { if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Erreur'); }); document.getElementById('dtype-edit-modal').style.display = 'none'; reloadWithToast('Type de capteur mis à jour avec succès.', 'section-sensors'); })
+        .catch(function(err) { cfgToast(err.message || 'Erreur lors de la mise à jour.', 'error'); })
+        .finally(function() { btn.disabled = false; btn.textContent = 'Enregistrer'; });
+    }
+
+    // ================================================================
+    // PROTOCOL EDIT
+    // ================================================================
+    var _editingProtoId = null;
+
+    function openEditProtoModal(id, name, availableForGateway) {
+        _editingProtoId = id;
+        document.getElementById('proto-edit-subtitle').textContent = name;
+        document.getElementById('proto-edit-name').value = name;
+        document.getElementById('proto-edit-gw').checked = (availableForGateway === 'true' || availableForGateway === true);
+        document.getElementById('proto-edit-modal').style.display = 'flex';
+        document.getElementById('proto-edit-name').focus();
+    }
+
+    function saveProtoEdit() {
+        if (!_editingProtoId) return;
+        var name = document.getElementById('proto-edit-name').value.trim();
+        var gw   = document.getElementById('proto-edit-gw').checked;
+        if (!name) { document.getElementById('proto-edit-name').focus(); return; }
+        var btn = document.getElementById('proto-edit-save-btn');
+        btn.disabled = true; btn.textContent = '...';
+        fetch('/api/configuration/protocols/' + _editingProtoId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', [LOC_CSRF_HEADER]: LOC_CSRF_TOKEN },
+            body: JSON.stringify({ name: name, availableForGateway: gw })
+        })
+        .then(function(r) { if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Erreur'); }); document.getElementById('proto-edit-modal').style.display = 'none'; reloadWithToast('Protocole mis à jour avec succès.', 'section-sensors'); })
+        .catch(function(err) { cfgToast(err.message || 'Erreur lors de la mise à jour.', 'error'); })
+        .finally(function() { btn.disabled = false; btn.textContent = 'Enregistrer'; });
+    }
+</script>
 
 <!-- ================= DECODER MODAL ================= -->
 <div id="decoder-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
