@@ -36,7 +36,7 @@ body {
     font-family: var(--home-font);
     margin: 0;
     padding: 0;
-    min-height: 100vh;
+    height: 100vh;
     background:
         linear-gradient(135deg,
             rgba(15, 5, 33, 0.82) 0%,
@@ -48,8 +48,7 @@ body {
     background-size: 400% 400%, cover;
     animation: homeGradientShift 20s ease infinite;
     background-attachment: fixed;
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow: hidden;
 }
 
 @keyframes homeGradientShift {
@@ -91,7 +90,10 @@ body::before {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    position: relative;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
     z-index: 100;
 }
 
@@ -147,13 +149,14 @@ body::before {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    min-height: calc(100vh - 60px);
-    height: auto;
-    padding: 32px 24px 80px;
-    overflow: visible;
+    justify-content: center;
+    height: calc(100vh - 52px);
+    margin-top: 52px;
+    padding: 24px 24px 48px;
+    overflow: hidden;
     position: relative;
     z-index: 1;
+    box-sizing: border-box;
 }
 
 /* ============================================================
@@ -471,7 +474,7 @@ body::before {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 48px;
+    height: 40px;
     background: rgba(255, 255, 255, 0.04);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -570,7 +573,9 @@ body::before {
 /* --- Small Tablet / Large Phone --- */
 @media (max-width: 680px) {
     .main-container {
-        padding: 24px 16px 70px;
+        padding: 16px 16px 48px;
+        margin-top: 46px;
+        height: calc(100vh - 46px);
     }
 
     .home-hero {
@@ -622,7 +627,9 @@ body::before {
 /* --- Mobile --- */
 @media (max-width: 480px) {
     .main-container {
-        padding: 16px 12px 60px;
+        padding: 12px 12px 44px;
+        margin-top: 40px;
+        height: calc(100vh - 40px);
     }
 
     .home-hero h1 {

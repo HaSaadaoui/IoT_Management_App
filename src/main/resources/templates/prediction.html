@@ -162,9 +162,19 @@
                 <!-- Animated Icon -->
                 <div class="coming-soon-icon">
                     <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="40" cy="40" r="36" stroke="url(#cs-grad)" stroke-width="3" opacity="0.2"/>
-                        <circle cx="40" cy="40" r="36" stroke="url(#cs-grad)" stroke-width="3" stroke-dasharray="60 170" class="cs-orbit"/>
-                        <path d="M40 20 L44 32 H56 L46 40 L50 52 L40 44 L30 52 L34 40 L24 32 H36 Z" fill="url(#cs-grad)" opacity="0.9"/>
+                        <!-- Outer ring (faint) -->
+                        <circle cx="40" cy="40" r="36" stroke="url(#cs-grad)" stroke-width="2.5" opacity="0.15"/>
+                        <!-- Spinning arc -->
+                        <circle cx="40" cy="40" r="36" stroke="url(#cs-grad)" stroke-width="3" stroke-dasharray="40 190" stroke-linecap="round" class="cs-orbit"/>
+                        <!-- Inner ring -->
+                        <circle cx="40" cy="40" r="24" stroke="url(#cs-grad)" stroke-width="2" opacity="0.12"/>
+                        <!-- Gear / cog center -->
+                        <circle cx="40" cy="40" r="10" fill="url(#cs-grad)" opacity="0.25"/>
+                        <circle cx="40" cy="40" r="6" fill="url(#cs-grad)" opacity="0.6"/>
+                        <!-- Pulse dots on orbit -->
+                        <circle cx="40" cy="4" r="3" fill="url(#cs-grad)" opacity="0.8" class="cs-orbit"/>
+                        <circle cx="76" cy="40" r="2.5" fill="url(#cs-grad)" opacity="0.5" class="cs-orbit" style="animation-delay: -1.3s;"/>
+                        <circle cx="40" cy="76" r="2" fill="url(#cs-grad)" opacity="0.35" class="cs-orbit" style="animation-delay: -2.6s;"/>
                         <defs>
                             <linearGradient id="cs-grad" x1="0" y1="0" x2="80" y2="80">
                                 <stop offset="0%" stop-color="#a78bfa"/>
@@ -196,6 +206,10 @@
                     <div class="cs-feature-card">
                         <span class="cs-feature-icon">&#129514;</span>
                         <span class="cs-feature-label">What-If Scenarios</span>
+                    </div>
+                    <div class="cs-feature-card">
+                        <span class="cs-feature-icon">&#128200;</span>
+                        <span class="cs-feature-label">Correlation Analysis</span>
                     </div>
                 </div>
 

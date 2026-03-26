@@ -456,25 +456,35 @@
 
                     <!-- RIGHT : 2D -->
                     <div class="floor-plan-card right-panel" id="floor-plan-2d">
-                        <div class="floor-plan-header">
-                            <h4 id="current-floor-title">Floor</h4>
-                            <button
-                                    id="back-to-3d-btn"
-                                    class="back-to-building"
-                                    style="display: none"
-                                    onclick="return3DView()"
-                            >
-                                ← Back to 3D View
-                            </button>
+                        <!-- Placeholder: shown when no floor selected -->
+                        <div class="floor-plan-placeholder" id="floor-plan-placeholder">
+                            <div class="placeholder-icon">🏗️</div>
+                            <div class="placeholder-text">Click on a floor in the 3D view<br/>to display the 2D model</div>
+                            <div class="placeholder-hint">Select any floor to explore building data </div>
                         </div>
 
-                        <div class="floor-plan">
-                            <div class="desk-grid" id="desk-grid"></div>
+                        <!-- Floor content: hidden until a floor is clicked -->
+                        <div id="floor-plan-content" style="display: none;">
+                            <div class="floor-plan-header">
+                                <h4 id="current-floor-title">Floor</h4>
+                                <button
+                                        id="back-to-3d-btn"
+                                        class="back-to-building"
+                                        style="display: none"
+                                        onclick="return3DView()"
+                                >
+                                    ← Back to 3D View
+                                </button>
+                            </div>
 
-                            <div class="floor-legend">
-                                <div class="legend-item"><span class="legend-dot free"></span>Free</div>
-                                <div class="legend-item"><span class="legend-dot used"></span>Used</div>
-                                <div class="legend-item"><span class="legend-dot invalid"></span>Invalid</div>
+                            <div class="floor-plan">
+                                <div class="desk-grid" id="desk-grid"></div>
+
+                                <div class="floor-legend">
+                                    <div class="legend-item"><span class="legend-dot free"></span>Free</div>
+                                    <div class="legend-item"><span class="legend-dot used"></span>Used</div>
+                                    <div class="legend-item"><span class="legend-dot invalid"></span>Invalid</div>
+                                </div>
                             </div>
                         </div>
                     </div>
