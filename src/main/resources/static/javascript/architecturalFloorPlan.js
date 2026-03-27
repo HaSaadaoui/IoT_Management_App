@@ -65,6 +65,14 @@ class ArchitecturalFloorPlan {
         this.sensorMode = sensorMode;
         this.svgPath = svgPath;
 
+        // Reset camera zoom/pan so the new floor starts properly fitted
+        this.camera.scale = 1;
+        this.camera.tx = 0;
+        this.camera.ty = 0;
+        if (this.viewport) {
+            this.viewport.setAttribute("transform", "translate(0,0) scale(1)");
+        }
+
         const existingSvg = this.container.querySelector("svg");
         if (!existingSvg) {
             this.container.appendChild(this.svg);
