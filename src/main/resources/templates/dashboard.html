@@ -20,6 +20,7 @@
     <script src="/javascript/lib/SVGLoader.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
+    <script src="/javascript/i18n.js"></script>
     <script src="/javascript/chartUtils.js" defer></script>
     <style>
         @keyframes spin {
@@ -196,27 +197,27 @@
 <main>
     <!-- Onglets -->
     <nav class="tabs">
-        <button class="tab-btn is-active" data-pane="live">Real-time</button>
-        <button class="tab-btn" data-pane="history">History</button>
+        <button class="tab-btn is-active" data-pane="live" data-i18n="dashboard.tab.realtime">Real-time</button>
+        <button class="tab-btn" data-pane="history" data-i18n="dashboard.tab.history">History</button>
     </nav>
 
     <!-- ===== Panneau LIVE ===== -->
     <section id="pane-live">
         <!-- Filters Section - Real-time only -->
         <section class="filters-section">
-            <h3 class="section-title">🔍 Real-time Filters</h3>
+            <h3 class="section-title" data-i18n="dashboard.section.realtimeFilters">🔍 Real-time Filters</h3>
             <div class="filters-grid">
                 <div class="filter-card">
-                    <label>📍 Building</label>
+                    <label data-i18n="dashboard.filter.building">📍 Building</label>
                     <select id="filter-building" class="form-select">
-                        <option value="" disabled selected>Loading...</option>
+                        <option value="" disabled selected data-i18n="dashboard.filter.building.loading">Loading...</option>
                     </select>
                 </div>
                 <div class="filter-card">
-                    <label>🏢 Floor</label>
+                    <label data-i18n="dashboard.filter.floor">🏢 Floor</label>
                     <select id="filter-floor">
-                        <option value="all">All Floors</option>
-                        <option value="0">Ground Floor</option>
+                        <option value="all" data-i18n="dashboard.filter.floor.all">All Floors</option>
+                        <option value="0" data-i18n="dashboard.filter.floor.ground">Ground Floor</option>
                         <option value="1" selected>Floor 1</option>
                         <option value="2">Floor 2</option>
                         <option value="3">Floor 3</option>
@@ -226,19 +227,19 @@
                     </select>
                 </div>
                 <div class="filter-card">
-                    <label>📊 Sensor Type</label>
+                    <label data-i18n="dashboard.filter.sensorType">📊 Sensor Type</label>
                     <select id="filter-sensor-type">
-                        <option value="all">All Sensors</option>
-                        <option value="DESK" selected>Desk Occupancy</option>
-                        <option value="COUNT">People Counter</option>
-                        <option value="CO2">CO₂ Air Quality</option>
-                        <option value="TEMP">Temperature</option>
-                        <option value="TEMPEX">HVAC Flow</option>
-                        <option value="LIGHT">Light Levels</option>
-                        <option value="MOTION">Motion Detection</option>
-                        <option value="NOISE">Noise Levels</option>
-                        <option value="HUMIDITY">Humidity</option>
-                        <option value="ENERGY">Energy Consumption</option>
+                        <option value="all" data-i18n="dashboard.filter.sensorType.all">All Sensors</option>
+                        <option value="DESK" selected data-i18n="dashboard.filter.sensorType.desk">Desk Occupancy</option>
+                        <option value="COUNT" data-i18n="dashboard.filter.sensorType.count">People Counter</option>
+                        <option value="CO2" data-i18n="dashboard.filter.sensorType.co2">CO₂ Air Quality</option>
+                        <option value="TEMP" data-i18n="dashboard.filter.sensorType.temp">Temperature</option>
+                        <option value="TEMPEX" data-i18n="dashboard.filter.sensorType.tempex">HVAC Flow</option>
+                        <option value="LIGHT" data-i18n="dashboard.filter.sensorType.light">Light Levels</option>
+                        <option value="MOTION" data-i18n="dashboard.filter.sensorType.motion">Motion Detection</option>
+                        <option value="NOISE" data-i18n="dashboard.filter.sensorType.noise">Noise Levels</option>
+                        <option value="HUMIDITY" data-i18n="dashboard.filter.sensorType.humidity">Humidity</option>
+                        <option value="ENERGY" data-i18n="dashboard.filter.sensorType.energy">Energy Consumption</option>
                     </select>
                 </div>
             </div>
@@ -252,7 +253,7 @@
                     "
             >
                     <span
-                    >🔄 Last refresh:
+                    ><span data-i18n="dashboard.lastRefresh">🔄 Last refresh</span>:
                         <strong id="last-refresh-time"
                         >17/11/2025 11:23:47</strong
                         ></span
@@ -262,9 +263,9 @@
 
         <!-- Alerts Section -->
         <section class="alerts-section">
-            <h3 class="section-title">🚨 Active Alerts</h3>
+            <h3 class="section-title" data-i18n="dashboard.section.activeAlerts">🚨 Active Alerts</h3>
             <div class="alerts-loading" id="alerts-loading">
-                <span>Loading alerts...</span>
+                <span data-i18n="dashboard.alerts.loading">Loading alerts...</span>
             </div>
             <div class="alerts-grid">
                 <!-- Alerts will be dynamically populated here -->
@@ -277,7 +278,7 @@
         </div>
 
         <div class="live-data-section">
-            <h3 class="section-title">📊 Live Building Data</h3>
+            <h3 class="section-title" data-i18n="dashboard.section.liveBuildingData">📊 Live Building Data</h3>
             <div class="live-metrics-grid">
                 <!-- Temperature Average -->
                 <div class="metric-card">
@@ -286,7 +287,7 @@
                     </div>
 
                     <div class="metric-content metric-split">
-                        <div class="metric-label">Avg Temperature</div>
+                        <div class="metric-label" data-i18n="dashboard.metric.avgTemperature">Avg Temperature</div>
 
                         <div class="metric-split-values">
                             <div class="metric-scope">
@@ -315,7 +316,7 @@
                     </div>
 
                     <div class="metric-content metric-split">
-                        <div class="metric-label">Avg Humidity</div>
+                        <div class="metric-label" data-i18n="dashboard.metric.avgHumidity">Avg Humidity</div>
 
                         <div class="metric-split-values">
                             <div class="metric-scope">
@@ -339,7 +340,7 @@
                 <div class="metric-card">
                     <div class="metric-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</div>
                     <div class="metric-content">
-                        <div class="metric-label">Avg Sound Level</div>
+                        <div class="metric-label" data-i18n="dashboard.metric.avgSoundLevel">Avg Sound Level</div>
                         <div class="metric-value" id="live-avg-sound">--</div>
                         <div class="metric-unit">dB</div>
                     </div>
@@ -349,7 +350,7 @@
                 <div class="metric-card">
                     <div class="metric-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💨</div>
                     <div class="metric-content">
-                        <div class="metric-label">Avg CO₂ Level</div>
+                        <div class="metric-label" data-i18n="dashboard.metric.avgCo2Level">Avg CO₂ Level</div>
                         <div class="metric-value" id="live-avg-co2">--</div>
                         <div class="metric-unit">ppm</div>
                     </div>
@@ -359,7 +360,7 @@
                 <div class="metric-card">
                     <div class="metric-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">⚡</div>
                     <div class="metric-content">
-                        <div class="metric-label">Power Now</div>
+                        <div class="metric-label" data-i18n="dashboard.metric.powerNow">Power Now</div>
                         <div class="metric-value" id="live-current-power">--</div>
                         <div class="metric-unit">kW</div>
                     </div>
@@ -369,7 +370,7 @@
                 <div class="metric-card metric-card--highlight">
                     <div class="metric-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">⚡</div>
                     <div class="metric-content">
-                        <div class="metric-label">Today's Energy</div>
+                        <div class="metric-label" data-i18n="dashboard.metric.todaysEnergy">Today's Energy</div>
                         <div class="metric-value" id="live-daily-energy">--</div>
                         <div class="metric-unit">kWh</div>
                     </div>
@@ -379,7 +380,7 @@
                 <div class="metric-card">
                     <div class="metric-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">💡</div>
                     <div class="metric-content">
-                        <div class="metric-label">Desk Usage</div>
+                        <div class="metric-label" data-i18n="dashboard.metric.deskUsage">Desk Usage</div>
                         <div class="metric-value" id="live-desk-usage">--</div>
                         <div class="metric-unit">desks</div>
                     </div>
@@ -389,7 +390,7 @@
                 <div class="metric-card">
                     <div class="metric-icon" style="background: linear-gradient(135deg, #fbbf24, #f59e0b);">🔆</div>
                     <div class="metric-content">
-                        <div class="metric-label">Avg Light Level</div>
+                        <div class="metric-label" data-i18n="dashboard.metric.avgLightLevel">Avg Light Level</div>
                         <div class="metric-value" id="live-avg-light">--</div>
                         <div class="metric-unit">lux</div>
                     </div>
@@ -404,18 +405,19 @@
         >
             <div class="sensor-list-header">
                         <span
-                        >Available Sensors (<span id="sensor-count">0</span
+                        ><span data-i18n="dashboard.sensors.available">Available Sensors</span> (<span id="sensor-count">0</span
                         >)</span
                         >
                 <button
                         id="select-all-sensors-btn"
                         class="select-all-btn"
+                        data-i18n="dashboard.sensors.selectAll"
                 >
                     Select All
                 </button>
             </div>
             <div class="sensor-list" id="sensor-list">
-                <div class="sensor-list-placeholder">
+                <div class="sensor-list-placeholder" data-i18n="dashboard.sensors.loadingPlaceholder">
                     Sensors will load automatically based on your
                     filters...
                 </div>
@@ -442,9 +444,9 @@
                             <canvas id="building-canvas"></canvas>
                             <div class="building-controls">
                                 <div class="control-hint">
-                                    <span>🖱️ Rotate: Left Click + Drag</span>
-                                    <span>🔍 Zoom: Scroll</span>
-                                    <span>👆 Click floor to enter</span>
+                                    <span data-i18n="dashboard.building.controls.rotate">🖱️ Rotate: Left Click + Drag</span>
+                                    <span data-i18n="dashboard.building.controls.zoom">🔍 Zoom: Scroll</span>
+                                    <span data-i18n="dashboard.building.controls.clickFloor">👆 Click floor to enter</span>
                                 </div>
                             </div>
                             <div
@@ -459,19 +461,20 @@
                         <!-- Placeholder: shown when no floor selected -->
                         <div class="floor-plan-placeholder" id="floor-plan-placeholder">
                             <div class="placeholder-icon">🏗️</div>
-                            <div class="placeholder-text">Click on a floor in the 3D view<br/>to display the 2D model</div>
-                            <div class="placeholder-hint">Select any floor to explore building data </div>
+                            <div class="placeholder-text" data-i18n="dashboard.floor.placeholder.text">Click on a floor in the 3D view<br/>to display the 2D model</div>
+                            <div class="placeholder-hint" data-i18n="dashboard.floor.placeholder.hint">Select any floor to explore building data </div>
                         </div>
 
                         <!-- Floor content: hidden until a floor is clicked -->
                         <div id="floor-plan-content" style="display: none;">
                             <div class="floor-plan-header">
-                                <h4 id="current-floor-title">Floor</h4>
+                                <h4 id="current-floor-title" data-i18n="dashboard.floor.header">Floor</h4>
                                 <button
                                         id="back-to-3d-btn"
                                         class="back-to-building"
                                         style="display: none"
                                         onclick="return3DView()"
+                                        data-i18n="dashboard.button.backTo3D"
                                 >
                                     ← Back to 3D View
                                 </button>
@@ -481,9 +484,9 @@
                                 <div class="desk-grid" id="desk-grid"></div>
 
                                 <div class="floor-legend">
-                                    <div class="legend-item"><span class="legend-dot free"></span>Free</div>
-                                    <div class="legend-item"><span class="legend-dot used"></span>Used</div>
-                                    <div class="legend-item"><span class="legend-dot invalid"></span>Invalid</div>
+                                    <div class="legend-item"><span class="legend-dot free"></span><span data-i18n="dashboard.desk.legend.free">Free</span></div>
+                                    <div class="legend-item"><span class="legend-dot used"></span><span data-i18n="dashboard.desk.legend.used">Used</span></div>
+                                    <div class="legend-item"><span class="legend-dot invalid"></span><span data-i18n="dashboard.desk.legend.invalid">Invalid</span></div>
                                 </div>
                             </div>
                         </div>
@@ -643,23 +646,23 @@
 
     <!-- ===== Panneau HISTORIQUE ===== -->
     <section id="pane-history" class="hidden">
-        <h3 class="section-title">📊 History & Analysis</h3>
+        <h3 class="section-title" data-i18n="dashboard.section.historyAnalysis">📊 History & Analysis</h3>
 
         <!-- Filtres de période -->
         <div class="history-filters card">
             <div class="filter-grid">
                 <div class="filter-item">
-                    <label for="hist-from">📅 Start Date</label>
+                    <label for="hist-from" data-i18n="dashboard.history.filter.startDate">📅 Start Date</label>
                     <input type="datetime-local" id="hist-from" step="3600">
                 </div>
                 <div class="filter-item">
-                    <label for="hist-to">📅 End Date</label>
+                    <label for="hist-to" data-i18n="dashboard.history.filter.endDate">📅 End Date</label>
                     <input type="datetime-local" id="hist-to" step="3600">
                 </div>
                 <div class="filter-item">
-                    <label for="hist-filter-building">📍 Building</label>
+                    <label for="hist-filter-building" data-i18n="dashboard.filter.building">📍 Building</label>
                     <select id="hist-filter-building" class="form-select">
-                        <option value="" disabled selected>Loading...</option>
+                        <option value="" disabled selected data-i18n="dashboard.filter.building.loading">Loading...</option>
                     </select>
                 </div>
                 <div class="filter-item" style="align-self:end;">
@@ -671,7 +674,7 @@
                         <svg id="hist-load-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 0.5rem;">
                             <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5z"/>
                         </svg>
-                        Load Data
+                        <span data-i18n="dashboard.history.button.loadData">Load Data</span>
                     </button>
                 </div>
             </div>
@@ -679,70 +682,70 @@
 
         <!-- Sub-Navigation Tabs -->
         <nav class="history-sub-tabs" style="margin: 2rem 0 1rem; background: white; border-radius: 12px; padding: 0.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <button class="history-sub-tab-btn is-active" data-section="occupancy" style="flex: 1; min-width: 150px; padding: 0.75rem 1.5rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+            <button class="history-sub-tab-btn is-active" data-section="occupancy" style="flex: 1; min-width: 150px; padding: 0.75rem 1.5rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;" data-i18n="dashboard.history.tab.occupancy">
                 📊 Occupancy Rate
             </button>
-            <button class="history-sub-tab-btn" data-section="energy" style="flex: 1; min-width: 150px; padding: 0.75rem 1.5rem; border: 2px solid #e5e7eb; background: white; color: #6b7280; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+            <button class="history-sub-tab-btn" data-section="energy" style="flex: 1; min-width: 150px; padding: 0.75rem 1.5rem; border: 2px solid #e5e7eb; background: white; color: #6b7280; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;" data-i18n="dashboard.history.tab.energy">
                 ⚡ Energy Consumption
             </button>
-            <button class="history-sub-tab-btn" data-section="environment" style="flex: 1; min-width: 150px; padding: 0.75rem 1.5rem; border: 2px solid #e5e7eb; background: white; color: #6b7280; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+            <button class="history-sub-tab-btn" data-section="environment" style="flex: 1; min-width: 150px; padding: 0.75rem 1.5rem; border: 2px solid #e5e7eb; background: white; color: #6b7280; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;" data-i18n="dashboard.history.tab.environment">
                 🌡️ Environment
             </button>
         </nav>
 
         <!-- Occupancy Section -->
         <div class="history-sub-section" data-section-content="occupancy">
-            <h3 class="section-title">📊 Occupation Rate Analytics</h3>
+            <h3 class="section-title" data-i18n="dashboard.section.occupationAnalytics">📊 Occupation Rate Analytics</h3>
 
             <!-- 1. Desk-Bureau-Standard Section -->
             <div class="chart-card full-width" style="margin-bottom: 2rem;">
                 <div class="section-header" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
                     <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
                         <span>💼</span>
-                        <span>1. Desk-Standard</span>
+                        <span data-i18n="dashboard.section.deskStandard">1. Desk-Standard</span>
                     </h4>
                 </div>
                 <div style="padding: 1.5rem;">
                     <!-- Statistiques Globales (NOUVEAU: 4 cartes pour Desk-Standard) -->
                     <div class="stats-summary" id="desk-global-stats" style="margin-bottom: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                         <div class="stat-card" style="flex: 1;">
-                            <span class="stat-label">📊 Global Occupancy Rate</span>
+                            <span class="stat-label" data-i18n="dashboard.stat.globalOccupancyRate">📊 Global Occupancy Rate</span>
                             <span class="stat-value" id="desk-global-rate" style="font-size: 2.5rem;">--</span>
                             <span class="stat-info" id="desk-global-period" style="font-size: 0.85rem; color: #666; display: block; margin-top: 0.3rem;">--</span>
-                            <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Working hours: 9h→12h30 / 14h→18h30</span>
+                            <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;" data-i18n="dashboard.stat.workingHours">Working hours: 9h→12h30 / 14h→18h30</span>
                         </div>
                         <div class="stat-card" style="flex: 1;">
-                            <span class="stat-label">🔢 Number of Sensors</span>
+                            <span class="stat-label" data-i18n="dashboard.stat.numberOfSensors">🔢 Number of Sensors</span>
                             <span class="stat-value" id="desk-total-sensors" style="font-size: 2.5rem;">--</span>
-                            <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
+                            <span class="stat-info" style="font-size: 0.9rem; color: #666;" data-i18n="dashboard.stat.activeSensors">Active sensors</span>
                         </div>
                         <div class="stat-card" style="flex: 1;">
-                            <span class="stat-label">📉 Avg Low Usage Rate</span>
+                            <span class="stat-label" data-i18n="dashboard.stat.avgLowUsageRate">📉 Avg Low Usage Rate</span>
                             <span class="stat-value" id="desk-low-usage-avg" style="font-size: 2.5rem; color: #f59e0b;">--</span>
-                            <span class="stat-info" style="font-size: 0.85rem; color: #666;">Average of desks ≤12.5%</span>
-                            <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Over selected period</span>
+                            <span class="stat-info" style="font-size: 0.85rem; color: #666;" data-i18n="dashboard.stat.desksLowUsage">Average of desks ≤12.5%</span>
+                            <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;" data-i18n="dashboard.stat.overSelectedPeriod">Over selected period</span>
                         </div>
                         <div class="stat-card performance-stat" style="flex: 1;">
-                            <span class="stat-label">📈 Performance Distribution</span>
+                            <span class="stat-label" data-i18n="dashboard.stat.performanceDistribution">📈 Performance Distribution</span>
                             <div>
                                 <div class="performance-item excellent">
                                     <span class="performance-number" style="color: #10b981;" id="desk-perf-excellent">--</span>
                                     <span class="performance-label" style="color: #059669;">
-                                    <span>🟢 Excellent</span>
+                                    <span data-i18n="dashboard.performance.excellent">🟢 Excellent</span>
                                     <span class="performance-badge" style="color: #059669;">≥70%</span>
                                 </span>
                                 </div>
                                 <div class="performance-item good">
                                     <span class="performance-number" style="color: #f59e0b;" id="desk-perf-good">--</span>
                                     <span class="performance-label" style="color: #d97706;">
-                                    <span>🟡 Good</span>
+                                    <span data-i18n="dashboard.performance.good">🟡 Good</span>
                                     <span class="performance-badge" style="color: #d97706;">30-69%</span>
                                 </span>
                                 </div>
                                 <div class="performance-item poor">
                                     <span class="performance-number" style="color: #ef4444;" id="desk-perf-poor">--</span>
                                     <span class="performance-label" style="color: #dc2626;">
-                                    <span>🔴 Poor</span>
+                                    <span data-i18n="dashboard.performance.poor">🔴 Poor</span>
                                     <span class="performance-badge" style="color: #dc2626;"><30%</span>
                                 </span>
                                 </div>
@@ -752,11 +755,11 @@
 
                     <!-- Pagination Controls -->
                     <div class="pagination-controls">
-                        <button id="desk-prev-btn" disabled>
+                        <button id="desk-prev-btn" disabled data-i18n="dashboard.button.previous">
                             ◄ Previous
                         </button>
-                        <span id="desk-page-info">Page 1/1</span>
-                        <button id="desk-next-btn" disabled>
+                        <span id="desk-page-info"><span data-i18n="dashboard.pagination.page">Page</span> 1/1</span>
+                        <button id="desk-next-btn" disabled data-i18n="dashboard.button.next">
                             Next ►
                         </button>
                     </div>
@@ -766,14 +769,14 @@
                         <table class="history-table analytics-table" id="desk-daily-table" style="position: relative;">
                             <thead id="desk-table-head">
                             <tr>
-                                <th>Sensor</th>
-                                <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
+                                <th data-i18n="dashboard.table.header.sensor">Sensor</th>
+                                <th colspan="10" style="text-align: center; color: #999;" data-i18n="dashboard.table.placeholder">Select a period and click "Load Data"</th>
                             </tr>
                             </thead>
                             <tbody id="desk-analytics-tbody">
                             <tr>
                                 <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
-                                    🔄 Waiting for data loading...
+                                    <span data-i18n="dashboard.table.waiting">🔄 Waiting for data loading...</span>
                                 </td>
                             </tr>
                             </tbody>
@@ -794,43 +797,43 @@
                 <div class="section-header" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
                     <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
                         <span>🏢</span>
-                        <span>2. Meeting Room</span>
+                        <span data-i18n="dashboard.section.meetingRoom">2. Meeting Room</span>
                     </h4>
                 </div>
                 <div style="padding: 1.5rem;">
                     <div class="stats-summary" id="meeting-global-stats" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
                         <div class="stat-card" style="flex: 1;">
-                            <span class="stat-label">📊 Global Occupancy Rate</span>
+                            <span class="stat-label" data-i18n="dashboard.stat.globalOccupancyRate">📊 Global Occupancy Rate</span>
                             <span class="stat-value" id="meeting-global-rate" style="font-size: 2.5rem;">--</span>
                             <span class="stat-info" id="meeting-global-period" style="font-size: 0.85rem; color: #666; display: block; margin-top: 0.3rem;">--</span>
-                            <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Working hours: 9h→12h30 / 14h→18h30</span>
+                            <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;" data-i18n="dashboard.stat.workingHours">Working hours: 9h→12h30 / 14h→18h30</span>
                         </div>
                         <div class="stat-card" style="flex: 1;">
-                            <span class="stat-label">🔢 Number of Sensors</span>
+                            <span class="stat-label" data-i18n="dashboard.stat.numberOfSensors">🔢 Number of Sensors</span>
                             <span class="stat-value" id="meeting-total-sensors" style="font-size: 2.5rem;">--</span>
-                            <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
+                            <span class="stat-info" style="font-size: 0.9rem; color: #666;" data-i18n="dashboard.stat.activeSensors">Active sensors</span>
                         </div>
                         <div class="stat-card performance-stat" style="flex: 1;">
-                            <span class="stat-label">📈 Performance Distribution</span>
+                            <span class="stat-label" data-i18n="dashboard.stat.performanceDistribution">📈 Performance Distribution</span>
                             <div>
                                 <div class="performance-item excellent">
                                     <span class="performance-number" style="color: #10b981;" id="meeting-perf-excellent">--</span>
                                     <span class="performance-label" style="color: #059669;">
-                                    <span>🟢 Excellent</span>
+                                    <span data-i18n="dashboard.performance.excellent">🟢 Excellent</span>
                                     <span class="performance-badge" style="color: #059669;">≥70%</span>
                                 </span>
                                 </div>
                                 <div class="performance-item good">
                                     <span class="performance-number" style="color: #f59e0b;" id="meeting-perf-good">--</span>
                                     <span class="performance-label" style="color: #d97706;">
-                                    <span>🟡 Good</span>
+                                    <span data-i18n="dashboard.performance.good">🟡 Good</span>
                                     <span class="performance-badge" style="color: #d97706;">30-69%</span>
                                 </span>
                                 </div>
                                 <div class="performance-item poor">
                                     <span class="performance-number" style="color: #ef4444;" id="meeting-perf-poor">--</span>
                                     <span class="performance-label" style="color: #dc2626;">
-                                    <span>🔴 Poor</span>
+                                    <span data-i18n="dashboard.performance.poor">🔴 Poor</span>
                                     <span class="performance-badge" style="color: #dc2626;"><30%</span>
                                 </span>
                                 </div>
@@ -839,11 +842,11 @@
                     </div>
 
                     <div class="pagination-controls">
-                        <button id="meeting-prev-btn" disabled>
+                        <button id="meeting-prev-btn" disabled data-i18n="dashboard.button.previous">
                             ◄ Previous
                         </button>
-                        <span id="meeting-page-info">Page 1/1</span>
-                        <button id="meeting-next-btn" disabled>
+                        <span id="meeting-page-info"><span data-i18n="dashboard.pagination.page">Page</span> 1/1</span>
+                        <button id="meeting-next-btn" disabled data-i18n="dashboard.button.next">
                             Next ►
                         </button>
                     </div>
@@ -852,14 +855,14 @@
                         <table class="history-table analytics-table" id="meeting-daily-table">
                             <thead id="meeting-table-head">
                             <tr>
-                                <th>Room</th>
-                                <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
+                                <th data-i18n="dashboard.table.header.room">Room</th>
+                                <th colspan="10" style="text-align: center; color: #999;" data-i18n="dashboard.table.placeholder">Select a period and click "Load Data"</th>
                             </tr>
                             </thead>
                             <tbody id="meeting-analytics-tbody">
                             <tr>
                                 <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
-                                    🔄 Waiting for data loading...
+                                    <span data-i18n="dashboard.table.waiting">🔄 Waiting for data loading...</span>
                                 </td>
                             </tr>
                             </tbody>
@@ -877,43 +880,43 @@
                 <div class="section-header" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
                     <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
                         <span>📞</span>
-                        <span>3. Phone Booth</span>
+                        <span data-i18n="dashboard.section.phoneBooth">3. Phone Booth</span>
                     </h4>
                 </div>
                 <div style="padding: 1.5rem;">
                     <div class="stats-summary" id="phone-global-stats" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
                         <div class="stat-card" style="flex: 1;">
-                            <span class="stat-label">📊 Global Occupancy Rate</span>
+                            <span class="stat-label" data-i18n="dashboard.stat.globalOccupancyRate">📊 Global Occupancy Rate</span>
                             <span class="stat-value" id="phone-global-rate" style="font-size: 2.5rem;">--</span>
                             <span class="stat-info" id="phone-global-period" style="font-size: 0.85rem; color: #666; display: block; margin-top: 0.3rem;">--</span>
-                            <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Working hours: 9h→12h30 / 14h→18h30</span>
+                            <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;" data-i18n="dashboard.stat.workingHours">Working hours: 9h→12h30 / 14h→18h30</span>
                         </div>
                         <div class="stat-card" style="flex: 1;">
-                            <span class="stat-label">🔢 Number of Sensors</span>
+                            <span class="stat-label" data-i18n="dashboard.stat.numberOfSensors">🔢 Number of Sensors</span>
                             <span class="stat-value" id="phone-total-sensors" style="font-size: 2.5rem;">--</span>
-                            <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
+                            <span class="stat-info" style="font-size: 0.9rem; color: #666;" data-i18n="dashboard.stat.activeSensors">Active sensors</span>
                         </div>
                         <div class="stat-card performance-stat" style="flex: 1;">
-                            <span class="stat-label">📈 Performance Distribution</span>
+                            <span class="stat-label" data-i18n="dashboard.stat.performanceDistribution">📈 Performance Distribution</span>
                             <div>
                                 <div class="performance-item excellent">
                                     <span class="performance-number" style="color: #10b981;" id="phone-perf-excellent">--</span>
                                     <span class="performance-label" style="color: #059669;">
-                                    <span>🟢 Excellent</span>
+                                    <span data-i18n="dashboard.performance.excellent">🟢 Excellent</span>
                                     <span class="performance-badge" style="color: #059669;">≥70%</span>
                                 </span>
                                 </div>
                                 <div class="performance-item good">
                                     <span class="performance-number" style="color: #f59e0b;" id="phone-perf-good">--</span>
                                     <span class="performance-label" style="color: #d97706;">
-                                    <span>🟡 Good</span>
+                                    <span data-i18n="dashboard.performance.good">🟡 Good</span>
                                     <span class="performance-badge" style="color: #d97706;">30-69%</span>
                                 </span>
                                 </div>
                                 <div class="performance-item poor">
                                     <span class="performance-number" style="color: #ef4444;" id="phone-perf-poor">--</span>
                                     <span class="performance-label" style="color: #dc2626;">
-                                    <span>🔴 Poor</span>
+                                    <span data-i18n="dashboard.performance.poor">🔴 Poor</span>
                                     <span class="performance-badge" style="color: #dc2626;"><30%</span>
                                 </span>
                                 </div>
@@ -922,11 +925,11 @@
                     </div>
 
                     <div class="pagination-controls">
-                        <button id="phone-prev-btn" disabled>
+                        <button id="phone-prev-btn" disabled data-i18n="dashboard.button.previous">
                             ◄ Previous
                         </button>
-                        <span id="phone-page-info">Page 1/1</span>
-                        <button id="phone-next-btn" disabled>
+                        <span id="phone-page-info"><span data-i18n="dashboard.pagination.page">Page</span> 1/1</span>
+                        <button id="phone-next-btn" disabled data-i18n="dashboard.button.next">
                             Next ►
                         </button>
                     </div>
@@ -935,14 +938,14 @@
                         <table class="history-table analytics-table" id="phone-daily-table">
                             <thead id="phone-table-head">
                             <tr>
-                                <th>Booth</th>
-                                <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
+                                <th data-i18n="dashboard.table.header.booth">Booth</th>
+                                <th colspan="10" style="text-align: center; color: #999;" data-i18n="dashboard.table.placeholder">Select a period and click "Load Data"</th>
                             </tr>
                             </thead>
                             <tbody id="phone-analytics-tbody">
                             <tr>
                                 <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
-                                    🔄 Waiting for data loading...
+                                    <span data-i18n="dashboard.table.waiting">🔄 Waiting for data loading...</span>
                                 </td>
                             </tr>
                             </tbody>
@@ -960,43 +963,43 @@
                 <div class="section-header" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 1rem; border-radius: 8px 8px 0 0;">
                     <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
                         <span>🎯</span>
-                        <span>4. Interview Room</span>
+                        <span data-i18n="dashboard.section.interviewRoom">4. Interview Room</span>
                     </h4>
                 </div>
                 <div style="padding: 1.5rem;">
                     <div class="stats-summary" id="interview-global-stats" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
                         <div class="stat-card" style="flex: 1;">
-                            <span class="stat-label">📊 Global Occupancy Rate</span>
+                            <span class="stat-label" data-i18n="dashboard.stat.globalOccupancyRate">📊 Global Occupancy Rate</span>
                             <span class="stat-value" id="interview-global-rate" style="font-size: 2.5rem;">--</span>
                             <span class="stat-info" id="interview-global-period" style="font-size: 0.85rem; color: #666; display: block; margin-top: 0.3rem;">--</span>
-                            <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;">Working hours: 9h→12h30 / 14h→18h30</span>
+                            <span class="stat-info" style="font-size: 0.75rem; color: #999; display: block; margin-top: 0.2rem;" data-i18n="dashboard.stat.workingHours">Working hours: 9h→12h30 / 14h→18h30</span>
                         </div>
                         <div class="stat-card" style="flex: 1;">
-                            <span class="stat-label">🔢 Number of Sensors</span>
+                            <span class="stat-label" data-i18n="dashboard.stat.numberOfSensors">🔢 Number of Sensors</span>
                             <span class="stat-value" id="interview-total-sensors" style="font-size: 2.5rem;">--</span>
-                            <span class="stat-info" style="font-size: 0.9rem; color: #666;">Active sensors</span>
+                            <span class="stat-info" style="font-size: 0.9rem; color: #666;" data-i18n="dashboard.stat.activeSensors">Active sensors</span>
                         </div>
                         <div class="stat-card performance-stat" style="flex: 1;">
-                            <span class="stat-label">📈 Performance Distribution</span>
+                            <span class="stat-label" data-i18n="dashboard.stat.performanceDistribution">📈 Performance Distribution</span>
                             <div>
                                 <div class="performance-item excellent">
                                     <span class="performance-number" style="color: #10b981;" id="interview-perf-excellent">--</span>
                                     <span class="performance-label" style="color: #059669;">
-                                    <span>🟢 Excellent</span>
+                                    <span data-i18n="dashboard.performance.excellent">🟢 Excellent</span>
                                     <span class="performance-badge" style="color: #059669;">≥70%</span>
                                 </span>
                                 </div>
                                 <div class="performance-item good">
                                     <span class="performance-number" style="color: #f59e0b;" id="interview-perf-good">--</span>
                                     <span class="performance-label" style="color: #d97706;">
-                                    <span>🟡 Good</span>
+                                    <span data-i18n="dashboard.performance.good">🟡 Good</span>
                                     <span class="performance-badge" style="color: #d97706;">30-69%</span>
                                 </span>
                                 </div>
                                 <div class="performance-item poor">
                                     <span class="performance-number" style="color: #ef4444;" id="interview-perf-poor">--</span>
                                     <span class="performance-label" style="color: #dc2626;">
-                                    <span>🔴 Poor</span>
+                                    <span data-i18n="dashboard.performance.poor">🔴 Poor</span>
                                     <span class="performance-badge" style="color: #dc2626;"><30%</span>
                                 </span>
                                 </div>
@@ -1005,11 +1008,11 @@
                     </div>
 
                     <div class="pagination-controls">
-                        <button id="interview-prev-btn" disabled>
+                        <button id="interview-prev-btn" disabled data-i18n="dashboard.button.previous">
                             ◄ Previous
                         </button>
-                        <span id="interview-page-info">Page 1/1</span>
-                        <button id="interview-next-btn" disabled>
+                        <span id="interview-page-info"><span data-i18n="dashboard.pagination.page">Page</span> 1/1</span>
+                        <button id="interview-next-btn" disabled data-i18n="dashboard.button.next">
                             Next ►
                         </button>
                     </div>
@@ -1018,14 +1021,14 @@
                         <table class="history-table analytics-table" id="interview-daily-table">
                             <thead id="interview-table-head">
                             <tr>
-                                <th>Room</th>
-                                <th colspan="10" style="text-align: center; color: #999;">Select a period and click "Load Data"</th>
+                                <th data-i18n="dashboard.table.header.room">Room</th>
+                                <th colspan="10" style="text-align: center; color: #999;" data-i18n="dashboard.table.placeholder">Select a period and click "Load Data"</th>
                             </tr>
                             </thead>
                             <tbody id="interview-analytics-tbody">
                             <tr>
                                 <td colspan="11" style="text-align: center; color: #999; padding: 2rem;">
-                                    🔄 Waiting for data loading...
+                                    <span data-i18n="dashboard.table.waiting">🔄 Waiting for data loading...</span>
                                 </td>
                             </tr>
                             </tbody>
@@ -1104,27 +1107,27 @@
                             </thead>
                             <tbody id="energy-analytics-tbody">
                             <tr>
-                                <td style="font-weight: 600; background: linear-gradient(135deg, #ef444420, #dc262620);">🔴 Red Outlets</td>
+                                <td style="font-weight: 600; background: linear-gradient(135deg, #ef444420, #dc262620);"><span data-i18n="dashboard.category.redOutlets">🔴 Red Outlets</span></td>
                                 <td colspan="10" style="text-align: center; color: #999; padding: 1rem;">
-                                    🔄 Waiting for data loading...
+                                    <span data-i18n="dashboard.table.waiting">🔄 Waiting for data loading...</span>
                                 </td>
                             </tr>
                             <tr>
-                                <td style="font-weight: 600; background: linear-gradient(135deg, #3b82f620, #2563eb20);">⚪ White Outlets & Lighting</td>
+                                <td style="font-weight: 600; background: linear-gradient(135deg, #3b82f620, #2563eb20);"><span data-i18n="dashboard.category.whiteOutlets">⚪ White Outlets & Lighting</span></td>
                                 <td colspan="10" style="text-align: center; color: #999; padding: 1rem;">
-                                    🔄 Waiting for data loading...
+                                    <span data-i18n="dashboard.table.waiting">🔄 Waiting for data loading...</span>
                                 </td>
                             </tr>
                             <tr>
-                                <td style="font-weight: 600; background: linear-gradient(135deg, #10b98120, #05966920);">💨 Ventilation & Heaters</td>
+                                <td style="font-weight: 600; background: linear-gradient(135deg, #10b98120, #05966920);"><span data-i18n="dashboard.category.ventilation">💨 Ventilation & Heaters</span></td>
                                 <td colspan="10" style="text-align: center; color: #999; padding: 1rem;">
-                                    🔄 Waiting for data loading...
+                                    <span data-i18n="dashboard.table.waiting">🔄 Waiting for data loading...</span>
                                 </td>
                             </tr>
                             <tr style="font-weight: 700; background: #f9fafb; border-top: 2px solid #e5e7eb;">
-                                <td style="font-weight: 700;">⚡ Total Power</td>
+                                <td style="font-weight: 700;"><span data-i18n="dashboard.category.totalPower">⚡ Total Power</span></td>
                                 <td colspan="10" style="text-align: center; color: #999; padding: 1rem;">
-                                    🔄 Waiting for data loading...
+                                    <span data-i18n="dashboard.table.waiting">🔄 Waiting for data loading...</span>
                                 </td>
                             </tr>
                             </tbody>
@@ -1139,10 +1142,10 @@
                     <div style="display: flex; align-items: center; gap: 1rem;">
                         <div class="chart-title">
                             <span class="chart-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">💰</span>
-                            <span>Energy Cost</span>
+                            <span data-i18n="dashboard.section.energyCost">Energy Cost</span>
                         </div>
                         <div class="chart-info">
-                            Total: <span class="kpi-value" id="energy-cost-total">--</span> <span id="energy-cost-currency">€</span>
+                            <span data-i18n="dashboard.cost.total">Total</span>: <span class="kpi-value" id="energy-cost-total">--</span> <span id="energy-cost-currency">€</span>
                         </div>
                     </div>
                     <div style="display: flex; gap: 0.5rem; background: #f3f4f6; padding: 0.25rem; border-radius: 8px;">
@@ -1166,9 +1169,9 @@
                     <table class="history-table" style="width: 100%; table-layout: fixed; margin-bottom: 0;">
                         <thead>
                         <tr>
-                            <th style="background: linear-gradient(135deg, #662179, #8b2fa3); color: white; padding: 0.75rem 1rem; width: 33.33%;">Date</th>
-                            <th style="background: linear-gradient(135deg, #662179, #8b2fa3); color: white; padding: 0.75rem 1rem; width: 33.33%;">Energy (kWh)</th>
-                            <th style="background: linear-gradient(135deg, #662179, #8b2fa3); color: white; padding: 0.75rem 1rem; width: 33.34%;">Cost/Day</th>
+                            <th style="background: linear-gradient(135deg, #662179, #8b2fa3); color: white; padding: 0.75rem 1rem; width: 33.33%;" data-i18n="dashboard.table.header.date">Date</th>
+                            <th style="background: linear-gradient(135deg, #662179, #8b2fa3); color: white; padding: 0.75rem 1rem; width: 33.33%;" data-i18n="dashboard.table.header.energy">Energy (kWh)</th>
+                            <th style="background: linear-gradient(135deg, #662179, #8b2fa3); color: white; padding: 0.75rem 1rem; width: 33.34%;" data-i18n="dashboard.table.header.costPerDay">Cost/Day</th>
                         </tr>
                         </thead>
                     </table>
@@ -1178,7 +1181,7 @@
                             <tbody id="energy-cost-tbody">
                             <tr>
                                 <td colspan="3" style="text-align: center; color: #999; padding: 2rem;">
-                                    Select a period and click "Load Data" to view energy costs
+                                    <span data-i18n="dashboard.cost.info">Select a period and click "Load Data" to view energy costs</span>
                                 </td>
                             </tr>
                             </tbody>
@@ -1188,7 +1191,7 @@
                     <table class="history-table" style="width: 100%; table-layout: fixed; margin-top: 0;">
                         <tfoot>
                         <tr style="font-weight: 700; background: linear-gradient(135deg, #662179, #8b2fa3); color: white;">
-                            <td style="font-weight: 700; padding: 0.75rem 1rem; text-align: left; width: 33.33%;">Total</td>
+                            <td style="font-weight: 700; padding: 0.75rem 1rem; text-align: left; width: 33.33%;" data-i18n="dashboard.cost.total">Total</td>
                             <td id="energy-cost-total-kwh" style="padding: 0.75rem 1rem; text-align: center; width: 33.33%;">--</td>
                             <td id="energy-cost-total-cost" style="padding: 0.75rem 1rem; text-align: center; width: 33.34%;">--</td>
                         </tr>
@@ -1207,10 +1210,10 @@
                     <div style="display: flex; align-items: center; gap: 1rem;">
                         <div class="chart-title">
                             <span class="chart-icon" style="background: linear-gradient(135deg, #10b981, #059669);">🌿</span>
-                            <span>CO₂ Emissions</span>
+                            <span data-i18n="dashboard.section.co2Emissions">CO₂ Emissions</span>
                         </div>
                         <div class="chart-info">
-                            Total: <span class="kpi-value" id="co2-emissions-total">--</span> kg CO₂
+                            <span data-i18n="dashboard.cost.total">Total</span>: <span class="kpi-value" id="co2-emissions-total">--</span> <span data-i18n="dashboard.co2.unit">kg CO₂</span>
                         </div>
                     </div>
                     <div style="display: flex; gap: 0.5rem; background: #f3f4f6; padding: 0.25rem; border-radius: 8px;">
@@ -1231,7 +1234,7 @@
 
         <!-- Environment Section -->
         <div class="history-sub-section" data-section-content="environment" style="display: none;">
-            <h3 class="section-title">🌡️ Environment Analytics</h3>
+            <h3 class="section-title" data-i18n="dashboard.section.environmentAnalytics">🌡️ Environment Analytics</h3>
 
             <div class="charts-section">
                 <div class="charts-grid charts-grid--2col">
@@ -1241,7 +1244,7 @@
                             <div style="display: flex; align-items: center; gap: 0.75rem;">
                                 <div class="chart-title">
                                     <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🌡️</span>
-                                    <span>Temperature History</span>
+                                    <span data-i18n="dashboard.chart.temperatureHistory">Temperature History</span>
                                 </div>
                                 <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
                                     Avg: <span class="kpi-value" id="env-temp-avg" style="font-weight: 600; color: #ef4444;">--</span> °C
@@ -1270,7 +1273,7 @@
                             <div style="display: flex; align-items: center; gap: 0.75rem;">
                                 <div class="chart-title">
                                     <span class="chart-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">💧</span>
-                                    <span>Humidity History</span>
+                                    <span data-i18n="dashboard.chart.humidityHistory">Humidity History</span>
                                 </div>
                                 <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
                                     Avg: <span class="kpi-value" id="env-humidity-avg" style="font-weight: 600; color: #3b82f6;">--</span> %
@@ -1299,7 +1302,7 @@
                             <div style="display: flex; align-items: center; gap: 0.75rem;">
                                 <div class="chart-title">
                                     <span class="chart-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💨</span>
-                                    <span>CO₂ History</span>
+                                    <span data-i18n="dashboard.chart.co2History">CO₂ History</span>
                                 </div>
                                 <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
                                     Avg: <span class="kpi-value" id="env-co2-avg" style="font-weight: 600; color: #10b981;">--</span> ppm
@@ -1328,7 +1331,7 @@
                             <div style="display: flex; align-items: center; gap: 0.75rem;">
                                 <div class="chart-title">
                                     <span class="chart-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</span>
-                                    <span>Sound Level History</span>
+                                    <span data-i18n="dashboard.chart.soundLevelHistory">Sound Level History</span>
                                 </div>
                                 <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
                                     Avg: <span class="kpi-value" id="env-sound-avg" style="font-weight: 600; color: #f59e0b;">--</span> dB
@@ -2749,6 +2752,8 @@
             }
         }
     };
+
+    document.addEventListener('DOMContentLoaded', function() { i18n.init(); });
 </script>
 </body>
 </html>

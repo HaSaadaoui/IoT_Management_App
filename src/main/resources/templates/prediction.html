@@ -11,6 +11,7 @@
         <link rel="stylesheet" href="/css/monitoringSensor.css" />
         <!-- Prediction-specific overrides -->
         <link rel="stylesheet" href="/css/prediction.css" />
+        <script src="/javascript/i18n.js"></script>
     </head>
 
     <body class="prediction-coming-soon-body">
@@ -185,10 +186,10 @@
                 </div>
 
                 <!-- Title -->
-                <h1 class="coming-soon-title"><span>Coming Soon</span></h1>
+                <h1 class="coming-soon-title"><span data-i18n="prediction.coming_soon_title">Coming Soon</span></h1>
 
                 <!-- Description -->
-                <p class="coming-soon-desc">
+                <p class="coming-soon-desc" data-i18n="prediction.coming_soon_desc">
                     We're building AI-powered energy prediction and forecasting tools.
                     <br/>This feature will be available in a future update.
                 </p>
@@ -197,24 +198,24 @@
                 <div class="coming-soon-features">
                     <div class="cs-feature-card">
                         <span class="cs-feature-icon">&#9889;</span>
-                        <span class="cs-feature-label">Online Predictions</span>
+                        <span class="cs-feature-label" data-i18n="prediction.online_predictions_label">Online Predictions</span>
                     </div>
                     <div class="cs-feature-card">
                         <span class="cs-feature-icon">&#128218;</span>
-                        <span class="cs-feature-label">Historical Backtest</span>
+                        <span class="cs-feature-label" data-i18n="prediction.historical_backtest_label">Historical Backtest</span>
                     </div>
                     <div class="cs-feature-card">
                         <span class="cs-feature-icon">&#129514;</span>
-                        <span class="cs-feature-label">What-If Scenarios</span>
+                        <span class="cs-feature-label" data-i18n="prediction.what_if_scenarios_label">What-If Scenarios</span>
                     </div>
                     <div class="cs-feature-card">
                         <span class="cs-feature-icon">&#128200;</span>
-                        <span class="cs-feature-label">Correlation Analysis</span>
+                        <span class="cs-feature-label" data-i18n="prediction.correlation_analysis_label">Correlation Analysis</span>
                     </div>
                 </div>
 
                 <!-- Back to home button -->
-                <a href="/home" class="coming-soon-btn">Back to Home</a>
+                <a href="/home" class="coming-soon-btn" data-i18n="prediction.back_to_home_btn">Back to Home</a>
             </div>
         </main>
 
@@ -238,6 +239,8 @@
         -->
 
         <script>
+            document.addEventListener('DOMContentLoaded', function() { i18n.init(); });
+
             function toggleMenu() {
                 document
                     .getElementById("dropdownMenu")

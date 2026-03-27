@@ -8,6 +8,7 @@
     <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}" />
     <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
     <link rel="stylesheet" type="text/css" th:href="@{/css/home.css}" />
+    <script src="/javascript/i18n.js"></script>
 </head>
 <body>
 
@@ -33,11 +34,11 @@
 
     <!-- Hero Section -->
     <div class="home-hero">
-        <div class="home-hero-badge">
+        <div class="home-hero-badge" data-i18n="home.hero.badge">
             <span class="badge-dot"></span>
             Smart Building Platform
         </div>
-        <h1>Smart Building<br/><span>IoT Management</span></h1>
+        <h1 data-i18n="home.hero.title">Smart Building<br/><span data-i18n="home.hero.subtitle">IoT Management</span></h1>
     </div>
 
     <!-- Dashboard Container -->
@@ -46,7 +47,7 @@
         <!-- Section Title -->
         <div class="dashboard-section-title">
             <span class="title-line"></span>
-            <h2>Quick Access</h2>
+            <h2 data-i18n="home.quick_access">Quick Access</h2>
             <span class="title-line"></span>
         </div>
 
@@ -57,8 +58,8 @@
                 <div class="card-icon">
                     <img src="/image/dashboard_icon.svg" alt="Dashboard" />
                 </div>
-                <span>Dashboard</span>
-                <div class="card-desc">Real-time monitoring</div>
+                <span data-i18n="home.dashboard.label">Dashboard</span>
+                <div class="card-desc" data-i18n="home.dashboard.description">Real-time monitoring</div>
             </a>
 
             <!-- Sensors -->
@@ -66,8 +67,8 @@
                 <div class="card-icon">
                     <img src="/image/sensor-icon.svg" alt="Sensors" />
                 </div>
-                <span>Sensors</span>
-                <div class="card-desc">Manage IoT devices</div>
+                <span data-i18n="home.sensors.label">Sensors</span>
+                <div class="card-desc" data-i18n="home.sensors.description">Manage IoT devices</div>
             </a>
 
             <!-- Gateways -->
@@ -75,8 +76,8 @@
                 <div class="card-icon">
                     <img src="/image/gateway-icon.svg" alt="Gateways" />
                 </div>
-                <span>Gateways</span>
-                <div class="card-desc">Network infrastructure</div>
+                <span data-i18n="home.gateways.label">Gateways</span>
+                <div class="card-desc" data-i18n="home.gateways.description">Network infrastructure</div>
             </a>
 
             <!-- Prediction -->
@@ -84,8 +85,8 @@
                 <div class="card-icon">
                     <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                 </div>
-                <span>Prediction</span>
-                <div class="card-desc">AI-powered analytics</div>
+                <span data-i18n="home.prediction.label">Prediction</span>
+                <div class="card-desc" data-i18n="home.prediction.description">AI-powered analytics</div>
             </a>
 
             <!-- Manage Users — ADMIN + SUPERUSER : active -->
@@ -95,8 +96,8 @@
                 <div class="card-icon">
                     <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
                 </div>
-                <span>Manage Users</span>
-                <div class="card-desc">Roles &amp; permissions</div>
+                <span data-i18n="home.manage_users.label">Manage Users</span>
+                <div class="card-desc" data-i18n="home.manage_users.description">Roles &amp; permissions</div>
             </a>
 
             <!-- Manage Users — USER : disabled -->
@@ -105,8 +106,8 @@
                 <div class="card-icon">
                     <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
                 </div>
-                <span>Manage Users</span>
-                <div class="card-desc">Admin only</div>
+                <span data-i18n="home.manage_users.label">Manage Users</span>
+                <div class="card-desc" data-i18n="home.manage_users.disabled">Admin only</div>
             </div>
 
             <!-- Configuration — ADMIN + SUPERUSER -->
@@ -116,8 +117,8 @@
                 <div class="card-icon">
                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                 </div>
-                <span>Configuration</span>
-                <div class="card-desc">Platform settings</div>
+                <span data-i18n="home.configuration.label">Configuration</span>
+                <div class="card-desc" data-i18n="home.configuration.description">Platform settings</div>
             </a>
 
             <!-- Configuration — USER : disabled -->
@@ -126,8 +127,8 @@
                 <div class="card-icon">
                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                 </div>
-                <span>Configuration</span>
-                <div class="card-desc">Admin only</div>
+                <span data-i18n="home.configuration.label">Configuration</span>
+                <div class="card-desc" data-i18n="home.configuration.disabled">Admin only</div>
             </div>
 
         </div>
@@ -136,8 +137,11 @@
 
 <!-- Footer -->
 <div class="footer-bar">
-    <span class="footer-text">&copy; 2026 <a href="https://www.mantu.com" target="_blank">Mantu Lab</a> &middot; Smart Building IoT Platform</span>
+    <span class="footer-text" data-i18n="home.footer.copyright">&copy; 2026 <a href="https://www.mantu.com" target="_blank">Mantu Lab</a> &middot; Smart Building IoT Platform</span>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() { i18n.init(); });
+</script>
 </body>
 </html>

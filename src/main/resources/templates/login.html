@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" type="text/css" th:href="@{/css/auth.css}" />
+    <script src="/javascript/i18n.js"></script>
 </head>
 <body class="auth-page">
 
@@ -20,42 +21,42 @@
     <div class="form-container sign-in-container">
         <div class="form-wrapper">
             <img th:src="@{/image/mantu-logo.jpg}" alt="Mantu Logo" class="auth-logo">
-            <h1 class="auth-title">Welcome back</h1>
-            <p class="auth-subtitle">Sign in to your Smart Building account</p>
+            <h1 class="auth-title" data-i18n="login.sign_in.title">Welcome back</h1>
+            <p class="auth-subtitle" data-i18n="login.sign_in.subtitle">Sign in to your Smart Building account</p>
 
             <!-- Error / Logout / Success Messages -->
             <div class="auth-message auth-message-error" th:if="${param.error}">
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                <span>Invalid username or password</span>
+                <span data-i18n="login.error">Invalid username or password</span>
             </div>
             <div class="auth-message auth-message-info" th:if="${param.logout}">
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                <span>You have been logged out</span>
+                <span data-i18n="login.logout_message">You have been logged out</span>
             </div>
             <div class="auth-message auth-message-success" th:if="${param.registered}">
                 <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                <span>Account created! Please sign in</span>
+                <span data-i18n="login.registered_message">Account created! Please sign in</span>
             </div>
 
             <!-- Login Form -->
             <form th:action="@{/login}" method="post">
                 <div class="auth-input-group">
-                    <label for="login-username">Username</label>
+                    <label for="login-username" data-i18n="login.username.label">Username</label>
                     <div class="input-wrapper">
                         <span class="input-icon">
                             <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         </span>
-                        <input class="auth-input" type="text" id="login-username" name="username" placeholder="Enter your username" required autocomplete="username">
+                        <input class="auth-input" type="text" id="login-username" name="username" placeholder="Enter your username" data-i18n-placeholder="login.username.placeholder" required autocomplete="username">
                     </div>
                 </div>
 
                 <div class="auth-input-group">
-                    <label for="login-password">Password</label>
+                    <label for="login-password" data-i18n="login.password.label">Password</label>
                     <div class="input-wrapper">
                         <span class="input-icon">
                             <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                         </span>
-                        <input class="auth-input" type="password" id="login-password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+                        <input class="auth-input" type="password" id="login-password" name="password" placeholder="Enter your password" data-i18n-placeholder="login.password.placeholder" required autocomplete="current-password">
                         <button type="button" class="auth-password-toggle" data-target="login-password" aria-label="Toggle password visibility">
                             <svg class="eye-open" viewBox="0 0 24 24" style="display:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             <svg class="eye-closed" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
@@ -65,12 +66,12 @@
 
                 <button type="submit" class="auth-btn auth-btn-primary">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-                    Sign In
+                    <span data-i18n="login.sign_in.button">Sign In</span>
                 </button>
             </form>
 
             <p class="auth-switch">
-                Don't have an account? <a href="javascript:void(0)" id="goToRegister">Create one</a>
+                <span data-i18n="login.no_account">Don't have an account?</span> <a href="javascript:void(0)" id="goToRegister" data-i18n="login.create_account">Create one</a>
             </p>
         </div>
     </div>
@@ -79,59 +80,59 @@
     <div class="form-container sign-up-container">
         <div class="form-wrapper">
             <img th:src="@{/image/mantu-logo.jpg}" alt="Mantu Logo" class="auth-logo">
-            <h1 class="auth-title">Create Account</h1>
-            <p class="auth-subtitle">Join the Smart Building platform</p>
+            <h1 class="auth-title" data-i18n="login.sign_up.title">Create Account</h1>
+            <p class="auth-subtitle" data-i18n="login.sign_up.subtitle">Join the Smart Building platform</p>
 
             <!-- Register Form -->
             <form th:action="@{/register}" method="post" id="registerForm">
                 <div class="auth-input-row">
                     <div class="auth-input-group">
-                        <label for="reg-firstname">First Name</label>
+                        <label for="reg-firstname" data-i18n="login.firstname.label">First Name</label>
                         <div class="input-wrapper">
                             <span class="input-icon">
                                 <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                             </span>
-                            <input class="auth-input" type="text" id="reg-firstname" name="firstname" placeholder="First name" required>
+                            <input class="auth-input" type="text" id="reg-firstname" name="firstname" placeholder="First name" data-i18n-placeholder="login.firstname.placeholder" required>
                         </div>
                     </div>
                     <div class="auth-input-group">
-                        <label for="reg-lastname">Last Name</label>
+                        <label for="reg-lastname" data-i18n="login.lastname.label">Last Name</label>
                         <div class="input-wrapper">
                             <span class="input-icon">
                                 <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                             </span>
-                            <input class="auth-input" type="text" id="reg-lastname" name="lastname" placeholder="Last name" required>
+                            <input class="auth-input" type="text" id="reg-lastname" name="lastname" placeholder="Last name" data-i18n-placeholder="login.lastname.placeholder" required>
                         </div>
                     </div>
                 </div>
 
                 <div class="auth-input-group">
-                    <label for="reg-username">Username</label>
+                    <label for="reg-username" data-i18n="login.register_username.label">Username</label>
                     <div class="input-wrapper">
                         <span class="input-icon">
                             <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         </span>
-                        <input class="auth-input" type="text" id="reg-username" name="username" placeholder="Choose a username" required>
+                        <input class="auth-input" type="text" id="reg-username" name="username" placeholder="Choose a username" data-i18n-placeholder="login.register_username.placeholder" required>
                     </div>
                 </div>
 
                 <div class="auth-input-group">
-                    <label for="reg-email">Email</label>
+                    <label for="reg-email" data-i18n="login.email.label">Email</label>
                     <div class="input-wrapper">
                         <span class="input-icon">
                             <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                         </span>
-                        <input class="auth-input" type="email" id="reg-email" name="email" placeholder="your@email.com" required>
+                        <input class="auth-input" type="email" id="reg-email" name="email" placeholder="your@email.com" data-i18n-placeholder="login.email.placeholder" required>
                     </div>
                 </div>
 
                 <div class="auth-input-group">
-                    <label for="reg-password">Password</label>
+                    <label for="reg-password" data-i18n="login.register_password.label">Password</label>
                     <div class="input-wrapper">
                         <span class="input-icon">
                             <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                         </span>
-                        <input class="auth-input" type="password" id="reg-password" name="password" placeholder="Create a password" required autocomplete="new-password">
+                        <input class="auth-input" type="password" id="reg-password" name="password" placeholder="Create a password" data-i18n-placeholder="login.register_password.placeholder" required autocomplete="new-password">
                         <button type="button" class="auth-password-toggle" data-target="reg-password" aria-label="Toggle password visibility">
                             <svg class="eye-open" viewBox="0 0 24 24" style="display:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             <svg class="eye-closed" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
@@ -140,26 +141,26 @@
                 </div>
 
                 <div class="auth-input-group">
-                    <label for="reg-confirm-password">Confirm Password</label>
+                    <label for="reg-confirm-password" data-i18n="login.confirm_password.label">Confirm Password</label>
                     <div class="input-wrapper">
                         <span class="input-icon">
                             <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                         </span>
-                        <input class="auth-input" type="password" id="reg-confirm-password" placeholder="Confirm your password" required autocomplete="new-password">
+                        <input class="auth-input" type="password" id="reg-confirm-password" placeholder="Confirm your password" data-i18n-placeholder="login.confirm_password.placeholder" required autocomplete="new-password">
                     </div>
-                    <div class="auth-field-error" id="confirmPasswordError">Passwords do not match</div>
+                    <div class="auth-field-error" id="confirmPasswordError" data-i18n="login.confirm_password.error">Passwords do not match</div>
                 </div>
 
                 <input type="hidden" name="role" value="USER" />
 
                 <button type="submit" class="auth-btn auth-btn-primary">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-                    Create Account
+                    <span data-i18n="login.create_account.button">Create Account</span>
                 </button>
             </form>
 
             <p class="auth-switch">
-                Already have an account? <a href="javascript:void(0)" id="goToLogin">Sign in</a>
+                <span data-i18n="login.have_account">Already have an account?</span> <a href="javascript:void(0)" id="goToLogin" data-i18n="login.sign_in">Sign in</a>
             </p>
         </div>
     </div>
@@ -218,9 +219,9 @@
                         <line x1="30" y1="170" x2="170" y2="170" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="4 4"/>
                     </svg>
                 </div>
-                <h2 class="overlay-title">Welcome Back!</h2>
-                <p class="overlay-text">Sign in to access your Smart Building dashboard and monitor your IoT devices</p>
-                <button class="auth-btn-ghost" id="overlayGoToLogin">Sign In</button>
+                <h2 class="overlay-title" data-i18n="login.overlay.welcome">Welcome Back!</h2>
+                <p class="overlay-text" data-i18n="login.overlay.welcome_text">Sign in to access your Smart Building dashboard and monitor your IoT devices</p>
+                <button class="auth-btn-ghost" id="overlayGoToLogin" data-i18n="login.overlay.welcome_button">Sign In</button>
             </div>
 
             <!-- RIGHT PANEL (visible when Login is active) -->
@@ -261,9 +262,9 @@
                         <line x1="30" y1="170" x2="170" y2="170" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="4 4"/>
                     </svg>
                 </div>
-                <h2 class="overlay-title">Hello!</h2>
-                <p class="overlay-text">Create an account to start managing your Smart Building Platform in real time</p>
-                <button class="auth-btn-ghost" id="overlayGoToRegister">Create Account</button>
+                <h2 class="overlay-title" data-i18n="login.overlay.hello">Hello!</h2>
+                <p class="overlay-text" data-i18n="login.overlay.hello_text">Create an account to start managing your Smart Building Platform in real time</p>
+                <button class="auth-btn-ghost" id="overlayGoToRegister" data-i18n="login.overlay.create_account_button">Create Account</button>
             </div>
 
         </div>
@@ -346,6 +347,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.location.search.indexOf('register') !== -1) {
         showRegister();
     }
+
+    i18n.init();
 });
 </script>
 

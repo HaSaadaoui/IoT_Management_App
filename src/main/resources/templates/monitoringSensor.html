@@ -14,6 +14,7 @@
         document.documentElement.dataset.sseToken  = /*[[${sseToken}]]*/ '';
     </script>
 
+    <script src="/javascript/i18n.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -56,17 +57,17 @@
 
     <!-- Onglets -->
     <nav class="tabs">
-        <button class="tab-btn is-active" data-pane="live">Real-time</button>
-        <button class="tab-btn" data-pane="history">History</button>
+        <button class="tab-btn is-active" data-pane="live" data-i18n="sensor.tab.live">Real-time</button>
+        <button class="tab-btn" data-pane="history" data-i18n="sensor.tab.history">History</button>
     </nav>
 
     <!-- ===== Panneau LIVE ===== -->
     <section id="pane-live">
         <!-- Infos statiques -->
-        <h3 class="section-title">📊 Sensor Information</h3>
+        <h3 class="section-title" data-i18n="sensor.info.title">📊 Sensor Information</h3>
         <section class="info-grid">
             <div class="card">
-                <h4>Status</h4>
+                <h4 data-i18n="sensor.info.status">Status</h4>
                 <p id="sensor-status-container">
                   <span id="sensor-status" class="badge" th:classappend="${sensor.status} ? ' badge--ok' : ' badge--off'">
                     <img th:src="${sensor.status} ? '/image/toggle_on.svg' : '/image/toggle_off.svg'" alt="Status"/>
@@ -75,10 +76,10 @@
                 </p>
             </div>
 
-            <div class="card"><h4>DevEUI</h4><p th:text="${sensor.devEui} ?: '--'">--</p></div>
+            <div class="card"><h4 data-i18n="sensor.info.deveui">DevEUI</h4><p th:text="${sensor.devEui} ?: '--'">--</p></div>
 
             <div class="card">
-                <h4>Gateway</h4>
+                <h4 data-i18n="sensor.info.gateway">Gateway</h4>
                 <p th:with="gid=${sensor.idGateway}, ip=${gatewayIp} ?: ''">
                     <a class="link"
                        th:href="@{|/manage-gateways/monitoring/${gid}/view?ip=${ip}|}"
@@ -86,35 +87,35 @@
                 </p>
             </div>
 
-            <div class="card"><h4>Building</h4><p th:text="${sensorBuildingName} ?: '--'">--</p></div>
-            <div class="card"><h4>Floor</h4><p th:text="${sensor.floor} ?: '--'">--</p></div>
-            <div class="card"><h4>Type</h4><p th:text="${deviceTypeLabel} ?: '--'">--</p></div>
-            <div class="card"><h4>Last seen</h4><p><span id="s-last" class="badge">--</span></p></div>
-            <div class="card"><h4>Protocol</h4><p><span class="badge">LoRaWAN</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.info.building">Building</h4><p th:text="${sensorBuildingName} ?: '--'">--</p></div>
+            <div class="card"><h4 data-i18n="sensor.info.floor">Floor</h4><p th:text="${sensor.floor} ?: '--'">--</p></div>
+            <div class="card"><h4 data-i18n="sensor.info.type">Type</h4><p th:text="${deviceTypeLabel} ?: '--'">--</p></div>
+            <div class="card"><h4 data-i18n="sensor.info.last_seen">Last seen</h4><p><span id="s-last" class="badge">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.info.protocol">Protocol</h4><p><span class="badge">LoRaWAN</span></p></div>
         </section>
 
         <!-- Last seen PAR TYPE -->
-        <h3 class="section-title">🕒 Last seen</h3>
+        <h3 class="section-title" data-i18n="sensor.last_seen.title">🕒 Last seen</h3>
 
         <!-- COUNT -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'COUNT')}">
-            <div class="card"><h4 class="with-icon icon-signal">Battery</h4>
+            <div class="card"><h4 class="with-icon icon-signal" data-i18n="sensor.field.battery">Battery</h4>
                 <p><span id="s-count-batt" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
                     <span>--</span>
                 </span></p></div>
-            <div class="card"><h4>Entries (Number of employees)</h4><p><span id="s-count-in" class="badge">--</span></p></div>
-            <div class="card"><h4>Exit (Number of employees)</h4><p><span id="s-count-out" class="badge">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.count_in">Entries (Number of employees)</h4><p><span id="s-count-in" class="badge">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.count_out">Exit (Number of employees)</h4><p><span id="s-count-out" class="badge">--</span></p></div>
         </section>
 
         <!-- OCCUP -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'OCCUP')}">
-            <div class="card"><h4>Occupancy</h4><p><span id="s-occup-presence" class="badge">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.occupancy">Occupancy</h4><p><span id="s-occup-presence" class="badge">--</span></p></div>
             <!-- VS70: Illuminance -->
-            <div class="card" id="s-occup-illum-card"><h4 class="with-icon icon-light">Illuminance</h4><p><span id="s-occup-illum" class="badge">--</span></p></div>
+            <div class="card" id="s-occup-illum-card"><h4 class="with-icon icon-light" data-i18n="sensor.field.illuminance">Illuminance</h4><p><span id="s-occup-illum" class="badge">--</span></p></div>
             <!-- VS30: Distance -->
-            <div class="card" id="s-occup-distance-card" style="display: none;"><h4 class="with-icon icon-distance">Distance (mm)</h4><p><span id="s-occup-distance" class="badge">--</span></p></div>
-            <div class="card"><h4>Battery</h4>
+            <div class="card" id="s-occup-distance-card" style="display: none;"><h4 class="with-icon icon-distance" data-i18n="sensor.field.distance">Distance (mm)</h4><p><span id="s-occup-distance" class="badge">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.battery">Battery</h4>
                 <p><span id="s-occup-batt" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
                     <span>--</span>
@@ -123,9 +124,9 @@
 
         <!-- TEMPEX -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'TEMPEX')}">
-            <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-tempex-temp" class="badge">--</span></p></div>
-            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-tempex-hum" class="humidity-badge humidity--normal">--</span></p></div>
-            <div class="card"><h4>Battery</h4>
+            <div class="card"><h4 class="with-icon icon-temp" data-i18n="sensor.field.temperature">Temperature</h4><p><span id="s-tempex-temp" class="badge">--</span></p></div>
+            <div class="card"><h4 class="with-icon icon-hum" data-i18n="sensor.field.humidity">Humidity</h4><p><span id="s-tempex-hum" class="humidity-badge humidity--normal">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.battery">Battery</h4>
                 <p><span id="s-tempex-batt" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
                     <span>--</span>
@@ -134,9 +135,9 @@
 
         <!-- PIR_LIGHT -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'PIR_LIGHT')}">
-            <div class="card"><h4>PIR</h4><p><span id="s-pir-presence" class="badge">--</span></p></div>
-            <div class="card"><h4>Daylight</h4><p><span id="s-pir-daylight" class="badge">--</span></p></div>
-            <div class="card"><h4>Battery</h4>
+            <div class="card"><h4 data-i18n="sensor.field.pir">PIR</h4><p><span id="s-pir-presence" class="badge">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.daylight">Daylight</h4><p><span id="s-pir-daylight" class="badge">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.battery">Battery</h4>
                 <p><span id="s-pir-batt" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
                     <span>--</span>
@@ -145,10 +146,10 @@
 
         <!-- DESK -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'DESK')}">
-            <div class="card"><h4>👤 Occupancy</h4><p><span id="s-desk-occupancy" class="badge">--</span></p></div>
-            <div class="card" id="s-desk-temp-card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-desk-temp" class="temp-badge temp--normal">--</span></p></div>
-            <div class="card" id="s-desk-hum-card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-desk-hum" class="humidity-badge humidity--normal">-- %</span></p></div>
-            <div class="card"><h4>Battery</h4>
+            <div class="card"><h4 data-i18n="sensor.field.occupancy">👤 Occupancy</h4><p><span id="s-desk-occupancy" class="badge">--</span></p></div>
+            <div class="card" id="s-desk-temp-card"><h4 class="with-icon icon-temp" data-i18n="sensor.field.temperature">Temperature</h4><p><span id="s-desk-temp" class="temp-badge temp--normal">--</span></p></div>
+            <div class="card" id="s-desk-hum-card"><h4 class="with-icon icon-hum" data-i18n="sensor.field.humidity">Humidity</h4><p><span id="s-desk-hum" class="humidity-badge humidity--normal">-- %</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.battery">Battery</h4>
                 <p><span id="s-desk-vdd" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
                     <span>--</span>
@@ -158,26 +159,26 @@
         <!-- CO2 -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'CO2')}">
             <div class="card">
-                <h4>💨 CO₂ Level</h4>
+                <h4 data-i18n="sensor.field.co2">💨 CO₂ Level</h4>
                 <p><span id="s-co2-ppm" class="co2-badge co2--good">-- ppm</span></p>
             </div>
-            <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-co2-temp" class="temp-badge temp--normal">--</span></p></div>
-            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-co2-hum" class="humidity-badge humidity--normal">--</span></p></div>
-            <div class="card"><h4>Battery</h4>
+            <div class="card"><h4 class="with-icon icon-temp" data-i18n="sensor.field.temperature">Temperature</h4><p><span id="s-co2-temp" class="temp-badge temp--normal">--</span></p></div>
+            <div class="card"><h4 class="with-icon icon-hum" data-i18n="sensor.field.humidity">Humidity</h4><p><span id="s-co2-hum" class="humidity-badge humidity--normal">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.battery">Battery</h4>
                 <p><span id="s-co2-vdd" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
                     <span>--</span>
                 </span></p></div>
-            <div class="card"><h4>💡 Light</h4><p><span id="s-co2-light" class="badge">--</span></p></div>
-            <div class="card"><h4>👤 Motion</h4><p><span id="s-co2-motion" class="badge">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.light">💡 Light</h4><p><span id="s-co2-light" class="badge">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.motion">👤 Motion</h4><p><span id="s-co2-motion" class="badge">--</span></p></div>
         </section>
 
         <!-- SON -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'SON')}">
-            <div class="card"><h4>Equivalent Sound Level (LAeq)</h4><p><span id="s-sound-laeq" class="badge">--</span></p></div>
-            <div class="card"><h4>Sound Impact (LAI)</h4><p><span id="s-sound-lai" class="badge">--</span></p></div>
-            <div class="card"><h4>Max Sound Impact (LAImax)</h4><p><span id="s-sound-laimax" class="badge">--</span></p></div>
-            <div class="card"><h4>Battery</h4>
+            <div class="card"><h4 data-i18n="sensor.field.laeq">Equivalent Sound Level (LAeq)</h4><p><span id="s-sound-laeq" class="badge">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.lai">Sound Impact (LAI)</h4><p><span id="s-sound-lai" class="badge">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.laimax">Max Sound Impact (LAImax)</h4><p><span id="s-sound-laimax" class="badge">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.battery">Battery</h4>
                 <p><span id="s-sound-batt" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
                     <span>--</span>
@@ -186,11 +187,11 @@
 
         <!-- EYE -->
         <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'EYE')}">
-            <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-eye-temp" class="badge">--</span></p></div>
-            <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-eye-hum" class="humidity-badge humidity--normal">--</span></p></div>
-            <div class="card"><h4>Light</h4><p><span id="s-eye-light" class="badge">--</span></p></div>
-            <div class="card"><h4>Presence</h4><p><span id="s-eye-presence" class="badge">--</span></p></div>
-            <div class="card"><h4>Battery</h4>
+            <div class="card"><h4 class="with-icon icon-temp" data-i18n="sensor.field.temperature">Temperature</h4><p><span id="s-eye-temp" class="badge">--</span></p></div>
+            <div class="card"><h4 class="with-icon icon-hum" data-i18n="sensor.field.humidity">Humidity</h4><p><span id="s-eye-hum" class="humidity-badge humidity--normal">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.light">Light</h4><p><span id="s-eye-light" class="badge">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.presence">Presence</h4><p><span id="s-eye-presence" class="badge">--</span></p></div>
+            <div class="card"><h4 data-i18n="sensor.field.battery">Battery</h4>
                 <p><span id="s-eye-vdd" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
                     <span>--</span>
@@ -208,7 +209,7 @@
           or #strings.equalsIgnoreCase(deviceTypeLabel,'EYE')
           or #strings.equalsIgnoreCase(deviceTypeLabel,'ENERGY')
           or #strings.equalsIgnoreCase(deviceTypeLabel,'CONSO'))}">
-            <div class="card"><h4>Battery</h4>
+            <div class="card"><h4 data-i18n="sensor.field.battery">Battery</h4>
                 <p><span id="s-gen-batt" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
                     <span>--</span>
@@ -217,7 +218,7 @@
 
         <!-- ENERGY/CONSO - Energy Consumption -->
         <section th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'ENERGY') or #strings.equalsIgnoreCase(deviceTypeLabel,'CONSO')}">
-            <h3 class="section-title">⚡ Energy Consumption</h3>
+            <h3 class="section-title" data-i18n="sensor.energy.section.title">⚡ Energy Consumption</h3>
 
             <!-- Dashboard principal -->
             <div class="energy-dashboard">
@@ -225,7 +226,7 @@
                 <div class="energy-groups">
                     <div id="energy-group-red-outlets" class="energy-group">
                         <div class="energy-group-header">
-                            <span class="group-name">🔴 Red Outlets</span>
+                            <span class="group-name" data-i18n="sensor.energy.group.red">🔴 Red Outlets</span>
                             <span class="group-channels">Channels 0, 1, 2</span>
                         </div>
                         <div class="energy-group-values">
@@ -236,7 +237,7 @@
 
                     <div id="energy-group-white-outlets" class="energy-group">
                         <div class="energy-group-header">
-                            <span class="group-name">⚪ White Outlets & Lighting</span>
+                            <span class="group-name" data-i18n="sensor.energy.group.white">⚪ White Outlets & Lighting</span>
                             <span class="group-channels">Channels 3, 4, 5</span>
                         </div>
                         <div class="energy-group-values">
@@ -247,7 +248,7 @@
 
                     <div id="energy-group-ventilation" class="energy-group">
                         <div class="energy-group-header">
-                            <span class="group-name">🌬️ Ventilation & Heaters</span>
+                            <span class="group-name" data-i18n="sensor.energy.group.ventilation">🌬️ Ventilation & Heaters</span>
                             <span class="group-channels">Channels 6, 7, 8</span>
                         </div>
                         <div class="energy-group-values">
@@ -258,7 +259,7 @@
 
                     <div id="energy-group-other" class="energy-group">
                         <div class="energy-group-header">
-                            <span class="group-name">🔧 Other Circuits</span>
+                            <span class="group-name" data-i18n="sensor.energy.group.other">🔧 Other Circuits</span>
                             <span class="group-channels">Channels 9, 10, 11</span>
                         </div>
                         <div class="energy-group-values">
@@ -272,7 +273,7 @@
                 <div>
                     <div id="energy-total" class="energy-total">
                         <div class="total-consumption">
-                            <div class="total-label">Total Consumption</div>
+                            <div class="total-label" data-i18n="sensor.energy.total.label">Total Consumption</div>
                             <div class="total-values">
                                 <div class="total-kwh">-- kWh</div>
                             </div>
@@ -281,15 +282,15 @@
 
                     <div id="energy-chart" class="energy-chart" style="margin-top: 1.5rem;">
                         <div style="text-align: center; color: #64748b; padding: 2rem;">
-                            📊 Real-time Chart<br>
-                            <small>Data will appear automatically</small>
+                            <span data-i18n="sensor.energy.realtime.chart">📊 Real-time Chart</span><br>
+                            <small data-i18n="sensor.energy.realtime.chart.sub">Data will appear automatically</small>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Channel Details -->
-            <h4 class="section-title" style="font-size: 1.1rem; margin-top: 2rem;">Channel Details</h4>
+            <h4 class="section-title" style="font-size: 1.1rem; margin-top: 2rem;" data-i18n="sensor.energy.channels.title">Channel Details</h4>
             <div class="energy-channels">
                 <div id="energy-channel-0" class="energy-channel">
                     <div class="energy-channel-header">
@@ -367,16 +368,16 @@
         </section>
 
         <!-- Graphiques en temps réel -->
-        <h3 class="section-title">📈 Real-Time Data</h3>
+        <h3 class="section-title" data-i18n="sensor.realtime.title">📈 Real-Time Data</h3>
         <section class="realtime-charts">
             <div class="chart-grid">
                 <!-- Graphique principal selon le type de capteur -->
                 <div class="chart-container">
                     <div class="chart-header">
-                        <h4 id="realtime-chart-title">Primary Data</h4>
+                        <h4 id="realtime-chart-title" data-i18n="sensor.chart.primary">Primary Data</h4>
                         <div class="chart-controls">
-                            <button id="chart-pause" class="chart-btn">⏸️ Pause</button>
-                            <button id="chart-clear" class="chart-btn">🗑️ Clear</button>
+                            <button id="chart-pause" class="chart-btn" data-i18n="sensor.btn.pause">⏸️ Pause</button>
+                            <button id="chart-clear" class="chart-btn" data-i18n="sensor.btn.clear">🗑️ Clear</button>
                         </div>
                     </div>
                     <div class="chart-canvas-wrapper">
@@ -387,7 +388,7 @@
                 <!-- Graphique secondaire -->
                 <div class="chart-container" id="secondary-chart-container">
                     <div class="chart-header">
-                        <h4 id="realtime-chart-secondary-title">Secondary Data</h4>
+                        <h4 id="realtime-chart-secondary-title" data-i18n="sensor.chart.secondary">Secondary Data</h4>
                         <div class="chart-legend" id="secondary-legend"></div>
                     </div>
                     <div class="chart-canvas-wrapper">
@@ -397,20 +398,20 @@
 
                 <!-- Illuminance Chart for OCCUP sensor -->
                 <div class="chart-container" id="illuminance-chart-container" style="display: none;">
-                    <div class="chart-header"><h4>💡 Illuminance</h4></div>
+                    <div class="chart-header"><h4 data-i18n="sensor.chart.illuminance">💡 Illuminance</h4></div>
                     <div class="chart-canvas-wrapper"><canvas id="realtime-chart-illuminance"></canvas></div>
                 </div>
 
                 <!-- Distance Chart for OCCUP sensor -->
                 <div class="chart-container" id="distance-chart-container" style="display: none;">
-                    <div class="chart-header"><h4>📏 Distance</h4></div>
+                    <div class="chart-header"><h4 data-i18n="sensor.chart.distance">📏 Distance</h4></div>
                     <div class="chart-canvas-wrapper"><canvas id="realtime-chart-distance"></canvas></div>
                 </div>
 
                 <!-- Humidity Chart for CO2 and DESK sensors -->
                 <div class="chart-container" id="humidity-chart-container" style="display: none;">
                     <div class="chart-header">
-                        <h4>💧 Humidity</h4>
+                        <h4 data-i18n="sensor.chart.humidity">💧 Humidity</h4>
                     </div>
                     <div class="chart-canvas-wrapper">
                         <canvas id="realtime-chart-humidity"></canvas>
@@ -420,7 +421,7 @@
                 <!-- Light Chart for CO2 and EYE sensors -->
                 <div class="chart-container" id="light-chart-container" style="display: none;">
                     <div class="chart-header">
-                        <h4>💡 Light Level</h4>
+                        <h4 data-i18n="sensor.chart.light">💡 Light Level</h4>
                     </div>
                     <div class="chart-canvas-wrapper">
                         <canvas id="realtime-chart-light"></canvas>
@@ -430,7 +431,7 @@
                 <!-- Occupancy Chart for EYE sensor -->
                 <div class="chart-container" id="occupancy-chart-container" style="display: none;">
                     <div class="chart-header">
-                        <h4>👤 Occupancy</h4>
+                        <h4 data-i18n="sensor.chart.occupancy">👤 Occupancy</h4>
                     </div>
                     <div class="chart-canvas-wrapper">
                         <canvas id="realtime-chart-occupancy"></canvas>
@@ -440,7 +441,7 @@
                 <!-- Motion Chart for EYE sensor -->
                 <div class="chart-container" id="motion-chart-container" style="display: none;">
                     <div class="chart-header">
-                        <h4>🏃 Motion</h4>
+                        <h4 data-i18n="sensor.chart.motion">🏃 Motion</h4>
                     </div>
                     <div class="chart-canvas-wrapper">
                         <canvas id="realtime-chart-motion"></canvas>
@@ -450,7 +451,7 @@
                 <!-- LAImax Chart for SON sensor -->
                 <div class="chart-container" id="laimax-chart-container" style="display: none;">
                     <div class="chart-header">
-                        <h4 id="realtime-chart-laimax-title">Max Sound Impact</h4>
+                        <h4 id="realtime-chart-laimax-title" data-i18n="sensor.chart.laimax">Max Sound Impact</h4>
                     </div>
                     <div class="chart-canvas-wrapper">
                         <canvas id="realtime-chart-laimax"></canvas>
@@ -461,25 +462,25 @@
         </section>
 
         <!-- Network / Radio -->
-        <h3 class="section-title">📡 Network / Radio</h3>
+        <h3 class="section-title" data-i18n="sensor.network.title">📡 Network / Radio</h3>
 
         <section id="net-grid" class="info-grid">
-            <div class="card"><h4>Frequency Plan</h4><p th:text="${
+            <div class="card"><h4 data-i18n="sensor.network.frequency">Frequency Plan</h4><p th:text="${
                 sensor.frequencyPlan == 'EU_863_870_TTN' ? 'Europe' :
                 sensor.frequencyPlan == 'US_902_928_FSB_2' ? 'United States' :
                 sensor.frequencyPlan == 'AU_915_928_FSB_2' ? 'Australia' :
                 sensor.frequencyPlan == 'CN_470_510_FSB_11' ? 'China' :
                 sensor.frequencyPlan == 'AS_920_923' ? 'Asia' : (sensor.frequencyPlan ?: '--')
             }">--</p></div>
-            <div class="card"><h4>Frame Counter / Port</h4><p class="labeled-values">
+            <div class="card"><h4 data-i18n="sensor.network.fcnt">Frame Counter / Port</h4><p class="labeled-values">
                 <span class="value-line">f_cnt: <span id="s-fcnt" class="badge">--</span></span>
                 <span class="value-line">f_port: <span id="s-fport" class="badge">--</span></span>
             </p></div>
-            <div class="card"><h4 class="with-icon icon-signal">Signal Quality</h4><p class="labeled-values">
+            <div class="card"><h4 class="with-icon icon-signal" data-i18n="sensor.network.signal">Signal Quality</h4><p class="labeled-values">
                 <span class="value-line">RSSI: <span id="s-rssi" class="badge">--</span></span>
                 <span class="value-line">SNR: <span id="s-snr" class="badge">--</span></span>
             </p></div>
-            <div class="card"><h4>Radio Parameters</h4><p class="labeled-values">
+            <div class="card"><h4 data-i18n="sensor.network.radio">Radio Parameters</h4><p class="labeled-values">
                 <span class="value-line">SF: <span id="s-sf" class="badge">--</span></span>
                 <!--<span class="value-line">BW: <span id="s-bw" class="badge">--</span></span>-->
                 <!--<span class="value-line">CR: <span id="s-cr" class="badge">--</span></span>-->
@@ -493,7 +494,7 @@
                 <!-- RSSI Chart -->
                 <div class="chart-container">
                     <div class="chart-header">
-                        <h4>📶 RSSI Signal Strength</h4>
+                        <h4 data-i18n="sensor.chart.rssi">📶 RSSI Signal Strength</h4>
                         <div class="chart-legend">
                             <span class="legend-item"><span class="legend-color" style="background: #ef4444;"></span> RSSI</span>
                         </div>
@@ -506,7 +507,7 @@
                 <!-- SNR Chart -->
                 <div class="chart-container">
                     <div class="chart-header">
-                        <h4>📡 SNR Signal Quality</h4>
+                        <h4 data-i18n="sensor.chart.snr">📡 SNR Signal Quality</h4>
                         <div class="chart-legend">
                             <span class="legend-item"><span class="legend-color" style="background: #3b82f6;"></span> SNR</span>
                         </div>
@@ -521,17 +522,17 @@
 
     <!-- ===== Panneau HISTORIQUE ===== -->
     <section id="pane-history" class="hidden">
-        <h3 class="section-title">📊 History & Analysis</h3>
+        <h3 class="section-title" data-i18n="sensor.history.title">📊 History & Analysis</h3>
 
         <!-- Filtres de période -->
         <div class="history-filters card">
             <div class="filter-grid">
                 <div class="filter-item">
-                    <label for="hist-from">📅 Start Date</label>
+                    <label for="hist-from" data-i18n="sensor.history.start">📅 Start Date</label>
                     <input type="datetime-local" id="hist-from" step="3600">
                 </div>
                 <div class="filter-item">
-                    <label for="hist-to">📅 End Date</label>
+                    <label for="hist-to" data-i18n="sensor.history.end">📅 End Date</label>
                     <input type="datetime-local" id="hist-to" step="3600">
                 </div>
                 <div class="filter-item" style="align-self:end;">
@@ -539,7 +540,7 @@
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 0.5rem;">
                             <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5z"/>
                         </svg>
-                        Load Data
+                        <span data-i18n="sensor.history.load">Load Data</span>
                     </button>
                 </div>
             </div>
@@ -550,35 +551,35 @@
             <div id="kpi-card-total" class="kpi-card kpi-card--primary">
                 <div class="kpi-icon">📊</div>
                 <div class="kpi-content">
-                    <div class="kpi-label">Total Measurements</div>
+                    <div class="kpi-label" data-i18n="sensor.kpi.total">Total Measurements</div>
                     <div class="kpi-value" id="kpi-total">--</div>
                 </div>
             </div>
             <div id="kpi-card-battery" class="kpi-card kpi-card--success">
                 <div class="kpi-icon">🔋</div>
                 <div class="kpi-content">
-                    <div class="kpi-label">Average Battery</div>
+                    <div class="kpi-label" data-i18n="sensor.kpi.battery">Average Battery</div>
                     <div class="kpi-value" id="kpi-battery">--</div>
                 </div>
             </div>
             <div id="kpi-card-conso" class="kpi-card kpi-card--success" style="display: none;">
                 <div class="kpi-icon">⚡</div>
                 <div class="kpi-content">
-                    <div class="kpi-label">Total consumption</div>
+                    <div class="kpi-label" data-i18n="sensor.kpi.conso">Total consumption</div>
                     <div class="kpi-value" id="kpi-conso">--</div>
                 </div>
             </div>
             <div id="kpi-card-rssi" class="kpi-card kpi-card--info">
                 <div class="kpi-icon">📡</div>
                 <div class="kpi-content">
-                    <div class="kpi-label">Average Signal (RSSI)</div>
+                    <div class="kpi-label" data-i18n="sensor.kpi.rssi">Average Signal (RSSI)</div>
                     <div class="kpi-value" id="kpi-rssi">--</div>
                 </div>
             </div>
             <div id="kpi-card-period" class="kpi-card kpi-card--warning">
                 <div class="kpi-icon">⏱️</div>
                 <div class="kpi-content">
-                    <div class="kpi-label">Analyzed Period</div>
+                    <div class="kpi-label" data-i18n="sensor.kpi.period">Analyzed Period</div>
                     <div class="kpi-value" id="kpi-period">--</div>
                 </div>
             </div>
@@ -586,7 +587,7 @@
 
         <!-- Network Quality Section -->
         <div class="charts-section" id="network-quality-section">
-            <h4 class="subsection-title">📈 Sensor Signal Quality</h4>
+            <h4 class="subsection-title" data-i18n="sensor.kpi.signal_quality">📈 Sensor Signal Quality</h4>
             <div class="charts-grid charts-grid--2col" id="network-metrics-container">
                 <!-- RSSI and SNR charts will be inserted here -->
             </div>
@@ -594,7 +595,7 @@
 
         <!-- Sensor Metrics Section -->
         <div class="charts-section" id="sensor-metrics-section" style="display: none;">
-            <h4 class="subsection-title">🎯 Sensor Metrics</h4>
+            <h4 class="subsection-title" data-i18n="sensor.kpi.metrics">🎯 Sensor Metrics</h4>
             <div class="charts-grid charts-grid--2col" id="sensor-metrics-container">
                 <!-- Dynamic sensor metric charts will be inserted here by JavaScript -->
             </div>
@@ -602,15 +603,15 @@
 
         <!-- Section pour l'histogramme de consommation -->
         <div class="charts-section" id="consumption-histogram-section" style="display: none;">
-            <h4 class="subsection-title">⚡ Energy Consumption</h4>
+            <h4 class="subsection-title" data-i18n="sensor.kpi.energy">⚡ Energy Consumption</h4>
             <div class="chart-card">
                 <div class="chart-header">
                     <div class="chart-title">
                         <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🔴</span>
-                        <span>Total consumption</span>
+                        <span data-i18n="sensor.kpi.conso">Total consumption</span>
                     </div>
                     <div class="chart-info">
-                        <span class="kpi-value" id="hist-total-total">--</span> kWh for selected period
+                        <span class="kpi-value" id="hist-total-total">--</span> <span data-i18n="sensor.kpi.energy.for_period">kWh for selected period</span>
                     </div>
                 </div>
                 <div class="chart-container">
@@ -623,5 +624,10 @@
     </section>
 
 </main>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        i18n.init();
+    });
+</script>
 </body>
 </html>

@@ -8,6 +8,7 @@
     <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}" />
     <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}" />
     <link rel="stylesheet" type="text/css" th:href="@{/css/manageUsers.css}" />
+    <script src="/javascript/i18n.js"></script>
 </head>
 
 <!-- expose logged role for JS (optional) -->
@@ -24,7 +25,7 @@
         <!-- Username search -->
         <div style="position: relative; display: flex; align-items: center; width: 200px;">
             <input type="text" id="usernameFilter"
-                   placeholder="Search by username"
+                   placeholder="Search by username" data-i18n-placeholder="manage_users.search_username_placeholder"
                    style="
                          padding: 8px 30px 8px 36px;
                          border: 1px solid #662179;
@@ -45,7 +46,7 @@
         <!-- Email search -->
         <div style="position: relative; display: flex; align-items: center; width: 250px;">
             <input type="text" id="emailFilter"
-                   placeholder="Search by email"
+                   placeholder="Search by email" data-i18n-placeholder="manage_users.search_email_placeholder"
                    style="
                          padding: 8px 30px 8px 36px;
                          border: 1px solid #662179;
@@ -81,10 +82,10 @@
                           background-position: right 10px center;
                           background-size: 15px;
                           padding-right: 35px;">
-                <option value="" selected>All Roles</option>
-                <option value="USER">User</option>
-                <option value="SUPERUSER">Superuser</option>
-                <option value="ADMIN">Admin</option>
+                <option value="" selected data-i18n="manage_users.all_roles_option">All Roles</option>
+                <option value="USER" data-i18n="manage_users.user_role">User</option>
+                <option value="SUPERUSER" data-i18n="manage_users.superuser_role">Superuser</option>
+                <option value="ADMIN" data-i18n="manage_users.admin_role">Admin</option>
             </select>
             <span id="clearRole"
                   style="position: absolute; right: 25px; cursor: pointer; font-size: 16px; color: #000; user-select: none; display: none;">
@@ -96,12 +97,12 @@
     <table>
         <thead>
         <tr>
-            <th>Username</th>
-            <th>Firstname</th>
-            <th>Lastname</th>
-            <th>E-mail</th>
-            <th>Role</th>
-            <th>Actions</th>
+            <th data-i18n="manage_users.username_header">Username</th>
+            <th data-i18n="manage_users.firstname_header">Firstname</th>
+            <th data-i18n="manage_users.lastname_header">Lastname</th>
+            <th data-i18n="manage_users.email_header">E-mail</th>
+            <th data-i18n="manage_users.role_header">Role</th>
+            <th data-i18n="manage_users.actions_header">Actions</th>
         </tr>
         </thead>
         <tbody>
@@ -149,8 +150,8 @@
         <div class="modal-content-delete">
             <h2>Confirm delete?</h2>
             <div class="form-buttons-delete">
-                <button id="confirmDelete" class="formButton">Delete</button>
-                <button id="cancelDelete" class="formButton">Cancel</button>
+                <button id="confirmDelete" class="formButton" data-i18n="manage_users.delete_btn">Delete</button>
+                <button id="cancelDelete" class="formButton" data-i18n="manage_users.cancel_delete_btn">Cancel</button>
             </div>
         </div>
     </div>
@@ -158,12 +159,12 @@
     <!-- Edit user popup -->
     <div id="editUserPopup" class="modal" th:if="${editUser != null}">
         <div class="modal-content">
-            <h2>Edit User</h2>
+            <h2 data-i18n="manage_users.edit_user_modal_title">Edit User</h2>
             <form th:action="@{/manage-users/edit}" th:object="${editUser}" method="post">
-                <input id="username" th:field="*{username}" placeholder="Username" required readonly />
-                <input id="firstname" th:field="*{firstname}" placeholder="Firstname" required />
-                <input id="lastname" th:field="*{lastname}" placeholder="Lastname" required />
-                <input id="email" type="email" th:field="*{email}" placeholder="E-mail" required />
+                <input id="username" th:field="*{username}" placeholder="Username" data-i18n-placeholder="manage_users.username_placeholder" required readonly />
+                <input id="firstname" th:field="*{firstname}" placeholder="Firstname" data-i18n-placeholder="manage_users.firstname_placeholder" required />
+                <input id="lastname" th:field="*{lastname}" placeholder="Lastname" data-i18n-placeholder="manage_users.lastname_placeholder" required />
+                <input id="email" type="email" th:field="*{email}" placeholder="E-mail" data-i18n-placeholder="manage_users.email_placeholder" required />
 
                 <select id="role" th:field="*{role}"
                         th:disabled="${loggedRole == 'SUPERUSER'}">
@@ -175,31 +176,31 @@
                        th:if="${loggedRole == 'SUPERUSER'}"/>
 
                 <div class="form-buttons">
-                    <button type="submit">Update</button>
-                    <button type="button" id="closeEdit">Cancel</button>
+                    <button type="submit" data-i18n="manage_users.edit_update_btn">Update</button>
+                    <button type="button" id="closeEdit" data-i18n="manage_users.edit_cancel_btn">Cancel</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Open create popup -->
-    <button id="openCreateBtn">Add User</button>
+    <button id="openCreateBtn" data-i18n="manage_users.add_user_btn">Add User</button>
 
     <!-- Create user popup -->
     <div id="createUserPopup" class="modal modalCreate">
         <div class="modal-content">
-            <h2>Add User</h2>
+            <h2 data-i18n="manage_users.add_user_modal_title">Add User</h2>
 
             <div th:if="${error}" class="alert alert-danger">
                 <p th:text="${error}"></p>
             </div>
 
             <form th:action="@{/manage-users/add}" method="post">
-                <input type="text" name="username" placeholder="Username" required />
-                <input type="text" name="firstname" placeholder="Firstname" required />
-                <input type="text" name="lastname" placeholder="Lastname" required />
-                <input type="password" name="password" placeholder="Password" required />
-                <input type="email" name="email" placeholder="E-mail" required />
+                <input type="text" name="username" placeholder="Username" data-i18n-placeholder="manage_users.username_placeholder" required />
+                <input type="text" name="firstname" placeholder="Firstname" data-i18n-placeholder="manage_users.firstname_placeholder" required />
+                <input type="text" name="lastname" placeholder="Lastname" data-i18n-placeholder="manage_users.lastname_placeholder" required />
+                <input type="password" name="password" placeholder="Password" data-i18n-placeholder="manage_users.password_placeholder" required />
+                <input type="email" name="email" placeholder="E-mail" data-i18n-placeholder="manage_users.email_placeholder" required />
 
                 <!-- SUPERUSER: can only create USER -->
                 <select name="role" required
@@ -221,8 +222,8 @@
                        value="USER"/>
 
                 <div class="form-buttons">
-                    <button type="submit">Add</button>
-                    <button type="button" id="closeCreate">Cancel</button>
+                    <button type="submit" data-i18n="manage_users.add_submit_btn">Add</button>
+                    <button type="button" id="closeCreate" data-i18n="manage_users.add_cancel_btn">Cancel</button>
                 </div>
             </form>
         </div>
@@ -230,5 +231,6 @@
 </div>
 
 <script th:src="@{/javascript/manageUsers.js}" defer></script>
+<script>document.addEventListener('DOMContentLoaded', function() { i18n.init(); });</script>
 </body>
 </html>

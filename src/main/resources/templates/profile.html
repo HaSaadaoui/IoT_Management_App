@@ -10,6 +10,7 @@
     <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}"/>
     <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}"/>
     <link rel="stylesheet" type="text/css" th:href="@{/css/profile.css}"/>
+    <script src="/javascript/i18n.js"></script>
 </head>
 <body class="profile-page">
     <header class="app-header">
@@ -72,8 +73,8 @@
                      alt="User Avatar" class="user-avatar">
                 
                 <!-- Edit icon overlay on avatar -->
-                <div class="avatar-edit-overlay" th:if="${user.username == loggedUsername}" 
-                     onclick="openAvatarModal()" title="Change profile picture">
+                <div class="avatar-edit-overlay" th:if="${user.username == loggedUsername}"
+                     onclick="openAvatarModal()" title="Change profile picture" data-i18n="profile.change_profile_picture">
                     <svg xmlns="http://www.w3.org/2000/svg" height="28px" viewBox="0 -960 960 960" width="28px">
                         <path fill="#ffffff"
                               d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/>
@@ -96,14 +97,14 @@
 
             <!-- Personal Information Section -->
             <div class="info-section">
-                <h3 class="section-title">Personal Information</h3>
+                <h3 class="section-title" data-i18n="profile.personal_info_section">Personal Information</h3>
                 <div class="info-grid">
                     <div class="info-item">
-                        <label>First Name</label>
+                        <label data-i18n="profile.first_name_label">First Name</label>
                         <p th:text="${user.firstname}"></p>
                     </div>
                     <div class="info-item">
-                        <label>Last Name</label>
+                        <label data-i18n="profile.last_name_label">Last Name</label>
                         <p th:text="${user.lastname}"></p>
                     </div>
                 </div>
@@ -111,14 +112,14 @@
 
             <!-- Account Information Section -->
             <div class="info-section">
-                <h3 class="section-title">Account Information</h3>
+                <h3 class="section-title" data-i18n="profile.account_info_section">Account Information</h3>
                 <div class="info-grid">
                     <div class="info-item">
-                        <label>Username</label>
+                        <label data-i18n="profile.username_label">Username</label>
                         <p th:text="${user.username}"></p>
                     </div>
                     <div class="info-item">
-                        <label>Role</label>
+                        <label data-i18n="profile.role_label">Role</label>
                         <p class="role-badge" th:text="${user.role}"></p>
                     </div>
                 </div>
@@ -130,13 +131,13 @@
                     <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
                         <path d="M240-80q-33 0-56.5-23.5T160-160v-400q0-33 23.5-56.5T240-640h40v-80q0-83 58.5-141.5T480-920q83 0 141.5 58.5T680-720v80h40q33 0 56.5 23.5T800-560v400q0 33-23.5 56.5T720-80H240Zm0-80h480v-400H240v400Zm240-120q33 0 56.5-23.5T560-360q0-33-23.5-56.5T480-440q-33 0-56.5 23.5T400-360q0 33 23.5 56.5T480-280ZM360-640h240v-80q0-50-35-85t-85-35q-50 0-85 35t-35 85v80ZM240-160v-400 400Z"/>
                     </svg>
-                    <span>Change Password</span>
+                    <span data-i18n="profile.change_password_btn">Change Password</span>
                 </button>
                 <button onclick="openEditModal()" class="btn-action btn-secondary">
                     <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
                         <path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/>
                     </svg>
-                    <span>Update Details</span>
+                    <span data-i18n="profile.update_details_btn">Update Details</span>
                 </button>
             </div>
 
@@ -150,27 +151,27 @@
      class="modal"
      th:classappend="(${errorCurrent != null} or ${errorNew != null} or ${errorConfirm != null} or ${globalError != null}) ? ' show' : ''">
     <div class="modal-content">
-        <h3>Change password</h3>
+        <h3 data-i18n="profile.change_password_modal_title">Change password</h3>
         <form id="passwordForm"
               th:action="@{/users/{username}/change-password(username=${user.username})}"
               method="post">
-            <label>Current password</label>
+            <label data-i18n="profile.current_password_label">Current password</label>
             <input type="password" name="currentPassword" required>
             <p class="error-message" th:if="${errorCurrent}" th:text="${errorCurrent}"></p>
 
-            <label>New password</label>
+            <label data-i18n="profile.new_password_label">New password</label>
             <input type="password" name="newPassword" required minlength="8">
             <p class="error-message" th:if="${errorNew}" th:text="${errorNew}"></p>
 
-            <label>Confirm new password</label>
+            <label data-i18n="profile.confirm_password_label">Confirm new password</label>
             <input type="password" name="confirmPassword" required>
             <p class="error-message" th:if="${errorConfirm}" th:text="${errorConfirm}"></p>
 
             <p class="error-message" th:if="${globalError}" th:text="${globalError}"></p>
 
             <div style="margin-top: 10px;">
-                <button type="submit">Update</button>
-                <button type="button" onclick="closeModal()">Cancel</button>
+                <button type="submit" data-i18n="profile.update_btn">Update</button>
+                <button type="button" onclick="closeModal()" data-i18n="profile.cancel_btn">Cancel</button>
             </div>
         </form>
     </div>
@@ -181,26 +182,26 @@
      class="modal"
      th:classappend="(${errorEdit != null}) ? ' show' : ''">
     <div class="modal-content">
-        <h3>Update my details</h3>
+        <h3 data-i18n="profile.edit_details_modal_title">Update my details</h3>
         <form id="editUserForm"
               th:action="@{/users/{username}/edit(username=${user.username})}"
               method="post">
 
-            <label>Firstname</label>
+            <label data-i18n="profile.firstname_label">Firstname</label>
             <input type="text" name="firstname" th:value="${user.firstname}" required>
 
-            <label>Lastname</label>
+            <label data-i18n="profile.lastname_label">Lastname</label>
             <input type="text" name="lastname" th:value="${user.lastname}" required>
 
-            <label>Email</label>
+            <label data-i18n="profile.email_label">Email</label>
             <input type="email" name="email" th:value="${user.email}" required>
 
             <p class="error-message" th:if="${errorEdit}" th:text="${errorEdit}"></p>
             <p class="success-message" th:if="${successEdit}" th:text="${successEdit}"></p>
 
             <div style="margin-top: 10px;">
-                <button type="submit">Update</button>
-                <button type="button" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" data-i18n="profile.update_btn">Update</button>
+                <button type="button" onclick="closeEditModal()" data-i18n="profile.cancel_btn">Cancel</button>
             </div>
         </form>
     </div>
@@ -209,18 +210,19 @@
 <!-- Modal pour édition de l'avatar -->
 <div id="avatarModal" class="modal">
     <div class="modal-content">
-        <h3>Change Icon</h3>
+        <h3 data-i18n="profile.change_icon_modal_title">Change Icon</h3>
         <form th:action="@{/users/{username}/update-avatar(username=${user.username})}"
               method="post" enctype="multipart/form-data">
             <input type="file" name="avatar" accept="image/*" required>
             <div style="margin-top: 10px;">
-                <button type="submit">Upload</button>
-                <button type="button" onclick="closeAvatarModal()">Cancel</button>
+                <button type="submit" data-i18n="profile.upload_btn">Upload</button>
+                <button type="button" onclick="closeAvatarModal()" data-i18n="profile.cancel_btn">Cancel</button>
             </div>
         </form>
     </div>
 </div>
 
+<script>document.addEventListener('DOMContentLoaded', function() { i18n.init(); });</script>
 <script>
     function toggleMenu() {
         document.getElementById("dropdownMenu").classList.toggle("show");
