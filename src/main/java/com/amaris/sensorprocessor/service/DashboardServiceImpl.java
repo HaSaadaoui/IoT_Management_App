@@ -1,17 +1,14 @@
 package com.amaris.sensorprocessor.service;
 
 import com.amaris.sensorprocessor.entity.Building;
-import com.amaris.sensorprocessor.entity.DeviceType;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.Sensor;
 import com.amaris.sensorprocessor.entity.SensorData;
 import com.amaris.sensorprocessor.model.dashboard.*;
-import com.amaris.sensorprocessor.repository.LocationDao;
 import com.amaris.sensorprocessor.repository.SensorDao;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.relational.core.sql.In;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -28,25 +25,22 @@ public class DashboardServiceImpl implements DashboardService {
     private final SensorDao sensorDao;
     private final SensorDataDao sensorDataDao;
     private final AlertService alertService;
-    private final DeviceTypeService deviceTypeService;
     private final BuildingService buildingService;
-    private final LocationDao locationDao;
+    private final LocationCacheService locationCacheService;
+    private final DeviceTypeCacheService deviceTypeCacheService;
 
     @Autowired
     public DashboardServiceImpl(SensorDao sensorDao, SensorDataDao sensorDataDao,
-                                AlertService alertService, DeviceTypeService deviceTypeService,
-                                BuildingService buildingService, LocationDao locationDao) {
+                                AlertService alertService,
+                                BuildingService buildingService,
+                                LocationCacheService locationCacheService,
+                                DeviceTypeCacheService deviceTypeCacheService) {
         this.sensorDao = sensorDao;
         this.sensorDataDao = sensorDataDao;
         this.alertService = alertService;
-        this.deviceTypeService = deviceTypeService;
         this.buildingService = buildingService;
-        this.locationDao = locationDao;
-    }
-
-    private Map<Integer, String> loadLocationNameMap() {
-        return locationDao.findAll().stream()
-                .collect(Collectors.toMap(l -> l.getId(), l -> l.getName(), (a, b) -> a));
+        this.locationCacheService = locationCacheService;
+        this.deviceTypeCacheService = deviceTypeCacheService;
     }
 
     private Integer mapBuildingToId(String building) {
@@ -68,10 +62,12 @@ public class DashboardServiceImpl implements DashboardService {
         }
     }
 
-    // ✅ Helper : charge tous les labels en une seule requête
+    private Map<Integer, String> loadLocationNameMap() {
+        return locationCacheService.loadLocationNameMap();
+    }
+
     private Map<Integer, String> loadDeviceTypeMap() {
-        return deviceTypeService.findAll().stream()
-                .collect(Collectors.toMap(DeviceType::getIdDeviceType, DeviceType::getLabel));
+        return deviceTypeCacheService.loadDeviceTypeMap();
     }
 
     @Override
@@ -194,49 +190,54 @@ public class DashboardServiceImpl implements DashboardService {
                     .collect(Collectors.toList());
         }
 
+        List<String> sensorIds = deskSensors.stream().map(Sensor::getIdSensor).collect(Collectors.toList());
+        Map<String, SensorData> latestBySensor = sensorDataDao.findLatestBySensorIdsAndType(sensorIds, PayloadValueType.OCCUPANCY);
+
         return deskSensors.stream()
                 .map(sensor -> {
-                    Optional<SensorData> latest = sensorDataDao.findLatestBySensorAndType(
-                            sensor.getIdSensor(), PayloadValueType.OCCUPANCY);
-
-                    String status = latest.map(data -> {
+                    SensorData data = latestBySensor.get(sensor.getIdSensor());
+                    String status;
+                    if (data == null) {
+                        status = "invalid";
+                    } else {
                         String valueStr = data.getValueAsString();
-                        if (valueStr == null) return "free";
-                        if ("occupied".equalsIgnoreCase(valueStr) || "used".equalsIgnoreCase(valueStr)) return "used";
-                        try {
-                            double num = Double.parseDouble(valueStr);
-                            return num > 0 ? "used" : "free";
-                        } catch (NumberFormatException e) {
-                            return "free";
+                        if (valueStr == null) {
+                            status = "free";
+                        } else if ("occupied".equalsIgnoreCase(valueStr) || "used".equalsIgnoreCase(valueStr)) {
+                            status = "used";
+                        } else {
+                            try {
+                                status = Double.parseDouble(valueStr) > 0 ? "used" : "free";
+                            } catch (NumberFormatException e) {
+                                status = "free";
+                            }
                         }
-                    }).orElse("invalid");
-
+                    }
                     return new Desk(sensor.getIdSensor(), status);
                 })
                 .collect(Collectors.toList());
     }
 
     private Map<String, Long> calculateOccupancyStats(List<Sensor> sensors) {
+        if (sensors.isEmpty()) return new HashMap<>();
+        List<String> sensorIds = sensors.stream().map(Sensor::getIdSensor).collect(Collectors.toList());
+        Map<String, SensorData> latestBySensor = sensorDataDao.findLatestBySensorIdsAndType(sensorIds, PayloadValueType.OCCUPANCY);
+        LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
+
         return sensors.stream()
                 .map(sensor -> {
-                    Optional<SensorData> latest = sensorDataDao.findLatestBySensorAndType(
-                            sensor.getIdSensor(), PayloadValueType.OCCUPANCY);
-
-                    return latest.map(data -> {
-                        if (data.getReceivedAt() == null ||
-                                data.getReceivedAt().isBefore(LocalDateTime.now().minusHours(1))) {
-                            return "invalid";
-                        }
-                        String valueStr = data.getValueAsString();
-                        if (valueStr == null) return "free";
-                        if ("occupied".equalsIgnoreCase(valueStr) || "used".equalsIgnoreCase(valueStr)) return "used";
-                        if ("free".equalsIgnoreCase(valueStr)) return "free";
-                        try {
-                            return Double.parseDouble(valueStr) > 0 ? "used" : "free";
-                        } catch (NumberFormatException e) {
-                            return "free";
-                        }
-                    }).orElse("invalid");
+                    SensorData data = latestBySensor.get(sensor.getIdSensor());
+                    if (data == null) return "invalid";
+                    if (data.getReceivedAt() == null || data.getReceivedAt().isBefore(oneHourAgo)) return "invalid";
+                    String valueStr = data.getValueAsString();
+                    if (valueStr == null) return "free";
+                    if ("occupied".equalsIgnoreCase(valueStr) || "used".equalsIgnoreCase(valueStr)) return "used";
+                    if ("free".equalsIgnoreCase(valueStr)) return "free";
+                    try {
+                        return Double.parseDouble(valueStr) > 0 ? "used" : "free";
+                    } catch (NumberFormatException e) {
+                        return "free";
+                    }
                 })
                 .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
     }
