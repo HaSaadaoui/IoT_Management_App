@@ -62,6 +62,16 @@ public class DashboardController {
     // Pour reset quotidien (si tu veux reset d’autres trucs plus tard)
     private final Map<String, LocalDate> lastDaySeen = new ConcurrentHashMap<>();
 
+    // Cache énergie DB (2 min TTL par building)
+    private final Map<String, Double> cachedEnergyWh = new ConcurrentHashMap<>();
+    private final Map<String, Instant> energyLastComputed = new ConcurrentHashMap<>();
+
+    // Cache building -> appId (invariant en runtime)
+    private final Map<String, String> buildingToAppIdCache = new ConcurrentHashMap<>();
+
+    // Tracker dernier message reçu par device (pour nettoyage fuite mémoire)
+    private final Map<String, Map<String, Instant>> powerLastSeen = new ConcurrentHashMap<>();
+
     @Autowired
     public DashboardController(
             UserService userService,
@@ -220,23 +230,24 @@ public class DashboardController {
     }
 
     private String mapBuildingToAppId(String building) {
-        String appId = "";
         if (building == null || building.isBlank() || "all".equalsIgnoreCase(building)) {
             return DEFAULT_APP_ID;
         }
-        if (isInteger(building)){
-            List<Gateway> gateway = gatewayService.findByBuildingId(Integer.parseInt(building));
-            if (!gateway.isEmpty()){
-                String gatewayId = gateway.get(0).getGatewayId();
-                // Cas particulier de Levallois
-                if (gatewayId.equals("leva-rpi-mantu")){
-                    appId = "lorawan-network-mantu";
-                } else {
-                    appId = gatewayId + "-appli";
+        return buildingToAppIdCache.computeIfAbsent(building, key -> {
+            String appId = "";
+            if (isInteger(key)) {
+                List<Gateway> gateway = gatewayService.findByBuildingId(Integer.parseInt(key));
+                if (!gateway.isEmpty()) {
+                    String gatewayId = gateway.get(0).getGatewayId();
+                    if (gatewayId.equals("leva-rpi-mantu")) {
+                        appId = "lorawan-network-mantu";
+                    } else {
+                        appId = gatewayId + "-appli";
+                    }
                 }
             }
-        }
-        return appId;
+            return appId;
+        });
     }
 
     private boolean isInteger(String s) {
@@ -344,6 +355,10 @@ public class DashboardController {
         List<String> deviceIds = consoDevicesByBuilding.getOrDefault(building, List.of());
         if (deviceIds.isEmpty()) return 0d;
 
+        Instant lastComputed = energyLastComputed.get(building);
+        if (lastComputed != null && Duration.between(lastComputed, Instant.now()).toSeconds() < 120) {
+            return cachedEnergyWh.getOrDefault(building, 0d);
+        }
 
         Instant start = parisStartOfDayInstant();
         Instant end = start.plus(1, ChronoUnit.DAYS);
@@ -382,7 +397,10 @@ public class DashboardController {
         double ventWh  = d[6] + d[7] + d[8];
         double otherWh = d[9] + d[10] + d[11];
 
-        return Math.abs(redWh + whiteWh + ventWh + otherWh);
+        double result = Math.abs(redWh + whiteWh + ventWh + otherWh);
+        cachedEnergyWh.put(building, result);
+        energyLastComputed.put(building, Instant.now());
+        return result;
     }
 
     // =========================
@@ -417,6 +435,7 @@ public class DashboardController {
     private void applyDecodedPayloadPowerOnly(String building, String deviceId, com.fasterxml.jackson.databind.JsonNode decoded) {
         powerW.computeIfAbsent(building, k -> new ConcurrentHashMap<>());
         powerW.get(building).computeIfAbsent(deviceId, k -> new ConcurrentHashMap<>());
+        powerLastSeen.computeIfAbsent(building, k -> new ConcurrentHashMap<>()).put(deviceId, Instant.now());
 
         var fields = decoded.fields();
         while (fields.hasNext()) {
@@ -489,9 +508,22 @@ public class DashboardController {
         if (last == null) return;
 
         if (!last.equals(today)) {
-            // ici tu peux reset power si tu veux repartir propre chaque jour:
-            // powerW.getOrDefault(building, Map.of()).clear();
+            cachedEnergyWh.remove(building);
+            energyLastComputed.remove(building);
             lastDaySeen.put(building, today);
+        }
+
+        Instant cutoff = Instant.now().minus(24, ChronoUnit.HOURS);
+        Map<String, Instant> devicesSeen = powerLastSeen.get(building);
+        if (devicesSeen != null) {
+            devicesSeen.entrySet().removeIf(entry -> {
+                if (entry.getValue().isBefore(cutoff)) {
+                    Map<String, Map<Integer, Double>> buildingPower = powerW.get(building);
+                    if (buildingPower != null) buildingPower.remove(entry.getKey());
+                    return true;
+                }
+                return false;
+            });
         }
     }
 
