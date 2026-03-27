@@ -181,8 +181,8 @@ class ArchitecturalFloorPlan {
       // ouverture du flux SSE
       this._sensorEs = new EventSource(url);
 
-      // données capteurs
-      this._sensorEs.addEventListener("uplink", (e) => {
+      // Traitement commun uplink + snapshot
+      const handleSensorEvent = (e) => {
         try {
           const raw = JSON.parse(e.data);
           const msg = raw?.result ?? raw;
@@ -200,19 +200,21 @@ class ArchitecturalFloorPlan {
             msg?.payload ||
             {};
 
-          //valeur utile selon le mode courant
           const value = this.extractSensorValue(this.sensorMode, decoded);
-          console.log('Extracted value: ', value);
-
           if (value == null) return;
 
-          // Mise à jour UI
           this.updateSensorValue(sensorId, value);
 
         } catch (err) {
           console.warn("[SSE sensors] parse error", err, e.data);
         }
-      });
+      };
+
+      // snapshot = valeurs initiales depuis le cache (affichage instantané)
+      this._sensorEs.addEventListener("snapshot", handleSensorEvent);
+
+      // uplink = messages MQTT live
+      this._sensorEs.addEventListener("uplink", handleSensorEvent);
 
       // keepalive (silencieux)
       this._sensorEs.addEventListener("keepalive", () => {
