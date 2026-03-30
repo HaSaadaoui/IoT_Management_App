@@ -814,6 +814,64 @@ public class SensorDataDao {
     }
 
     /**
+     * Get daily statistics for multiple sensors over a date range in ONE query,
+     * grouped by date. Replaces the N-queries-per-day loop pattern.
+     *
+     * @return Map of date-string (yyyy-MM-dd) → Map of sensorId → HourlyStatistics
+     */
+    public Map<String, Map<String, HourlyStatistics>> getDailyStatisticsBatchForRange(
+            List<String> sensorIds,
+            PayloadValueType valueType,
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime) {
+
+        if (sensorIds == null || sensorIds.isEmpty()) return new HashMap<>();
+
+        String placeholders = String.join(",", java.util.Collections.nCopies(sensorIds.size(), "?"));
+
+        String query = "SELECT " +
+                      "  DATE(received_at) as day_bucket, " +
+                      "  id_sensor, " +
+                      "  AVG(CAST(value AS REAL)) as avg_value, " +
+                      "  MIN(CAST(value AS REAL)) as min_value, " +
+                      "  MAX(CAST(value AS REAL)) as max_value, " +
+                      "  COUNT(*) as data_count " +
+                      "FROM sensor_data " +
+                      "WHERE id_sensor IN (" + placeholders + ") " +
+                      "  AND value_type = ? " +
+                      "  AND received_at >= ? AND received_at < ? " +
+                      "  AND value IS NOT NULL " +
+                      "GROUP BY DATE(received_at), id_sensor " +
+                      "ORDER BY day_bucket ASC";
+
+        List<Object> params = new ArrayList<>(sensorIds);
+        params.add(valueType.toString());
+        params.add(startDateTime);
+        params.add(endDateTime);
+
+        try {
+            Map<String, Map<String, HourlyStatistics>> result = new java.util.LinkedHashMap<>();
+            jdbcTemplate.query(query, (rs) -> {
+                String day = rs.getString("day_bucket");
+                String sensorId = rs.getString("id_sensor");
+                int count = rs.getInt("data_count");
+                if (count == 0) return;
+                HourlyStatistics stats = new HourlyStatistics(
+                        rs.getDouble("avg_value"),
+                        rs.getDouble("min_value"),
+                        rs.getDouble("max_value"),
+                        count
+                );
+                result.computeIfAbsent(day, k -> new HashMap<>()).put(sensorId, stats);
+            }, params.toArray());
+            return result;
+        } catch (Exception e) {
+            System.err.println("Error executing getDailyStatisticsBatchForRange: " + e.getMessage());
+            return new HashMap<>();
+        }
+    }
+
+    /**
      * DTO for aggregated data points.
      */
     public static class AggregatedDataPoint {
