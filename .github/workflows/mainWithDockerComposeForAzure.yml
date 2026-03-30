@@ -61,31 +61,34 @@ jobs:
         run: |
           RUNNER_IP=$(curl -s https://api.ipify.org)
           echo "RUNNER_IP=$RUNNER_IP" >> $GITHUB_ENV
+          echo "Runner IP: $RUNNER_IP"
 
-          # NSG principal (interface réseau)
-          az network nsg rule create \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --nsg-name ${{ env.NSG_NAME }} \
-            --name GitHubActionsSSH \
-            --priority 500 \
-            --source-address-prefixes $RUNNER_IP \
-            --destination-port-ranges 22 \
-            --access Allow \
-            --protocol Tcp \
-            --direction Inbound
-
-          # NSG secondaire (sous-réseau) — uniquement pour develop
-          if [[ -n "${{ env.NSG_NAME_2 }}" ]]; then
+          upsert_nsg_rule() {
+            local rg=$1
+            local nsg=$2
+            # Supprime la règle si elle existe déjà (run précédent planté sans cleanup)
+            az network nsg rule delete \
+              --resource-group "$rg" \
+              --nsg-name "$nsg" \
+              --name GitHubActionsSSH 2>/dev/null || true
             az network nsg rule create \
-              --resource-group ${{ env.RESOURCE_GROUP_2 }} \
-              --nsg-name ${{ env.NSG_NAME_2 }} \
+              --resource-group "$rg" \
+              --nsg-name "$nsg" \
               --name GitHubActionsSSH \
               --priority 500 \
-              --source-address-prefixes $RUNNER_IP \
+              --source-address-prefixes "$RUNNER_IP" \
               --destination-port-ranges 22 \
               --access Allow \
               --protocol Tcp \
               --direction Inbound
+          }
+
+          # NSG principal
+          upsert_nsg_rule "${{ env.RESOURCE_GROUP }}" "${{ env.NSG_NAME }}"
+
+          # NSG secondaire — uniquement pour develop
+          if [[ -n "${{ env.NSG_NAME_2 }}" ]]; then
+            upsert_nsg_rule "${{ env.RESOURCE_GROUP_2 }}" "${{ env.NSG_NAME_2 }}"
           fi
 
           echo "Waiting for NSG rule to propagate..."
@@ -94,14 +97,20 @@ jobs:
           else
             TARGET_HOST="${{ secrets.AZURE_HOST_TEST }}"
           fi
+          SSH_OPEN=false
           for i in {1..12}; do
             if nc -z -w5 $TARGET_HOST 22 2>/dev/null; then
               echo "SSH port is open, continuing..."
+              SSH_OPEN=true
               break
             fi
             echo "Attempt $i/12: SSH not yet available, waiting 10s..."
             sleep 10
           done
+          if [[ "$SSH_OPEN" == "false" ]]; then
+            echo "ERROR: SSH port 22 unreachable after 120s — aborting deployment"
+            exit 1
+          fi
 
       - name: ssh-agent setup
         uses: webfactory/ssh-agent@v0.9.0
