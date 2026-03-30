@@ -149,6 +149,48 @@ public class SensorDataDao {
         }
     }
 
+    public Map<String, SensorData> findLatestBySensorIdsAndType(List<String> sensorIds, PayloadValueType valueType) {
+        if (sensorIds == null || sensorIds.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        String placeholders = String.join(",", java.util.Collections.nCopies(sensorIds.size(), "?"));
+
+        String query = "SELECT sd.id_sensor, sd.received_at, sd.value, sd.value_type " +
+                       "FROM sensor_data sd " +
+                       "INNER JOIN (" +
+                       "  SELECT id_sensor, MAX(received_at) AS max_received_at " +
+                       "  FROM sensor_data " +
+                       "  WHERE id_sensor IN (" + placeholders + ") AND value_type = ? " +
+                       "  GROUP BY id_sensor" +
+                       ") latest ON sd.id_sensor = latest.id_sensor AND sd.received_at = latest.max_received_at " +
+                       "WHERE sd.value_type = ?";
+
+        List<Object> params = new ArrayList<>(sensorIds.size() + 2);
+        params.addAll(sensorIds);
+        params.add(valueType.toString());
+        params.add(valueType.toString());
+
+        try {
+            List<SensorData> rows = jdbcTemplate.query(query, (rs, rowNum) -> {
+                LocalDateTime receivedAt = rs.getTimestamp("received_at") != null
+                        ? rs.getTimestamp("received_at").toLocalDateTime() : null;
+                String value = rs.getString("value");
+                String vt = rs.getString("value_type");
+                if (receivedAt == null || value == null || vt == null) return null;
+                return new SensorData(rs.getString("id_sensor"), receivedAt, value, vt);
+            }, params.toArray());
+
+            Map<String, SensorData> result = new HashMap<>();
+            for (SensorData sd : rows) {
+                if (sd != null) result.putIfAbsent(sd.getIdSensor(), sd);
+            }
+            return result;
+        } catch (Exception e) {
+            return new HashMap<>();
+        }
+    }
+
     public Optional<SensorData> findLatestBySensor(String idSensor) {
         String query = "SELECT * FROM sensor_data WHERE id_sensor = ? ORDER BY received_at DESC LIMIT 1";
 
