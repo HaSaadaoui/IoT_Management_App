@@ -685,12 +685,11 @@ class DashboardManager {
 			const getAvg = async ({ sensorType, metricType, excludeSensorType }) => {
 				const { avg } = await this.fetchHistogramAvg({
 					building, floor, sensorType, metricType,
-					timeRange: ‘LAST_7_DAYS’, granularity: ‘DAILY’, timeSlot, excludeSensorType
+					timeRange: 'LAST_7_DAYS', granularity: 'DAILY', timeSlot, excludeSensorType
 				});
 				return avg;
 			};
 
-			// Toutes les requetes en parallele
 			const [
 				occItems,
 				tempExt, humExt,
@@ -698,52 +697,44 @@ class DashboardManager {
 				co2Avg, laeqAvg, lightAvg
 			] = await Promise.allSettled([
 				this.fetchOccupancy(floor),
-				getAvg({ sensorType: ‘TEMPEX’, metricType: ‘TEMPERATURE’ }),
-				getAvg({ sensorType: ‘TEMPEX’, metricType: ‘HUMIDITY’ }),
-				getAvg({ sensorType: ‘ALL’, metricType: ‘TEMPERATURE’, excludeSensorType: ‘TEMPEX’ }),
-				getAvg({ sensorType: ‘ALL’, metricType: ‘HUMIDITY’, excludeSensorType: ‘TEMPEX’ }),
-				this.fetchLiveMetric(‘CO2’),
-				this.fetchLiveMetric(‘LAEQ’),
-				this.fetchLiveMetric(‘LIGHT’)
+				getAvg({ sensorType: 'TEMPEX', metricType: 'TEMPERATURE' }),
+				getAvg({ sensorType: 'TEMPEX', metricType: 'HUMIDITY' }),
+				getAvg({ sensorType: 'ALL', metricType: 'TEMPERATURE', excludeSensorType: 'TEMPEX' }),
+				getAvg({ sensorType: 'ALL', metricType: 'HUMIDITY', excludeSensorType: 'TEMPEX' }),
+				this.fetchLiveMetric('CO2'),
+				this.fetchLiveMetric('LAEQ'),
+				this.fetchLiveMetric('LIGHT')
 			]);
 
-			// Desk occupancy
-			if (occItems.status === ‘fulfilled’) {
+			if (occItems.status === 'fulfilled') {
 				const filtered = (occItems.value || []).filter(x =>
-					/^desk-\d{2}-\d{2}$/.test(String(x?.id || ‘’).toLowerCase())
+					/^desk-\d{2}-\d{2}$/.test(String(x?.id || '').toLowerCase())
 				);
-				this.updateMetricValue(‘live-desk-usage’, this.computeOccupancyFromStatuses(filtered).label);
+				this.updateMetricValue('live-desk-usage', this.computeOccupancyFromStatuses(filtered).label);
 			} else {
-				console.warn(‘Desk occupancy ratio failed’, occItems.reason);
+				console.warn('Desk occupancy ratio failed', occItems.reason);
 			}
 
-			// =========================================================
-			// TEMP / HUM : EXT = TEMPEX ; INT = ALL (sans TEMPEX)
-			// =========================================================
-			if (tempExt.status === ‘fulfilled’) safeSet(‘live-avg-temperature-ext’, tempExt.value, v => v.toFixed(1));
-			else console.warn(‘Temperature EXT failed’, tempExt.reason?.message);
+			if (tempExt.status === 'fulfilled') safeSet('live-avg-temperature-ext', tempExt.value, v => v.toFixed(1));
+			else console.warn('Temperature EXT failed', tempExt.reason?.message);
 
-			if (humExt.status === ‘fulfilled’) safeSet(‘live-avg-humidity-ext’, humExt.value, v => v.toFixed(1));
-			else console.warn(‘Humidity EXT failed’, humExt.reason?.message);
+			if (humExt.status === 'fulfilled') safeSet('live-avg-humidity-ext', humExt.value, v => v.toFixed(1));
+			else console.warn('Humidity EXT failed', humExt.reason?.message);
 
-			if (tempInt.status === ‘fulfilled’) safeSet(‘live-avg-temperature-int’, tempInt.value, v => v.toFixed(1));
-			else console.warn(‘Temperature INT failed’, tempInt.reason?.message);
+			if (tempInt.status === 'fulfilled') safeSet('live-avg-temperature-int', tempInt.value, v => v.toFixed(1));
+			else console.warn('Temperature INT failed', tempInt.reason?.message);
 
-			if (humInt.status === ‘fulfilled’) safeSet(‘live-avg-humidity-int’, humInt.value, v => v.toFixed(1));
-			else console.warn(‘Humidity INT failed’, humInt.reason?.message);
+			if (humInt.status === 'fulfilled') safeSet('live-avg-humidity-int', humInt.value, v => v.toFixed(1));
+			else console.warn('Humidity INT failed', humInt.reason?.message);
 
-			// =========================================================
-			// AUTRES METRICS
-			// =========================================================
-			if (co2Avg.status === ‘fulfilled’) safeSet(‘live-avg-co2’, co2Avg.value, v => Math.round(v));
-			if (laeqAvg.status === ‘fulfilled’) safeSet(‘live-avg-sound’, laeqAvg.value, v => v.toFixed(1));
-			if (lightAvg.status === ‘fulfilled’) safeSet(‘live-avg-light’, lightAvg.value, v => Math.round(v));
+			if (co2Avg.status === 'fulfilled') safeSet('live-avg-co2', co2Avg.value, v => Math.round(v));
+			if (laeqAvg.status === 'fulfilled') safeSet('live-avg-sound', laeqAvg.value, v => v.toFixed(1));
+			if (lightAvg.status === 'fulfilled') safeSet('live-avg-light', lightAvg.value, v => Math.round(v));
 
 		} catch (e) {
-			console.error(‘Error updating live building metrics:’, e);
+			console.error('Error updating live building metrics:', e);
 		}
 	}
-
 	updateMetricValue(elementId, value) {
 		const element = document.getElementById(elementId);
 		if (element) element.textContent = value;
