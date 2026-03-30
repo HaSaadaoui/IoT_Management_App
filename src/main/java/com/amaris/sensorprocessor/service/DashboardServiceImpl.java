@@ -105,6 +105,12 @@ public class DashboardServiceImpl implements DashboardService {
                     .collect(Collectors.toList());
         }
 
+        // Pre-load latest occupancy data for ALL sensors in ONE query
+        List<String> allSensorIds = filteredSensors.stream().map(Sensor::getIdSensor).collect(Collectors.toList());
+        Map<String, SensorData> preloadedLatest = allSensorIds.isEmpty()
+                ? new HashMap<>()
+                : sensorDataDao.findLatestBySensorIdsAndType(allSensorIds, PayloadValueType.OCCUPANCY);
+
         Map<Integer, String> locationNameMap = loadLocationNameMap();
         Map<String, List<Sensor>> sensorsByLocation = filteredSensors.stream()
                 .collect(Collectors.groupingBy(sensor ->
@@ -116,7 +122,7 @@ public class DashboardServiceImpl implements DashboardService {
         for (Map.Entry<String, List<Sensor>> entry : sensorsByLocation.entrySet()) {
             String location = entry.getKey();
             List<Sensor> sensorsInLocation = entry.getValue();
-            Map<String, Long> stats = calculateOccupancyStats(sensorsInLocation);
+            Map<String, Long> stats = calculateOccupancyStats(sensorsInLocation, preloadedLatest);
 
             liveSensorData.add(new LiveSensorData(
                     location,
@@ -126,7 +132,7 @@ public class DashboardServiceImpl implements DashboardService {
             ));
         }
 
-        Map<String, Long> totalStats = calculateOccupancyStats(filteredSensors);
+        Map<String, Long> totalStats = calculateOccupancyStats(filteredSensors, preloadedLatest);
         liveSensorData.add(new LiveSensorData(
                 "Total Live Data",
                 totalStats.getOrDefault("free", 0L).intValue(),
@@ -146,7 +152,11 @@ public class DashboardServiceImpl implements DashboardService {
         List<Sensor> filteredSensors = sensorDao.findAllByDeviceType(sensorType);
 
         int totalSensors = filteredSensors.size();
-        var selected = calculateOccupancyStats(filteredSensors);
+        List<String> histSensorIds = filteredSensors.stream().map(Sensor::getIdSensor).collect(Collectors.toList());
+        Map<String, SensorData> histPreloaded = histSensorIds.isEmpty()
+                ? new HashMap<>()
+                : sensorDataDao.findLatestBySensorIdsAndType(histSensorIds, PayloadValueType.OCCUPANCY);
+        var selected = calculateOccupancyStats(filteredSensors, histPreloaded);
         double occupancyRate = 0;
         for (var entry : selected.entrySet()) {
             occupancyRate += entry.getValue();
@@ -218,15 +228,13 @@ public class DashboardServiceImpl implements DashboardService {
                 .collect(Collectors.toList());
     }
 
-    private Map<String, Long> calculateOccupancyStats(List<Sensor> sensors) {
+    private Map<String, Long> calculateOccupancyStats(List<Sensor> sensors, Map<String, SensorData> preloadedLatest) {
         if (sensors.isEmpty()) return new HashMap<>();
-        List<String> sensorIds = sensors.stream().map(Sensor::getIdSensor).collect(Collectors.toList());
-        Map<String, SensorData> latestBySensor = sensorDataDao.findLatestBySensorIdsAndType(sensorIds, PayloadValueType.OCCUPANCY);
         LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
 
         return sensors.stream()
                 .map(sensor -> {
-                    SensorData data = latestBySensor.get(sensor.getIdSensor());
+                    SensorData data = preloadedLatest.get(sensor.getIdSensor());
                     if (data == null) return "invalid";
                     if (data.getReceivedAt() == null || data.getReceivedAt().isBefore(oneHourAgo)) return "invalid";
                     String valueStr = data.getValueAsString();
@@ -518,40 +526,41 @@ public class DashboardServiceImpl implements DashboardService {
                 current = current.plusHours(1);
             }
         } else {
-            LocalDateTime current = start.truncatedTo(ChronoUnit.DAYS);
-            LocalDateTime last = end.truncatedTo(ChronoUnit.DAYS);
-
-            while (!current.isAfter(last)) {
-                LocalDateTime bucketStart = current;
-                LocalDateTime bucketEnd = current.plusDays(1);
-                String key = bucketStart.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-
-                if (!totalMode) {
-                    Map<String, SensorDataDao.HourlyStatistics> statsMap =
-                            sensorDataDao.getDailyStatisticsBatch(sensorIds, request.getMetricType(), bucketStart, bucketEnd);
-                    if (statsMap != null && !statsMap.isEmpty()) dataMap.put(key, new ArrayList<>(statsMap.values()));
-                } else {
-                    Map<String, Double> sumAbsBySensor = new HashMap<>();
-                    Map<String, Integer> maxCountBySensor = new HashMap<>();
-                    for (PayloadValueType part : metricParts) {
-                        Map<String, SensorDataDao.HourlyStatistics> m =
-                                sensorDataDao.getDailyStatisticsBatch(sensorIds, part, bucketStart, bucketEnd);
-                        if (m == null || m.isEmpty()) continue;
-                        for (Map.Entry<String, SensorDataDao.HourlyStatistics> e : m.entrySet()) {
-                            sumAbsBySensor.merge(e.getKey(), Math.abs(e.getValue().getAverage()), Double::sum);
-                            maxCountBySensor.merge(e.getKey(), e.getValue().getDataPointCount(), Math::max);
-                        }
-                    }
-                    if (!sumAbsBySensor.isEmpty()) {
-                        List<SensorDataDao.HourlyStatistics> merged = new ArrayList<>();
-                        for (Map.Entry<String, Double> e : sumAbsBySensor.entrySet()) {
-                            int cnt = maxCountBySensor.getOrDefault(e.getKey(), 0);
-                            merged.add(new SensorDataDao.HourlyStatistics(e.getValue(), e.getValue(), e.getValue(), cnt));
-                        }
-                        dataMap.put(key, merged);
+            if (!totalMode) {
+                // Single query for the full range, grouped by date in SQL
+                Map<String, Map<String, SensorDataDao.HourlyStatistics>> byDate =
+                        sensorDataDao.getDailyStatisticsBatchForRange(sensorIds, request.getMetricType(), start, end);
+                for (Map.Entry<String, Map<String, SensorDataDao.HourlyStatistics>> entry : byDate.entrySet()) {
+                    if (entry.getValue() != null && !entry.getValue().isEmpty()) {
+                        dataMap.put(entry.getKey(), new ArrayList<>(entry.getValue().values()));
                     }
                 }
-                current = current.plusDays(1);
+            } else {
+                // Total mode: one query per metric part, then aggregate in memory
+                Map<String, Map<String, Double>> sumAbsByDateSensor = new HashMap<>();
+                Map<String, Map<String, Integer>> maxCountByDateSensor = new HashMap<>();
+                for (PayloadValueType part : metricParts) {
+                    Map<String, Map<String, SensorDataDao.HourlyStatistics>> byDate =
+                            sensorDataDao.getDailyStatisticsBatchForRange(sensorIds, part, start, end);
+                    for (Map.Entry<String, Map<String, SensorDataDao.HourlyStatistics>> dateEntry : byDate.entrySet()) {
+                        String day = dateEntry.getKey();
+                        for (Map.Entry<String, SensorDataDao.HourlyStatistics> se : dateEntry.getValue().entrySet()) {
+                            sumAbsByDateSensor.computeIfAbsent(day, k -> new HashMap<>())
+                                    .merge(se.getKey(), Math.abs(se.getValue().getAverage()), Double::sum);
+                            maxCountByDateSensor.computeIfAbsent(day, k -> new HashMap<>())
+                                    .merge(se.getKey(), se.getValue().getDataPointCount(), Math::max);
+                        }
+                    }
+                }
+                for (Map.Entry<String, Map<String, Double>> dateEntry : sumAbsByDateSensor.entrySet()) {
+                    String day = dateEntry.getKey();
+                    List<SensorDataDao.HourlyStatistics> merged = new ArrayList<>();
+                    for (Map.Entry<String, Double> se : dateEntry.getValue().entrySet()) {
+                        int cnt = maxCountByDateSensor.getOrDefault(day, Map.of()).getOrDefault(se.getKey(), 0);
+                        merged.add(new SensorDataDao.HourlyStatistics(se.getValue(), se.getValue(), se.getValue(), cnt));
+                    }
+                    if (!merged.isEmpty()) dataMap.put(day, merged);
+                }
             }
         }
 
