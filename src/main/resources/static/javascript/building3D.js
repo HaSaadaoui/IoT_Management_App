@@ -170,6 +170,9 @@ class Building3D {
         try {
             // On ne persiste que dans la configuration
             if (!this.currentArchPlan || this.isDashboard) return;
+            // Ne pas persister un SVG vide (drawFloorPlan pas encore terminé)
+            const contentRoot = this.currentArchPlan.svg?.querySelector('#content-root');
+            if (!contentRoot || contentRoot.children.length === 0) return;
             const svgContent = this.currentArchPlan.exportSVG();
             if (!svgContent) return;
             // Nettoyage ancien blob si existant
@@ -739,19 +742,25 @@ class Building3D {
     switch2DFloorView(floorNumber) {
         this.isIn3DView = false;
 
-        const layout = document.querySelector('.building-layout');
-        if (layout) layout.style.display = 'flex';
+        if (this.isDashboard) {
+            const layout = document.querySelector('.building-layout');
+            if (layout) layout.style.display = 'flex';
 
-        // Hide placeholder, show floor content
-        const placeholder = document.getElementById('floor-plan-placeholder');
-        const content = document.getElementById('floor-plan-content');
-        if (placeholder) placeholder.style.display = 'none';
-        if (content) content.style.display = 'flex';
+            // Hide placeholder, show floor content
+            const placeholder = document.getElementById('floor-plan-placeholder');
+            const content = document.getElementById('floor-plan-content');
+            if (placeholder) placeholder.style.display = 'none';
+            if (content) content.style.display = 'flex';
+        } else {
+            // Configuration page: show 2D plan, hide 3D container
+            const container3d = document.getElementById('building-3d-container');
+            if (container3d) container3d.style.display = 'none';
+            const floorPlan2d = document.getElementById('floor-plan-2d');
+            if (floorPlan2d) floorPlan2d.style.display = 'block';
+        }
 
         const backBtn = document.getElementById('back-to-3d-btn');
         if (backBtn) backBtn.style.display = 'block';
-
-
 
         requestAnimationFrame(() => this.resize3D());
 
@@ -843,20 +852,30 @@ class Building3D {
     return3DView() {
         this.isIn3DView = true;
 
-        // Show placeholder, hide floor content
-        const placeholder = document.getElementById('floor-plan-placeholder');
-        const content = document.getElementById('floor-plan-content');
-        if (placeholder) placeholder.style.display = '';
-        if (content) content.style.display = 'none';
+        if (this.isDashboard) {
+            // Show placeholder, hide floor content
+            const placeholder = document.getElementById('floor-plan-placeholder');
+            const content = document.getElementById('floor-plan-content');
+            if (placeholder) placeholder.style.display = '';
+            if (content) content.style.display = 'none';
 
-        const layout = document.querySelector('.building-layout');
-        if (layout) layout.style.display = 'flex';
+            const layout = document.querySelector('.building-layout');
+            if (layout) layout.style.display = 'flex';
+
+            const left = document.querySelector('.left-panel');
+            const right = document.querySelector('.right-panel');
+            if (left) left.style.flex = '';
+            if (right) right.style.flex = '';
+        } else {
+            // Configuration page: show 3D container, hide 2D plan
+            const container3d = document.getElementById('building-3d-container');
+            if (container3d) container3d.style.display = '';
+            const floorPlan2d = document.getElementById('floor-plan-2d');
+            if (floorPlan2d) floorPlan2d.style.display = 'none';
+        }
 
         const backBtn = document.getElementById('back-to-3d-btn');
         if (backBtn) backBtn.style.display = 'none';
-
-        document.querySelector('.left-panel').style.flex = '';
-        document.querySelector('.right-panel').style.flex = '';
 
         requestAnimationFrame(() => this.resize3D());
 
