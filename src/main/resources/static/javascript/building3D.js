@@ -751,8 +751,6 @@ class Building3D {
         const backBtn = document.getElementById('back-to-3d-btn');
         if (backBtn) backBtn.style.display = 'block';
 
-        document.querySelector('.left-panel').style.flex = '0 0 50%';
-        document.querySelector('.right-panel').style.flex = '0 0 50%';
 
 
         requestAnimationFrame(() => this.resize3D());
