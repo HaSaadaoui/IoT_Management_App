@@ -362,13 +362,9 @@ public class AlertService {
     }
 
     private void parseAndUpdateCache(String payload) {
-        log.error("🔥 PARSE CALLED 🔥");
-        log.warn("SSE RAW PAYLOAD RECEIVED: {}", payload);
         try {
-            log.info("SSE PAYLOAD RECEIVED");
             JsonNode root = objectMapper.readTree(payload);
-            log.info("SSE Playload: ", root);
-            JsonNode result = root.path("raw").path("result");
+            JsonNode result = root.path("result");
             if (result.isMissingNode()) {
                 log.warn("No result node in payload");
                 return;
