@@ -1053,6 +1053,22 @@ class Building3D {
         if (container3D) container3D.style.display = 'block';
         if (backBtn)     backBtn.style.display     = 'none';
 
+        const floorPlan2d = document.getElementById('floor-plan-2d');
+        if (floorPlan2d) floorPlan2d.style.display = 'none';
+
+        // Resynchroniser le renderer si le container était caché (dimensions = 0)
+        if (container3D && this.renderer) {
+            const w = container3D.clientWidth;
+            const h = container3D.clientHeight;
+            if (w > 0 && h > 0) {
+                this.renderer.setSize(w, h);
+                if (this.camera) {
+                    this.camera.aspect = w / h;
+                    this.camera.updateProjectionMatrix();
+                }
+            }
+        }
+
         // Show placeholder, hide floor content (resetLayout already does this, but be explicit)
         const placeholder = document.getElementById('floor-plan-placeholder');
         const content = document.getElementById('floor-plan-content');
