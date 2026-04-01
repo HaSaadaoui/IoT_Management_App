@@ -1053,8 +1053,11 @@ class Building3D {
         if (container3D) container3D.style.display = 'block';
         if (backBtn)     backBtn.style.display     = 'none';
 
-        const floorPlan2d = document.getElementById('floor-plan-2d');
-        if (floorPlan2d) floorPlan2d.style.display = 'none';
+        // Sur la page config uniquement : masquer le plan 2D (sur dashboard, floor-plan-2d est le right-panel toujours visible)
+        if (!this.isDashboard) {
+            const floorPlan2d = document.getElementById('floor-plan-2d');
+            if (floorPlan2d) floorPlan2d.style.display = 'none';
+        }
 
         // Resynchroniser le renderer si le container était caché (dimensions = 0)
         if (container3D && this.renderer) {
