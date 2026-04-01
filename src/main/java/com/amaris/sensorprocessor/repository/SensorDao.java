@@ -201,4 +201,15 @@ public class SensorDao {
         return jdbcTemplate.queryForList(sql.toString(), params.toArray());
     }
 
+    public List<Map<String, Object>> findZonesByBuilding(Integer buildingId) {
+        return jdbcTemplate.queryForList(
+                "SELECT s.id_sensor, s.floor, l.name AS location_name " +
+                "FROM sensors s " +
+                "LEFT JOIN location l ON s.location_id = l.id " +
+                "WHERE s.building_id = ? AND s.status = 1 " +
+                "ORDER BY s.floor, l.name",
+                buildingId
+        );
+    }
+
 }

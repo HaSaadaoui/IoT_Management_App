@@ -678,7 +678,7 @@ class Building3D {
         }
 
         overlay.innerHTML = `
-            <h4 style="margin:0 0 0.5rem;color:#662179;font-size:1rem;">${data.name}</h4>
+            <h4 style="margin:0 0 0.5rem;color:#662179;font-size:1rem;">${floorName}</h4>
             <p style="margin:0.25rem 0;font-size:0.9rem;">Total Desks: ${floorTotalDesks}</p>
             <p style="margin:0.25rem 0;font-size:0.9rem;color:#10b981;">🟢 Free: ${freeDesks}</p>
             <p style="margin:0.25rem 0;font-size:0.9rem;color:#ef4444;">🔴 Used: ${usedDesks}</p>

@@ -99,6 +99,32 @@ public class SensorController {
 
     /* ===================== GET ===================== */
 
+    @GetMapping("/api/sensors/zones")
+    @ResponseBody
+    public ResponseEntity<Map<Integer, Map<String, List<String>>>> getSensorZones(
+            @RequestParam Integer buildingId) {
+
+        List<Map<String, Object>> rows = sensorService.findZonesByBuilding(buildingId);
+
+        Map<Integer, Map<String, List<String>>> result = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            Object floorObj = row.get("floor");
+            String sensorId = (String) row.get("id_sensor");
+            String locationName = (String) row.get("location_name");
+
+            if (floorObj == null || sensorId == null) continue;
+            int floor = ((Number) floorObj).intValue();
+            if (locationName == null || locationName.isBlank()) locationName = "Unknown";
+
+            result
+                .computeIfAbsent(floor, f -> new LinkedHashMap<>())
+                .computeIfAbsent(locationName, l -> new ArrayList<>())
+                .add(sensorId);
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
     @GetMapping("/api/sensors/locations")
     @ResponseBody
     public ResponseEntity<List<com.amaris.sensorprocessor.entity.Location>> getDistinctLocations(

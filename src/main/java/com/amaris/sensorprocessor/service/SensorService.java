@@ -159,6 +159,10 @@ public class SensorService {
         return sensorDao.findAllByBuildingAndFloor(buildingId, floorNumber);
     }
 
+    public List<java.util.Map<String, Object>> findZonesByBuilding(Integer buildingId) {
+        return sensorDao.findZonesByBuilding(buildingId);
+    }
+
 
     public Sensor getOrThrow(String idSensor) {
         return findByIdSensor(idSensor)
