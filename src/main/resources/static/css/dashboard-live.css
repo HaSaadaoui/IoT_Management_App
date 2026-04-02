@@ -285,3 +285,37 @@ main {
     background:#3b82f6;
     color:white;
 }
+
+
+
+.env-chart-btn.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: white;
+}
+
+
+.zone-block {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+    border: 1px solid #f1f5f9;
+    position: relative; /* important pour le séparateur */
+}
+
+/* séparateur entre zones */
+.zone-block::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--primary-light));
+}
+
+.env-chart-btn.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: white;
+}

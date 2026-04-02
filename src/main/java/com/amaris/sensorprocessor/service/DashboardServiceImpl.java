@@ -645,7 +645,7 @@ public class DashboardServiceImpl implements DashboardService {
         for (Map<String, Object> row : rows) {
 
             String deviceId = (String) row.get("id_sensor");
-            String location = (String) row.get("location");
+            String location = (String) row.get("name");
             String type = (String) row.get("type_name");
 
             // groupement par zone
@@ -671,6 +671,7 @@ public class DashboardServiceImpl implements DashboardService {
 
         // format final
         List<Map<String, Object>> zonesList = zones.entrySet().stream()
+                .filter(e -> e.getKey() != null && !e.getKey().isBlank())
                 .map(e -> Map.of(
                         "name", e.getKey(),
                         "deviceIds", e.getValue()
