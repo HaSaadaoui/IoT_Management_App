@@ -185,8 +185,96 @@ class SensorOverlayManager {
     }
 
     createTempThermal() {
-      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      const stableDefs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      const stableIsNumericValue = (value) => typeof value === 'number' && !Number.isNaN(value);
+      const stableClusterThreshold = 28;
+      const stableLabelClusters = [];
 
+      this.sensors.forEach(sensor => {
+        const parent = this._resolveParentGroup(sensor.floor);
+        const gradId = `temp-grad-${sensor.id}`;
+        const circleId = `temp-circle-${sensor.id}`;
+
+        const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
+        gradient.setAttribute("id", gradId);
+
+        const color = this.getTempColor(sensor.value);
+
+        gradient.innerHTML = `
+          <stop offset="0%" style="stop-color:${color};stop-opacity:0.6"/>
+          <stop offset="70%" style="stop-color:${color};stop-opacity:0.2"/>
+          <stop offset="100%" style="stop-color:${color};stop-opacity:0"/>
+        `;
+
+        stableDefs.appendChild(gradient);
+
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("class", "circle-marker");
+        circle.setAttribute("id", circleId);
+        circle.setAttribute("cx", sensor.x);
+        circle.setAttribute("cy", sensor.y);
+        circle.setAttribute("r", "90");
+        circle.setAttribute("fill", `url(#${gradId})`);
+
+        parent.appendChild(circle);
+      });
+
+      const stableSameCluster = (left, right) =>
+        left.floor === right.floor &&
+        Math.abs(left.x - right.x) < stableClusterThreshold &&
+        Math.abs(left.y - right.y) < stableClusterThreshold;
+
+      const stableSensorScore = (sensor) => {
+        const valueScore = stableIsNumericValue(sensor.value) ? 100 : 0;
+        const co2Score = sensor.type === 'CO2' ? 20 : 0;
+        const eyeScore = sensor.type === 'EYE' ? 15 : 0;
+        const nativeTempScore = (sensor.type === 'TEMP' || sensor.type === 'TEMPEX') ? 10 : 0;
+        return valueScore + co2Score + eyeScore + nativeTempScore;
+      };
+
+      this.sensors.forEach(sensor => {
+        if (!['TEMP', 'TEMPEX', 'CO2', 'EYE'].includes(sensor.type)) return;
+
+        const cluster = stableLabelClusters.find(entry => stableSameCluster(entry.anchor, sensor));
+        if (!cluster) {
+          stableLabelClusters.push({ anchor: sensor, chosen: sensor });
+          return;
+        }
+
+        if (stableSensorScore(sensor) > stableSensorScore(cluster.chosen)) {
+          cluster.chosen = sensor;
+        }
+      });
+
+      stableLabelClusters.forEach(({ chosen }) => {
+        const iconY = (chosen.type === 'CO2' || chosen.type === 'EYE') ? chosen.y - 18 : chosen.y;
+        this.addSensorIcon(
+          chosen.x,
+          iconY,
+          this.getIcon("TEMP"),
+          `${chosen.value} °C`,
+          chosen.id,
+          chosen.floor
+        );
+      });
+
+      this.svg.insertBefore(stableDefs, this.svg.firstChild);
+      return;
+
+      /* Legacy temperature overlay path disabled during cleanup.
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      const isNumericValue = (value) => typeof value === 'number' && !Number.isNaN(value);
+      const clusterThreshold = 28;
+      const labelClusters = [];
+      const hasNearbyMeasuredTemperatureCarrier = (sensor) => {
+        return this.sensors.some(candidate =>
+          candidate.id !== sensor.id &&
+          (candidate.type === 'CO2' || candidate.type === 'EYE') &&
+          isNumericValue(candidate.value) &&
+          Math.abs(candidate.x - sensor.x) < clusterThreshold &&
+          Math.abs(candidate.y - sensor.y) < clusterThreshold
+        );
+      };
       this.sensors.forEach(sensor => {
         const parent = this._resolveParentGroup(sensor.floor);
         const gradId = `temp-grad-${sensor.id}`;
@@ -215,10 +303,18 @@ class SensorOverlayManager {
 
         parent.appendChild(circle);
 
-        this.addSensorIcon(sensor.x, sensor.y, this.getIcon("TEMP"), `${sensor.value} °C`, sensor.id, sensor.floor);
+        if (sensor.type === 'TEMP' || sensor.type === 'TEMPEX') {
+          if (!isNumericValue(sensor.value) && hasNearbyMeasuredTemperatureCarrier(sensor)) {
+            return;
+          }
+          this.addSensorIcon(sensor.x, sensor.y, this.getIcon("TEMP"), `${sensor.value} °C`, sensor.id, sensor.floor);
+        } else if (sensor.type === 'CO2' || sensor.type === 'EYE') {
+          this.addSensorIcon(sensor.x, sensor.y - 18, this.getIcon("TEMP"), `${sensor.value} °C`, sensor.id, sensor.floor);
+        }
       });
 
       this.svg.insertBefore(defs, this.svg.firstChild);
+      */
     }
 
     getTempColor(temp) {
@@ -382,9 +478,12 @@ class SensorOverlayManager {
     createTempexFlow() {
         this.sensors.forEach(sensor => {
             const parent = this._resolveParentGroup(sensor.floor);
-            const arrow = this.createArrow(sensor.x, sensor.y, sensor.direction || 0, sensor.intensity || 1);
-            parent.appendChild(arrow);
-            this.addSensorIcon(sensor.x, sensor.y - 25, this.getIcon("TEMPEX"), `${sensor.value}°C`, sensor.id, sensor.floor);
+            if (sensor.type === 'TEMPEX' || sensor.type === 'TEMP') {
+                const arrow = this.createArrow(sensor.x, sensor.y, sensor.direction || 0, sensor.intensity || 1);
+                parent.appendChild(arrow);
+                this.addSensorIcon(sensor.x, sensor.y - 25, this.getIcon("TEMPEX"), `${sensor.value}°C`, sensor.id, sensor.floor);
+            }
+            // CO2/EYE sensors: no arrow or label in TEMPEX mode
         });
     }
 
@@ -450,9 +549,23 @@ class SensorOverlayManager {
         icon.setAttribute("font-size", "20");
         icon.textContent = emoji;
 
+        // Label y offset: emoji baseline is at y, its visual bottom is at ~y+4.
+        // Place label 28 units below so the visual gap (~24px) is always comfortable.
+        const labelY = y + 28;
+
+        // White background rect so the label is legible over heatmap bubbles
+        const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        bg.setAttribute("x", x - 22);
+        bg.setAttribute("y", labelY - 10);
+        bg.setAttribute("width", "44");
+        bg.setAttribute("height", "13");
+        bg.setAttribute("rx", "2");
+        bg.setAttribute("fill", "white");
+        bg.setAttribute("fill-opacity", "0.75");
+
         const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
         text.setAttribute("x", x);
-        text.setAttribute("y", y + 20);
+        text.setAttribute("y", labelY);
         text.setAttribute("text-anchor", "middle");
         text.setAttribute("font-size", "10");
         text.setAttribute("font-weight", "bold");
@@ -466,6 +579,7 @@ class SensorOverlayManager {
         text.textContent = label;
 
         g.appendChild(icon);
+        g.appendChild(bg);
         g.appendChild(text);
         parent.appendChild(g);
     }
@@ -775,10 +889,17 @@ class SensorOverlayManager {
       this.updateVisual(sensor);
       console.log('Updated visual: ', sensor);
 
-      if (sensor.type === "CO2") this.updateCO2Visual(sensor);
-      if (sensor.type === "TEMP" || sensor.type === "TEMPEX") this.updateTempVisual(sensor);
-      if (sensor.type === "HUMIDITY") this.updateHumidityVisual(sensor);
-      if (sensor.type === "NOISE") this.updateNoiseVisual(sensor);
+      // Update gradient/heatmap based on current display mode, not sensor.type
+      // (CO2 sensors can display temperature in TEMP mode, etc.)
+      switch (this.currentMode) {
+        case "CO2":      this.updateCO2Visual(sensor);      break;
+        case "TEMP":
+        case "TEMPEX":
+          this.updateTempVisual(sensor);
+          break;
+        case "HUMIDITY": this.updateHumidityVisual(sensor); break;
+        case "NOISE":    this.updateNoiseVisual(sensor);    break;
+      }
       return true;
     }
 
@@ -786,11 +907,12 @@ class SensorOverlayManager {
       if (!sensor) return;
 
       const el = document.getElementById(`sensor-value-${sensor.id}`);
-      console.log("Element:", el);
 
       if (!el) return;
 
-      switch (sensor.type) {
+      // Use currentMode for the unit label so that multi-metric sensors
+      // (e.g. CO2 sensors providing temperature in TEMP mode) show the right unit.
+      switch (this.currentMode) {
         case "CO2":
           el.textContent = `${sensor.value} ppm`;
           break;
@@ -804,8 +926,10 @@ class SensorOverlayManager {
         case "LIGHT":
           el.textContent = `${sensor.value} lux`;
           break;
+        case "NOISE":
+          el.textContent = `${sensor.value} dB`;
+          break;
         case "COUNT":
-          //Pour COUNT, sensor.value est un objet { in, out }
           if (sensor.value) {
             const inVal = sensor.value.in ?? "—";
             const outVal = sensor.value.out ?? "—";
@@ -814,17 +938,15 @@ class SensorOverlayManager {
             el.textContent = "— | —";
           }
           break;
-        case "ENERGY":
-          // On garde la valeur affichée dans les statistiques
+        case "ENERGY": {
           const elt = document.getElementById("live-current-power");
           if (elt) {
-            const energyConsumption = elt.textContent.trim();
-            console.log("live total power:", energyConsumption);
-            el.textContent = `${energyConsumption} kW`;
-          } else{
+            el.textContent = `${elt.textContent.trim()} kW`;
+          } else {
             el.textContent = `-- kW`;
           }
           break;
+        }
         default:
           el.textContent = sensor.value;
       }

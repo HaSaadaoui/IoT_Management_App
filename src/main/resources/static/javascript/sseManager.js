@@ -27,23 +27,45 @@
 	// Crée un fan-out handler pour "snapshot" et "uplink"
 	// Le handler reçoit { type: "snapshot"|"uplink", data: <parsed> }
 	// ===============================
+	function normalizeSsePayload(payload) {
+		if (payload == null) return [];
+		if (Array.isArray(payload)) {
+			return payload.flatMap(normalizeSsePayload);
+		}
+		if (Array.isArray(payload.result)) {
+			return payload.result.flatMap(normalizeSsePayload);
+		}
+		if (Array.isArray(payload.results)) {
+			return payload.results.flatMap(normalizeSsePayload);
+		}
+		if (Array.isArray(payload.items)) {
+			return payload.items.flatMap(normalizeSsePayload);
+		}
+		if (payload.result && typeof payload.result === "object") {
+			return [payload.result];
+		}
+		return [payload];
+	}
+
 	function makeSseHandlers(entry, namespace) {
 		function dispatch(type, e) {
-			let msg;
+			let payload;
 			try {
-				const raw = JSON.parse(e.data);
-				msg = raw?.result ?? raw;
+				payload = JSON.parse(e.data);
 			} catch (err) {
 				console.warn(`[SSE][${namespace}] parse error (${type})`, err, e?.data);
 				return;
 			}
 
-			entry.listeners.forEach((fn) => {
-				try {
-					fn({ type, data: msg });
-				} catch (err) {
-					console.warn(`[SSE][${namespace}][listener] error`, err);
-				}
+			const messages = normalizeSsePayload(payload);
+			messages.forEach((msg) => {
+				entry.listeners.forEach((fn) => {
+					try {
+						fn({ type, data: msg });
+					} catch (err) {
+						console.warn(`[SSE][${namespace}][listener] error`, err);
+					}
+				});
 			});
 		}
 
@@ -120,33 +142,53 @@
 	// ===============================
 	// ENVIRONMENT
 	// ===============================
-	const BUILDING_ENV_CONFIG = {
-		23: {
-			deviceIds: ["desk-01-02"],
-			metrics: ["temperature", "humidity", "co2"], // pas de sound
-		},
-		21: {
-			deviceIds: ["co2-03-02", "son-03-03"],
-			metrics: ["temperature", "humidity", "co2", "sound"],
-		},
-	};
+	const environmentConfigCache = new Map();
 
-	function getEnvironmentDevices(building) {
-		const cfg = BUILDING_ENV_CONFIG[building];
-		if (!cfg) return [];
-		return cfg.deviceIds;
+	function normalizeFloorKey(floor) {
+		if (floor == null || floor === "" || floor === "all") return "all";
+		return String(floor);
 	}
 
-	function keyForEnvironment(building) {
-		return `environment:${building}`;
+	async function getEnvironmentConfig(building, floor) {
+		const floorKey = normalizeFloorKey(floor);
+		const cacheKey = `${building}:${floorKey}`;
+
+		if (environmentConfigCache.has(cacheKey)) {
+			return environmentConfigCache.get(cacheKey);
+		}
+
+		const params = new URLSearchParams({ building: String(building) });
+		if (floorKey !== "all") {
+			params.set("floor", floorKey);
+		}
+
+		const response = await fetch(`/api/config/environment?${params.toString()}`);
+		if (!response.ok) {
+			throw new Error(`Environment config HTTP ${response.status}`);
+		}
+
+		const config = await response.json();
+		environmentConfigCache.set(cacheKey, config);
+		return config;
 	}
 
-	function getOrCreateEnvironment(building) {
-		const key = keyForEnvironment(building);
+	function keyForEnvironment(building, floor) {
+		return `environment:${building}:${normalizeFloorKey(floor)}`;
+	}
+
+	async function getOrCreateEnvironment(building, floor) {
+		const key = keyForEnvironment(building, floor);
 		let entry = sources.get(key);
 
 		if (!entry) {
-			const deviceIds = getEnvironmentDevices(building);
+			const config = await getEnvironmentConfig(building, floor);
+			const zones = Array.isArray(config?.zones) ? config.zones : [];
+			const deviceIds = zones.flatMap(zone => Array.isArray(zone?.deviceIds) ? zone.deviceIds : []);
+
+			if (!deviceIds.length) {
+				console.warn("⚠️ [SSE][environment] no devices found for", { building, floor });
+			}
+
 			const url =
 				`/api/dashboard/live/stream` +
 				`?building=${building}` +
@@ -175,9 +217,9 @@
 		return entry;
 	}
 
-	function subscribeEnvironment(building, handler) {
-		const entry = getOrCreateEnvironment(building);
-		const key = keyForEnvironment(building);
+	async function subscribeEnvironment(building, floor, handler) {
+		const entry = await getOrCreateEnvironment(building, floor);
+		const key = keyForEnvironment(building, floor);
 
 		entry.listeners.add(handler);
 		entry.refCount++;
@@ -207,5 +249,6 @@
 	window.SSEManager = {
 		subscribeOccupancy,
 		subscribeEnvironment,
+		getEnvironmentConfig,
 	};
 })();

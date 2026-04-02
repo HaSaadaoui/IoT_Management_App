@@ -226,6 +226,25 @@ class Building3D {
         }
     }
 
+    // Pré-remplit deskStatusMap depuis la DB (dernière valeur connue de chaque desk)
+    async preloadDeskStatusMap() {
+        if (!this.buildingKey) return;
+        try {
+            const resp = await fetch(`/api/dashboard/occupancy?building=${encodeURIComponent(this.buildingKey)}`);
+            if (!resp.ok) return;
+            const desks = await resp.json();
+            if (!Array.isArray(desks)) return;
+            desks.forEach(d => {
+                if (d.id && d.status) {
+                    this.deskStatusMap.set(d.id, d.status);
+                }
+            });
+            console.log(`[Building3D] Preloaded ${desks.length} desk statuses from DB`);
+        } catch (e) {
+            console.warn('[Building3D] preloadDeskStatusMap error', e);
+        }
+    }
+
     computeDynamicViewForBuilding() {
         if (!this.building || !this.camera || !this.controls || !THREE) {
             const target = new THREE.Vector3(0, 0, 0);
@@ -1093,6 +1112,7 @@ class Building3D {
         try {
             await this.createBuilding();
             this.resetCameraForBuilding();
+            await this.preloadDeskStatusMap();  // pré-remplir depuis la DB avant le rendu
             this.loadRealOccupancyData();
             this.startOccupancySSE();
         } catch (e) {

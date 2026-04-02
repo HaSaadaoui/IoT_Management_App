@@ -189,29 +189,52 @@ class ArchitecturalFloorPlan {
       // ouverture du flux SSE
       this._sensorEs = new EventSource(url);
 
+      const normalizeSsePayload = (payload) => {
+        if (payload == null) return [];
+        if (Array.isArray(payload)) {
+          return payload.flatMap(normalizeSsePayload);
+        }
+        if (Array.isArray(payload.result)) {
+          return payload.result.flatMap(normalizeSsePayload);
+        }
+        if (Array.isArray(payload.results)) {
+          return payload.results.flatMap(normalizeSsePayload);
+        }
+        if (Array.isArray(payload.items)) {
+          return payload.items.flatMap(normalizeSsePayload);
+        }
+        if (payload.result && typeof payload.result === "object") {
+          return [payload.result];
+        }
+        return [payload];
+      };
+
       // Traitement commun uplink + snapshot
       const handleSensorEvent = (e) => {
         try {
           const raw = JSON.parse(e.data);
-          const msg = raw?.result ?? raw;
+          const messages = normalizeSsePayload(raw);
 
-          const sensorId =
-            msg?.end_device_ids?.device_id ||
-            msg?.deviceId ||
-            msg?.device_id;
+          messages.forEach((msg) => {
+            const sensorId =
+              msg?.end_device_ids?.device_id ||
+              msg?.deviceId ||
+              msg?.device_id;
 
-          if (!sensorId) return;
+            if (!sensorId) return;
 
-          const decoded =
-            msg?.uplink_message?.decoded_payload ||
-            msg?.decoded_payload ||
-            msg?.payload ||
-            {};
+            const decoded =
+              msg?.uplink_message?.decoded_payload ||
+              msg?.decoded_payload ||
+              msg?.payload ||
+              {};
 
-          const value = this.extractSensorValue(this.sensorMode, decoded);
-          if (value == null) return;
+            const value = this.extractSensorValue(this.sensorMode, decoded);
 
-          this.updateSensorValue(sensorId, value);
+            if (value == null) return;
+
+            this.updateSensorValue(sensorId, value);
+          });
 
         } catch (err) {
           console.warn("[SSE sensors] parse error", err, e.data);
@@ -427,11 +450,26 @@ class ArchitecturalFloorPlan {
         });
 
         // pour la configuration on récupère tous les capteurs du svg
-        // pour le dashboard uniquement ceux de l'étage courant et du mode courant 
+        // pour le dashboard uniquement ceux de l'étage courant et du mode courant
         if (this.isDashboard){
+            // Certains modes peuvent être fournis par plusieurs types de capteurs
+            // ex: TEMP peut venir d'un CO2, d'un TEMPEX, d'un EYE...
+            const SENSOR_TYPES_BY_MODE = {
+                'TEMP':     ['TEMP', 'TEMPEX', 'CO2', 'EYE'],
+                'TEMPEX':   ['TEMPEX', 'TEMP', 'CO2', 'EYE'],
+                'HUMIDITY': ['CO2', 'TEMPEX', 'EYE'],
+                'CO2':      ['CO2'],
+                'NOISE':    ['NOISE', 'SON'],
+                'LIGHT':    ['LIGHT', 'PIR_LIGHT', 'EYE', 'CO2'],
+                'MOTION':   ['MOTION', 'PIR_LIGHT', 'EYE', 'OCCUP'],
+                'COUNT':    ['COUNT'],
+                'ENERGY':   ['ENERGY', 'CONSO'],
+                'DESK':     ['DESK'],
+            };
+            const allowedTypes = SENSOR_TYPES_BY_MODE[this.sensorMode] ?? [this.sensorMode];
             sensors = sensors
                 .filter(s => s.floor == this.floorData.floorNumber)
-                .filter(s => s.type === this.sensorMode);
+                .filter(s => allowedTypes.includes(s.type));
         }
 
         return sensors;
@@ -1131,3 +1169,5 @@ class ArchitecturalFloorPlan {
 
 // Global reference
 window.ArchitecturalFloorPlan = ArchitecturalFloorPlan;
+
+

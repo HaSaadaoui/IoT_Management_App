@@ -344,6 +344,11 @@ async function generateStatCardsForBuilding(building, selectedFloor = null) {
     const container = document.getElementById('sensor-stats-container');
     if (!container) return;
 
+    const effectiveFloor =
+        selectedFloor === '' || selectedFloor === 'all' || selectedFloor == null
+            ? null
+            : selectedFloor;
+
     // Load zones dynamically from API
     const buildingZones = await loadZonesForBuilding(building);
 
@@ -358,8 +363,8 @@ async function generateStatCardsForBuilding(building, selectedFloor = null) {
     // ======================================================
     // CASE 1: FLOOR SÉLECTIONNÉ → afficher les zones du floor
     // ======================================================
-    if (selectedFloor != null) {
-        const floorZones = buildingZones[selectedFloor];
+    if (effectiveFloor != null) {
+        const floorZones = buildingZones[effectiveFloor];
 
         if (!floorZones || Object.keys(floorZones).length === 0) {
             container.innerHTML = '';
@@ -370,7 +375,7 @@ async function generateStatCardsForBuilding(building, selectedFloor = null) {
             html += `
                 <div class="stat-card"
                      data-zone="${zoneKey}"
-                     data-floor="${selectedFloor}"
+                     data-floor="${effectiveFloor}"
                      data-chart-index="${index}">
                     <h4 class="stat-card-title">${zoneData.title}</h4>
                     <div class="stat-chart-container">
@@ -420,11 +425,11 @@ async function generateStatCardsForBuilding(building, selectedFloor = null) {
 
     // Mise à jour du contexte
     DASHBOARD_CTX.building = building;
-    DASHBOARD_CTX.floor = selectedFloor;
+    DASHBOARD_CTX.floor = effectiveFloor;
 
     // Fetch initial + SSE
-    fetchInitialOccupancyData(building, selectedFloor);
-    openOccupancySSE(building, selectedFloor);
+    fetchInitialOccupancyData(building, effectiveFloor);
+    openOccupancySSE(building, effectiveFloor);
 }
 
 // ============================================

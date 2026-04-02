@@ -371,8 +371,8 @@ class DashboardManager {
 			this.applyBuildingStatVisibility();
 
 			//10 Others metrics stats
-			updateEnvironmentChartsVisibility(this.filters.building);
-			startEnvironmentSSE(this.filters.building);
+			updateEnvironmentChartsVisibility(this.filters.building, this.filters.floor);
+			startEnvironmentSSE(this.filters.building, this.filters.floor);
 
 			return;
 		}
@@ -1843,17 +1843,6 @@ const ENV_CONFIG = {
 	}
 };
 
-const BUILDING_ENV_CONFIG = {
-	23: {
-		deviceIds: ["desk-01-02"],
-		metrics: ["temperature", "humidity", "co2"] // pas de sound
-	},
-	21: {
-		deviceIds: ["co2-03-02", "son-03-03"],
-		metrics: ["temperature", "humidity", "co2", "sound"]
-	}
-};
-
 function initEnvironmentCharts() {
 	Object.entries(ENV_CONFIG).forEach(([key, cfg]) => {
 		const canvas = document.getElementById(cfg.canvas);
@@ -2020,10 +2009,104 @@ function updateEnvMax(metric) {
 	if (el) el.textContent = max.toFixed(2);
 }
 
+async function fetchEnvironmentSummary(building, floor, sensorType, metricType, excludeSensorType = null) {
+	if (!building || !sensorType || !metricType) return null;
+
+	const params = new URLSearchParams({
+		building: String(building),
+		sensorType: String(sensorType).toUpperCase(),
+		metricType: String(metricType).toUpperCase(),
+		timeRange: "LAST_7_DAYS",
+		granularity: "DAILY",
+		timeSlot: "AFTERNOON"
+	});
+
+	if (floor != null && floor !== "" && floor !== "all") {
+		params.set("floor", String(floor));
+	}
+
+	if (excludeSensorType) {
+		params.set("excludeSensorType", String(excludeSensorType).toUpperCase());
+	}
+
+	const response = await fetch(`/api/dashboard/histogram?${params.toString()}`);
+	if (!response.ok) {
+		throw new Error(`Environment histogram fetch failed (${response.status})`);
+	}
+
+	const data = await response.json();
+	return data?.summary ?? null;
+}
+
+async function preloadEnvironmentStats(building, floor, metrics = []) {
+	const metricSet = new Set(Array.isArray(metrics) ? metrics : []);
+	const requests = [];
+
+	if (metricSet.has("temperature")) {
+		requests.push(
+			fetchEnvironmentSummary(building, floor, "ALL", "TEMPERATURE")
+				.then(summary => ({ metric: "temperature", summary }))
+				.catch(error => {
+					console.warn("Failed to preload temperature environment stats:", error);
+					return null;
+				})
+		);
+	}
+
+	if (metricSet.has("co2")) {
+		requests.push(
+			fetchEnvironmentSummary(building, floor, "CO2", "CO2")
+				.then(summary => ({ metric: "co2", summary }))
+				.catch(error => {
+					console.warn("Failed to preload CO2 environment stats:", error);
+					return null;
+				})
+		);
+	}
+
+	if (!requests.length) return;
+
+	const results = await Promise.all(requests);
+	const idMap = {
+		temperature: { avg: "env-temp-avg", max: "env-temp-max" },
+		co2: { avg: "env-co2-avg", max: "env-co2-max" }
+	};
+
+	results.filter(Boolean).forEach(({ metric, summary }) => {
+		const ids = idMap[metric];
+		if (!ids || !summary) return;
+
+		const avgEl = document.getElementById(ids.avg);
+		const maxEl = document.getElementById(ids.max);
+
+		if (avgEl && summary.avgValue != null) {
+			avgEl.textContent = Number(summary.avgValue).toFixed(2);
+		}
+
+		if (maxEl && summary.maxValue != null) {
+			maxEl.textContent = Number(summary.maxValue).toFixed(2);
+		}
+	});
+}
+
 let environmentUnsub = null;
 const environmentState = {};
 
-function startEnvironmentSSE(building) {
+async function getEnvironmentConfig(building, floor) {
+	if (!window.SSEManager?.getEnvironmentConfig) {
+		console.warn("SSEManager.getEnvironmentConfig not available");
+		return { metrics: [], zones: [] };
+	}
+
+	try {
+		return await window.SSEManager.getEnvironmentConfig(building, floor);
+	} catch (error) {
+		console.error("Failed to load environment config:", error);
+		return { metrics: [], zones: [] };
+	}
+}
+
+async function startEnvironmentSSE(building, floor) {
 
 	console.log("🌡️ startEnvironmentSSE called:", building);
 
@@ -2042,44 +2125,52 @@ function startEnvironmentSSE(building) {
 		return;
 	}
 
-	environmentUnsub = window.SSEManager.subscribeEnvironment(building, ({ type, data }) => {
-		const msg = data;
-		const decoded =
-			msg?.uplink_message?.decoded_payload ??
-			msg?.decoded_payload ??
-			msg?.payload ??
-			{};
+	try {
+		const cfg = await getEnvironmentConfig(building, floor);
+		await preloadEnvironmentStats(building, floor, cfg?.metrics);
 
-		const temperature = decoded?.temperature;
-		const humidity = decoded?.humidity;
-		const co2 = decoded?.co2;
-		const sound = decoded?.LAeq;
+		environmentUnsub = await window.SSEManager.subscribeEnvironment(building, floor, ({ type, data }) => {
+			const msg = data;
+			const decoded =
+				msg?.uplink_message?.decoded_payload ??
+				msg?.decoded_payload ??
+				msg?.payload ??
+				{};
 
-		if (temperature != null) {
-			updateEnvChart("temperature", temperature);
-			updateEnvAverage("temperature");
-			updateEnvMax("temperature");
-		}
+			const temperature = decoded?.temperature;
+			const humidity = decoded?.humidity;
+			const co2 = decoded?.co2;
+			const sound = decoded?.LAeq;
 
-		if (humidity != null) {
-			updateEnvChart("humidity", humidity);
-			updateEnvAverage("humidity");
-			updateEnvMax("humidity");
-		}
+			if (temperature != null) {
+				updateEnvChart("temperature", temperature);
+				updateEnvAverage("temperature");
+				updateEnvMax("temperature");
+			}
 
-		if (co2 != null) {
-			updateEnvChart("co2", co2);
-			updateEnvAverage("co2");
-			updateEnvMax("co2");
-		}
+			if (humidity != null) {
+				updateEnvChart("humidity", humidity);
+				updateEnvAverage("humidity");
+				updateEnvMax("humidity");
+			}
 
-		if (sound != null) {
-			updateEnvChart("sound", sound);
-			updateEnvAverage("sound");
-			updateEnvMax("sound");
-		}
+			if (co2 != null) {
+				updateEnvChart("co2", co2);
+				updateEnvAverage("co2");
+				updateEnvMax("co2");
+			}
 
-	});
+			if (sound != null) {
+				updateEnvChart("sound", sound);
+				updateEnvAverage("sound");
+				updateEnvMax("sound");
+			}
+
+		});
+	} catch (error) {
+		console.error("Failed to subscribe environment SSE:", error);
+		environmentUnsub = null;
+	}
 }
 
 function closeEnvironmentSSE() {
@@ -2090,22 +2181,17 @@ function closeEnvironmentSSE() {
 	}
 }
 
-function updateEnvironmentChartsVisibility(building) {
-	const cfg = BUILDING_ENV_CONFIG[building];
-	if (!cfg) return;
-
+async function updateEnvironmentChartsVisibility(building, floor) {
+	const cfg = await getEnvironmentConfig(building, floor);
 	const metrics = ["temperature", "humidity", "co2", "sound"];
+	const visibleMetrics = new Set(Array.isArray(cfg?.metrics) ? cfg.metrics : []);
 
 	metrics.forEach(metric => {
 		const card = document.querySelector(`[data-chart="${metric}"]`)?.closest(".chart-card");
 
 		if (!card) return;
 
-		if (cfg.metrics.includes(metric)) {
-			card.style.display = "block";
-		} else {
-			card.style.display = "none";
-		}
+		card.style.display = visibleMetrics.has(metric) ? "block" : "none";
 	});
 }
 
@@ -2157,14 +2243,18 @@ function resetEnvironmentCharts() {
 }
 
 function resetEnvironmentStats() {
-	const metrics = ["temperature","humidity","co2","sound"];
-	metrics.forEach(metric => {
-		const avg = document.getElementById(`env-${metric}-avg`);
-		const max = document.getElementById(`env-${metric}-max`);
+	const map = {
+		temperature: { avg: "env-temp-avg", max: "env-temp-max" },
+		humidity: { avg: "env-humidity-avg", max: "env-humidity-max" },
+		co2: { avg: "env-co2-avg", max: "env-co2-max" },
+		sound: { avg: "env-sound-avg", max: "env-sound-max" }
+	};
 
+	Object.values(map).forEach(({ avg: avgId, max: maxId }) => {
+		const avg = document.getElementById(avgId);
+		const max = document.getElementById(maxId);
 		if (avg) avg.textContent = "--";
 		if (max) max.textContent = "--";
-
 	});
 }
 
@@ -2207,8 +2297,8 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (buildingId) {
 			update3DConfig(buildingId);
 			updateTitles(buildingName);
-			updateEnvironmentChartsVisibility(buildingId);
-			startEnvironmentSSE(buildingId);
+			updateEnvironmentChartsVisibility(buildingId, filters.floor);
+			startEnvironmentSSE(buildingId, filters.floor);
 		}
 	}, 1500);
 });
