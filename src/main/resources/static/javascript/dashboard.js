@@ -27,7 +27,7 @@ class DashboardManager {
 
 			CO2:       { sensorType: 'CO2', unit: 'ppm' },
 			OCCUPANCY: { sensorType: 'DESK', unit: '%' },
-			LIGHT:     { sensorType: 'EYE', unit: 'lux' },
+			LIGHT:     { sensorType: 'CO2', unit: 'lux' },
 			LAEQ:      { sensorType: ['SON', 'NOISE'], unit: 'dB' },
 			CURRENT_POWER: { sensorType: 'CONSO', metricType: 'POWER_TOTAL', unit: 'kW' },
 			DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' },
@@ -442,6 +442,12 @@ class DashboardManager {
 	// ===== UI TITLES =====
 	// =========================
 
+	getApiSensorType(sensorType = this.filters.sensorType) {
+		const normalized = String(sensorType || '').toUpperCase();
+		if (normalized === 'LIGHT') return 'CO2';
+		return sensorType;
+	}
+
 	updateSensorTypeUI(sensorType) {
 		const sensorInfo = {
 			DESK: {
@@ -518,7 +524,7 @@ class DashboardManager {
 				month: this.filters.month,
 				building: this.filters.building,
 				floor: this.filters.floor,
-				sensorType: this.filters.sensorType,
+				sensorType: this.getApiSensorType(),
 				timeSlot: this.filters.timeSlot
 			});
 
@@ -1439,7 +1445,7 @@ class DashboardManager {
 			const params = new URLSearchParams({
 				building: this.filters.building !== 'all' && this.filters.building ? this.filters.building : '',
 				floor: this.filters.floor !== 'all' ? this.filters.floor : '',
-				sensorType: this.filters.sensorType,
+				sensorType: this.getApiSensorType(),
 				metricType: this.histogramConfig.metricType,
 				timeRange: this.histogramConfig.timeRange,
 				granularity: this.histogramConfig.granularity,

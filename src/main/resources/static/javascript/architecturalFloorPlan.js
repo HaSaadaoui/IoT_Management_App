@@ -460,7 +460,7 @@ class ArchitecturalFloorPlan {
                 'HUMIDITY': ['CO2', 'TEMPEX', 'EYE'],
                 'CO2':      ['CO2'],
                 'NOISE':    ['NOISE', 'SON'],
-                'LIGHT':    ['LIGHT', 'PIR_LIGHT', 'EYE', 'CO2'],
+                'LIGHT':    ['CO2'],
                 'MOTION':   ['MOTION', 'PIR_LIGHT', 'EYE', 'OCCUP'],
                 'COUNT':    ['COUNT'],
                 'ENERGY':   ['ENERGY', 'CONSO'],
