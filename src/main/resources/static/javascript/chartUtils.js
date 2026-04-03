@@ -54,68 +54,68 @@ const occupancyState = {};
 // SSE / LIVE OCCUPANCY
 // ============================================
 function openOccupancySSE(building, floor) {
-  console.log("🔄 openOccupancySSE (SSEManager) called with:", building, floor);
+    console.log("🔄 openOccupancySSE (SSEManager) called with:", building, floor);
 
-  // coupe l'ancienne souscription si on re-switch building/floor
-  if (occupancyUnsub) {
-    console.log("🔁 Unsub previous SSE");
-    occupancyUnsub();
-    occupancyUnsub = null;
-  }
-
-  if (!window.SSEManager?.subscribeOccupancy) {
-    console.warn("❌ SSEManager not available (script not loaded yet?)");
-    return;
-  }
-
-  // Souscription au hub (1 seul EventSource partagé)
-  occupancyUnsub = window.SSEManager.subscribeOccupancy(building, ({ type, data }) => {
-    try {
-      const msg = data;
-      const deviceId =
-        msg?.end_device_ids?.device_id ||
-        msg?.deviceId ||
-        msg?.device_id;
-
-      const decoded =
-        msg?.uplink_message?.decoded_payload ??
-        msg?.decoded_payload ??
-        msg?.payload ??
-        {};
-
-      const occRaw = decoded?.occupancy;
-      if (!deviceId) return;
-
-      const status = normalizeDeskStatus(occRaw);
-
-      // (perf) si status inchangé -> ne rerender pas
-      if (occupancyState[deviceId] === status) return;
-
-      occupancyState[deviceId] = status;
-
-      // Snapshot complet
-      const snapshot = Object.entries(occupancyState).map(([id, s]) => ({ id, status: s }));
-
-      const zoneStats = aggregateByZone(snapshot, building, floor);
-      updateAllStatCards(zoneStats);
-
-    } catch (err) {
-      console.warn("[SSEManager][occupancy] handler error", err);
+    // coupe l'ancienne souscription si on re-switch building/floor
+    if (occupancyUnsub) {
+        console.log("🔁 Unsub previous SSE");
+        occupancyUnsub();
+        occupancyUnsub = null;
     }
-  });
+
+    if (!window.SSEManager?.subscribeOccupancy) {
+        console.warn("❌ SSEManager not available (script not loaded yet?)");
+        return;
+    }
+
+    // Souscription au hub (1 seul EventSource partagé)
+    occupancyUnsub = window.SSEManager.subscribeOccupancy(building, ({ type, data }) => {
+        try {
+            const msg = data;
+            const deviceId =
+                msg?.end_device_ids?.device_id ||
+                msg?.deviceId ||
+                msg?.device_id;
+
+            const decoded =
+                msg?.uplink_message?.decoded_payload ??
+                msg?.decoded_payload ??
+                msg?.payload ??
+                {};
+
+            const occRaw = decoded?.occupancy;
+            if (!deviceId) return;
+
+            const status = normalizeDeskStatus(occRaw);
+
+            // (perf) si status inchangé -> ne rerender pas
+            if (occupancyState[deviceId] === status) return;
+
+            occupancyState[deviceId] = status;
+
+            // Snapshot complet
+            const snapshot = Object.entries(occupancyState).map(([id, s]) => ({ id, status: s }));
+
+            const zoneStats = aggregateByZone(snapshot, building, floor);
+            updateAllStatCards(zoneStats);
+
+        } catch (err) {
+            console.warn("[SSEManager][occupancy] handler error", err);
+        }
+    });
 }
 
 function closeOccupancySSE() {
-  if (occupancyUnsub) {
-    console.log("🔒 Unsubscribe SSE (SSEManager)");
-    occupancyUnsub();
-    occupancyUnsub = null;
-  }
+    if (occupancyUnsub) {
+        console.log("🔒 Unsubscribe SSE (SSEManager)");
+        occupancyUnsub();
+        occupancyUnsub = null;
+    }
 }
 
 // Bonus: auto-clean si tu veux (recommandé)
 window.addEventListener("beforeunload", () => {
-  closeOccupancySSE();
+    closeOccupancySSE();
 });
 // ============================================
 // HELPERS
@@ -282,10 +282,11 @@ function updateStatCard(statCard, data) {
                     }],
                 },
                 options: {
+                    aspectRatio: 1,
                     responsive: true,
                     maintainAspectRatio: true,
                     cutout: "70%",
-                    layout: { padding: { top: 20, bottom: 5 } },
+                    layout: { padding: { top: 10, bottom: 5 } },
                     animation: { duration: 0 },
                     plugins: {
                         legend: { display: false },
@@ -372,8 +373,7 @@ async function generateStatCardsForBuilding(building, selectedFloor = null) {
                      data-zone="${zoneKey}"
                      data-floor="${selectedFloor}"
                      data-chart-index="${index}">
-                    <h4 class="stat-card-title">${zoneData.title}</h4>
-                    <div class="stat-chart-container">
+                    <div class="stat-chart-wrapper">
                         <canvas class="chart-office"></canvas>
                     </div>
                     <div class="stat-legend"></div>
@@ -383,8 +383,8 @@ async function generateStatCardsForBuilding(building, selectedFloor = null) {
         });
 
     }
-    // ======================================================
-    // CASE 2: AUCUN FLOOR → une carte par floor
+        // ======================================================
+        // CASE 2: AUCUN FLOOR → une carte par floor
     // ======================================================
     else {
         Object.entries(buildingZones).forEach(([floorId, floorZones]) => {
@@ -395,8 +395,7 @@ async function generateStatCardsForBuilding(building, selectedFloor = null) {
                      data-zone="FLOOR_${floorId}"
                      data-floor="${floorId}"
                      data-chart-index="${index}">
-                    <h4 class="stat-card-title">Floor ${floorId}</h4>
-                    <div class="stat-chart-container">
+                    <div class="stat-chart-wrapper">
                         <canvas class="chart-office"></canvas>
                     </div>
                     <div class="stat-legend"></div>
@@ -421,6 +420,11 @@ async function generateStatCardsForBuilding(building, selectedFloor = null) {
     // Mise à jour du contexte
     DASHBOARD_CTX.building = building;
     DASHBOARD_CTX.floor = selectedFloor;
+
+    // Les stat-cards viennent d'être (re)créées dans #sensor-stats-container.
+    // On notifie renderZones (dashboard.js) pour qu'il absorbe les nouvelles cartes
+    // dans les zone-blocks correspondants — sans avoir à rappeler renderZones entier.
+    document.dispatchEvent(new CustomEvent("occupancyStatCardsReady"));
 
     // Fetch initial + SSE
     fetchInitialOccupancyData(building, selectedFloor);
@@ -833,75 +837,75 @@ function createOrUpdateChart(canvas, config) {
  * @param {Array<number>} data - Array of data values [free, used, invalid]
  * @returns {Object} Chart.js configuration object
  */
- function createDoughnutChartConfig(dataCounts) {
-     // dataCounts = [freeCount, usedCount, invalidCount]
-     const total = dataCounts.reduce((a, b) => a + b, 0);
-     return {
-         type: "doughnut",
-         data: {
-             labels: ["Free", "Used", "Invalid"],
-             datasets: [
-                 {
-                     data: dataCounts.map(count => total ? (count / total) * 100 : 0),
-                     backgroundColor: [okColor, notOkColor, otherColor],
-                     borderWidth: 0,
-                     hoverOffset: 10,
-                 },
-             ],
-         },
-         options: {
-             responsive: true,
-             maintainAspectRatio: true,
-             cutout: "70%",
-             layout: {
+function createDoughnutChartConfig(dataCounts) {
+    // dataCounts = [freeCount, usedCount, invalidCount]
+    const total = dataCounts.reduce((a, b) => a + b, 0);
+    return {
+        type: "doughnut",
+        data: {
+            labels: ["Free", "Used", "Invalid"],
+            datasets: [
+                {
+                    data: dataCounts.map(count => total ? (count / total) * 100 : 0),
+                    backgroundColor: [okColor, notOkColor, otherColor],
+                    borderWidth: 0,
+                    hoverOffset: 10,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: "70%",
+            layout: {
                 padding: {
                     top: 20,
                     bottom: 5
                 }
-             },
-             animation: { duration: 0 },
-             plugins: {
-                 legend: {
-                     display: true,
-                     position: "bottom",
-                     labels: {
-                         usePointStyle: true,
-                         pointStyle: "circle",
-                         padding: 12,
-                         font: { family: "'Inter', sans-serif", size: 12 },
-                         generateLabels: (chart) => {
-                             const data = chart.data;
-                             if (data.labels.length && data.datasets.length) {
-                                 const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
-                                 return data.labels.map((label, i) => {
-                                     const value = data.datasets[0].data[i];
-                                     return {
-                                         text: `${label} (${value.toFixed(0)}%)`,
-                                         fillStyle: data.datasets[0].backgroundColor[i],
-                                         hidden: false,
-                                         index: i,
-                                     };
-                                 });
-                             }
-                             return [];
-                         },
-                     },
-                 },
-                 tooltip: {
-                     callbacks: {
-                         label: (context) => {
-                             const idx = context.dataIndex;
-                             const label = context.label;
-                             const percent = Math.round(context.parsed);
-                             const count = dataCounts[idx];
-                             return `${label}: ${percent}% (${count} desks)`;
-                         },
-                     },
-                 },
-             },
-         },
-     };
- }
+            },
+            animation: { duration: 0 },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: "bottom",
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: "circle",
+                        padding: 12,
+                        font: { family: "'Inter', sans-serif", size: 12 },
+                        generateLabels: (chart) => {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                return data.labels.map((label, i) => {
+                                    const value = data.datasets[0].data[i];
+                                    return {
+                                        text: `${label} (${value.toFixed(0)}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        hidden: false,
+                                        index: i,
+                                    };
+                                });
+                            }
+                            return [];
+                        },
+                    },
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            const idx = context.dataIndex;
+                            const label = context.label;
+                            const percent = Math.round(context.parsed);
+                            const count = dataCounts[idx];
+                            return `${label}: ${percent}% (${count} desks)`;
+                        },
+                    },
+                },
+            },
+        },
+    };
+}
 
 /**
  * Creates and renders a doughnut chart on a canvas element

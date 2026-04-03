@@ -32,36 +32,36 @@ main {
 }
 
 .metric-split {
-  display: flex;
-  flex-direction: column;
+    display: flex;
+    flex-direction: column;
 }
 
 .metric-split-values {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
 }
 
 .metric-scope {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 52px;
 }
 
 .scope-label {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #64748b;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #64748b;
 }
 
 .metric-divider {
-  width: 1px;
-  height: 26px;
-  background-color: #e5e7eb;
-  margin: 0 10px;
+    width: 1px;
+    height: 26px;
+    background-color: #e5e7eb;
+    margin: 0 10px;
 }
 
 .metric-card::before {
@@ -170,7 +170,7 @@ main {
     .live-metrics-grid {
         grid-template-columns: repeat(3, 1fr);
     }
-    
+
     .charts-grid--3col {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -180,15 +180,15 @@ main {
     .live-metrics-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-    
+
     .analytics-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .charts-grid--3col {
         grid-template-columns: 1fr;
     }
-    
+
     .historical-grid {
         grid-template-columns: 1fr;
     }
@@ -198,17 +198,17 @@ main {
     .live-metrics-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .metric-card {
         padding: 1.25rem;
     }
-    
+
     .metric-icon {
         width: 56px;
         height: 56px;
         font-size: 1.75rem;
     }
-    
+
     .metric-value {
         font-size: 1.75rem;
     }
@@ -234,6 +234,9 @@ main {
 }
 
 .chart-card{
+    display: flex;
+    flex-direction:column;
+    height:100%;
     background:white;
     border-radius:12px;
     padding:16px;
@@ -244,7 +247,7 @@ main {
     display:flex;
     justify-content:space-between;
     align-items:center;
-    margin-bottom:10px;
+    margin:10px;
     flex-wrap:wrap;
     gap:8px;
 }
@@ -261,7 +264,7 @@ main {
 }
 
 .rt-chart-container{
-    height:220px;
+    margin-top:auto;
 }
 
 .env-chart-toggle{

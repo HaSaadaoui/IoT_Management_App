@@ -2189,32 +2189,50 @@ function updateZoneUI(zone, stats) {
 }
 
 
+// Normalise un nom de zone de la même façon que generateStatCardsForBuilding dans chartUtils.js
+// (uppercase + espaces/tirets → underscore) pour garantir le matching entre les deux sources.
+function normalizeZoneKey(name) {
+	return name.toUpperCase().replace(/[\s\-]+/g, "_").replace(/[^A-Z0-9_]/g, "");
+}
+
 function renderZones(zones, metrics) {
 	const container = document.getElementById("zones-container");
 	container.innerHTML = "";
 
 	zones.forEach(zone => {
+		// safeZone : utilisé pour les IDs DOM (inchangé)
 		const safeZone = zone.name.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
+		// zoneKey : clé normalisée pour matcher data-zone des stat-cards (même convention que chartUtils)
+		const zoneKey = normalizeZoneKey(zone.name);
 
 		const zoneDiv = document.createElement("div");
 		zoneDiv.className = "zone-block";
 		zoneDiv.id = `zone-${safeZone}`;
 
+		const hasCharts = ["co2", "temperature", "humidity", "sound"].some(m => metrics.includes(m));
+
 		zoneDiv.innerHTML = `
             <h3 style="margin: 10px 0;">📍 ${zone.name}</h3>
 
             <div class="charts-grid charts-grid--2col">
+                <!-- Slot occupancy : rempli par occupancyStatCardsReady après génération des stat-cards -->
+                <div class="zone-stat-card-slot" data-zone-key="${zoneKey}"></div>
 
-                ${metrics.includes("co2") ? createChartCard("co2", zone.name) : ""}
+                ${hasCharts ? `
+                ${metrics.includes("co2")         ? createChartCard("co2",         zone.name) : ""}
                 ${metrics.includes("temperature") ? createChartCard("temperature", zone.name) : ""}
-                ${metrics.includes("humidity") ? createChartCard("humidity", zone.name) : ""}
-                ${metrics.includes("sound") ? createChartCard("sound", zone.name) : ""}
-
+                ${metrics.includes("humidity")    ? createChartCard("humidity",    zone.name) : ""}
+                ${metrics.includes("sound")       ? createChartCard("sound",       zone.name) : ""}
+                ` : ""}
             </div>
         `;
 
 		container.appendChild(zoneDiv);
 	});
+
+	// Pas d'absorption ici : les stat-cards sont générées par generateStatCardsForBuilding
+	// (chartUtils.js) qui est appelé APRÈS renderZones. L'absorption est déclenchée
+	// par l'événement "occupancyStatCardsReady" dispatché par chartUtils.
 
 	initZoneChartToggles();
 }
@@ -2317,7 +2335,7 @@ function createChartCard(metric, zoneName) {
 
             </div>
 
-            <div class="rt-chart-container" style="height: 280px; position: relative;">
+            <div class="rt-chart-container" style="height: auto; position: relative;">
                 <canvas id="chart-${safeZone}-${metric}"></canvas>
             </div>
         </div>
@@ -2351,6 +2369,85 @@ function initZoneChartToggles() {
 	});
 }
 
+
+// ============================================
+// ABSORPTION DES STAT-CARDS ORPHELINES
+// Pour chaque stat-card restée dans #sensor-stats-container (pas de zone env
+// correspondante), on crée un zone-block minimal et on l'ajoute à zones-container.
+// Un zone-block orphelin porte l'attribut data-orphan pour pouvoir le retrouver
+// et le supprimer lors d'un rechargement.
+// ============================================
+function absorbOrphanStatCards(zonesContainer) {
+	// Supprimer les anciens blocs orphelins créés lors d'un appel précédent
+	zonesContainer.querySelectorAll(".zone-block[data-orphan]").forEach(b => b.remove());
+
+	document.querySelectorAll("#sensor-stats-container .stat-card[data-zone]").forEach(statCard => {
+		const zoneKey = statCard.dataset.zone;
+
+		// Titre lisible : remplacer les underscores par des espaces, Title Case
+		const zoneName = zoneKey
+			.replace(/_/g, " ")
+			.replace(/\b\w/g, c => c.toUpperCase());
+
+		const orphanBlock = document.createElement("div");
+		orphanBlock.className = "zone-block";
+		orphanBlock.setAttribute("data-orphan", zoneKey);
+		orphanBlock.id = `zone-orphan-${zoneKey}`;
+
+		// Layout : stat-card (50%) + message "no env data" (50%), alignés
+		orphanBlock.innerHTML = `
+			<h3 style="margin: 10px 0;">📍 ${zoneName}</h3>
+			<div style="display: flex; gap: 1rem; align-items: stretch; min-height: 260px;">
+				<div class="zone-stat-card-slot" data-zone-key="${zoneKey}" style="flex: 0 0 60%; max-width: 60%;"></div>
+				<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+				            gap: 0.5rem; color: #9ca3af; text-align: center; padding: 1rem;">
+					<span style="font-size: 2rem;">📡</span>
+					<span style="font-size: 0.9rem; font-weight: 500;">No data found</span>
+					<span style="font-size: 0.78rem;">No metric CO₂, Humidity, Temperature or sound configured<br>for this zone</span>
+				</div>
+			</div>
+		`;
+
+		zonesContainer.appendChild(orphanBlock);
+
+		const slot = orphanBlock.querySelector(`.zone-stat-card-slot[data-zone-key="${zoneKey}"]`);
+		slot.appendChild(statCard);
+	});
+}
+
+
+// ============================================
+// RE-ABSORPTION DES STAT-CARDS APRÈS REGÉNÉRATION
+// Quand chartUtils.js recrée les stat-cards dans #sensor-stats-container
+// (ex: changement de building/floor), on les déplace à nouveau dans leurs slots,
+// puis on crée les blocs orphelins pour les restantes.
+// ============================================
+document.addEventListener("occupancyStatCardsReady", () => {
+	const zonesContainer = document.getElementById("zones-container");
+
+	// 1. Remplir les slots des zones avec chart-block (créés par renderZones)
+	//    Les slots vides (pas de stat-card correspondante) sont supprimés après la boucle.
+	const emptySlots = [];
+	zonesContainer.querySelectorAll(".zone-stat-card-slot[data-zone-key]").forEach(slot => {
+		// Ne traiter que les slots des zone-blocks env (pas les orphelins déjà créés)
+		if (slot.closest("[data-orphan]")) return;
+
+		const zoneKey = slot.dataset.zoneKey;
+		const statCard = document.querySelector(
+			`#sensor-stats-container .stat-card[data-zone="${zoneKey}"]`
+		);
+		if (statCard) {
+			slot.innerHTML = "";
+			slot.appendChild(statCard);
+		} else {
+			emptySlots.push(slot);
+		}
+	});
+	emptySlots.forEach(s => s.remove());
+
+	// 2. Créer les blocs orphelins pour les stat-cards encore dans #sensor-stats-container
+	absorbOrphanStatCards(zonesContainer);
+});
 
 function safeZoneId(zoneName) {
 	return zoneName.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
