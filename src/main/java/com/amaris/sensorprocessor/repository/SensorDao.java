@@ -23,7 +23,13 @@ public class SensorDao {
                     "LEFT JOIN device_type dt ON s.id_device_type = dt.id_device_type ";
 
     private static final String ENV_SELECT =
-            "SELECT s.id_sensor, s.location, dt.type_name " +
+            "SELECT s.id_sensor, l.name, dt.type_name " +
+                    "FROM sensors s " +
+                    "JOIN device_type dt ON s.id_device_type = dt.id_device_type " +
+                    "LEFT JOIN location l ON s.location_id = l.id";
+
+    private static final String OCCUPANCY_ZONES_SELECT =
+            "SELECT s.id_sensor, s.floor, l.name, dt.type_name " +
                     "FROM sensors s " +
                     "LEFT JOIN device_type dt ON s.id_device_type = dt.id_device_type ";
 
@@ -182,9 +188,6 @@ public class SensorDao {
 
 
     public List<Map<String, Object>> findAllByBuildingAndFloor(String building, int floor, boolean isAllFloors) {
-        // Ajouter dans la condition si nous connaissons tous les types qui seront pris en compte pour les stats
-        // AND dt.type_name IN ('CO2', 'SON', 'TEMPEX')
-
         StringBuilder sql = new StringBuilder(
                 ENV_SELECT + " WHERE s.building_id = ? AND s.status = 1 AND dt.type_name IN ('CO2', 'SON', 'TEMPEX')"
         );

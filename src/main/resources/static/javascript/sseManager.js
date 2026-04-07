@@ -142,74 +142,41 @@
 	// ===============================
 	// ENVIRONMENT
 	// ===============================
-	const environmentConfigCache = new Map();
-
-	function normalizeFloorKey(floor) {
-		if (floor == null || floor === "" || floor === "all") return "all";
-		return String(floor);
+	function envKey(building, deviceIds) {
+		return `env:${building}:${deviceIds}`;
 	}
 
-	async function getEnvironmentConfig(building, floor) {
-		const floorKey = normalizeFloorKey(floor);
-		const cacheKey = `${building}:${floorKey}`;
 
-		if (environmentConfigCache.has(cacheKey)) {
-			return environmentConfigCache.get(cacheKey);
-		}
+	function getOrCreateEnvironment(building, deviceIds) {
 
-		const params = new URLSearchParams({ building: String(building) });
-		if (floorKey !== "all") {
-			params.set("floor", floorKey);
-		}
-
-		const response = await fetch(`/api/config/environment?${params.toString()}`);
-		if (!response.ok) {
-			throw new Error(`Environment config HTTP ${response.status}`);
-		}
-
-		const config = await response.json();
-		environmentConfigCache.set(cacheKey, config);
-		return config;
-	}
-
-	function keyForEnvironment(building, floor) {
-		return `environment:${building}:${normalizeFloorKey(floor)}`;
-	}
-
-	async function getOrCreateEnvironment(building, floor) {
-		const key = keyForEnvironment(building, floor);
+		const key = envKey(building, deviceIds);
 		let entry = sources.get(key);
 
 		if (!entry) {
-			const config = await getEnvironmentConfig(building, floor);
-			const zones = Array.isArray(config?.zones) ? config.zones : [];
-			const deviceIds = zones.flatMap(zone => Array.isArray(zone?.deviceIds) ? zone.deviceIds : []);
 
-			if (!deviceIds.length) {
-				console.warn("⚠️ [SSE][environment] no devices found for", { building, floor });
-			}
-
-			const url =
-				`/api/dashboard/live/stream` +
-				`?building=${building}` +
-				`&deviceIds=${deviceIds.join(",")}`;
-
+			const url = `/api/dashboard/live/stream?building=${building}&deviceIds=${deviceIds}`;
 			const es = new EventSource(url);
 
-			console.log("🌡️ [SSEManager] create Environment EventSource", url);
+			console.log("🌍 [SSE] create ENV stream:", url);
 
-			entry = { es, listeners: new Set(), refCount: 0 };
+			entry = {
+				es,
+				listeners: new Set(),
+				refCount: 0
+			};
 
-			const { onSnapshot, onUplink } = makeSseHandlers(entry, "environment");
+			function handle(e) {
+				const raw = JSON.parse(e.data);
+				const msg = raw?.result ?? raw;
 
-			// snapshot = HTTP TTN (données initiales)
-			es.addEventListener("snapshot", onSnapshot);
-			// uplink   = MQTT TTN (live)
-			es.addEventListener("uplink", onUplink);
-			es.addEventListener("keepalive", () => {});
+				entry.listeners.forEach(fn => fn(msg));
+			}
 
-			es.onopen  = () => console.log("✅ [SSE][environment] opened", building);
-			es.onerror = (e) => console.warn("❌ [SSE][environment] error", building, e);
+			es.addEventListener("snapshot", handle);
+			es.addEventListener("uplink", handle);
+
+			es.onerror = (e) => console.warn("❌ [SSE][env] error", e);
+			es.onopen = () => console.log("✅ [SSE][env] opened");
 
 			sources.set(key, entry);
 		}
@@ -217,31 +184,23 @@
 		return entry;
 	}
 
-	async function subscribeEnvironment(building, floor, handler) {
-		const entry = await getOrCreateEnvironment(building, floor);
-		const key = keyForEnvironment(building, floor);
+	function subscribeEnvironment(building, deviceIds, callback) {
+		const entry = getOrCreateEnvironment(building, deviceIds);
 
-		entry.listeners.add(handler);
+		entry.listeners.add(callback);
 		entry.refCount++;
 
-		console.log(`➕ [SSE][environment] subscribe ${key} (refs=${entry.refCount})`);
-
 		return () => {
-			const current = sources.get(key);
-			if (!current) return;
+			entry.listeners.delete(callback);
+			entry.refCount--;
 
-			current.listeners.delete(handler);
-			current.refCount = Math.max(0, current.refCount - 1);
-
-			console.log(`➖ [SSE][environment] unsubscribe ${key} (refs=${current.refCount})`);
-
-			if (current.refCount === 0) {
-				console.log("🔒 [SSE][environment] closing", building);
-				current.es.close();
-				sources.delete(key);
+			if (entry.refCount <= 0) {
+				entry.es.close();
+				sources.delete(envKey(building, deviceIds));
+				console.log("❌ [SSE] closed ENV stream");
 			}
 		};
-	}
+	};
 
 	// ===============================
 	// EXPORT
@@ -249,6 +208,5 @@
 	window.SSEManager = {
 		subscribeOccupancy,
 		subscribeEnvironment,
-		getEnvironmentConfig,
 	};
 })();

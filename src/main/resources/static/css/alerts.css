@@ -630,7 +630,8 @@ main {
 }
 
 .stat-card {
-    background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
+    /*background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);*/
+    background: white;
     border-radius: 20px;
     padding: 1.75rem;
     box-shadow: var(--shadow-md), 0 0 0 1px rgba(102, 33, 121, 0.05);
@@ -737,16 +738,25 @@ main {
 
 .stat-legend {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
     gap: 0.5rem;
     font-size: 0.85rem;
+    flex-wrap: wrap;
 }
 
+.custom-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+/*
 .stat-legend div {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-}
+}*/
 
 .stat-legend .dot {
     width: 12px;

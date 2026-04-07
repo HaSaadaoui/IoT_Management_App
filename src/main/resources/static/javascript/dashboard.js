@@ -371,7 +371,7 @@ class DashboardManager {
 			this.applyBuildingStatVisibility();
 
 			//10 Others metrics stats
-			updateEnvironmentChartsVisibility(this.filters.building, this.filters.floor);
+			updateEnvironmentChartsVisibility(this.filters.building);
 			startEnvironmentSSE(this.filters.building, this.filters.floor);
 
 			return;
@@ -2097,87 +2097,542 @@ async function preloadEnvironmentStats(building, floor, metrics = []) {
 
 let environmentUnsub = null;
 const environmentState = {};
+const envZoneState = {};
 
-async function getEnvironmentConfig(building, floor) {
-	if (!window.SSEManager?.getEnvironmentConfig) {
-		console.warn("SSEManager.getEnvironmentConfig not available");
-		return { metrics: [], zones: [] };
-	}
+async function startEnvironmentSSE(building, floor = "") {
+	console.log("🌡️ startEnvironmentSSE:", building, floor);
 
-	try {
-		return await window.SSEManager.getEnvironmentConfig(building, floor);
-	} catch (error) {
-		console.error("Failed to load environment config:", error);
-		return { metrics: [], zones: [] };
-	}
-}
-
-async function startEnvironmentSSE(building, floor) {
-
-	console.log("🌡️ startEnvironmentSSE called:", building);
-
+	// 🔁 stop ancien SSE
 	if (environmentUnsub) {
-		console.log("🔁 Unsub previous environment SSE");
 		environmentUnsub();
 		environmentUnsub = null;
 	}
 
-	// reset graphique + stats
+	// reset UI
 	resetEnvironmentCharts();
 	resetEnvironmentStats();
+	normalFloor = normalizeFloor(building, floor);
+
+	//récupérer config dynamique
+	const params = new URLSearchParams({ building });
+	params.set("floor", normalFloor);
+
+	const res = await fetch(`/api/config/environment?${params}`);
+	const config = await res.json();
+
+	renderZones(config.zones, config.metrics);
+
+	initZoneCharts(config.zones, config.metrics);
+
+	const deviceIds = config.zones.flatMap(z => z.deviceIds);
+	const metrics = config.metrics;
+
+	console.log("✅ devices:", deviceIds);
+	console.log("✅ metrics:", metrics);
+
+
+	const deviceToZone = {};
+
+	config.zones.forEach(zone => {
+		zone.deviceIds.forEach(id => {
+			deviceToZone[id] = zone.name;
+		});
+	});
+
+	console.log("🗺️ deviceToZone:", deviceToZone);
+
+	// gérer affichage dynamique
+	updateEnvironmentChartsVisibilityDynamic(metrics);
 
 	if (!window.SSEManager?.subscribeEnvironment) {
 		console.warn("❌ SSEManager.subscribeEnvironment not available");
 		return;
 	}
 
-	try {
-		const cfg = await getEnvironmentConfig(building, floor);
-		await preloadEnvironmentStats(building, floor, cfg?.metrics);
+	environmentUnsub = window.SSEManager.subscribeEnvironment(
+		building,
+		deviceIds.join(","),
+		(msg) => {
 
-		environmentUnsub = await window.SSEManager.subscribeEnvironment(building, floor, ({ type, data }) => {
-			const msg = data;
 			const decoded =
 				msg?.uplink_message?.decoded_payload ??
 				msg?.decoded_payload ??
 				msg?.payload ??
 				{};
 
-			const temperature = decoded?.temperature;
-			const humidity = decoded?.humidity;
-			const co2 = decoded?.co2;
-			const sound = decoded?.LAeq;
+			const deviceId =
+				msg?.end_device_ids?.device_id ||
+				msg?.device_id;
 
-			if (temperature != null) {
-				updateEnvChart("temperature", temperature);
-				updateEnvAverage("temperature");
-				updateEnvMax("temperature");
-			}
+			// 🔥 trouver la zone
+			const zone = config.zones.find(z => z.deviceIds.includes(deviceId));
+			if (!zone) return;
 
-			if (humidity != null) {
-				updateEnvChart("humidity", humidity);
-				updateEnvAverage("humidity");
-				updateEnvMax("humidity");
-			}
+			const zoneName = zone.name;
 
-			if (co2 != null) {
-				updateEnvChart("co2", co2);
-				updateEnvAverage("co2");
-				updateEnvMax("co2");
-			}
+			updateMetric(zoneName, "temperature", decoded.temperature);
+			updateMetric(zoneName, "humidity", decoded.humidity);
+			updateMetric(zoneName, "co2", decoded.co2);
+			updateMetric(zoneName, "sound", decoded.LAeq);
+		}
+	);
+}
 
-			if (sound != null) {
-				updateEnvChart("sound", sound);
-				updateEnvAverage("sound");
-				updateEnvMax("sound");
-			}
 
-		});
-	} catch (error) {
-		console.error("Failed to subscribe environment SSE:", error);
-		environmentUnsub = null;
+function updateMetric(zone, metric, value) {
+	if (value == null) return;
+
+	const safeZone = zone.replace(/\s+/g, "_");
+
+	const avgEl = document.getElementById(`${safeZone}-${metric}-avg`);
+	const maxEl = document.getElementById(`${safeZone}-${metric}-max`);
+
+	if (!environmentState[zone]) environmentState[zone] = {};
+	if (!environmentState[zone][metric]) environmentState[zone][metric] = [];
+
+	const arr = environmentState[zone][metric];
+	arr.push(value);
+
+	if (arr.length > 20) arr.shift(); // limiter la taille
+
+	const avg = arr.reduce((a,b) => a+b,0)/arr.length;
+	const max = Math.max(...arr);
+
+	if (avgEl) avgEl.textContent = avg.toFixed(1);
+	if (maxEl) maxEl.textContent = max.toFixed(1);
+
+	const chart = zoneCharts[safeZone]?.[metric];
+
+	if (chart) {
+		const now = new Date().toLocaleTimeString();
+
+		chart.data.labels.push(now);
+		chart.data.datasets[0].data.push(value);
+
+		if (chart.data.labels.length > 20) {
+			chart.data.labels.shift();
+			chart.data.datasets[0].data.shift();
+		}
+
+		chart.update("none");
 	}
 }
+
+function updateZoneStats(zone) {
+
+	const data = envZoneState[zone];
+
+	if (!data) return;
+
+	function avg(arr) {
+		if (!arr.length) return "--";
+		return (arr.reduce((a,b) => a+b, 0) / arr.length).toFixed(1);
+	}
+
+	function max(arr) {
+		if (!arr.length) return "--";
+		return Math.max(...arr);
+	}
+
+	updateZoneUI(zone, {
+		temperature: { avg: avg(data.temperature), max: max(data.temperature) },
+		humidity: { avg: avg(data.humidity), max: max(data.humidity) },
+		co2: { avg: avg(data.co2), max: max(data.co2) },
+		sound: { avg: avg(data.sound), max: max(data.sound) }
+	});
+}
+
+function updateZoneUI(zone, stats) {
+	const safeZone = zone.replace(/\s+/g, "_");
+	const container = document.getElementById(`zone-${safeZone}`);
+	if (!container) return;
+
+	container.querySelector(".temp-avg").textContent = stats.temperature.avg;
+	container.querySelector(".temp-max").textContent = stats.temperature.max;
+
+	container.querySelector(".co2-avg").textContent = stats.co2.avg;
+	container.querySelector(".co2-max").textContent = stats.co2.max;
+
+	container.querySelector(".hum-avg").textContent = stats.humidity.avg;
+	container.querySelector(".hum-max").textContent = stats.humidity.max;
+
+	container.querySelector(".sound-avg").textContent = stats.sound.avg;
+	container.querySelector(".sound-max").textContent = stats.sound.max;
+}
+
+
+// Normalise un nom de zone de la même façon que generateStatCardsForBuilding dans chartUtils.js
+// (uppercase + espaces/tirets → underscore) pour garantir le matching entre les deux sources.
+function normalizeZoneKey(name) {
+	return name.toUpperCase().replace(/[\s\-]+/g, "_").replace(/[^A-Z0-9_]/g, "");
+}
+
+function renderZones(zones, metrics) {
+	const container = document.getElementById("zones-container");
+	container.innerHTML = "";
+
+	zones.forEach(zone => {
+		// safeZone : utilisé pour les IDs DOM (inchangé)
+		const safeZone = zone.name.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
+		// zoneKey : clé normalisée pour matcher data-zone des stat-cards (même convention que chartUtils)
+		const zoneKey = normalizeZoneKey(zone.name);
+
+		const zoneDiv = document.createElement("div");
+		zoneDiv.className = "zone-block";
+		zoneDiv.id = `zone-${safeZone}`;
+
+		const hasCharts = ["co2", "temperature", "humidity", "sound"].some(m => metrics.includes(m));
+
+		zoneDiv.innerHTML = `
+            <h3 style="margin: 10px 0;">📍 ${zone.name}</h3>
+
+            <div class="charts-grid charts-grid--2col">
+                <!-- Slot occupancy : rempli par occupancyStatCardsReady après génération des stat-cards -->
+                <div class="zone-stat-card-slot" data-zone-key="${zoneKey}"></div>
+
+                ${hasCharts ? `
+                ${metrics.includes("co2")         ? createChartCard("co2",         zone.name) : ""}
+                ${metrics.includes("temperature") ? createChartCard("temperature", zone.name) : ""}
+                ${metrics.includes("humidity")    ? createChartCard("humidity",    zone.name) : ""}
+                ${metrics.includes("sound")       ? createChartCard("sound",       zone.name) : ""}
+                ` : ""}
+            </div>
+        `;
+
+		container.appendChild(zoneDiv);
+	});
+
+	// Pas d'absorption ici : les stat-cards sont générées par generateStatCardsForBuilding
+	// (chartUtils.js) qui est appelé APRÈS renderZones. L'absorption est déclenchée
+	// par l'événement "occupancyStatCardsReady" dispatché par chartUtils.
+
+	initZoneChartToggles();
+}
+
+
+function createChartCard(metric, zoneName) {
+	const config = {
+		co2: {
+			label: "CO₂",
+			icon: "💨",
+			color: "#10b981",
+			gradient: "linear-gradient(135deg, #10b981, #059669)",
+			unit: "ppm"
+		},
+		temperature: {
+			label: "Temperature",
+			icon: "🌡️",
+			color: "#ef4444",
+			gradient: "linear-gradient(135deg, #ef4444, #dc2626)",
+			unit: "°C"
+		},
+		humidity: {
+			label: "Humidity",
+			icon: "💧",
+			color: "#3b82f6",
+			gradient: "linear-gradient(135deg, #3b82f6, #2563eb)",
+			unit: "%"
+		},
+		sound: {
+			label: "Sound Level",
+			icon: "🔊",
+			color: "#f59e0b",
+			gradient: "linear-gradient(135deg, #f59e0b, #d97706)",
+			unit: "dB"
+		}
+	};
+
+	const cfg = config[metric];
+
+	const safeZone = zoneName.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
+
+
+	return `
+        <div class="chart-card">
+            <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    
+                    <div class="chart-title">
+                        <span class="chart-icon" style="background: ${cfg.gradient};">${cfg.icon}</span>
+                        <span>${cfg.label}</span>
+                    </div>
+
+                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                        Avg: 
+                        <span class="kpi-value" id="${safeZone}-${metric}-avg" 
+                              style="font-weight: 600; color: ${cfg.color};">--</span> ${cfg.unit}
+                    </div>
+
+                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                        Max: 
+                        <span id="${safeZone}-${metric}-max" 
+                              class="kpi-value" 
+                              style="font-weight: 600; color: ${cfg.color};">--</span> ${cfg.unit}
+                    </div>
+
+                </div>
+
+                <!-- TOGGLE PAR ZONE -->
+                <!--<div class="env-chart-toggle" data-zone="${safeZone}" data-metric="${metric}"
+                     style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+
+                    <button class="env-chart-btn active" data-type="line">📈</button>
+                    <button class="env-chart-btn" data-type="bar">📊</button>
+                    <button class="env-chart-btn" data-type="doughnut">🍩</button>
+
+                </div>-->
+				
+				<div class="env-chart-toggle" 
+					 data-zone="${safeZone}" 
+					 data-metric="${metric}"
+					 style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
+
+					<button class="env-chart-btn active" data-type="line"
+						style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem;">
+						📈 Line
+					</button>
+
+					<button class="env-chart-btn" data-type="bar"
+						style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem;">
+						📊 Bar
+					</button>
+
+					<button class="env-chart-btn" data-type="doughnut"
+						style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem;">
+						🍩 Donut
+					</button>
+
+				</div>
+
+            </div>
+
+            <div class="rt-chart-container" style="height: auto; position: relative;">
+                <canvas id="chart-${safeZone}-${metric}"></canvas>
+            </div>
+        </div>
+    `;
+}
+
+
+function initZoneChartToggles() {
+	document.querySelectorAll(".env-chart-btn").forEach(btn => {
+
+		btn.addEventListener("click", () => {
+
+			const toggle = btn.closest(".env-chart-toggle");
+
+			const zone = toggle.dataset.zone;
+			const metric = toggle.dataset.metric;
+			const type = btn.dataset.type;
+
+			toggle.querySelectorAll(".env-chart-btn")
+				.forEach(b => b.classList.remove("active"));
+
+			btn.classList.add("active");
+
+			const chart = zoneCharts[zone]?.[metric];
+			if (!chart) return;
+
+			chart.config.type = type;
+			chart.update();
+		});
+	});
+}
+
+
+// ============================================
+// ABSORPTION DES STAT-CARDS ORPHELINES
+// Pour chaque stat-card restée dans #sensor-stats-container (pas de zone env
+// correspondante), on crée un zone-block minimal et on l'ajoute à zones-container.
+// Un zone-block orphelin porte l'attribut data-orphan pour pouvoir le retrouver
+// et le supprimer lors d'un rechargement.
+// ============================================
+function absorbOrphanStatCards(zonesContainer) {
+	// Supprimer les anciens blocs orphelins créés lors d'un appel précédent
+	zonesContainer.querySelectorAll(".zone-block[data-orphan]").forEach(b => b.remove());
+
+	document.querySelectorAll("#sensor-stats-container .stat-card[data-zone]").forEach(statCard => {
+		const zoneKey = statCard.dataset.zone;
+
+		// Titre lisible : remplacer les underscores par des espaces, Title Case
+		const zoneName = zoneKey
+			.replace(/_/g, " ")
+			.replace(/\b\w/g, c => c.toUpperCase());
+
+		const orphanBlock = document.createElement("div");
+		orphanBlock.className = "zone-block";
+		orphanBlock.setAttribute("data-orphan", zoneKey);
+		orphanBlock.id = `zone-orphan-${zoneKey}`;
+
+		// Layout : stat-card (50%) + message "no env data" (50%), alignés
+		orphanBlock.innerHTML = `
+			<h3 style="margin: 10px 0;">📍 ${zoneName}</h3>
+			<div style="display: flex; gap: 1rem; align-items: stretch; min-height: 260px;">
+				<div class="zone-stat-card-slot" data-zone-key="${zoneKey}" style="flex: 0 0 60%; max-width: 60%;"></div>
+				<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+				            gap: 0.5rem; color: #9ca3af; text-align: center; padding: 1rem;">
+					<span style="font-size: 2rem;">📡</span>
+					<span style="font-size: 0.9rem; font-weight: 500;">No data found</span>
+					<span style="font-size: 0.78rem;">No metric CO₂, Humidity, Temperature or sound configured<br>for this zone</span>
+				</div>
+			</div>
+		`;
+
+		zonesContainer.appendChild(orphanBlock);
+
+		const slot = orphanBlock.querySelector(`.zone-stat-card-slot[data-zone-key="${zoneKey}"]`);
+		slot.appendChild(statCard);
+	});
+}
+
+
+// ============================================
+// RE-ABSORPTION DES STAT-CARDS APRÈS REGÉNÉRATION
+// Quand chartUtils.js recrée les stat-cards dans #sensor-stats-container
+// (ex: changement de building/floor), on les déplace à nouveau dans leurs slots,
+// puis on crée les blocs orphelins pour les restantes.
+// ============================================
+document.addEventListener("occupancyStatCardsReady", () => {
+	const zonesContainer = document.getElementById("zones-container");
+
+	// 1. Remplir les slots des zones avec chart-block (créés par renderZones)
+	//    Les slots vides (pas de stat-card correspondante) sont supprimés après la boucle.
+	const emptySlots = [];
+	zonesContainer.querySelectorAll(".zone-stat-card-slot[data-zone-key]").forEach(slot => {
+		// Ne traiter que les slots des zone-blocks env (pas les orphelins déjà créés)
+		if (slot.closest("[data-orphan]")) return;
+
+		const zoneKey = slot.dataset.zoneKey;
+		const statCard = document.querySelector(
+			`#sensor-stats-container .stat-card[data-zone="${zoneKey}"]`
+		);
+		if (statCard) {
+			slot.innerHTML = "";
+			slot.appendChild(statCard);
+		} else {
+			emptySlots.push(slot);
+		}
+	});
+	emptySlots.forEach(s => s.remove());
+
+	// 2. Créer les blocs orphelins pour les stat-cards encore dans #sensor-stats-container
+	absorbOrphanStatCards(zonesContainer);
+});
+
+function safeZoneId(zoneName) {
+	return zoneName.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
+}
+
+const zoneCharts = {};
+
+function initZoneCharts(zones, metrics) {
+
+	zones.forEach(zone => {
+
+		const safeZone = safeZoneId(zone.name);
+
+		zoneCharts[safeZone] = {};
+
+		metrics.forEach(metric => {
+
+			const canvas = document.getElementById(`chart-${safeZone}-${metric}`);
+			if (!canvas) return;
+
+			const ctx = canvas.getContext("2d");
+
+			zoneCharts[safeZone][metric] = new Chart(ctx, {
+				type: "line",
+				data: {
+					labels: [],
+					datasets: [{
+						label: metric,
+						data: [],
+						backgroundColor: rtEnvChartColors[metric].bg,
+						borderColor: rtEnvChartColors[metric].border,
+						borderWidth: 2,
+						fill: true,
+						tension: 0.4
+					}]
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					animation: false,
+					plugins: {
+						legend: { display: false }
+					},
+					scales: {
+						x: {
+							ticks: {
+								maxRotation: 45,
+								minRotation: 45,
+								autoSkip: true,
+								maxTicksLimit: 10
+							},
+							grid: {
+								color: "rgba(0,0,0,0.05)"
+							}
+						},
+						y: {
+							beginAtZero: false,
+							title: {
+								display: true,
+								text: metricUnits[metric] || ""
+							},
+							grid: {
+								color: "rgba(0,0,0,0.05)"
+							}
+						}
+					}
+				}
+			});
+
+		});
+	});
+}
+
+
+function updateEnvironmentChartsVisibilityDynamic(metrics) {
+
+	const all = ["temperature", "humidity", "co2", "sound"];
+
+	all.forEach(metric => {
+		const card = document.querySelector(`[data-chart="${metric}"]`)?.closest(".chart-card");
+
+		if (!card) return;
+
+		card.style.display = metrics.includes(metric) ? "block" : "none";
+	});
+}
+
+
+function normalizeFloor(building, floor) {
+
+	if (building === "21" && (!floor || floor === "" || floor === "all")) {
+		return "3";
+	}
+
+	if (building === "23" && (!floor || floor === "" || floor === "all")) {
+		return "2";
+	}
+
+	return floor;
+}
+
+let envConfigCache = {};
+
+async function getEnvConfig(building, floor) {
+	const key = `${building}-${floor}`;
+	if (envConfigCache[key]) return envConfigCache[key];
+
+	const res = await fetch(`/api/config/environment?building=${building}&floor=${floor}`);
+	const data = await res.json();
+
+	envConfigCache[key] = data;
+	return data;
+}
+
 
 function closeEnvironmentSSE() {
 	if (environmentUnsub) {
@@ -2299,12 +2754,13 @@ document.addEventListener('DOMContentLoaded', () => {
 	// Délai court pour laisser loadBuildings() finir et définir filters.building
 	setTimeout(() => {
 		const buildingId = document.getElementById('filter-building')?.value;
+		const floorId = document.getElementById('filter-floor')?.value;
 		const buildingName = document.getElementById('filter-building')?.selectedOptions[0].text;
 		if (buildingId) {
 			update3DConfig(buildingId);
 			updateTitles(buildingName);
-			updateEnvironmentChartsVisibility(buildingId, filters.floor);
-			startEnvironmentSSE(buildingId, filters.floor);
+			updateEnvironmentChartsVisibility(buildingId);
+			startEnvironmentSSE(buildingId, floorId);
 		}
 	}, 1500);
 });
