@@ -188,16 +188,15 @@ public class SensorDao {
 
 
     public List<Map<String, Object>> findAllByBuildingAndFloorForConfig(String building, Integer floor) {
-        StringBuilder sql = new StringBuilder(
-                ENV_SELECT + " WHERE s.building_id = ? AND s.floor = ? " +
-                        "AND s.status = 1 AND dt.type_name IN ('CO2', 'SON', 'TEMPEX', 'CONSO', 'EYE')"
-        );
-
-        List<Object> params = new ArrayList<>();
-        params.add(Integer.parseInt(building));
-        params.add(floor);
-
-        return jdbcTemplate.queryForList(sql.toString(), params.toArray());
+        if (floor != null) {
+            String sql = ENV_SELECT + " WHERE s.building_id = ? AND s.floor = ? " +
+                    "AND s.status = 1 AND dt.type_name IN ('CO2', 'SON', 'TEMPEX', 'CONSO', 'EYE')";
+            return jdbcTemplate.queryForList(sql, Integer.parseInt(building), floor);
+        } else {
+            String sql = ENV_SELECT + " WHERE s.building_id = ? " +
+                    "AND s.status = 1 AND dt.type_name IN ('CO2', 'SON', 'TEMPEX', 'CONSO', 'EYE')";
+            return jdbcTemplate.queryForList(sql, Integer.parseInt(building));
+        }
     }
 
     public List<Map<String, Object>> findZonesByBuilding(Integer buildingId) {

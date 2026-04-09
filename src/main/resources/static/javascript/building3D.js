@@ -347,8 +347,8 @@ class Building3D {
 
     async loadOccupancyDataForFloor(floorNumber) {
         console.log("Loading occupancy from SSE cache for", this.buildingKey, "floor", floorNumber);
-        // Update stats from building 3D
-        if (window.ChartUtils?.generateStatCardsForBuilding) {
+        // Update stats from building 3D — only when viewing a specific floor (not in 3D overview)
+        if (!this.isIn3DView && window.ChartUtils?.generateStatCardsForBuilding) {
             // Génère uniquement les cartes du floor choisi
             window.ChartUtils.generateStatCardsForBuilding(this.buildingKey, floorNumber);
         }
@@ -753,7 +753,12 @@ class Building3D {
 
         const floorSelect = document.getElementById('filter-floor');
         if (floorSelect) {
+            const alreadySet = floorSelect.value === String(floorNumber);
             floorSelect.value = floorNumber;
+            // If value wasn't already set (3D click, not dropdown), notify dashboard
+            if (!alreadySet) {
+                floorSelect.dispatchEvent(new Event('change'));
+            }
         }
     }
 
@@ -915,10 +920,19 @@ class Building3D {
         });
 
         this.currentFloorNumber = null;
-        if (window.ChartUtils?.generateStatCardsForBuilding) {
-            // Génère uniquement les cartes du floor choisi
-            window.ChartUtils.generateStatCardsForBuilding(this.buildingKey, this.currentFloorNumber);
-        }
+
+        // Reset floor select and clear env zones/stat cards directly
+        const floorSelect = document.getElementById('filter-floor');
+        if (floorSelect) floorSelect.value = '';
+
+        // Clear env zone blocks (no floor selected)
+        const zonesContainer = document.getElementById('zones-container');
+        if (zonesContainer) zonesContainer.querySelectorAll('.zone-block:not([data-orphan])').forEach(b => b.remove());
+
+        // Clear stat cards
+        const statsContainer = document.getElementById('sensor-stats-container');
+        if (statsContainer) statsContainer.innerHTML = '';
+        if (window.closeOccupancySSE) window.closeOccupancySSE();
     }
 
     resize3D() {

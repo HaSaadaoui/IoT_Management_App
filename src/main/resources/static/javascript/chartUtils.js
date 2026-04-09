@@ -365,7 +365,7 @@ async function generateStatCardsForBuilding(building, selectedFloor = null) {
     // CASE 1: FLOOR SÉLECTIONNÉ → afficher les zones du floor
     // ======================================================
     if (effectiveFloor != null) {
-        const floorZones = buildingZones[effectiveFloor];
+        const floorZones = buildingZones[String(effectiveFloor)];
 
         if (!floorZones || Object.keys(floorZones).length === 0) {
             container.innerHTML = '';

@@ -68,9 +68,17 @@ class DashboardManager {
 		// Error handling and refresh management
 		this.errorCount = 0;
 		this.maxRetries = 3;
-		this.baseRefreshInterval = 60000; // 60 seconds
+		this.baseRefreshInterval = 30000; // 30 seconds
 		this.currentRefreshInterval = this.baseRefreshInterval;
 		this.refreshTimer = null;
+
+		// Last known conso values — kept when SSE drops
+		this.lastKnownConso = null;
+		this.consoRefreshInterval = null;
+
+		// Last known location live data — replayed every 30s
+		this.lastKnownLiveData = null;
+		this.liveDataRefreshInterval = null;
 
 		this.init();
 	}
@@ -177,31 +185,30 @@ class DashboardManager {
 					? Number(payload.powerTotalkW)
 					: (payload.powerTotalW != null ? Number(payload.powerTotalW) / 1000 : null);
 
-				if (kw != null && !Number.isNaN(kw)) {
-					this.updateMetricValue('live-current-power', kw.toFixed(2));
-				} else{
-					this.updateMetricValue('live-current-power', '--');
-				}
-
 				const kwh = (payload.todayEnergykWh != null)
 					? Number(payload.todayEnergykWh)
 					: (payload.todayEnergyWh != null ? Number(payload.todayEnergyWh) / 1000 : null);
 
+				if (kw != null && !Number.isNaN(kw)) {
+					this.updateMetricValue('live-current-power', kw.toFixed(2));
+					if (!this.lastKnownConso) this.lastKnownConso = {};
+					this.lastKnownConso.kw = kw;
+				}
 				if (kwh != null && !Number.isNaN(kwh)) {
 					this.updateMetricValue('live-daily-energy', kwh.toFixed(2));
-				} else{
-					this.updateMetricValue('live-daily-energy', '--');
+					if (!this.lastKnownConso) this.lastKnownConso = {};
+					this.lastKnownConso.kwh = kwh;
 				}
+
+				this.startConsoRefreshInterval();
 			} catch (e) {
 				console.warn('[CONSO SSE] parse error', e);
-				this.resetConsoMetrics();
 			}
 		});
 
 		es.addEventListener('keepalive', () => {});
 		es.onerror = (err) => {
-			console.warn('[CONSO SSE] error', err);
-			this.resetConsoMetrics();
+			console.warn('[CONSO SSE] error — keeping last known values', err);
 		};
 	}
 
@@ -210,12 +217,26 @@ class DashboardManager {
 		this.updateMetricValue('live-daily-energy', '--');
 	}
 
+	startConsoRefreshInterval() {
+		if (this.consoRefreshInterval) return; // déjà actif
+		this.consoRefreshInterval = setInterval(() => {
+			if (!this.lastKnownConso) return;
+			if (this.lastKnownConso.kw != null) this.updateMetricValue('live-current-power', this.lastKnownConso.kw.toFixed(2));
+			if (this.lastKnownConso.kwh != null) this.updateMetricValue('live-daily-energy', this.lastKnownConso.kwh.toFixed(2));
+		}, 30000);
+	}
+
 	stopConsoAggregateSse() {
 		if (this.consoSse) {
 			console.log('[CONSO SSE] stopping');
 			try { this.consoSse.close(); } catch {}
 			this.consoSse = null;
 		}
+		if (this.consoRefreshInterval) {
+			clearInterval(this.consoRefreshInterval);
+			this.consoRefreshInterval = null;
+		}
+		this.lastKnownConso = null;
 	}
 
 	async fetchOccupancy(floorNumber) {
@@ -367,19 +388,9 @@ class DashboardManager {
 
 			// 10) startEnvironmentSSE en premier (crée les slots), puis generateStatCards
 			await startEnvironmentSSE(this.filters.building, this.filters.floor);
-			/*if (window.ChartUtils?.generateStatCardsForBuilding) {
-				window.ChartUtils.generateStatCardsForBuilding(this.filters.building);
-			}*/
-			await startEnvironmentSSE(this.filters.building, this.filters.floor);
-
-			// ❌ PAS de stat cards tant que pas de floor
 			if (this.filters.floor) {
-				window.ChartUtils.generateStatCardsForBuilding(
-					this.filters.building,
-					this.filters.floor
-				);
+				window.ChartUtils?.generateStatCardsForBuilding(this.filters.building, this.filters.floor);
 			} else {
-				// Nettoyage UI + SSE occupancy
 				document.getElementById('sensor-stats-container').innerHTML = '';
 				if (window.closeOccupancySSE) closeOccupancySSE();
 			}
@@ -527,6 +538,14 @@ class DashboardManager {
 
 	async loadDashboardData() {
 		console.log('=== Loading Dashboard Data ===');
+
+		// Reset location live data on each full reload (building/filter change)
+		if (this.liveDataRefreshInterval) {
+			clearInterval(this.liveDataRefreshInterval);
+			this.liveDataRefreshInterval = null;
+		}
+		this.lastKnownLiveData = null;
+
 		try {
 			this.showLoading();
 
@@ -681,11 +700,23 @@ class DashboardManager {
 			return;
 		}
 
+		this.lastKnownLiveData = liveData;
+
 		liveData.forEach((location, index) => {
 			this.updateLocationChart(location, index);
 		});
 
 		this.updateTotalChart(liveData);
+
+		if (!this.liveDataRefreshInterval) {
+			this.liveDataRefreshInterval = setInterval(() => {
+				if (!this.lastKnownLiveData) return;
+				this.lastKnownLiveData.forEach((location, index) => {
+					this.updateLocationChart(location, index);
+				});
+				this.updateTotalChart(this.lastKnownLiveData);
+			}, 30000);
+		}
 	}
 
 	async updateLiveBuildingMetrics() {
@@ -1828,7 +1859,7 @@ const metricUnits = {
 	humidity: "%",
 	co2: "ppm",
 	sound: "dB",
-	conso: "Wh",
+	energy: "kW",
 	light: "lux"
 };
 
@@ -1837,7 +1868,7 @@ const rtEnvChartColors = {
 	humidity:    { bg: 'rgba(59, 130, 246, 0.2)',   border: 'rgb(59, 130, 246)' },
 	co2:         { bg: 'rgba(16, 185, 129, 0.2)',   border: 'rgb(16, 185, 129)' },
 	sound:       { bg: 'rgba(245, 158, 11, 0.2)',   border: 'rgb(245, 158, 11)' },
-	conso:       { bg: 'rgba(139, 92, 246, 0.2)',   border: 'rgb(139, 92, 246)' },
+	energy:      { bg: 'rgba(99, 102, 241, 0.2)',   border: 'rgb(99, 102, 241)' },
 	light:       { bg: 'rgba(234, 179, 8, 0.2)',    border: 'rgb(234, 179, 8)' }
 };
 
@@ -2112,6 +2143,8 @@ async function preloadEnvironmentStats(building, floor, metrics = []) {
 
 let environmentUnsub = null;
 let normalFloor = "";
+let environmentRefreshInterval = null;
+// { [zone]: { [metric]: { [deviceId]: latestValue } } }
 const environmentState = {};
 const envZoneState = {};
 
@@ -2128,14 +2161,11 @@ async function startEnvironmentSSE(building, floor = "") {
 	resetEnvironmentCharts();
 	resetEnvironmentStats();
 
-	// ✅ Guard : si aucun étage sélectionné → vider les zone-blocks env (pas les orphelins) et sortir
+	// Pas d'étage sélectionné → vider les zone-blocks et sortir
 	const isAllFloors = floor === null || floor === undefined || floor === "" || floor === "all";
 	if (isAllFloors) {
 		const container = document.getElementById("zones-container");
-		if (container) {
-			container.querySelectorAll(".zone-block:not([data-orphan])").forEach(b => b.remove());
-		}
-		console.log("ℹ️ [ENV SSE] No floor selected — env zone-blocks hidden");
+		if (container) container.querySelectorAll(".zone-block:not([data-orphan])").forEach(b => b.remove());
 		return;
 	}
 
@@ -2157,14 +2187,17 @@ async function startEnvironmentSSE(building, floor = "") {
 			? zone.metrics : (config.metrics || [])
 	}));
 
-	renderZones(zonesWithMetrics, config.metrics || []);
-	initZoneCharts(zonesWithMetrics, config.metrics || []);
+	renderZones(zonesWithMetrics);
+	initZoneCharts(zonesWithMetrics);
 
 	const deviceIds = config.zones.flatMap(z => z.deviceIds);
-	const metrics = config.metrics;
 
-	console.log("✅ devices:", deviceIds);
-	console.log("✅ metrics:", metrics);
+	console.log("✅ fieldMapping:", config.fieldMapping);
+	console.group("📍 Capteurs par location");
+	config.zones.forEach(zone => {
+		console.log(`  ${zone.name} [${zone.metrics.join(', ')}]:`, zone.deviceIds);
+	});
+	console.groupEnd();
 
 
 	const deviceToZone = {};
@@ -2177,8 +2210,9 @@ async function startEnvironmentSSE(building, floor = "") {
 
 	console.log("🗺️ deviceToZone:", deviceToZone);
 
-	// gérer affichage dynamique
-	updateEnvironmentChartsVisibilityDynamic(metrics);
+	// gérer affichage dynamique (union de toutes les metrics des zones)
+	const allMetrics = [...new Set(config.zones.flatMap(z => z.metrics || []))];
+	updateEnvironmentChartsVisibilityDynamic(allMetrics);
 
 	if (!window.SSEManager?.subscribeEnvironment) {
 		console.warn("❌ SSEManager.subscribeEnvironment not available");
@@ -2219,97 +2253,146 @@ async function startEnvironmentSSE(building, floor = "") {
 
 			const zoneName = zone.name;
 
-			// Passe deviceId pour la moyenne multi-capteurs par zone
-			updateMetric(zoneName, "temperature", decoded.temperature, deviceId);
-			updateMetric(zoneName, "humidity", decoded.humidity, deviceId);
-			updateMetric(zoneName, "co2", decoded.co2, deviceId);
-			updateMetric(zoneName, "sound", decoded.LAeq, deviceId);
-			updateMetric(zoneName, "conso", decoded.power ?? decoded.energy ?? decoded.wh ?? decoded.watts, deviceId);
-			updateMetric(zoneName, "light", decoded.illuminance ?? decoded.lux ?? decoded.light, deviceId);
+			Object.entries(config.fieldMapping).forEach(([metric, field]) => {
+				// Ne traiter que les métriques déclarées pour cette zone
+				if (!zone.metrics.includes(metric)) return;
+
+				if (metric === 'energy') {
+					// Le payload TTN raw contient directement channel_0, channel_1… (pas de clé energy_data)
+					updateEnergyMetric(zoneName, decoded);
+				} else {
+					if (decoded[field] == null) return;
+					updateMetric(zoneName, metric, deviceId, decoded[field]);
+				}
+			});
+
+			if (!environmentRefreshInterval) {
+				environmentRefreshInterval = setInterval(() => {
+					const now = new Date().toLocaleTimeString();
+
+					// Métriques scalaires (temp, CO2, etc.)
+					Object.entries(environmentState).forEach(([zone, metrics]) => {
+						const safeZone = zone.replace(/\s+/g, "_");
+						Object.entries(metrics).forEach(([metric, deviceValues]) => {
+							const values = Object.values(deviceValues);
+							if (!values.length) return;
+							const avg = values.reduce((a, b) => a + b, 0) / values.length;
+							const max = Math.max(...values);
+
+							const avgEl = document.getElementById(`${safeZone}-${metric}-avg`);
+							const maxEl = document.getElementById(`${safeZone}-${metric}-max`);
+							if (avgEl) avgEl.textContent = avg.toFixed(1);
+							if (maxEl) maxEl.textContent = max.toFixed(1);
+
+							const chart = zoneCharts[safeZone]?.[metric];
+							if (chart) {
+								chart.data.labels.push(now);
+								chart.data.datasets[0].data.push(parseFloat(avg.toFixed(2)));
+								if (chart.data.labels.length > 20) {
+									chart.data.labels.shift();
+									chart.data.datasets[0].data.shift();
+								}
+								chart.update("none");
+							}
+						});
+					});
+
+					// Energie (multi-datasets)
+					Object.entries(lastKnownEnergyByZone).forEach(([safeZone, groups]) => {
+						pushEnergyToChart(safeZone, groups.redW, groups.whiteW, groups.ventW, groups.otherW);
+					});
+				}, 30000);
+			}
 		}
 	);
-
-	//lancer rendu global (une seule fois)
-	if (!window.envRenderInterval) {
-		window.envRenderInterval = setInterval(renderAllZones, 30000);
-	}
 }
 
 
-function updateMetric(zone, metric, value, deviceId = null) {
-	if (value == null) return;
+// Même calcul que monitoringSensor.js : channels → groupes couleur
+const lastKnownEnergyByZone = {}; // { [safeZone]: { redW, whiteW, ventW, otherW } }
+
+function updateEnergyMetric(zone, energyData) {
+	const safeZone = zone.replace(/\s+/g, "_");
+
+	const getChannel = (entry, key) => {
+		const candidates = [entry?.hardwareData?.channel, entry?.hardware_data?.channel, entry?.hardwareEXPLICIT?.channel, entry?.hardware?.channel, entry?.hw?.channel, entry?.channel];
+		for (const c of candidates) { const n = Number(c); if (Number.isFinite(n)) return n; }
+		const s = String(key ?? '');
+		const m = s.match(/(?:CHANNEL[_\s-]?)(\d{1,2})/i) || s.match(/\b(\d{1,2})\b/);
+		if (m) { const n = Number(m[1]); if (Number.isFinite(n)) return n; }
+		return null;
+	};
+
+	const channelPower = {};
+	Object.entries(energyData || {}).forEach(([key, entry]) => {
+		if (!entry || typeof entry !== 'object') return;
+		if (String(entry.type || '').toLowerCase() !== 'power') return;
+		const ch = getChannel(entry, key);
+		if (ch == null) return;
+		const v = Number(entry.value);
+		if (!Number.isFinite(v)) return;
+		channelPower[ch] = Math.abs(v);
+	});
+
+	const sumW = (chs) => chs.reduce((s, ch) => s + (channelPower[ch] || 0), 0);
+	const redW   = sumW([0, 1, 2]);
+	const ventW  = sumW([6, 7, 8]);
+	const whiteW = Math.abs(ventW - sumW([3, 4, 5]));
+	const otherW = sumW([9, 10, 11]);
+
+	lastKnownEnergyByZone[safeZone] = { redW, whiteW, ventW, otherW };
+	pushEnergyToChart(safeZone, redW, whiteW, ventW, otherW);
+}
+
+function pushEnergyToChart(safeZone, redW, whiteW, ventW, otherW) {
+	const chart = zoneCharts[safeZone]?.energy;
+	if (!chart) return;
+	const now = new Date().toLocaleTimeString();
+	chart.data.labels.push(now);
+	chart.data.datasets[0].data.push(parseFloat((redW   / 1000).toFixed(3)));
+	chart.data.datasets[1].data.push(parseFloat((whiteW / 1000).toFixed(3)));
+	chart.data.datasets[2].data.push(parseFloat((ventW  / 1000).toFixed(3)));
+	chart.data.datasets[3].data.push(parseFloat((otherW / 1000).toFixed(3)));
+	if (chart.data.labels.length > 20) {
+		chart.data.labels.shift();
+		chart.data.datasets.forEach(ds => ds.data.shift());
+	}
+	chart.update("none");
+}
+
+function updateMetric(zone, metric, deviceId, value) {
+	if (value == null || deviceId == null) return;
+
+	const safeZone = zone.replace(/\s+/g, "_");
 
 	if (!environmentState[zone]) environmentState[zone] = {};
-	if (!environmentState[zone][metric]) {
-		environmentState[zone][metric] = { deviceValues: {}, history: [] };
+	if (!environmentState[zone][metric]) environmentState[zone][metric] = {};
+
+	environmentState[zone][metric][deviceId] = value;
+
+	const deviceValues = Object.values(environmentState[zone][metric]);
+	const avg = deviceValues.reduce((a, b) => a + b, 0) / deviceValues.length;
+	const max = Math.max(...deviceValues);
+
+	const avgEl = document.getElementById(`${safeZone}-${metric}-avg`);
+	const maxEl = document.getElementById(`${safeZone}-${metric}-max`);
+	if (avgEl) avgEl.textContent = avg.toFixed(1);
+	if (maxEl) maxEl.textContent = max.toFixed(1);
+
+	const chart = zoneCharts[safeZone]?.[metric];
+	if (chart) {
+		const now = new Date().toLocaleTimeString();
+		chart.data.labels.push(now);
+		chart.data.datasets[0].data.push(parseFloat(avg.toFixed(2)));
+		if (chart.data.labels.length > 20) {
+			chart.data.labels.shift();
+			chart.data.datasets[0].data.shift();
+		}
+		chart.update("none");
 	}
-
-	const state = environmentState[zone][metric];
-
-	// stocker valeur + timestamp
-	state.deviceValues[deviceId || "_"] = {
-		value: Number(value),
-		ts: Date.now()
-	};
 }
 
-function renderAllZones() {
-	const now = new Date().toLocaleTimeString();
 
-	Object.keys(environmentState).forEach(zone => {
-		const safeZone = zone.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
-
-		Object.keys(environmentState[zone]).forEach(metric => {
-			const state = environmentState[zone][metric];
-
-			const nowTs = Date.now();
-			const WINDOW_MS = 30000;
-
-			const values = Object.values(state.deviceValues)
-				.filter(d => nowTs - d.ts <= WINDOW_MS)
-				.map(d => d.value);
-
-			//if (values.length === 0) return;
-			if (values.length === 0) {
-				// fallback : garder dernière valeur connue
-				if (state.history.length > 0) {
-					values.push(state.history[state.history.length - 1]);
-				} else {
-					return;
-				}
-			}
-
-			const zoneAvg = values.reduce((a, b) => a + b, 0) / values.length;
-
-			// historique
-			state.history.push(zoneAvg);
-			if (state.history.length > 30) state.history.shift();
-
-			const histMax = Math.max(...state.history);
-
-			// UI
-			//const avgEl = document.getElementById(`${safeZone}-${metric}-avg`);
-			const maxEl = document.getElementById(`${safeZone}-${metric}-max`);
-
-			//if (avgEl) avgEl.textContent = zoneAvg.toFixed(1);
-			if (maxEl) maxEl.textContent = histMax.toFixed(1);
-
-			// Chart
-			const chart = zoneCharts[safeZone]?.[metric];
-			if (chart) {
-				chart.data.labels.push(now);
-				chart.data.datasets[0].data.push(zoneAvg);
-
-				if (chart.data.labels.length > 30) {
-					chart.data.labels.shift();
-					chart.data.datasets[0].data.shift();
-				}
-
-				chart.update("none");
-			}
-		});
-	});
-}
 
 
 function updateZoneStats(zone) {
@@ -2361,7 +2444,7 @@ function normalizeZoneKey(name) {
 	return name.toUpperCase().replace(/[\s\-]+/g, "_").replace(/[^A-Z0-9_]/g, "");
 }
 
-function renderZones(zones, metrics) {
+function renderZones(zones) {
 	const container = document.getElementById("zones-container");
 
 	// Supprimer uniquement les zone-blocks env (pas les orphelins qui contiennent les stat-cards)
@@ -2370,30 +2453,18 @@ function renderZones(zones, metrics) {
 	zones.forEach(zone => {
 		const safeZone = zone.name.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
 		const zoneKey = normalizeZoneKey(zone.name);
+		const zoneMetrics = zone.metrics || [];
 
 		const zoneDiv = document.createElement("div");
 		zoneDiv.className = "zone-block";
 		zoneDiv.id = `zone-${safeZone}`;
-
-		const zoneMetrics = Array.isArray(zone.metrics) && zone.metrics.length > 0
-			? zone.metrics : metrics;
-		const ALL_METRICS = ["co2", "temperature", "humidity", "sound", "conso", "light"];
-		const hasCharts = ALL_METRICS.some(m => zoneMetrics.includes(m));
 
 		zoneDiv.innerHTML = `
             <h3 style="margin: 10px 0;">📍 ${zone.name}</h3>
 
             <div class="charts-grid charts-grid--2col">
                 <div class="zone-stat-card-slot" data-zone-key="${zoneKey}"></div>
-
-                ${hasCharts ? `
-                ${zoneMetrics.includes("co2")         ? createChartCard("co2",         zone.name) : ""}
-                ${zoneMetrics.includes("temperature") ? createChartCard("temperature", zone.name) : ""}
-                ${zoneMetrics.includes("humidity")    ? createChartCard("humidity",    zone.name) : ""}
-                ${zoneMetrics.includes("sound")       ? createChartCard("sound",       zone.name) : ""}
-                ${zoneMetrics.includes("conso")       ? createChartCard("conso",       zone.name) : ""}
-                ${zoneMetrics.includes("light")       ? createChartCard("light",       zone.name) : ""}
-                ` : ""}
+                ${zoneMetrics.map(m => createChartCard(m, zone.name)).join("")}
             </div>
         `;
 
@@ -2440,12 +2511,12 @@ function createChartCard(metric, zoneName) {
 			gradient: "linear-gradient(135deg, #f59e0b, #d97706)",
 			unit: "dB"
 		},
-		conso: {
-			label: "Energy",
+		energy: {
+			label: "Power by Group",
 			icon: "⚡",
-			color: "#8b5cf6",
-			gradient: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
-			unit: "Wh"
+			color: "#6366f1",
+			gradient: "linear-gradient(135deg, #6366f1, #4f46e5)",
+			unit: "kW"
 		},
 		light: {
 			label: "Light",
@@ -2456,7 +2527,13 @@ function createChartCard(metric, zoneName) {
 		}
 	};
 
-	const cfg = config[metric];
+	const cfg = config[metric] || {
+		label: metric.charAt(0).toUpperCase() + metric.slice(1),
+		icon: "📊",
+		color: "#6b7280",
+		gradient: "linear-gradient(135deg, #6b7280, #4b5563)",
+		unit: ""
+	};
 
 	const safeZone = zoneName.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
 
@@ -2472,18 +2549,27 @@ function createChartCard(metric, zoneName) {
                         <span>${cfg.label}</span>
                     </div>
 
-                    <!--<div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                        Avg: 
-                        <span class="kpi-value" id="${safeZone}-${metric}-avg" 
-                              style="font-weight: 600; color: ${cfg.color};">--</span> ${cfg.unit}
-                    </div>-->
-
+                    ${metric === 'energy' ? `
+                    <div style="display: flex; gap: 0.6rem; font-size: 0.8rem; flex-wrap: wrap;">
+                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;margin-right:3px;"></span>Red</span>
+                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#64748b;margin-right:3px;"></span>White</span>
+                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#3b82f6;margin-right:3px;"></span>Ventilation</span>
+                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin-right:3px;"></span>Other</span>
+                    </div>
+                    ` : `
                     <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                        Max: 
-                        <span id="${safeZone}-${metric}-max" 
-                              class="kpi-value" 
+                        Avg:
+                        <span class="kpi-value" id="${safeZone}-${metric}-avg"
                               style="font-weight: 600; color: ${cfg.color};">--</span> ${cfg.unit}
                     </div>
+
+                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                        Max:
+                        <span id="${safeZone}-${metric}-max"
+                              class="kpi-value"
+                              style="font-weight: 600; color: ${cfg.color};">--</span> ${cfg.unit}
+                    </div>
+                    `}
 
                 </div>
 
@@ -2510,11 +2596,6 @@ function createChartCard(metric, zoneName) {
 					<button class="env-chart-btn" data-type="bar"
 						style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem;">
 						📊 Bar
-					</button>
-
-					<button class="env-chart-btn" data-type="doughnut"
-						style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem;">
-						🍩 Donut
 					</button>
 
 				</div>
@@ -2640,11 +2721,12 @@ function safeZoneId(zoneName) {
 
 const zoneCharts = {};
 
-function initZoneCharts(zones, metrics) {
+function initZoneCharts(zones) {
 
 	zones.forEach(zone => {
 
 		const safeZone = safeZoneId(zone.name);
+		const metrics = zone.metrics || [];
 
 		zoneCharts[safeZone] = {};
 
@@ -2658,52 +2740,58 @@ function initZoneCharts(zones, metrics) {
 
 			const ctx = canvas.getContext("2d");
 
-			zoneCharts[safeZone][metric] = new Chart(ctx, {
-				type: "line",
-				data: {
-					labels: [],
-					datasets: [{
-						label: metric,
-						data: [],
-						backgroundColor: rtEnvChartColors[metric].bg,
-						borderColor: rtEnvChartColors[metric].border,
-						borderWidth: 2,
-						fill: true,
-						tension: 0.4
-					}]
+			const scaleOpts = {
+				x: {
+					ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 10 },
+					grid: { color: "rgba(0,0,0,0.05)" }
 				},
-				options: {
-					responsive: true,
-					maintainAspectRatio: false,
-					animation: false,
-					plugins: {
-						legend: { display: false }
-					},
-					scales: {
-						x: {
-							ticks: {
-								maxRotation: 45,
-								minRotation: 45,
-								autoSkip: true,
-								maxTicksLimit: 10
-							},
-							grid: {
-								color: "rgba(0,0,0,0.05)"
-							}
-						},
-						y: {
-							beginAtZero: false,
-							title: {
-								display: true,
-								text: metricUnits[metric] || ""
-							},
-							grid: {
-								color: "rgba(0,0,0,0.05)"
-							}
-						}
-					}
+				y: {
+					beginAtZero: metric === 'energy',
+					title: { display: true, text: metricUnits[metric] || "" },
+					grid: { color: "rgba(0,0,0,0.05)" }
 				}
-			});
+			};
+
+			if (metric === 'energy') {
+				zoneCharts[safeZone][metric] = new Chart(ctx, {
+					type: "line",
+					data: {
+						labels: [],
+						datasets: [
+							{ label: 'Red Outlets',              data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)',   borderWidth: 2, fill: false, tension: 0.4 },
+							{ label: 'White Outlets & Lighting', data: [], borderColor: '#64748b', backgroundColor: 'rgba(100,116,139,0.1)', borderWidth: 2, fill: false, tension: 0.4 },
+							{ label: 'Ventilation & Heaters',    data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)',  borderWidth: 2, fill: false, tension: 0.4 },
+							{ label: 'Other Circuits',           data: [], borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)',  borderWidth: 2, fill: false, tension: 0.4 }
+						]
+					},
+					options: {
+						responsive: true, maintainAspectRatio: false, animation: false,
+						plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+						scales: scaleOpts
+					}
+				});
+			} else {
+				zoneCharts[safeZone][metric] = new Chart(ctx, {
+					type: "line",
+					data: {
+						labels: [],
+						datasets: [{
+							label: metric,
+							data: [],
+							backgroundColor: rtEnvChartColors[metric]?.bg || 'rgba(99,102,241,0.2)',
+							borderColor: rtEnvChartColors[metric]?.border || 'rgb(99,102,241)',
+							borderWidth: 2,
+							fill: true,
+							tension: 0.4
+						}]
+					},
+					options: {
+						responsive: true, maintainAspectRatio: false, animation: false,
+						plugins: { legend: { display: false } },
+						scales: scaleOpts
+					}
+				});
+			}
 
 		});
 	});
@@ -2743,6 +2831,12 @@ function closeEnvironmentSSE() {
 		environmentUnsub();
 		environmentUnsub = null;
 	}
+	if (environmentRefreshInterval) {
+		clearInterval(environmentRefreshInterval);
+		environmentRefreshInterval = null;
+	}
+	Object.keys(environmentState).forEach(k => delete environmentState[k]);
+	Object.keys(lastKnownEnergyByZone).forEach(k => delete lastKnownEnergyByZone[k]);
 }
 
 
@@ -2852,10 +2946,9 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (buildingId) {
 			update3DConfig(buildingId);
 			updateTitles(buildingName);
-			// startEnvironmentSSE en premier (crée les slots), puis generateStatCards
 			startEnvironmentSSE(buildingId, floorId).then(() => {
-				if (floorId ) {
-					window.ChartUtils.generateStatCardsForBuilding(buildingId, floorId || null);
+				if (floorId) {
+					window.ChartUtils?.generateStatCardsForBuilding(buildingId, floorId);
 				}
 			});
 		}

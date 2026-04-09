@@ -625,75 +625,60 @@ public class DashboardServiceImpl implements DashboardService {
                 .build();
     }
 
+    // Ajouter un nouveau type ici suffit pour le rendre dynamique partout
+    // { typeName -> { metricName -> decodedFieldName } }
+    private static final Map<String, Map<String, String>> SENSOR_METRIC_CONFIG = new LinkedHashMap<>();
+    static {
+        SENSOR_METRIC_CONFIG.put("CO2",    Map.of("co2", "co2", "temperature", "temperature", "humidity", "humidity"));
+        SENSOR_METRIC_CONFIG.put("TEMPEX", Map.of("temperature", "temperature", "humidity", "humidity"));
+        SENSOR_METRIC_CONFIG.put("SON",    Map.of("sound", "LAeq"));
+        SENSOR_METRIC_CONFIG.put("CONSO",  Map.of("energy", "energy_data"));
+        SENSOR_METRIC_CONFIG.put("ENERGY", Map.of("energy", "energy_data"));
+        SENSOR_METRIC_CONFIG.put("EYE",    Map.of("temperature", "temperature", "humidity", "humidity", "light", "light"));
+    }
+
     @Override
     public Map<String, Object> getEnvConfig(String building, Integer floor) {
-        boolean isAllFloors = floor == null || "all".equalsIgnoreCase(String.valueOf(floor));
-        if (isAllFloors) {
-            return  Map.of();
-        }
+        List<Map<String, Object>> rows = sensorDao.findAllByBuildingAndFloorForConfig(building, floor);
 
-        List<Map<String, Object>> rows= sensorDao.findAllByBuildingAndFloorForConfig(building, floor);
-        Map<String, List<String>> zones = new HashMap<>();
+        Map<String, List<String>> zones = new LinkedHashMap<>();
+        Map<String, Set<String>> zoneMetrics = new LinkedHashMap<>();
+        Map<String, String> fieldMapping = new LinkedHashMap<>();
 
         for (Map<String, Object> row : rows) {
-
             String deviceId = (String) row.get("id_sensor");
             String location = (String) row.get("name");
+            String type     = (String) row.get("type_name");
 
-            // groupement par zone
+            Map<String, String> typeConfig = SENSOR_METRIC_CONFIG.get(type);
+            if (typeConfig == null) continue;
+
             zones.computeIfAbsent(location, z -> new ArrayList<>()).add(deviceId);
+            zoneMetrics.computeIfAbsent(location, z -> new LinkedHashSet<>()).addAll(typeConfig.keySet());
+            typeConfig.forEach(fieldMapping::putIfAbsent);
         }
 
-        Set<String> globalMetrics = new HashSet<>();
-
+        Set<String> globalMetrics = new LinkedHashSet<>();
         List<Map<String, Object>> zonesList = zones.entrySet().stream()
                 .filter(e -> e.getKey() != null && !e.getKey().isBlank())
                 .map(e -> {
-                    Set<String> zoneMetrics = new HashSet<>();
-
-                    for (Map<String, Object> row : rows) {
-                        if (e.getKey().equals(row.get("name"))) {
-                            switch ((String) row.get("type_name")) {
-                                case "CO2":
-                                    zoneMetrics.add("co2");
-                                    zoneMetrics.add("temperature");
-                                    zoneMetrics.add("humidity");
-                                    break;
-                                case "TEMPEX":
-                                    zoneMetrics.add("temperature");
-                                    zoneMetrics.add("humidity");
-                                    break;
-                                case "SON":
-                                    zoneMetrics.add("sound");
-                                    break;
-                                case "CONSO":
-                                    zoneMetrics.add("conso");
-                                    break;
-                                case "EYE":
-                                    zoneMetrics.add("temperature");
-                                    zoneMetrics.add("humidity");
-                                    zoneMetrics.add("light");
-                                    break;
-                            }
-                        }
-                    }
-
-                    globalMetrics.addAll(zoneMetrics);
-
-                    return Map.of(
-                            "name", e.getKey(),
-                            "deviceIds", e.getValue(),
-                            "metrics", zoneMetrics
-                    );
+                    Set<String> zm = zoneMetrics.getOrDefault(e.getKey(), new LinkedHashSet<>());
+                    globalMetrics.addAll(zm);
+                    Map<String, Object> z = new LinkedHashMap<>();
+                    z.put("name", e.getKey());
+                    z.put("deviceIds", e.getValue());
+                    z.put("metrics", new ArrayList<>(zm));
+                    return z;
                 })
                 .toList();
 
-        return Map.of(
-                "building", building,
-                "floor", floor,
-                "zones", zonesList,
-                "metrics", globalMetrics
-        );
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("building", building);
+        result.put("floor", floor);
+        result.put("zones", zonesList);
+        result.put("metrics", new ArrayList<>(globalMetrics));
+        result.put("fieldMapping", fieldMapping);
+        return result;
     }
 
     private boolean hasText(String s) {

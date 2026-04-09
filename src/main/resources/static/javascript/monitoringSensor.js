@@ -518,6 +518,8 @@ function startSSE() {
         console.error("Sensor SSE error:", err);
         stopSSE();
     };
+
+    startChartRefreshInterval();
 }
 
 function stopSSE() {
@@ -525,6 +527,7 @@ function stopSSE() {
         es.close();
         es = null;
     }
+    stopChartRefreshInterval();
 }
 
 // =================================
@@ -1133,7 +1136,7 @@ function fetchAndUpdateCurrentConsumption() {
     };
 
     fetchAllGroups();
-    currentConsumptionInterval = setInterval(fetchAllGroups, 10000);
+    currentConsumptionInterval = setInterval(fetchAllGroups, 30000);
     const minutesInput = el('#consumption-period-minutes');
     if (minutesInput) minutesInput.addEventListener('change', fetchAndUpdateCurrentConsumption);
 }
@@ -1169,6 +1172,13 @@ function updatePowerUsageChart(timestamp, values) {
 
 let chartsPaused = false;
 const MAX_CHART_POINTS = 50;
+
+// Last known values – used to keep charts progressing when no uplink arrives
+let lastKnownChartValues = null;
+let lastKnownSignal = null;
+let lastKnownBattery = null;
+let chartRefreshInterval = null;
+const CHART_REFRESH_INTERVAL_MS = 30000; // repeat last value every 30 s
 
 function initRealtimeCharts() {
     if (typeof Chart === 'undefined') { console.warn('Chart.js not loaded, skipping chart initialization'); return; }
@@ -1315,6 +1325,7 @@ function getChartOptions() { return getChartOptionsWithUnits('', '', ''); }
 
 function updateRealtimeCharts(data) {
     if (chartsPaused) return;
+    lastKnownChartValues = data;
     const timestamp = new Date().toLocaleTimeString();
     const devType = (document.documentElement.dataset.devType || '').toUpperCase();
 
@@ -1403,6 +1414,7 @@ function updateChart(chart, dataStore, timestamp, value) {
 
 function updateSignalChart(rssi, snr) {
     if (chartsPaused) return;
+    lastKnownSignal = { rssi, snr };
     const timestamp = new Date().toLocaleTimeString();
     if (realtimeCharts.rssi) updateChart(realtimeCharts.rssi, chartData.rssi, timestamp, rssi);
     if (realtimeCharts.snr) updateChart(realtimeCharts.snr, chartData.snr, timestamp, snr);
@@ -1410,6 +1422,7 @@ function updateSignalChart(rssi, snr) {
 
 function updateBatteryChart(batteryPct) {
     if (chartsPaused || !realtimeCharts.battery) return;
+    lastKnownBattery = batteryPct;
     const timestamp = new Date().toLocaleTimeString();
     chartData.battery.labels.push(timestamp);
     chartData.battery.data.push(batteryPct);
@@ -1451,6 +1464,23 @@ function clearAllCharts() {
     Object.values(realtimeCharts).forEach(chart => {
         if (chart) { chart.data.labels = []; chart.data.datasets.forEach(ds => { ds.data = []; }); chart.update(); }
     });
+}
+
+function startChartRefreshInterval() {
+    if (chartRefreshInterval) clearInterval(chartRefreshInterval);
+    chartRefreshInterval = setInterval(() => {
+        if (chartsPaused || !LIVE_MODE) return;
+        if (lastKnownChartValues) updateRealtimeCharts(lastKnownChartValues);
+        if (lastKnownSignal) updateSignalChart(lastKnownSignal.rssi, lastKnownSignal.snr);
+        if (lastKnownBattery != null) updateBatteryChart(lastKnownBattery);
+    }, CHART_REFRESH_INTERVAL_MS);
+}
+
+function stopChartRefreshInterval() {
+    if (chartRefreshInterval) {
+        clearInterval(chartRefreshInterval);
+        chartRefreshInterval = null;
+    }
 }
 
 // =================================
