@@ -355,11 +355,6 @@ class DashboardManager {
 				window.building3D.loadBuilding(building);
 			}
 
-			// 6.5) Regenerate stat cards for the new building
-			if (window.ChartUtils?.generateStatCardsForBuilding) {
-				window.ChartUtils.generateStatCardsForBuilding(this.filters.building);
-			}
-
 			// ✅ 7) Restart CONSO SSE (building + floor='')
 			this.startConsoAggregateSse();
 
@@ -370,9 +365,24 @@ class DashboardManager {
 			await this.loadDashboardData();
 			this.applyBuildingStatVisibility();
 
-			//10 Others metrics stats
-			updateEnvironmentChartsVisibility(this.filters.building);
-			startEnvironmentSSE(this.filters.building, this.filters.floor);
+			// 10) startEnvironmentSSE en premier (crée les slots), puis generateStatCards
+			await startEnvironmentSSE(this.filters.building, this.filters.floor);
+			/*if (window.ChartUtils?.generateStatCardsForBuilding) {
+				window.ChartUtils.generateStatCardsForBuilding(this.filters.building);
+			}*/
+			await startEnvironmentSSE(this.filters.building, this.filters.floor);
+
+			// ❌ PAS de stat cards tant que pas de floor
+			if (this.filters.floor) {
+				window.ChartUtils.generateStatCardsForBuilding(
+					this.filters.building,
+					this.filters.floor
+				);
+			} else {
+				// Nettoyage UI + SSE occupancy
+				document.getElementById('sensor-stats-container').innerHTML = '';
+				if (window.closeOccupancySSE) closeOccupancySSE();
+			}
 
 			return;
 		}
@@ -402,11 +412,6 @@ class DashboardManager {
 				}
 			}
 
-			if (window.ChartUtils?.generateStatCardsForBuilding) {
-				// Génère uniquement les cartes du floor choisi
-				window.ChartUtils.generateStatCardsForBuilding(building, floor);
-			}
-
 			// Redémarre SSE avec le floor
 			this.startConsoAggregateSse();
 
@@ -416,6 +421,12 @@ class DashboardManager {
 			// Reload data
 			await this.loadDashboardData();
 			this.applyBuildingStatVisibility();
+
+			// startEnvironmentSSE en premier (crée les slots), puis generateStatCards
+			await startEnvironmentSSE(this.filters.building, this.filters.floor);
+			if (window.ChartUtils?.generateStatCardsForBuilding) {
+				window.ChartUtils.generateStatCardsForBuilding(building, floor);
+			}
 
 			return; // important : on ne continue pas le reste
 		}
@@ -1816,14 +1827,18 @@ const metricUnits = {
 	temperature: "°C",
 	humidity: "%",
 	co2: "ppm",
-	sound: "dB"
+	sound: "dB",
+	conso: "Wh",
+	light: "lux"
 };
 
 const rtEnvChartColors = {
-	temperature: { bg: 'rgba(239, 68, 68, 0.2)', border: 'rgb(239, 68, 68)' },
-	humidity: { bg: 'rgba(59, 130, 246, 0.2)', border: 'rgb(59, 130, 246)' },
-	co2: { bg: 'rgba(16, 185, 129, 0.2)', border: 'rgb(16, 185, 129)' },
-	sound: { bg: 'rgba(245, 158, 11, 0.2)', border: 'rgb(245, 158, 11)' }
+	temperature: { bg: 'rgba(239, 68, 68, 0.2)',   border: 'rgb(239, 68, 68)' },
+	humidity:    { bg: 'rgba(59, 130, 246, 0.2)',   border: 'rgb(59, 130, 246)' },
+	co2:         { bg: 'rgba(16, 185, 129, 0.2)',   border: 'rgb(16, 185, 129)' },
+	sound:       { bg: 'rgba(245, 158, 11, 0.2)',   border: 'rgb(245, 158, 11)' },
+	conso:       { bg: 'rgba(139, 92, 246, 0.2)',   border: 'rgb(139, 92, 246)' },
+	light:       { bg: 'rgba(234, 179, 8, 0.2)',    border: 'rgb(234, 179, 8)' }
 };
 
 const ENV_CONFIG = {
@@ -2096,6 +2111,7 @@ async function preloadEnvironmentStats(building, floor, metrics = []) {
 }
 
 let environmentUnsub = null;
+let normalFloor = "";
 const environmentState = {};
 const envZoneState = {};
 
@@ -2111,18 +2127,38 @@ async function startEnvironmentSSE(building, floor = "") {
 	// reset UI
 	resetEnvironmentCharts();
 	resetEnvironmentStats();
-	normalFloor = normalizeFloor(building, floor);
 
-	//récupérer config dynamique
+	// ✅ Guard : si aucun étage sélectionné → vider les zone-blocks env (pas les orphelins) et sortir
+	const isAllFloors = floor === null || floor === undefined || floor === "" || floor === "all";
+	if (isAllFloors) {
+		const container = document.getElementById("zones-container");
+		if (container) {
+			container.querySelectorAll(".zone-block:not([data-orphan])").forEach(b => b.remove());
+		}
+		console.log("ℹ️ [ENV SSE] No floor selected — env zone-blocks hidden");
+		return;
+	}
+
 	const params = new URLSearchParams({ building });
-	params.set("floor", normalFloor);
+	params.set("floor", floor);
 
 	const res = await fetch(`/api/config/environment?${params}`);
 	const config = await res.json();
 
-	renderZones(config.zones, config.metrics);
+	// Guard : le backend retourne null si floor invalide
+	if (!config || !Array.isArray(config.zones)) {
+		console.warn("⚠️ [ENV SSE] config null ou zones absentes — abandon");
+		return;
+	}
 
-	initZoneCharts(config.zones, config.metrics);
+	const zonesWithMetrics = config.zones.map(zone => ({
+		...zone,
+		metrics: Array.isArray(zone.metrics) && zone.metrics.length > 0
+			? zone.metrics : (config.metrics || [])
+	}));
+
+	renderZones(zonesWithMetrics, config.metrics || []);
+	initZoneCharts(zonesWithMetrics, config.metrics || []);
 
 	const deviceIds = config.zones.flatMap(z => z.deviceIds);
 	const metrics = config.metrics;
@@ -2154,69 +2190,127 @@ async function startEnvironmentSSE(building, floor = "") {
 		deviceIds.join(","),
 		(msg) => {
 
+			// Log debug — vérifie la structure du message reçu du backend
+			console.debug("[ENV SSE] msg brut:", JSON.stringify(msg).substring(0, 400));
+
+			// Extraction exhaustive du decoded payload (toutes structures TTN possibles)
 			const decoded =
 				msg?.uplink_message?.decoded_payload ??
 				msg?.decoded_payload ??
 				msg?.payload ??
-				{};
+				msg?.data ??
+				msg ?? {};
 
+			// Extraction exhaustive du deviceId
 			const deviceId =
 				msg?.end_device_ids?.device_id ||
-				msg?.device_id;
+				msg?.device_id ||
+				msg?.deviceId ||
+				msg?.id;
 
-			// 🔥 trouver la zone
+			console.debug("[ENV SSE] decoded:", decoded, "| deviceId:", deviceId);
+
+			// Trouver la zone du device
 			const zone = config.zones.find(z => z.deviceIds.includes(deviceId));
-			if (!zone) return;
+			if (!zone) {
+				console.debug("[ENV SSE] device non trouvé:", deviceId, "| zones connues:", config.zones.map(z => ({name: z.name, ids: z.deviceIds})));
+				return;
+			}
 
 			const zoneName = zone.name;
 
-			updateMetric(zoneName, "temperature", decoded.temperature);
-			updateMetric(zoneName, "humidity", decoded.humidity);
-			updateMetric(zoneName, "co2", decoded.co2);
-			updateMetric(zoneName, "sound", decoded.LAeq);
+			// Passe deviceId pour la moyenne multi-capteurs par zone
+			updateMetric(zoneName, "temperature", decoded.temperature, deviceId);
+			updateMetric(zoneName, "humidity", decoded.humidity, deviceId);
+			updateMetric(zoneName, "co2", decoded.co2, deviceId);
+			updateMetric(zoneName, "sound", decoded.LAeq, deviceId);
+			updateMetric(zoneName, "conso", decoded.power ?? decoded.energy ?? decoded.wh ?? decoded.watts, deviceId);
+			updateMetric(zoneName, "light", decoded.illuminance ?? decoded.lux ?? decoded.light, deviceId);
 		}
 	);
-}
 
-
-function updateMetric(zone, metric, value) {
-	if (value == null) return;
-
-	const safeZone = zone.replace(/\s+/g, "_");
-
-	const avgEl = document.getElementById(`${safeZone}-${metric}-avg`);
-	const maxEl = document.getElementById(`${safeZone}-${metric}-max`);
-
-	if (!environmentState[zone]) environmentState[zone] = {};
-	if (!environmentState[zone][metric]) environmentState[zone][metric] = [];
-
-	const arr = environmentState[zone][metric];
-	arr.push(value);
-
-	if (arr.length > 20) arr.shift(); // limiter la taille
-
-	const avg = arr.reduce((a,b) => a+b,0)/arr.length;
-	const max = Math.max(...arr);
-
-	if (avgEl) avgEl.textContent = avg.toFixed(1);
-	if (maxEl) maxEl.textContent = max.toFixed(1);
-
-	const chart = zoneCharts[safeZone]?.[metric];
-
-	if (chart) {
-		const now = new Date().toLocaleTimeString();
-
-		chart.data.labels.push(now);
-		chart.data.datasets[0].data.push(value);
-
-		if (chart.data.labels.length > 20) {
-			chart.data.labels.shift();
-			chart.data.datasets[0].data.shift();
-		}
-
-		chart.update("none");
+	//lancer rendu global (une seule fois)
+	if (!window.envRenderInterval) {
+		window.envRenderInterval = setInterval(renderAllZones, 30000);
 	}
 }
+
+
+function updateMetric(zone, metric, value, deviceId = null) {
+	if (value == null) return;
+
+	if (!environmentState[zone]) environmentState[zone] = {};
+	if (!environmentState[zone][metric]) {
+		environmentState[zone][metric] = { deviceValues: {}, history: [] };
+	}
+
+	const state = environmentState[zone][metric];
+
+	// stocker valeur + timestamp
+	state.deviceValues[deviceId || "_"] = {
+		value: Number(value),
+		ts: Date.now()
+	};
+}
+
+function renderAllZones() {
+	const now = new Date().toLocaleTimeString();
+
+	Object.keys(environmentState).forEach(zone => {
+		const safeZone = zone.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
+
+		Object.keys(environmentState[zone]).forEach(metric => {
+			const state = environmentState[zone][metric];
+
+			const nowTs = Date.now();
+			const WINDOW_MS = 30000;
+
+			const values = Object.values(state.deviceValues)
+				.filter(d => nowTs - d.ts <= WINDOW_MS)
+				.map(d => d.value);
+
+			//if (values.length === 0) return;
+			if (values.length === 0) {
+				// fallback : garder dernière valeur connue
+				if (state.history.length > 0) {
+					values.push(state.history[state.history.length - 1]);
+				} else {
+					return;
+				}
+			}
+
+			const zoneAvg = values.reduce((a, b) => a + b, 0) / values.length;
+
+			// historique
+			state.history.push(zoneAvg);
+			if (state.history.length > 30) state.history.shift();
+
+			const histMax = Math.max(...state.history);
+
+			// UI
+			//const avgEl = document.getElementById(`${safeZone}-${metric}-avg`);
+			const maxEl = document.getElementById(`${safeZone}-${metric}-max`);
+
+			//if (avgEl) avgEl.textContent = zoneAvg.toFixed(1);
+			if (maxEl) maxEl.textContent = histMax.toFixed(1);
+
+			// Chart
+			const chart = zoneCharts[safeZone]?.[metric];
+			if (chart) {
+				chart.data.labels.push(now);
+				chart.data.datasets[0].data.push(zoneAvg);
+
+				if (chart.data.labels.length > 30) {
+					chart.data.labels.shift();
+					chart.data.datasets[0].data.shift();
+				}
+
+				chart.update("none");
+			}
+		});
+	});
+}
+
 
 function updateZoneStats(zone) {
 
@@ -2269,42 +2363,48 @@ function normalizeZoneKey(name) {
 
 function renderZones(zones, metrics) {
 	const container = document.getElementById("zones-container");
-	container.innerHTML = "";
+
+	// Supprimer uniquement les zone-blocks env (pas les orphelins qui contiennent les stat-cards)
+	container.querySelectorAll(".zone-block:not([data-orphan])").forEach(b => b.remove());
 
 	zones.forEach(zone => {
-		// safeZone : utilisé pour les IDs DOM (inchangé)
 		const safeZone = zone.name.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
-		// zoneKey : clé normalisée pour matcher data-zone des stat-cards (même convention que chartUtils)
 		const zoneKey = normalizeZoneKey(zone.name);
 
 		const zoneDiv = document.createElement("div");
 		zoneDiv.className = "zone-block";
 		zoneDiv.id = `zone-${safeZone}`;
 
-		const hasCharts = ["co2", "temperature", "humidity", "sound"].some(m => metrics.includes(m));
+		const zoneMetrics = Array.isArray(zone.metrics) && zone.metrics.length > 0
+			? zone.metrics : metrics;
+		const ALL_METRICS = ["co2", "temperature", "humidity", "sound", "conso", "light"];
+		const hasCharts = ALL_METRICS.some(m => zoneMetrics.includes(m));
 
 		zoneDiv.innerHTML = `
             <h3 style="margin: 10px 0;">📍 ${zone.name}</h3>
 
             <div class="charts-grid charts-grid--2col">
-                <!-- Slot occupancy : rempli par occupancyStatCardsReady après génération des stat-cards -->
                 <div class="zone-stat-card-slot" data-zone-key="${zoneKey}"></div>
 
                 ${hasCharts ? `
-                ${metrics.includes("co2")         ? createChartCard("co2",         zone.name) : ""}
-                ${metrics.includes("temperature") ? createChartCard("temperature", zone.name) : ""}
-                ${metrics.includes("humidity")    ? createChartCard("humidity",    zone.name) : ""}
-                ${metrics.includes("sound")       ? createChartCard("sound",       zone.name) : ""}
+                ${zoneMetrics.includes("co2")         ? createChartCard("co2",         zone.name) : ""}
+                ${zoneMetrics.includes("temperature") ? createChartCard("temperature", zone.name) : ""}
+                ${zoneMetrics.includes("humidity")    ? createChartCard("humidity",    zone.name) : ""}
+                ${zoneMetrics.includes("sound")       ? createChartCard("sound",       zone.name) : ""}
+                ${zoneMetrics.includes("conso")       ? createChartCard("conso",       zone.name) : ""}
+                ${zoneMetrics.includes("light")       ? createChartCard("light",       zone.name) : ""}
                 ` : ""}
             </div>
         `;
 
-		container.appendChild(zoneDiv);
+		// Insérer AVANT les blocs orphelins (qui doivent rester en dernier)
+		const firstOrphan = container.querySelector(".zone-block[data-orphan]");
+		if (firstOrphan) {
+			container.insertBefore(zoneDiv, firstOrphan);
+		} else {
+			container.appendChild(zoneDiv);
+		}
 	});
-
-	// Pas d'absorption ici : les stat-cards sont générées par generateStatCardsForBuilding
-	// (chartUtils.js) qui est appelé APRÈS renderZones. L'absorption est déclenchée
-	// par l'événement "occupancyStatCardsReady" dispatché par chartUtils.
 
 	initZoneChartToggles();
 }
@@ -2339,6 +2439,20 @@ function createChartCard(metric, zoneName) {
 			color: "#f59e0b",
 			gradient: "linear-gradient(135deg, #f59e0b, #d97706)",
 			unit: "dB"
+		},
+		conso: {
+			label: "Energy",
+			icon: "⚡",
+			color: "#8b5cf6",
+			gradient: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+			unit: "Wh"
+		},
+		light: {
+			label: "Light",
+			icon: "💡",
+			color: "#eab308",
+			gradient: "linear-gradient(135deg, #eab308, #ca8a04)",
+			unit: "lux"
 		}
 	};
 
@@ -2358,11 +2472,11 @@ function createChartCard(metric, zoneName) {
                         <span>${cfg.label}</span>
                     </div>
 
-                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
+                    <!--<div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
                         Avg: 
                         <span class="kpi-value" id="${safeZone}-${metric}-avg" 
                               style="font-weight: 600; color: ${cfg.color};">--</span> ${cfg.unit}
-                    </div>
+                    </div>-->
 
                     <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
                         Max: 
@@ -2469,7 +2583,7 @@ function absorbOrphanStatCards(zonesContainer) {
 		orphanBlock.innerHTML = `
 			<h3 style="margin: 10px 0;">📍 ${zoneName}</h3>
 			<div style="display: flex; gap: 1rem; align-items: stretch; min-height: 260px;">
-				<div class="zone-stat-card-slot" data-zone-key="${zoneKey}" style="flex: 0 0 60%; max-width: 60%;"></div>
+				<div class="zone-stat-card-slot" data-zone-key="${zoneKey}" style="flex: 0 0 50%; max-width: 50%;"></div>
 				<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
 				            gap: 0.5rem; color: #9ca3af; text-align: center; padding: 1rem;">
 					<span style="font-size: 2rem;">📡</span>
@@ -2534,7 +2648,10 @@ function initZoneCharts(zones, metrics) {
 
 		zoneCharts[safeZone] = {};
 
-		metrics.forEach(metric => {
+		const zoneMetrics = Array.isArray(zone.metrics) && zone.metrics.length > 0
+			? zone.metrics : metrics;
+
+		zoneMetrics.forEach(metric => {
 
 			const canvas = document.getElementById(`chart-${safeZone}-${metric}`);
 			if (!canvas) return;
@@ -2606,20 +2723,6 @@ function updateEnvironmentChartsVisibilityDynamic(metrics) {
 	});
 }
 
-
-function normalizeFloor(building, floor) {
-
-	if (building === "21" && (!floor || floor === "" || floor === "all")) {
-		return "3";
-	}
-
-	if (building === "23" && (!floor || floor === "" || floor === "all")) {
-		return "2";
-	}
-
-	return floor;
-}
-
 let envConfigCache = {};
 
 async function getEnvConfig(building, floor) {
@@ -2642,19 +2745,6 @@ function closeEnvironmentSSE() {
 	}
 }
 
-async function updateEnvironmentChartsVisibility(building, floor) {
-	const cfg = await getEnvironmentConfig(building, floor);
-	const metrics = ["temperature", "humidity", "co2", "sound"];
-	const visibleMetrics = new Set(Array.isArray(cfg?.metrics) ? cfg.metrics : []);
-
-	metrics.forEach(metric => {
-		const card = document.querySelector(`[data-chart="${metric}"]`)?.closest(".chart-card");
-
-		if (!card) return;
-
-		card.style.display = visibleMetrics.has(metric) ? "block" : "none";
-	});
-}
 
 function updateTitles(buildingName) {
 
@@ -2717,6 +2807,9 @@ function resetEnvironmentStats() {
 		if (avg) avg.textContent = "--";
 		if (max) max.textContent = "--";
 	});
+
+	// Purge l'état par zone pour éviter la pollution entre floors
+	Object.keys(environmentState).forEach(k => delete environmentState[k]);
 }
 
 const filters = {
@@ -2759,8 +2852,12 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (buildingId) {
 			update3DConfig(buildingId);
 			updateTitles(buildingName);
-			updateEnvironmentChartsVisibility(buildingId);
-			startEnvironmentSSE(buildingId, floorId);
+			// startEnvironmentSSE en premier (crée les slots), puis generateStatCards
+			startEnvironmentSSE(buildingId, floorId).then(() => {
+				if (floorId ) {
+					window.ChartUtils.generateStatCardsForBuilding(buildingId, floorId || null);
+				}
+			});
 		}
 	}, 1500);
 });

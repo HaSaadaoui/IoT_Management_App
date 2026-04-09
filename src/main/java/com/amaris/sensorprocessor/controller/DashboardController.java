@@ -784,9 +784,8 @@ public class DashboardController {
     @ResponseBody
     public Map<String, Object> getEnvConfig(
             @RequestParam String building,
-            @RequestParam(required = false) String floor
+            @RequestParam(required = false) Integer floor
     ) {
         return dashboardService.getEnvConfig(building, floor);
     }
-
 }

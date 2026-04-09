@@ -187,19 +187,15 @@ public class SensorDao {
     }
 
 
-    public List<Map<String, Object>> findAllByBuildingAndFloor(String building, int floor, boolean isAllFloors) {
+    public List<Map<String, Object>> findAllByBuildingAndFloorForConfig(String building, Integer floor) {
         StringBuilder sql = new StringBuilder(
-                ENV_SELECT + " WHERE s.building_id = ? AND s.status = 1 AND dt.type_name IN ('CO2', 'SON', 'TEMPEX')"
+                ENV_SELECT + " WHERE s.building_id = ? AND s.floor = ? " +
+                        "AND s.status = 1 AND dt.type_name IN ('CO2', 'SON', 'TEMPEX', 'CONSO', 'EYE')"
         );
 
         List<Object> params = new ArrayList<>();
         params.add(Integer.parseInt(building));
-
-        //condition dynamique
-        if (!isAllFloors) {
-            sql.append(" AND s.floor = ?");
-            params.add(floor);
-        }
+        params.add(floor);
 
         return jdbcTemplate.queryForList(sql.toString(), params.toArray());
     }
@@ -208,8 +204,9 @@ public class SensorDao {
         return jdbcTemplate.queryForList(
                 "SELECT s.id_sensor, s.floor, l.name AS location_name " +
                 "FROM sensors s " +
+                        "JOIN device_type dt ON s.id_device_type = dt.id_device_type " +
                 "LEFT JOIN location l ON s.location_id = l.id " +
-                "WHERE s.building_id = ? AND s.status = 1 " +
+                "WHERE s.building_id = ? AND dt.type_name IN ('DESK', 'OCCUP') AND s.status = 1 " +
                 "ORDER BY s.floor, l.name",
                 buildingId
         );

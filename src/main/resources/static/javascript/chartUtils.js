@@ -388,28 +388,6 @@ async function generateStatCardsForBuilding(building, selectedFloor = null) {
         });
 
     }
-        // ======================================================
-        // CASE 2: AUCUN FLOOR → une carte par floor
-    // ======================================================
-    else {
-        Object.entries(buildingZones).forEach(([floorId, floorZones]) => {
-            if (!floorZones || Object.keys(floorZones).length === 0) return;
-
-            html += `
-                <div class="stat-card"
-                     data-zone="FLOOR_${floorId}"
-                     data-floor="${floorId}"
-                     data-chart-index="${index}">
-                    <div class="stat-chart-wrapper">
-                        <canvas class="chart-office"></canvas>
-                    </div>
-                    <div class="stat-legend"></div>
-                </div>
-            `;
-            index++;
-        });
-    }
-
 
     // 🔥 Destroy all existing charts before regenerating DOM
     container.querySelectorAll("canvas").forEach(c => {

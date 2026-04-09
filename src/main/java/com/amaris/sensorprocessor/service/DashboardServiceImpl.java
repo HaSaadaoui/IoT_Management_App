@@ -626,63 +626,73 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    public Map<String, Object> getEnvConfig(String building, String floorParam) {
-        boolean isAllFloors = floorParam == null
-                || floorParam.isBlank()
-                || "all".equalsIgnoreCase(floorParam);
-
-        Integer floor = null;
-
-        if (!isAllFloors) {
-            floor = Integer.parseInt(floorParam);
+    public Map<String, Object> getEnvConfig(String building, Integer floor) {
+        boolean isAllFloors = floor == null || "all".equalsIgnoreCase(String.valueOf(floor));
+        if (isAllFloors) {
+            return  Map.of();
         }
 
-        List<Map<String, Object>> rows= sensorDao.findAllByBuildingAndFloor(building, floor, isAllFloors);
-
+        List<Map<String, Object>> rows= sensorDao.findAllByBuildingAndFloorForConfig(building, floor);
         Map<String, List<String>> zones = new HashMap<>();
-        Set<String> metrics = new HashSet<>();
 
         for (Map<String, Object> row : rows) {
 
             String deviceId = (String) row.get("id_sensor");
             String location = (String) row.get("name");
-            String type = (String) row.get("type_name");
 
             // groupement par zone
             zones.computeIfAbsent(location, z -> new ArrayList<>()).add(deviceId);
-
-            // mapping type -> métriques
-            switch (type) {
-                case "CO2":
-                    metrics.add("co2");
-                    metrics.add("temperature");
-                    metrics.add("humidity");
-                    break;
-
-                case "TEMPEX":
-                    metrics.add("temperature");
-                    break;
-
-                case "SON":
-                    metrics.add("sound");
-                    break;
-            }
         }
 
-        // format final
+        Set<String> globalMetrics = new HashSet<>();
+
         List<Map<String, Object>> zonesList = zones.entrySet().stream()
                 .filter(e -> e.getKey() != null && !e.getKey().isBlank())
-                .map(e -> Map.of(
-                        "name", e.getKey(),
-                        "deviceIds", e.getValue()
-                ))
+                .map(e -> {
+                    Set<String> zoneMetrics = new HashSet<>();
+
+                    for (Map<String, Object> row : rows) {
+                        if (e.getKey().equals(row.get("name"))) {
+                            switch ((String) row.get("type_name")) {
+                                case "CO2":
+                                    zoneMetrics.add("co2");
+                                    zoneMetrics.add("temperature");
+                                    zoneMetrics.add("humidity");
+                                    break;
+                                case "TEMPEX":
+                                    zoneMetrics.add("temperature");
+                                    zoneMetrics.add("humidity");
+                                    break;
+                                case "SON":
+                                    zoneMetrics.add("sound");
+                                    break;
+                                case "CONSO":
+                                    zoneMetrics.add("conso");
+                                    break;
+                                case "EYE":
+                                    zoneMetrics.add("temperature");
+                                    zoneMetrics.add("humidity");
+                                    zoneMetrics.add("light");
+                                    break;
+                            }
+                        }
+                    }
+
+                    globalMetrics.addAll(zoneMetrics);
+
+                    return Map.of(
+                            "name", e.getKey(),
+                            "deviceIds", e.getValue(),
+                            "metrics", zoneMetrics
+                    );
+                })
                 .toList();
 
         return Map.of(
                 "building", building,
                 "floor", floor,
                 "zones", zonesList,
-                "metrics", metrics
+                "metrics", globalMetrics
         );
     }
 

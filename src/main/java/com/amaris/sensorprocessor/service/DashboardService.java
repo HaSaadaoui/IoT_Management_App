@@ -17,5 +17,5 @@ public interface DashboardService {
     List<SensorInfo> getSensorsList(String building, String floor, String sensorType);
     List<OccupationHistoryEntry> getOccupationHistory(List<String> sensorIds, int days);
     HistogramResponse getHistogramData(HistogramRequest request);
-    Map<String, Object> getEnvConfig(String building, String floorParam);
+    Map<String, Object> getEnvConfig(String building, Integer floorParam);
 }
