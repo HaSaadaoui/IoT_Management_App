@@ -296,17 +296,53 @@ main {
 }
 
 
-.zone-block {
-    background: white;
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 30px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.06);
-    border: 1px solid #f1f5f9;
-    position: relative; /* important pour le séparateur */
+/* ===== ZONE TABS NAV ===== */
+.zone-tabs-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0;
 }
 
-/* séparateur entre zones */
+.zone-tab-btn {
+    padding: 0.5rem 1.1rem;
+    border: none;
+    background: transparent;
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.zone-tab-btn:hover {
+    color: var(--primary);
+    background: #f9fafb;
+}
+
+.zone-tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: white;
+    font-weight: 600;
+}
+
+/* ===== ZONE PANEL ===== */
+.zone-block {
+    background: white;
+    border-radius: 0 16px 16px 16px;
+    padding: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+    border: 1px solid #f1f5f9;
+    position: relative;
+}
+
+/* accent bar top */
 .zone-block::before {
     content: '';
     position: absolute;
@@ -314,6 +350,7 @@ main {
     left: 0;
     right: 0;
     height: 4px;
+    border-radius: 0 16px 0 0;
     background: linear-gradient(90deg, var(--primary), var(--primary-light));
 }
 
