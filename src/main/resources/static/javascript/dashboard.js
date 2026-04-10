@@ -2147,15 +2147,14 @@ let environmentRefreshInterval = null;
 // { [zone]: { [metric]: { [deviceId]: latestValue } } }
 const environmentState = {};
 const envZoneState = {};
+// Tracks which zone+metric have already received their first chart data point
+const chartFirstPushed = new Set();
 
 async function startEnvironmentSSE(building, floor = "") {
 	console.log("🌡️ startEnvironmentSSE:", building, floor);
 
-	// 🔁 stop ancien SSE
-	if (environmentUnsub) {
-		environmentUnsub();
-		environmentUnsub = null;
-	}
+	// 🔁 stop ancien SSE + interval de refresh
+	closeEnvironmentSSE();
 
 	// reset UI
 	resetEnvironmentCharts();
@@ -2386,16 +2385,18 @@ function updateMetric(zone, metric, deviceId, value) {
 	if (avgEl) avgEl.textContent = avg.toFixed(1);
 	if (maxEl) maxEl.textContent = max.toFixed(1);
 
-	const chart = zoneCharts[safeZone]?.[metric];
-	if (chart) {
-		const now = new Date().toLocaleTimeString();
-		chart.data.labels.push(now);
-		chart.data.datasets[0].data.push(parseFloat(avg.toFixed(2)));
-		if (chart.data.labels.length > 20) {
-			chart.data.labels.shift();
-			chart.data.datasets[0].data.shift();
+	// Premier message pour ce zone+metric : push immédiat pour ne pas attendre 30s
+	// Les messages suivants sont gérés par l'intervalle (évite le faux historique du replay SSE)
+	const firstKey = `${safeZone}__${metric}`;
+	if (!chartFirstPushed.has(firstKey)) {
+		chartFirstPushed.add(firstKey);
+		const chart = zoneCharts[safeZone]?.[metric];
+		if (chart) {
+			const now = new Date().toLocaleTimeString();
+			chart.data.labels.push(now);
+			chart.data.datasets[0].data.push(parseFloat(avg.toFixed(2)));
+			chart.update("none");
 		}
-		chart.update("none");
 	}
 }
 
@@ -2451,24 +2452,80 @@ function normalizeZoneKey(name) {
 	return name.toUpperCase().replace(/[\s\-]+/g, "_").replace(/[^A-Z0-9_]/g, "");
 }
 
+// ─── Shared tab-switch helper ────────────────────────────────────────────────
+function switchZoneTab(nav, targetPanelId) {
+	nav.querySelectorAll(".zone-tab-btn").forEach(b => b.classList.remove("active"));
+	const activeBtn = nav.querySelector(`.zone-tab-btn[data-target-id="${targetPanelId}"]`);
+	if (activeBtn) activeBtn.classList.add("active");
+
+	const container = nav.closest("#zones-container") || document.getElementById("zones-container");
+	container.querySelectorAll(".zone-block").forEach(block => {
+		block.style.display = block.id === targetPanelId ? "" : "none";
+	});
+
+	// Chart.js mesure 0×0 si le canvas était caché à la création — forcer le resize + update
+	const targetBlock = container.querySelector(`#${CSS.escape(targetPanelId)}`);
+	if (targetBlock) {
+		targetBlock.querySelectorAll("canvas").forEach(canvas => {
+			const chart = Chart.getChart(canvas);
+			if (chart) {
+				chart.resize();
+				chart.update("none");
+			}
+		});
+	}
+}
+
+// ─── Get or create the tab nav inside zones-container ────────────────────────
+function getOrCreateZoneNav(container) {
+	let nav = container.querySelector(".zone-tabs-nav");
+	if (!nav) {
+		nav = document.createElement("nav");
+		nav.className = "zone-tabs-nav";
+		nav.addEventListener("click", e => {
+			const btn = e.target.closest(".zone-tab-btn");
+			if (!btn) return;
+			switchZoneTab(nav, btn.dataset.targetId);
+		});
+		container.prepend(nav);
+	}
+	return nav;
+}
+
 function renderZones(zones) {
 	const container = document.getElementById("zones-container");
 
 	// Supprimer uniquement les zone-blocks env (pas les orphelins qui contiennent les stat-cards)
 	container.querySelectorAll(".zone-block:not([data-orphan])").forEach(b => b.remove());
+	// Supprimer l'ancienne nav d'onglets env
+	container.querySelector(".zone-tabs-nav")?.remove();
 
-	zones.forEach(zone => {
+	if (zones.length === 0) return;
+
+	// Créer la nav d'onglets
+	const nav = getOrCreateZoneNav(container);
+	nav.innerHTML = "";
+
+	zones.forEach((zone, i) => {
 		const safeZone = zone.name.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
 		const zoneKey = normalizeZoneKey(zone.name);
 		const zoneMetrics = zone.metrics || [];
+		const panelId = `zone-${safeZone}`;
 
+		// Bouton d'onglet
+		const btn = document.createElement("button");
+		btn.className = "zone-tab-btn" + (i === 0 ? " active" : "");
+		btn.dataset.targetId = panelId;
+		btn.textContent = zone.name;
+		nav.appendChild(btn);
+
+		// Panneau de zone
 		const zoneDiv = document.createElement("div");
 		zoneDiv.className = "zone-block";
-		zoneDiv.id = `zone-${safeZone}`;
+		zoneDiv.id = panelId;
+		zoneDiv.style.display = i === 0 ? "" : "none";
 
 		zoneDiv.innerHTML = `
-            <h3 style="margin: 10px 0;">📍 ${zone.name}</h3>
-
             <div class="charts-grid charts-grid--2col">
                 <div class="zone-stat-card-slot" data-zone-key="${zoneKey}"></div>
                 ${zoneMetrics.map(m => createChartCard(m, zone.name)).join("")}
@@ -2562,7 +2619,7 @@ function createChartCard(metric, zoneName) {
                         <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#64748b;margin-right:3px;"></span>White</span>
                         <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#3b82f6;margin-right:3px;"></span>Ventilation</span>
                         <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin-right:3px;"></span>Other</span>
-                    </div
+                    </div>
                     ` : `
                     <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
                         Max:
@@ -2645,31 +2702,44 @@ function initZoneChartToggles() {
 // et le supprimer lors d'un rechargement.
 // ============================================
 function absorbOrphanStatCards(zonesContainer) {
-	// Supprimer les anciens blocs orphelins créés lors d'un appel précédent
+	// Supprimer les anciens blocs orphelins et leurs boutons d'onglet
 	zonesContainer.querySelectorAll(".zone-block[data-orphan]").forEach(b => b.remove());
+	zonesContainer.querySelectorAll(".zone-tabs-nav .zone-tab-btn[data-orphan]").forEach(b => b.remove());
+
+	const nav = zonesContainer.querySelector(".zone-tabs-nav");
 
 	document.querySelectorAll("#sensor-stats-container .stat-card[data-zone]").forEach(statCard => {
 		const zoneKey = statCard.dataset.zone;
+		const panelId = `zone-orphan-${zoneKey}`;
 
 		// Titre lisible : remplacer les underscores par des espaces, Title Case
 		const zoneName = zoneKey
 			.replace(/_/g, " ")
 			.replace(/\b\w/g, c => c.toUpperCase());
 
+		// Ajouter un bouton dans la nav existante
+		if (nav) {
+			const btn = document.createElement("button");
+			btn.className = "zone-tab-btn";
+			btn.dataset.targetId = panelId;
+			btn.dataset.orphan = "true";
+			btn.textContent = zoneName;
+			nav.appendChild(btn);
+		}
+
 		const orphanBlock = document.createElement("div");
 		orphanBlock.className = "zone-block";
 		orphanBlock.setAttribute("data-orphan", zoneKey);
-		orphanBlock.id = `zone-orphan-${zoneKey}`;
+		orphanBlock.id = panelId;
+		orphanBlock.style.display = "none";
 
-		// Layout : stat-card (50%) + message "no env data" (50%), alignés
 		orphanBlock.innerHTML = `
-			<h3 style="margin: 10px 0;">📍 ${zoneName}</h3>
 			<div style="display: flex; gap: 1rem; align-items: stretch; min-height: 260px;">
 				<div class="zone-stat-card-slot" data-zone-key="${zoneKey}" style="flex: 0 0 50%; max-width: 50%;"></div>
 				<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
 				            gap: 0.5rem; color: #9ca3af; text-align: center; padding: 1rem;">
 					<span style="font-size: 2rem;">📡</span>
-					<span style="font-size: 0.9rem; font-weight: 500;">No data found</span>
+					<span style="font-size: 0.9rem; font-weight: 500;">No env data</span>
 					<span style="font-size: 0.78rem;">No metric CO₂, Humidity, Temperature or sound configured<br>for this zone</span>
 				</div>
 			</div>
@@ -2680,6 +2750,12 @@ function absorbOrphanStatCards(zonesContainer) {
 		const slot = orphanBlock.querySelector(`.zone-stat-card-slot[data-zone-key="${zoneKey}"]`);
 		slot.appendChild(statCard);
 	});
+
+	// Si aucun onglet n'est actif (pas de zones env), activer le premier orphelin
+	if (nav && !nav.querySelector(".zone-tab-btn.active")) {
+		const firstBtn = nav.querySelector(".zone-tab-btn");
+		if (firstBtn) switchZoneTab(nav, firstBtn.dataset.targetId);
+	}
 }
 
 
@@ -2838,6 +2914,7 @@ function closeEnvironmentSSE() {
 	}
 	Object.keys(environmentState).forEach(k => delete environmentState[k]);
 	Object.keys(lastKnownEnergyByZone).forEach(k => delete lastKnownEnergyByZone[k]);
+	chartFirstPushed.clear();
 }
 
 
