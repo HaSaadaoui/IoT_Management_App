@@ -2161,14 +2161,18 @@ async function startEnvironmentSSE(building, floor = "") {
 	resetEnvironmentCharts();
 	resetEnvironmentStats();
 
-	// Pas d'étage sélectionné → tout vider et sortir
+	// Pas d'étage sélectionné → vider les zone-blocks et sortir
 	const isAllFloors = floor === null || floor === undefined || floor === "" || floor === "all";
+
 	if (isAllFloors) {
 		const container = document.getElementById("zones-container");
 		if (container) {
+			// Supprimer TOUS les zone-blocks (env + orphelins) car aucun floor sélectionné
 			container.querySelectorAll(".zone-block").forEach(b => b.remove());
-			container.querySelector(".zone-tabs-nav")?.remove();
 		}
+		// Vider aussi sensor-stats-container et fermer SSE occupancy
+		document.getElementById('sensor-stats-container').innerHTML = '';
+		if (window.closeOccupancySSE) closeOccupancySSE();
 		return;
 	}
 
@@ -2447,83 +2451,38 @@ function normalizeZoneKey(name) {
 	return name.toUpperCase().replace(/[\s\-]+/g, "_").replace(/[^A-Z0-9_]/g, "");
 }
 
-// ─── Shared tab-switch helper ────────────────────────────────────────────────
-function switchZoneTab(nav, targetPanelId) {
-	const container = document.getElementById("zones-container");
-	nav.querySelectorAll(".zone-tab-btn").forEach(b => b.classList.remove("active"));
-	const activeBtn = nav.querySelector(`.zone-tab-btn[data-target-id="${targetPanelId}"]`);
-	if (activeBtn) activeBtn.classList.add("active");
-
-	container.querySelectorAll(".zone-block").forEach(panel => {
-		const isTarget = panel.id === targetPanelId;
-		panel.style.display = isTarget ? "" : "none";
-		if (isTarget) {
-			panel.querySelectorAll("canvas").forEach(canvas => {
-				const chart = Chart.getChart(canvas);
-				if (chart) chart.resize();
-			});
-		}
-	});
-}
-
-function getOrCreateZoneNav(container) {
-	let nav = container.querySelector(".zone-tabs-nav");
-	if (!nav) {
-		nav = document.createElement("div");
-		nav.className = "zone-tabs-nav";
-		nav.addEventListener("click", e => {
-			const btn = e.target.closest(".zone-tab-btn");
-			if (!btn) return;
-			switchZoneTab(nav, btn.dataset.targetId);
-		});
-		container.prepend(nav);
-	}
-	return nav;
-}
-
 function renderZones(zones) {
 	const container = document.getElementById("zones-container");
 
-	// Remove existing env zone-blocks and old tab nav
+	// Supprimer uniquement les zone-blocks env (pas les orphelins qui contiennent les stat-cards)
 	container.querySelectorAll(".zone-block:not([data-orphan])").forEach(b => b.remove());
-	container.querySelector(".zone-tabs-nav")?.remove();
 
-	if (!zones.length) return;
-
-	const nav = getOrCreateZoneNav(container);
-
-	zones.forEach((zone, i) => {
+	zones.forEach(zone => {
 		const safeZone = zone.name.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
 		const zoneKey = normalizeZoneKey(zone.name);
 		const zoneMetrics = zone.metrics || [];
-		const panelId = `zone-${safeZone}`;
 
-		// Tab button
-		const btn = document.createElement("button");
-		btn.className = "zone-tab-btn" + (i === 0 ? " active" : "");
-		btn.dataset.targetId = panelId;
-		btn.textContent = `📍 ${zone.name}`;
-		nav.appendChild(btn);
+		const zoneDiv = document.createElement("div");
+		zoneDiv.className = "zone-block";
+		zoneDiv.id = `zone-${safeZone}`;
 
-		// Zone panel (hidden except first)
-		const panel = document.createElement("div");
-		panel.className = "zone-block";
-		panel.id = panelId;
-		if (i !== 0) panel.style.display = "none";
+		zoneDiv.innerHTML = `
+            <h3 style="margin: 10px 0;">📍 ${zone.name}</h3>
 
-		panel.innerHTML = `
-			<div class="charts-grid charts-grid--2col">
-				<div class="zone-stat-card-slot" data-zone-key="${zoneKey}"></div>
-				${zoneMetrics.map(m => createChartCard(m, zone.name)).join("")}
-			</div>
-		`;
+            <div class="charts-grid charts-grid--2col">
+                <div class="zone-stat-card-slot" data-zone-key="${zoneKey}"></div>
+                ${zoneMetrics.map(m => createChartCard(m, zone.name)).join("")}
+            </div>
+        `;
 
-		container.appendChild(panel);
+		// Insérer AVANT les blocs orphelins (qui doivent rester en dernier)
+		const firstOrphan = container.querySelector(".zone-block[data-orphan]");
+		if (firstOrphan) {
+			container.insertBefore(zoneDiv, firstOrphan);
+		} else {
+			container.appendChild(zoneDiv);
+		}
 	});
-
-	// Move nav before first panel
-	const firstPanel = container.querySelector(".zone-block");
-	if (firstPanel && firstPanel !== nav) container.insertBefore(nav, firstPanel);
 
 	initZoneChartToggles();
 }
@@ -2603,14 +2562,8 @@ function createChartCard(metric, zoneName) {
                         <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#64748b;margin-right:3px;"></span>White</span>
                         <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#3b82f6;margin-right:3px;"></span>Ventilation</span>
                         <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin-right:3px;"></span>Other</span>
-                    </div>
+                    </div
                     ` : `
-                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                        Avg:
-                        <span class="kpi-value" id="${safeZone}-${metric}-avg"
-                              style="font-weight: 600; color: ${cfg.color};">--</span> ${cfg.unit}
-                    </div>
-
                     <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
                         Max:
                         <span id="${safeZone}-${metric}-max"
@@ -2692,44 +2645,32 @@ function initZoneChartToggles() {
 // et le supprimer lors d'un rechargement.
 // ============================================
 function absorbOrphanStatCards(zonesContainer) {
-	// Remove previously created orphan blocks and their tab buttons
+	// Supprimer les anciens blocs orphelins créés lors d'un appel précédent
 	zonesContainer.querySelectorAll(".zone-block[data-orphan]").forEach(b => b.remove());
-	const nav = zonesContainer.querySelector(".zone-tabs-nav");
-	if (nav) nav.querySelectorAll(".zone-tab-btn[data-orphan]").forEach(b => b.remove());
 
-	const orphanCards = document.querySelectorAll("#sensor-stats-container .stat-card[data-zone]");
-	if (!orphanCards.length) return;
-
-	const tabNav = getOrCreateZoneNav(zonesContainer);
-
-	orphanCards.forEach(statCard => {
+	document.querySelectorAll("#sensor-stats-container .stat-card[data-zone]").forEach(statCard => {
 		const zoneKey = statCard.dataset.zone;
-		const zoneName = zoneKey.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-		const blockId = `zone-orphan-${zoneKey}`;
 
-		// Tab button — marked data-orphan so it can be cleaned up on next render
-		const btn = document.createElement("button");
-		btn.className = "zone-tab-btn";
-		btn.dataset.targetId = blockId;
-		btn.dataset.orphan = "true";
-		btn.textContent = `📍 ${zoneName}`;
-		tabNav.appendChild(btn);
+		// Titre lisible : remplacer les underscores par des espaces, Title Case
+		const zoneName = zoneKey
+			.replace(/_/g, " ")
+			.replace(/\b\w/g, c => c.toUpperCase());
 
-		// Orphan panel (hidden by default)
 		const orphanBlock = document.createElement("div");
 		orphanBlock.className = "zone-block";
 		orphanBlock.setAttribute("data-orphan", zoneKey);
-		orphanBlock.id = blockId;
-		orphanBlock.style.display = "none";
+		orphanBlock.id = `zone-orphan-${zoneKey}`;
 
+		// Layout : stat-card (50%) + message "no env data" (50%), alignés
 		orphanBlock.innerHTML = `
+			<h3 style="margin: 10px 0;">📍 ${zoneName}</h3>
 			<div style="display: flex; gap: 1rem; align-items: stretch; min-height: 260px;">
 				<div class="zone-stat-card-slot" data-zone-key="${zoneKey}" style="flex: 0 0 50%; max-width: 50%;"></div>
 				<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
 				            gap: 0.5rem; color: #9ca3af; text-align: center; padding: 1rem;">
 					<span style="font-size: 2rem;">📡</span>
-					<span style="font-size: 0.9rem; font-weight: 500;">No env sensor</span>
-					<span style="font-size: 0.78rem;">No CO₂, Temperature or Sound configured for this zone</span>
+					<span style="font-size: 0.9rem; font-weight: 500;">No data found</span>
+					<span style="font-size: 0.78rem;">No metric CO₂, Humidity, Temperature or sound configured<br>for this zone</span>
 				</div>
 			</div>
 		`;
@@ -2739,12 +2680,6 @@ function absorbOrphanStatCards(zonesContainer) {
 		const slot = orphanBlock.querySelector(`.zone-stat-card-slot[data-zone-key="${zoneKey}"]`);
 		slot.appendChild(statCard);
 	});
-
-	// If no tab is active yet (no env zones), activate the first orphan tab
-	if (!tabNav.querySelector(".zone-tab-btn.active")) {
-		const firstBtn = tabNav.querySelector(".zone-tab-btn");
-		if (firstBtn) switchZoneTab(tabNav, firstBtn.dataset.targetId);
-	}
 }
 
 

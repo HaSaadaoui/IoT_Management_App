@@ -273,6 +273,8 @@ class ArchitecturalFloorPlan {
           return payload["LAeq"] ?? payload["LAeq (dB)"];
         case "LIGHT":
           return payload["light"];
+        case "EYE":
+          return payload["light"] ?? payload["illuminance"] ?? payload["lux"];
         case "COUNT":
           return {
             in: payload.period_in ?? 0,
