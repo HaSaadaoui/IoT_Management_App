@@ -272,8 +272,6 @@ class ArchitecturalFloorPlan {
         case "NOISE":
           return payload["LAeq"] ?? payload["LAeq (dB)"];
         case "LIGHT":
-          return payload["light"];
-        case "EYE":
           return payload["light"] ?? payload["illuminance"] ?? payload["lux"];
         case "COUNT":
           return {
@@ -462,7 +460,7 @@ class ArchitecturalFloorPlan {
                 'HUMIDITY': ['CO2', 'TEMPEX', 'EYE'],
                 'CO2':      ['CO2'],
                 'NOISE':    ['NOISE', 'SON'],
-                'LIGHT':    ['CO2'],
+                'LIGHT':    ['LIGHT', 'PIR_LIGHT', 'EYE', 'CO2'],
                 'MOTION':   ['MOTION', 'PIR_LIGHT', 'EYE', 'OCCUP'],
                 'COUNT':    ['COUNT'],
                 'ENERGY':   ['ENERGY', 'CONSO'],

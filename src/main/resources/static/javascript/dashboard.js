@@ -2264,8 +2264,8 @@ async function startEnvironmentSSE(building, floor = "") {
 				if (!zone.metrics.includes(metric)) return;
 
 				if (metric === 'energy') {
-					// Le payload TTN raw contient directement channel_0, channel_1… (pas de clé energy_data)
-					updateEnergyMetric(zoneName, decoded);
+					if (decoded[field] == null) return;
+					updateEnergyMetric(zoneName, decoded[field]);
 				} else {
 					if (decoded[field] == null) return;
 					updateMetric(zoneName, metric, deviceId, decoded[field]);

@@ -86,7 +86,8 @@ class SensorOverlayManager {
             switch (mode) {
                 case 'CO2': this.createCO2Heatmap(); break;
                 case 'TEMP': this.createTempThermal(); break;
-                case 'LIGHT': this.createLightMap(); break;
+                case 'LIGHT':
+                case 'EYE': this.createLightMap(); break;
                 case 'MOTION': this.createMotionRadar(); break;
                 case 'NOISE': this.createNoiseMap(); break;
                 case 'HUMIDITY': this.createHumidityZones(); break;
@@ -899,6 +900,8 @@ class SensorOverlayManager {
           break;
         case "HUMIDITY": this.updateHumidityVisual(sensor); break;
         case "NOISE":    this.updateNoiseVisual(sensor);    break;
+        case "LIGHT":
+        case "EYE":      this.updateLightVisual(sensor);   break;
       }
       return true;
     }
@@ -924,6 +927,7 @@ class SensorOverlayManager {
           el.textContent = `${sensor.value} %`;
           break;
         case "LIGHT":
+        case "EYE":
           el.textContent = `${sensor.value} lux`;
           break;
         case "NOISE":
@@ -1043,6 +1047,17 @@ class SensorOverlayManager {
       if (this.getTempColor(sensor.value) === '#ef4444') {
         this.addPulseAnimation(circle);
       }
+    }
+
+    updateLightVisual(sensor) {
+      const idx = this.sensors?.findIndex(s => s.id === sensor.id);
+      if (idx === -1) return;
+      const grad = document.getElementById(`light-grad-${idx}`);
+      if (!grad) return;
+      const color = this.getLightColor(sensor.value);
+      grad.querySelectorAll("stop").forEach(stop => {
+        stop.style.stopColor = color;
+      });
     }
 }
 
