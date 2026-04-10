@@ -263,7 +263,9 @@ main {
 }
 
 .rt-chart-container{
-    margin-top:auto;
+    margin-top: auto;
+    position: relative;
+    height: 200px;
 }
 
 .env-chart-toggle{
