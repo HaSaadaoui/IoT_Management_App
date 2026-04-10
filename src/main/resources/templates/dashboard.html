@@ -1771,7 +1771,7 @@
                 }
 
                 // White Outlets & Lighting = (ch6+7+8) - (ch3+4+5)
-                whiteSum = sum_ch6_7_8 - sum_ch3_4_5;
+                whiteSum = Math.max(0, sum_ch6_7_8 - sum_ch3_4_5);
 
                 // Ventilation & Heaters = ch6+7+8
                 ventSum = sum_ch6_7_8;
