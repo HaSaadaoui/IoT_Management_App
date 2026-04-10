@@ -2264,8 +2264,12 @@ async function startEnvironmentSSE(building, floor = "") {
 				if (!zone.metrics.includes(metric)) return;
 
 				if (metric === 'energy') {
-					if (decoded[field] == null) return;
-					updateEnergyMetric(zoneName, decoded[field]);
+					// Le payload TTN peut avoir les channels directement dans decoded,
+					// ou imbriqués sous decoded[field] ("energy_data") — on essaie les deux
+					const energyPayload = (decoded[field] != null && typeof decoded[field] === 'object')
+						? decoded[field]
+						: decoded;
+					updateEnergyMetric(zoneName, energyPayload);
 				} else {
 					if (decoded[field] == null) return;
 					updateMetric(zoneName, metric, deviceId, decoded[field]);
