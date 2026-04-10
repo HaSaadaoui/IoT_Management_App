@@ -2163,9 +2163,16 @@ async function startEnvironmentSSE(building, floor = "") {
 
 	// Pas d'étage sélectionné → vider les zone-blocks et sortir
 	const isAllFloors = floor === null || floor === undefined || floor === "" || floor === "all";
+
 	if (isAllFloors) {
 		const container = document.getElementById("zones-container");
-		if (container) container.querySelectorAll(".zone-block:not([data-orphan])").forEach(b => b.remove());
+		if (container) {
+			// Supprimer TOUS les zone-blocks (env + orphelins) car aucun floor sélectionné
+			container.querySelectorAll(".zone-block").forEach(b => b.remove());
+		}
+		// Vider aussi sensor-stats-container et fermer SSE occupancy
+		document.getElementById('sensor-stats-container').innerHTML = '';
+		if (window.closeOccupancySSE) closeOccupancySSE();
 		return;
 	}
 
@@ -2555,14 +2562,8 @@ function createChartCard(metric, zoneName) {
                         <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#64748b;margin-right:3px;"></span>White</span>
                         <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#3b82f6;margin-right:3px;"></span>Ventilation</span>
                         <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin-right:3px;"></span>Other</span>
-                    </div>
+                    </div
                     ` : `
-                    <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                        Avg:
-                        <span class="kpi-value" id="${safeZone}-${metric}-avg"
-                              style="font-weight: 600; color: ${cfg.color};">--</span> ${cfg.unit}
-                    </div>
-
                     <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
                         Max:
                         <span id="${safeZone}-${metric}-max"
