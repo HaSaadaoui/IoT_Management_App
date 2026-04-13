@@ -86,6 +86,11 @@ function openOccupancySSE(building, floor) {
             const occRaw = decoded?.occupancy;
             if (!deviceId) return;
 
+            // Le snapshot TTN peut avoir une convention inversée par rapport à la DB.
+            // On laisse fetchInitialOccupancyData (source DB) avoir la priorité :
+            // si le device est déjà connu et que l'event est un snapshot, on l'ignore.
+            if (type === "snapshot" && occupancyState[deviceId] !== undefined) return;
+
             const status = normalizeDeskStatus(occRaw);
 
             // (perf) si status inchangé -> ne rerender pas
