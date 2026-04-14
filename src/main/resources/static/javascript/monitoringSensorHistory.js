@@ -154,10 +154,11 @@ async function loadHistory(fromISO, toISO) {
     if (netSection) netSection.style.display = 'none';
     if (sensSection) sensSection.style.display = 'none';
 
-    // Clear containers
+    // Destroy existing dynamic charts before clearing containers
+    dynamicMetricCharts.forEach(c => { try { c.destroy(); } catch (_) {} });
+    dynamicMetricCharts = [];
     if (networkMetricsContainer) networkMetricsContainer.innerHTML = '';
     if (sensorMetricsContainer) sensorMetricsContainer.innerHTML = '';
-    dynamicMetricCharts = [];
 
     const devType = (document.documentElement.dataset.devType || '').toUpperCase();
 
