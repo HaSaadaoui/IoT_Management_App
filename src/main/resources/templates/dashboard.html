@@ -1617,16 +1617,24 @@
                     {
                         label: 'White Outlets & Lighting',
                         data: [],
-                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(100, 116, 139, 0.8)',
+                        borderColor: 'rgb(100, 116, 139)',
                         borderWidth: 1,
                         borderRadius: 4
                     },
                     {
                         label: 'Ventilation & Heaters',
                         data: [],
-                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
-                        borderColor: 'rgb(16, 185, 129)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        borderColor: 'rgb(59, 130, 246)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Other Circuits',
+                        data: [],
+                        backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                        borderColor: 'rgb(245, 158, 11)',
                         borderWidth: 1,
                         borderRadius: 4
                     }
@@ -1787,11 +1795,19 @@
                     console.log('TOTAL:', (redSum + whiteSum + ventSum).toFixed(2), 'kWh');
                 }
 
+                // Other circuits: channels 9, 10, 11
+                let otherSum = 0;
+                for (let ch = 9; ch <= 11; ch++) {
+                    const val = entry.channels[String(ch)];
+                    if (val !== undefined && val !== null) otherSum += val;
+                }
+
                 redOutlets.push(redSum);
                 whiteOutlets.push(whiteSum);
                 ventilation.push(ventSum);
+                others.push(otherSum);
 
-                totalKWh += (redSum + whiteSum + ventSum);
+                totalKWh += (redSum + whiteSum + ventSum + otherSum);
             }
         });
 
@@ -1803,7 +1819,7 @@
                 redOutlets: redOutlets[i].toFixed(2),
                 whiteOutlets: whiteOutlets[i].toFixed(2),
                 ventilation: ventilation[i].toFixed(2),
-                total: (redOutlets[i] + whiteOutlets[i] + ventilation[i]).toFixed(2)
+                total: (redOutlets[i] + whiteOutlets[i] + ventilation[i] + others[i]).toFixed(2)
             });
         }
 
@@ -1823,8 +1839,8 @@
                 {
                     label: 'White Outlets & Lighting',
                     data: [...whiteOutlets],
-                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(100, 116, 139, 0.8)',
+                    borderColor: 'rgb(100, 116, 139)',
                     borderWidth: 2,
                     borderRadius: 4,
                     fill: false
@@ -1832,8 +1848,17 @@
                 {
                     label: 'Ventilation & Heaters',
                     data: [...ventilation],
-                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
-                    borderColor: 'rgb(16, 185, 129)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 2,
+                    borderRadius: 4,
+                    fill: false
+                },
+                {
+                    label: 'Other Circuits',
+                    data: [...others],
+                    backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                    borderColor: 'rgb(245, 158, 11)',
                     borderWidth: 2,
                     borderRadius: 4,
                     fill: false
@@ -1846,6 +1871,7 @@
         energyConsumptionChart.data.datasets[0].data = redOutlets;
         energyConsumptionChart.data.datasets[1].data = whiteOutlets;
         energyConsumptionChart.data.datasets[2].data = ventilation;
+        energyConsumptionChart.data.datasets[3].data = others;
         energyConsumptionChart.update();
 
         // Update total KPI

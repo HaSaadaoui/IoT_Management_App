@@ -204,14 +204,21 @@ async function loadHistory(fromISO, toISO) {
                         const ch = dp.channels || {};
                         // Use date+"T12:00:00.000Z" so labels render as the correct date in any timezone
                         const key = dp.date + 'T12:00:00.000Z';
-                        redG[key]   = ((ch[0] || 0) + (ch[1] || 0) + (ch[2] || 0))  * 1000; // kWh → Wh
-                        whiteG[key] = ((ch[3] || 0) + (ch[4] || 0) + (ch[5] || 0))  * 1000;
-                        ventG[key]  = ((ch[6] || 0) + (ch[7] || 0) + (ch[8] || 0))  * 1000;
-                        otherG[key] = ((ch[9] || 0) + (ch[10] || 0) + (ch[11] || 0)) * 1000;
+                        const red   = (ch[0] || 0) + (ch[1] || 0) + (ch[2] || 0);
+                        const raw35 = (ch[3] || 0) + (ch[4] || 0) + (ch[5] || 0);
+                        const vent  = (ch[6] || 0) + (ch[7] || 0) + (ch[8] || 0);
+                        const white = Math.max(0, vent - raw35); // same formula as dashboard
+                        const other = (ch[9] || 0) + (ch[10] || 0) + (ch[11] || 0);
+                        redG[key]   = red   * 1000; // kWh → Wh (chart divides by 1000)
+                        whiteG[key] = white * 1000;
+                        ventG[key]  = vent  * 1000;
+                        otherG[key] = other * 1000;
                     }
-                    totalAllGroups = [...Object.values(redG), ...Object.values(whiteG),
-                                      ...Object.values(ventG), ...Object.values(otherG)]
-                        .reduce((s, v) => s + (Number(v) || 0), 0) / 1000;
+                    // Total = red + white + vent + other
+                    totalAllGroups = (Object.values(redG).reduce((s, v) => s + v, 0)
+                                    + Object.values(whiteG).reduce((s, v) => s + v, 0)
+                                    + Object.values(ventG).reduce((s, v) => s + v, 0)
+                                    + Object.values(otherG).reduce((s, v) => s + v, 0)) / 1000;
                 }
             } catch (e) {
                 console.error('Failed to fetch daily energy from dashboard API:', e);
