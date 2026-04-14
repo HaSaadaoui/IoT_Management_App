@@ -2546,6 +2546,7 @@ function renderZones(zones) {
 	});
 
 	initZoneChartToggles();
+	initEnergyLegendToggles();
 }
 
 
@@ -2580,7 +2581,7 @@ function createChartCard(metric, zoneName) {
 			unit: "dB"
 		},
 		energy: {
-			label: "Power by Group",
+			label: "Power Consumption",
 			icon: "⚡",
 			color: "#6366f1",
 			gradient: "linear-gradient(135deg, #6366f1, #4f46e5)",
@@ -2619,10 +2620,10 @@ function createChartCard(metric, zoneName) {
 
                     ${metric === 'energy' ? `
                     <div style="display: flex; gap: 0.6rem; font-size: 0.8rem; flex-wrap: wrap;">
-                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;margin-right:3px;"></span>Red</span>
-                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#64748b;margin-right:3px;"></span>White</span>
-                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#3b82f6;margin-right:3px;"></span>Ventilation</span>
-                        <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin-right:3px;"></span>Other</span>
+                        <span class="energy-legend-item" data-zone="${safeZone}" data-dataset="0" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:3px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;flex-shrink:0;"></span>Red</span>
+                        <span class="energy-legend-item" data-zone="${safeZone}" data-dataset="1" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:3px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#64748b;flex-shrink:0;"></span>White</span>
+                        <span class="energy-legend-item" data-zone="${safeZone}" data-dataset="2" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:3px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#3b82f6;flex-shrink:0;"></span>Ventilation</span>
+                        <span class="energy-legend-item" data-zone="${safeZone}" data-dataset="3" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:3px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></span>Other</span>
                     </div>
                     ` : `
                     <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
@@ -2693,6 +2694,23 @@ function initZoneChartToggles() {
 
 			chart.config.type = type;
 			chart.update();
+		});
+	});
+}
+
+
+function initEnergyLegendToggles() {
+	document.querySelectorAll('.energy-legend-item').forEach(item => {
+		item.addEventListener('click', () => {
+			const safeZone = item.dataset.zone;
+			const datasetIndex = parseInt(item.dataset.dataset, 10);
+			const chart = zoneCharts[safeZone]?.energy;
+			if (!chart) return;
+			const meta = chart.getDatasetMeta(datasetIndex);
+			meta.hidden = !meta.hidden;
+			chart.update();
+			// Visual feedback: dim the label when hidden
+			item.style.opacity = meta.hidden ? '0.4' : '1';
 		});
 	});
 }
@@ -2847,7 +2865,7 @@ function initZoneCharts(zones) {
 					},
 					options: {
 						responsive: true, maintainAspectRatio: false, animation: false,
-						plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+						plugins: { legend: { display: false } },
 						scales: scaleOpts
 					}
 				});
