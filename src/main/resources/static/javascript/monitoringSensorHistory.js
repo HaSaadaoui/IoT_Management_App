@@ -168,10 +168,7 @@ async function loadHistory(fromISO, toISO) {
         const consoSection = document.getElementById('consumption-histogram-section');
         if (consoSection) consoSection.style.display = 'block';
 
-        // 1) Build delta series (Wh) per group from cumulative ENERGY indexes
-        const { red, white, vent, other } = sumDeltaGroupsFromHistory(j);
-
-        // 2) Choose grouping: hourly for <= 1 day, daily for > 1 day
+        // 1) Choose grouping: hourly for <= 1 day, daily for > 1 day
         let intervalHours = 1;
         if (fromISO && toISO) {
             const fromD = new Date(fromISO);
@@ -186,13 +183,49 @@ async function loadHistory(fromISO, toISO) {
             return `every ${interval} hours`;
         };
 
-        // 3) Group deltas by interval
-        const redG = groupWhByInterval(red, intervalHours);
-        const whiteG = groupWhByInterval(white, intervalHours);
-        const ventG = groupWhByInterval(vent, intervalHours);
-        const otherG = groupWhByInterval(other, intervalHours);
+        // 2) Build grouped data (Wh per bucket) — strategy depends on interval
+        let redG = {}, whiteG = {}, ventG = {}, otherG = {};
+        let totalAllGroups = 0;
 
-        // 4) Build sorted buckets union
+        if (intervalHours === 24) {
+            // For daily view: use the same backend endpoint as the dashboard.
+            // It applies Paris-timezone day boundaries and handles counter resets correctly
+            // (negative first→last delta → 0), giving identical results to the dashboard.
+            const dashParams = new URLSearchParams();
+            dashParams.set('sensorId', SENSOR_ID);
+            dashParams.set('customStartDate', new Date(fromISO).toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' }));
+            dashParams.set('customEndDate',   new Date(toISO).toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' }));
+            try {
+                const dashRes = await fetch('/api/dashboard/energy-channels?' + dashParams.toString());
+                if (dashRes.ok) {
+                    const dashData = await dashRes.json();
+                    for (const dp of dashData.dataPoints || []) {
+                        const ch = dp.channels || {};
+                        // Use date+"T12:00:00.000Z" so labels render as the correct date in any timezone
+                        const key = dp.date + 'T12:00:00.000Z';
+                        redG[key]   = ((ch[0] || 0) + (ch[1] || 0) + (ch[2] || 0))  * 1000; // kWh → Wh
+                        whiteG[key] = ((ch[3] || 0) + (ch[4] || 0) + (ch[5] || 0))  * 1000;
+                        ventG[key]  = ((ch[6] || 0) + (ch[7] || 0) + (ch[8] || 0))  * 1000;
+                        otherG[key] = ((ch[9] || 0) + (ch[10] || 0) + (ch[11] || 0)) * 1000;
+                    }
+                    totalAllGroups = [...Object.values(redG), ...Object.values(whiteG),
+                                      ...Object.values(ventG), ...Object.values(otherG)]
+                        .reduce((s, v) => s + (Number(v) || 0), 0) / 1000;
+                }
+            } catch (e) {
+                console.error('Failed to fetch daily energy from dashboard API:', e);
+            }
+        } else {
+            // For hourly view: compute consecutive deltas from raw cumulative data
+            const { red, white, vent, other } = sumDeltaGroupsFromHistory(j);
+            redG   = groupWhByInterval(red,   intervalHours);
+            whiteG = groupWhByInterval(white,  intervalHours);
+            ventG  = groupWhByInterval(vent,   intervalHours);
+            otherG = groupWhByInterval(other,  intervalHours);
+            totalAllGroups = totalKWhLikeBackend(j);
+        }
+
+        // 3) Build sorted buckets union
         const allBuckets = Array.from(new Set([
             ...Object.keys(redG),
             ...Object.keys(whiteG),
@@ -200,7 +233,7 @@ async function loadHistory(fromISO, toISO) {
             ...Object.keys(otherG),
         ])).sort();
 
-        // 5) Labels
+        // 4) Labels
         const labels = allBuckets.map(bucketIso => {
             const d = new Date(bucketIso);
             if (intervalHours === 24) {
@@ -209,7 +242,7 @@ async function loadHistory(fromISO, toISO) {
             return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
         });
 
-        // 6) Datasets (kWh)
+        // 5) Datasets (kWh)
         const groupInfos = Object.values(consumptionCharts); // expected order: red, white, vent, other
         const datasets = [
             {
@@ -250,7 +283,7 @@ async function loadHistory(fromISO, toISO) {
             }
         ];
 
-        // 7) Create chart if needed
+        // 6) Create chart if needed
         if (!combinedConsumptionChart) {
             const chartCtx = ctx('histConsumptionAll');
             if (chartCtx) {
@@ -278,7 +311,7 @@ async function loadHistory(fromISO, toISO) {
             }
         }
 
-        // 8) Update chart
+        // 7) Update chart
         if (combinedConsumptionChart) {
             combinedConsumptionChart.data.labels = labels;
             combinedConsumptionChart.data.datasets = datasets;
@@ -286,14 +319,14 @@ async function loadHistory(fromISO, toISO) {
             combinedConsumptionChart.update();
         }
 
-        // 9) Totals by group (kWh)
+        // 8) Totals by group (kWh)
         const sumKWh = (obj) => Object.values(obj || {}).reduce((s, v) => s + ((Number(v) || 0) / 1000), 0);
 
         const totals = {
-            red: sumKWh(red),
-            white: sumKWh(white),
-            vent: sumKWh(vent),
-            other: sumKWh(other)
+            red:   sumKWh(redG),
+            white: sumKWh(whiteG),
+            vent:  sumKWh(ventG),
+            other: sumKWh(otherG)
         };
 
         // Update per-group totals
@@ -311,12 +344,6 @@ async function loadHistory(fromISO, toISO) {
         });
 
         // Total all groups
-const totalAllGroups = totalKWhLikeBackend(j);
-updateCard('kpi-card-conso','kpi-conso',
-  totalAllGroups.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}),
-  ' kWh'
-);
-
         const histTotalEl = document.getElementById('hist-total-total');
         if (histTotalEl) {
             histTotalEl.textContent = totalAllGroups.toLocaleString(undefined, {

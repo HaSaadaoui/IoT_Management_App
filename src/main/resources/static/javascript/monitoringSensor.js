@@ -790,8 +790,8 @@ async function loadChannelHistogramData(channels = [], fromISO, toISO) {
     if (!SENSOR_ID || !GATEWAY_ID || !fromISO || !toISO) return null;
     try {
         const params = new URLSearchParams();
-        params.set('startDate', fromISO.split('T')[0]);
-        params.set('endDate', toISO.split('T')[0]);
+        params.set('startDate', new Date(fromISO).toISOString());
+        params.set('endDate', new Date(toISO).toISOString());
         channels.forEach(ch => params.append('channels', String(ch)));
         const res = await fetch(`/manage-sensors/monitoring/${GATEWAY_ID}/${SENSOR_ID}/consumption?` + params.toString());
         if (!res.ok) throw new Error(`Failed to fetch consumption data for channels ${channels.join(',')}: ${res.statusText}`);
