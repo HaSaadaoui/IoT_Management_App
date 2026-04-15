@@ -287,6 +287,11 @@ class ArchitecturalFloorPlan {
       }
     }
 
+    updateDeskStatus(sensorId, status) {
+        if (!this.overlayManager) return false;
+        return this.overlayManager.updateDeskStatus(sensorId, status);
+    }
+
     updateSensorValue(sensorId, value) {
       if (!this.overlayManager) return;
 

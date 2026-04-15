@@ -878,6 +878,20 @@ class SensorOverlayManager {
         });
     }
 
+    updateDeskStatus(sensorId, status) {
+        const sensor = this.sensors?.find(s => s.id === sensorId);
+        if (!sensor) return false;
+        sensor.status = status;
+        const group = this.svg.querySelector(`#${CSS.escape("marker-" + sensorId)}`);
+        if (!group) return false;
+        const rect = group.querySelector('.sensor');
+        if (rect) {
+            rect.setAttribute('fill', this.colors[status] || '#94a3b8');
+            rect.setAttribute('status', status);
+        }
+        return true;
+    }
+
     updateSensorValue(sensorId, value, timestamp) {
       const sensor = this.sensors?.find(s => s.id === sensorId);
       console.log('Sensor: ', sensor);

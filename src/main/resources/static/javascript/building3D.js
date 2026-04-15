@@ -336,12 +336,9 @@ class Building3D {
             this.showFloorInfo(this.hoveredFloor.userData.floorNumber);
         }
 
-        // Refresh plan 2D
+        // Refresh plan 2D — mise à jour ciblée du seul bureau modifié
         if (!this.isIn3DView && this.currentArchPlan && this.currentFloorNumber != null) {
-            const floorInfo = this.floorData[this.currentFloorNumber];
-            const m = {};
-            Object.values(floorInfo.desks).forEach(d => (m[d.sensor] = d.status));
-            this.currentArchPlan.drawFloorPlan(m);
+            this.currentArchPlan.updateDeskStatus(sensorId, status);
         }
     }
 
