@@ -2195,6 +2195,7 @@ async function startEnvironmentSSE(building, floor = "") {
 
 	renderZones(zonesWithMetrics);
 	initZoneCharts(zonesWithMetrics);
+	fetchLiveCostConfig(building);
 
 	const deviceIds = config.zones.flatMap(z => z.deviceIds);
 
@@ -2321,6 +2322,31 @@ async function startEnvironmentSSE(building, floor = "") {
 // Même calcul que monitoringSensor.js : channels → groupes couleur
 const lastKnownEnergyByZone = {}; // { [safeZone]: { redW, whiteW, ventW, otherW } }
 
+// Cost config fetched once per building selection
+let liveCostConfig = { costPerKwh: 0, currency: 'EUR', co2Factor: 0 };
+
+// Per-zone donut and channel chart instances
+const zoneDonutCharts = {};
+const zoneChannelCharts = {};
+// Tracks which group indices (0=Red,1=White,2=Vent,3=Other) are toggled off per zone
+const hiddenEnergyGroups = {};
+
+async function fetchLiveCostConfig(building) {
+	if (!building) return;
+	const today = new Date().toLocaleDateString('en-CA');
+	try {
+		const res = await fetch(`/api/dashboard/energy/cost?from=${today}&to=${today}&building=${encodeURIComponent(building)}`);
+		if (res.ok) {
+			const data = await res.json();
+			liveCostConfig.costPerKwh = data.costPerKwh || 0;
+			liveCostConfig.currency   = data.currency   || 'EUR';
+			liveCostConfig.co2Factor  = data.co2Factor  || 0;
+		}
+	} catch (e) {
+		console.warn('Could not fetch live cost config:', e);
+	}
+}
+
 function updateEnergyMetric(zone, energyData) {
 	const safeZone = zone.replace(/\s+/g, "_");
 
@@ -2350,7 +2376,9 @@ function updateEnergyMetric(zone, energyData) {
 	const whiteW = Math.abs(ventW - sumW([3, 4, 5]));
 	const otherW = sumW([9, 10, 11]);
 
-	lastKnownEnergyByZone[safeZone] = { redW, whiteW, ventW, otherW };
+	// Store per-channel watts for the channel breakdown chart
+	const channelW = Array.from({ length: 12 }, (_, i) => channelPower[i] || 0);
+	lastKnownEnergyByZone[safeZone] = { redW, whiteW, ventW, otherW, channelW };
 	pushEnergyToChart(safeZone, redW, whiteW, ventW, otherW);
 }
 
@@ -2368,6 +2396,37 @@ function pushEnergyToChart(safeZone, redW, whiteW, ventW, otherW) {
 		chart.data.datasets.forEach(ds => ds.data.shift());
 	}
 	chart.update("none");
+
+	// Update donut and channel charts
+	const stored = lastKnownEnergyByZone[safeZone];
+	if (stored) {
+		updateZoneDonutChart(safeZone, redW, whiteW, ventW, otherW);
+		updateZoneChannelChart(safeZone, stored.channelW || []);
+	}
+
+	// Update real-time cost and CO₂ display
+	const totalKW = (redW + whiteW + ventW + otherW) / 1000;
+	const costEl = document.getElementById(`live-cost-${safeZone}`);
+	if (costEl) {
+		if (liveCostConfig.costPerKwh > 0) {
+			const ratePerHour = totalKW * liveCostConfig.costPerKwh;
+			const symbol = liveCostConfig.currency === 'EUR' ? '€' : (liveCostConfig.currency === 'USD' ? '$' : liveCostConfig.currency);
+			costEl.textContent = `≈ ${ratePerHour.toFixed(3)} ${symbol}/h`;
+			costEl.title = `${totalKW.toFixed(3)} kW × ${liveCostConfig.costPerKwh} ${symbol}/kWh`;
+		} else {
+			costEl.textContent = '-- €/h';
+		}
+	}
+	const co2El = document.getElementById(`live-co2-${safeZone}`);
+	if (co2El) {
+		if (liveCostConfig.co2Factor > 0) {
+			const gCo2PerHour = totalKW * liveCostConfig.co2Factor * 1000; // factor en kg/kWh → g/h
+			co2El.textContent = `≈ ${gCo2PerHour.toFixed(1)} g CO₂/h`;
+			co2El.title = `${totalKW.toFixed(3)} kW × ${liveCostConfig.co2Factor} kg CO₂/kWh`;
+		} else {
+			co2El.textContent = '-- g CO₂/h';
+		}
+	}
 }
 
 function updateMetric(zone, metric, deviceId, value) {
@@ -2608,7 +2667,7 @@ function createChartCard(metric, zoneName) {
 
 
 	return `
-        <div class="chart-card">
+        <div class="chart-card" ${metric === 'energy' ? 'style="grid-column: 1 / -1;"' : ''}>
             <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                 
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
@@ -2625,6 +2684,8 @@ function createChartCard(metric, zoneName) {
                         <span class="energy-legend-item" data-zone="${safeZone}" data-dataset="2" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:3px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#3b82f6;flex-shrink:0;"></span>Ventilation</span>
                         <span class="energy-legend-item" data-zone="${safeZone}" data-dataset="3" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:3px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></span>Other</span>
                     </div>
+                    <div id="live-cost-${safeZone}" style="font-size:0.8rem;color:#6b7280;background:#f3f4f6;padding:0.2rem 0.55rem;border-radius:6px;font-weight:500;white-space:nowrap;">-- €/h</div>
+                    <div id="live-co2-${safeZone}" style="font-size:0.8rem;color:#059669;background:#ecfdf5;padding:0.2rem 0.55rem;border-radius:6px;font-weight:500;white-space:nowrap;">-- g CO₂/h</div>
                     ` : `
                     <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
                         Max:
@@ -2665,9 +2726,23 @@ function createChartCard(metric, zoneName) {
 
             </div>
 
+            ${metric === 'energy' ? `
+            <div style="display: flex; gap: 0.75rem; align-items: stretch;">
+                <div style="width: 200px; flex-shrink: 0; height: 220px; position: relative;">
+                    <canvas id="donut-${safeZone}-energy"></canvas>
+                </div>
+                <div class="rt-chart-container" style="flex: 1; min-width: 0; height: 220px; position: relative;">
+                    <canvas id="chart-${safeZone}-${metric}"></canvas>
+                </div>
+            </div>
+            <div style="height: 180px; position: relative; margin-top: 0.75rem;">
+                <canvas id="channels-${safeZone}-energy"></canvas>
+            </div>
+            ` : `
             <div class="rt-chart-container" style="height: auto; position: relative;">
                 <canvas id="chart-${safeZone}-${metric}"></canvas>
             </div>
+            `}
         </div>
     `;
 }
@@ -2709,10 +2784,113 @@ function initEnergyLegendToggles() {
 			const meta = chart.getDatasetMeta(datasetIndex);
 			meta.hidden = !meta.hidden;
 			chart.update();
-			// Visual feedback: dim the label when hidden
 			item.style.opacity = meta.hidden ? '0.4' : '1';
+
+			// Sync donut: track hidden groups and re-render
+			if (!hiddenEnergyGroups[safeZone]) hiddenEnergyGroups[safeZone] = new Set();
+			if (meta.hidden) hiddenEnergyGroups[safeZone].add(datasetIndex);
+			else hiddenEnergyGroups[safeZone].delete(datasetIndex);
+
+			const stored = lastKnownEnergyByZone[safeZone];
+			if (stored) {
+				updateZoneDonutChart(safeZone, stored.redW, stored.whiteW, stored.ventW, stored.otherW);
+				updateZoneChannelChart(safeZone, stored.channelW || []);
+			}
 		});
 	});
+}
+
+
+function updateZoneDonutChart(safeZone, redW, whiteW, ventW, otherW) {
+	const hidden = hiddenEnergyGroups[safeZone] || new Set();
+	const groups = [
+		{ label: 'Red',         value: redW,   color: 'rgba(239, 68, 68, 0.85)'   },
+		{ label: 'White',       value: whiteW, color: 'rgba(100, 116, 139, 0.85)' },
+		{ label: 'Ventilation', value: ventW,  color: 'rgba(59, 130, 246, 0.85)'  },
+		{ label: 'Other',       value: otherW, color: 'rgba(245, 158, 11, 0.85)'  },
+	].filter((g, i) => g.value > 0 && !hidden.has(i));
+
+	const total = groups.reduce((s, g) => s + g.value, 0);
+	const chartData = {
+		labels: groups.map(g => g.label),
+		datasets: [{
+			data: groups.map(g => g.value),
+			backgroundColor: groups.map(g => g.color),
+			borderColor: '#ffffff',
+			borderWidth: 2
+		}]
+	};
+
+	if (!zoneDonutCharts[safeZone]) {
+		const canvas = document.getElementById(`donut-${safeZone}-energy`);
+		if (!canvas) return;
+		zoneDonutCharts[safeZone] = new Chart(canvas.getContext('2d'), {
+			type: 'doughnut',
+			data: chartData,
+			options: {
+				responsive: true, maintainAspectRatio: false, animation: false,
+				plugins: {
+					legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 10 }, padding: 6 } },
+					tooltip: { callbacks: { label: (ctx) => {
+						const pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : 0;
+						return ` ${ctx.label}: ${(ctx.parsed / 1000).toFixed(2)} kW (${pct}%)`;
+					}}}
+				}
+			}
+		});
+	} else {
+		zoneDonutCharts[safeZone].data = chartData;
+		zoneDonutCharts[safeZone].update('none');
+	}
+}
+
+function updateZoneChannelChart(safeZone, channelW) {
+	const GROUP_CHANNELS = [[0,1,2],[3,4,5],[6,7,8],[9,10,11]];
+	const hidden = hiddenEnergyGroups[safeZone] || new Set();
+	const hiddenChannels = new Set(GROUP_CHANNELS.flatMap((chs, i) => hidden.has(i) ? chs : []));
+
+	const COLORS = [
+		'rgba(239,68,68,0.8)',   'rgba(239,68,68,0.8)',   'rgba(239,68,68,0.8)',
+		'rgba(100,116,139,0.8)', 'rgba(100,116,139,0.8)', 'rgba(100,116,139,0.8)',
+		'rgba(59,130,246,0.8)',  'rgba(59,130,246,0.8)',  'rgba(59,130,246,0.8)',
+		'rgba(245,158,11,0.8)',  'rgba(245,158,11,0.8)',  'rgba(245,158,11,0.8)',
+	];
+	const effectiveData = channelW.map((v, i) => hiddenChannels.has(i) ? 0 : parseFloat(v.toFixed(1)));
+	const chartData = {
+		labels: channelW.map((_, i) => `Ch ${i}`),
+		datasets: [{
+			label: 'W',
+			data: effectiveData,
+			backgroundColor: COLORS,
+			borderColor: COLORS.map(c => c.replace('0.8', '1')),
+			borderWidth: 1,
+			borderRadius: 3
+		}]
+	};
+
+	if (!zoneChannelCharts[safeZone]) {
+		const canvas = document.getElementById(`channels-${safeZone}-energy`);
+		if (!canvas) return;
+		zoneChannelCharts[safeZone] = new Chart(canvas.getContext('2d'), {
+			type: 'bar',
+			data: chartData,
+			options: {
+				indexAxis: 'y',
+				responsive: true, maintainAspectRatio: false, animation: false,
+				plugins: {
+					legend: { display: false },
+					tooltip: { callbacks: { label: (ctx) => ` ${ctx.parsed.x.toFixed(1)} W` } }
+				},
+				scales: {
+					x: { beginAtZero: true, title: { display: true, text: 'W' }, ticks: { font: { size: 9 } } },
+					y: { ticks: { font: { size: 10 } } }
+				}
+			}
+		});
+	} else {
+		zoneChannelCharts[safeZone].data = chartData;
+		zoneChannelCharts[safeZone].update('none');
+	}
 }
 
 
@@ -2936,6 +3114,8 @@ function closeEnvironmentSSE() {
 	}
 	Object.keys(environmentState).forEach(k => delete environmentState[k]);
 	Object.keys(lastKnownEnergyByZone).forEach(k => delete lastKnownEnergyByZone[k]);
+	Object.entries(zoneDonutCharts).forEach(([k, c]) => { try { c.destroy(); } catch (_) {} delete zoneDonutCharts[k]; });
+	Object.entries(zoneChannelCharts).forEach(([k, c]) => { try { c.destroy(); } catch (_) {} delete zoneChannelCharts[k]; });
 	chartFirstPushed.clear();
 }
 
