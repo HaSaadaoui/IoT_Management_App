@@ -190,11 +190,11 @@ public class SensorDao {
     public List<Map<String, Object>> findAllByBuildingAndFloorForConfig(String building, Integer floor) {
         if (floor != null) {
             String sql = ENV_SELECT + " WHERE s.building_id = ? AND s.floor = ? " +
-                    "AND s.status = 1 AND dt.type_name IN ('CO2', 'SON', 'TEMPEX', 'CONSO', 'EYE')";
+                    "AND s.status = 1 AND dt.type_name IN ('CO2', 'SON', 'TEMPEX', 'CONSO', 'EYE', 'DESK')";
             return jdbcTemplate.queryForList(sql, Integer.parseInt(building), floor);
         } else {
             String sql = ENV_SELECT + " WHERE s.building_id = ? " +
-                    "AND s.status = 1 AND dt.type_name IN ('CO2', 'SON', 'TEMPEX', 'CONSO', 'EYE')";
+                    "AND s.status = 1 AND dt.type_name IN ('CO2', 'SON', 'TEMPEX', 'CONSO', 'EYE', 'DESK')";
             return jdbcTemplate.queryForList(sql, Integer.parseInt(building));
         }
     }

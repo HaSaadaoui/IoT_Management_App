@@ -2168,6 +2168,7 @@ async function startEnvironmentSSE(building, floor = "") {
 		if (container) {
 			// Supprimer TOUS les zone-blocks (env + orphelins) car aucun floor sélectionné
 			container.querySelectorAll(".zone-block").forEach(b => b.remove());
+			container.querySelector(".zone-tabs-nav")?.remove();
 		}
 		// Vider aussi sensor-stats-container et fermer SSE occupancy
 		document.getElementById('sensor-stats-container').innerHTML = '';
@@ -2439,6 +2440,8 @@ function updateMetric(zone, metric, deviceId, value) {
 
 	environmentState[zone][metric][deviceId] = value;
 
+	if (metric === 'occupancy') return;
+
 	const deviceValues = Object.values(environmentState[zone][metric]);
 	const avg = deviceValues.reduce((a, b) => a + b, 0) / deviceValues.length;
 	const max = Math.max(...deviceValues);
@@ -2652,6 +2655,13 @@ function createChartCard(metric, zoneName) {
 			color: "#eab308",
 			gradient: "linear-gradient(135deg, #eab308, #ca8a04)",
 			unit: "lux"
+		},
+		occupancy: {
+			label: "Occupancy",
+			icon: "👤",
+			color: "#10b981",
+			gradient: "linear-gradient(135deg, #10b981, #059669)",
+			unit: ""
 		}
 	};
 
@@ -2665,13 +2675,14 @@ function createChartCard(metric, zoneName) {
 
 	const safeZone = zoneName.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
 
+	if (metric === 'occupancy') return '';
 
 	return `
         <div class="chart-card" ${metric === 'energy' ? 'style="grid-column: 1 / -1;"' : ''}>
             <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                
+
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    
+
                     <div class="chart-title">
                         <span class="chart-icon" style="background: ${cfg.gradient};">${cfg.icon}</span>
                         <span>${cfg.label}</span>
@@ -2697,18 +2708,8 @@ function createChartCard(metric, zoneName) {
 
                 </div>
 
-                <!-- TOGGLE PAR ZONE -->
-                <!--<div class="env-chart-toggle" data-zone="${safeZone}" data-metric="${metric}"
-                     style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
-
-                    <button class="env-chart-btn active" data-type="line">📈</button>
-                    <button class="env-chart-btn" data-type="bar">📊</button>
-                    <button class="env-chart-btn" data-type="doughnut">🍩</button>
-
-                </div>-->
-				
-				<div class="env-chart-toggle" 
-					 data-zone="${safeZone}" 
+				<div class="env-chart-toggle"
+					 data-zone="${safeZone}"
 					 data-metric="${metric}"
 					 style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
 
@@ -3011,6 +3012,8 @@ function initZoneCharts(zones) {
 			? zone.metrics : metrics;
 
 		zoneMetrics.forEach(metric => {
+
+			if (metric === 'occupancy') return;
 
 			const canvas = document.getElementById(`chart-${safeZone}-${metric}`);
 			if (!canvas) return;

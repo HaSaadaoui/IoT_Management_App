@@ -28,7 +28,6 @@ public class DashboardServiceImpl implements DashboardService {
     private final BuildingService buildingService;
     private final LocationCacheService locationCacheService;
     private final DeviceTypeCacheService deviceTypeCacheService;
-
     @Autowired
     public DashboardServiceImpl(SensorDao sensorDao, SensorDataDao sensorDataDao,
                                 AlertService alertService,
@@ -635,6 +634,7 @@ public class DashboardServiceImpl implements DashboardService {
         SENSOR_METRIC_CONFIG.put("CONSO",  Map.of("energy", "energy_data"));
         SENSOR_METRIC_CONFIG.put("ENERGY", Map.of("energy", "energy_data"));
         SENSOR_METRIC_CONFIG.put("EYE",    Map.of("temperature", "temperature", "humidity", "humidity", "light", "light"));
+        SENSOR_METRIC_CONFIG.put("DESK",   Map.of("occupancy", "occupancy", "temperature", "temperature", "humidity", "humidity"));
     }
 
     @Override

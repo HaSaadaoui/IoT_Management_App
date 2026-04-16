@@ -816,7 +816,7 @@ class Building3D {
             if (!this.currentArchPlan) {
                 this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', currentFloorData, this.currentSensorMode, this.config.id, this.dbBuildingConfig.svgUrl, this.isDashboard, floorsCount);
             } else {
-                this.currentArchPlan.updateConfig(currentFloorData, this.currentSensorMode, this.dbBuildingConfig.svgUrl);
+                this.currentArchPlan.updateConfig(currentFloorData, this.currentSensorMode, this.dbBuildingConfig.svgUrl, floorsCount);
             }
             this.loadRealOccupancyData();
         } else {
@@ -1075,6 +1075,7 @@ class Building3D {
         this.currentFloorNumber = null;
         this.isIn3DView = true;
         this.currentArchPlan = null;
+        this.deskStatusMap = new Map(); // reset stale data from previous building
         this.resetLayout();
 
         const container3D   = document.getElementById('building-3d-container');
@@ -1253,7 +1254,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (window.building3D && typeof window.building3D.setBuilding === 'function') {
                 window.building3D.buildingKey = val;
                 await window.building3D.loadConfig();
-                window.building3D.setBuilding();
+                await window.building3D.setBuilding();
             }
 
             const buildingName = buildingSelect.selectedOptions[0].text;

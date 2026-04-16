@@ -60,10 +60,11 @@ class ArchitecturalFloorPlan {
         }
     }
 
-    updateConfig(floorData, sensorMode, svgPath) {
+    updateConfig(floorData, sensorMode, svgPath, floorsCount) {
         this.floorData = floorData;
         this.sensorMode = sensorMode;
         this.svgPath = svgPath;
+        if (floorsCount != null) this.floorsCount = floorsCount;
 
         // Reset camera zoom/pan so the new floor starts properly fitted
         this.camera.scale = 1;
