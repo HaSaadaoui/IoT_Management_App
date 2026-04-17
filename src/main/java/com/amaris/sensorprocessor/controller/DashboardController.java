@@ -267,7 +267,7 @@ public class DashboardController {
         List<SensorInfo> sensors = dashboardService.getSensorsList(
                 String.valueOf(mapBuildingToId(building)),
                 null,
-                "CONSO"
+                "CONSO,ENERGY"
         );
 
         List<String> consoDeviceIds = sensors.stream()
@@ -729,7 +729,9 @@ public class DashboardController {
         java.time.LocalDateTime endDateTime = to.plusDays(1).atStartOfDay();
         
         // Use substr to get daily buckets (YYYY-MM-DD format, first 10 chars)
-        List<String> consoSensorIds = sensorService.getSensorIdsByTypeAndBuilding("CONSO", buildingId);
+        List<String> consoSensorIds = new java.util.ArrayList<>();
+        consoSensorIds.addAll(sensorService.getSensorIdsByTypeAndBuilding("CONSO", buildingId));
+        consoSensorIds.addAll(sensorService.getSensorIdsByTypeAndBuilding("ENERGY", buildingId));
         
         List<Map<String, Object>> dailyData = new java.util.ArrayList<>();
         double totalEnergy = 0;

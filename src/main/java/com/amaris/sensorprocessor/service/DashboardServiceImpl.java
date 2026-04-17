@@ -87,9 +87,19 @@ public class DashboardServiceImpl implements DashboardService {
         return alertService.getCurrentAlerts(building);
     }
 
+    private List<Sensor> findSensorsByType(String sensorType) {
+        if (sensorType == null || sensorType.isBlank()) return sensorDao.findAllByDeviceType("DESK");
+        if (sensorType.contains(",")) {
+            List<String> types = java.util.Arrays.stream(sensorType.split(","))
+                    .map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toList());
+            return sensorDao.findAllByDeviceTypes(types);
+        }
+        return sensorDao.findAllByDeviceType(sensorType);
+    }
+
     private List<LiveSensorData> getLiveSensorData(String building, String floor, String sensorType) {
         List<LiveSensorData> liveSensorData = new ArrayList<>();
-        List<Sensor> filteredSensors = sensorDao.findAllByDeviceType(sensorType);
+        List<Sensor> filteredSensors = findSensorsByType(sensorType);
 
         if (building != null && !"all".equalsIgnoreCase(building)) {
             Integer buildingId = mapBuildingToId(building); // ✅ Integer
@@ -254,7 +264,7 @@ public class DashboardServiceImpl implements DashboardService {
 
         if (sensorType == null) sensorType = "DESK";
 
-        List<Sensor> sensors = sensorDao.findAllByDeviceType(sensorType);
+        List<Sensor> sensors = findSensorsByType(sensorType);
 
         if (building != null && !"all".equalsIgnoreCase(building)) {
             Integer buildingId = mapBuildingToId(building); // ✅ résolution ici
