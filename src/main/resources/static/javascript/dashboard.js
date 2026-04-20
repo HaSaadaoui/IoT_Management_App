@@ -34,7 +34,7 @@ class DashboardManager {
 
 			CO2:       { sensorType: 'CO2', unit: 'ppm' },
 			OCCUPANCY: { sensorType: 'DESK', unit: '%' },
-			LIGHT:     { sensorType: 'CO2', unit: 'lux' },
+			LIGHT:     { sensorType: 'LIGHT', unit: 'lux' },
 			LAEQ:      { sensorType: ['SON', 'NOISE'], unit: 'dB' },
 			CURRENT_POWER: { sensorType: 'CONSO', metricType: 'POWER_TOTAL', unit: 'kW' },
 			DAILY_ENERGY:   { sensorType: 'CONSO', metricType: 'ENERGY_TOTAL', unit: 'kWh' },
@@ -477,7 +477,7 @@ class DashboardManager {
 
 	getApiSensorType(sensorType = this.filters.sensorType) {
 		const normalized = normalizeDashboardSensorType(sensorType);
-		if (normalized === 'LIGHT') return 'CO2';
+		if (normalized === 'LIGHT' || normalized === 'PIR_LIGHT') return 'LIGHT';
 		return normalized;
 	}
 
@@ -533,7 +533,7 @@ class DashboardManager {
 			},
 			TEMPEX: {
 				icon: '🌀',
-				name: 'HVAC Flow (TEMPex)'
+				name: 'Temperature'
 			},
 			OCCUP: {
 				icon: '👤',
@@ -3188,7 +3188,7 @@ function updateTitles(buildingName) {
 			NOISE: { icon: '🔉',name: 'Noise Levels'},
 			SON: { icon: '🔉',name: 'Sound'},
 			HUMIDITY: {icon: '💧', name: 'Humidity'},
-			TEMPEX: {icon: '🌀', name: 'HVAC Flow (TEMPex)'},
+			TEMPEX: {icon: '🌀', name: 'Temperature'},
 			PR: {icon: '👤',name: 'Presence & Light'},
 			CONSO: {icon: '⚡', name: 'Consumption'},
 			ENERGY: {icon: '⚡', name: 'Energy Consumption'},

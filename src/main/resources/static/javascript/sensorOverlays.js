@@ -100,15 +100,15 @@ class SensorOverlayManager {
         if (this.isDashboard) {
             switch (mode) {
                 case 'CO2': this.createCO2Heatmap(); break;
-                case 'TEMP': this.createTempThermal(); break;
+                case 'TEMP':
+                case 'TEMPEX': this.createTempThermal(); break;
                 case 'LIGHT':
-                case 'EYE': this.createLightMap(); break;
+                case 'EYE':
+                case 'PIR_LIGHT':
+                case 'PR': this.createLightMap(); break;
                 case 'MOTION': this.createMotionRadar(); break;
                 case 'SON': this.createNoiseMap(); break;
                 case 'HUMIDITY': this.createHumidityZones(); break;
-                case 'TEMPEX': this.createTempexFlow(); break;
-                case 'PIR_LIGHT':
-                case 'PR': this.createPresenceLight(); break;
                 case 'SECURITY': this.createSecurityOverlay(); break;
                 case 'COUNT': this.createCounterMap(); break;
                 case 'CONSO': this.createEnergyMap(); break;
@@ -954,14 +954,11 @@ class SensorOverlayManager {
           this.updateTempVisual(sensor);
           break;
         case "HUMIDITY": this.updateHumidityVisual(sensor); break;
-        case "PIR_LIGHT":
-        case "PR":
-          this.clearOverlay();
-          this.createOverlay(this.currentMode);
-          break;
         case "SON":      this.updateNoiseVisual(sensor);    break;
         case "LIGHT":
-        case "EYE":      this.updateLightVisual(sensor);   break;
+        case "EYE":
+        case "PIR_LIGHT":
+        case "PR":       this.updateLightVisual(sensor);    break;
       }
       return true;
     }
@@ -988,11 +985,9 @@ class SensorOverlayManager {
           break;
         case "LIGHT":
         case "EYE":
-          el.textContent = `${sensor.value} lux`;
-          break;
         case "PIR_LIGHT":
         case "PR":
-          el.textContent = this.isPresenceActive(sensor) ? "Present" : "Empty";
+          el.textContent = `${sensor.value} lux`;
           break;
         case "SON":
           el.textContent = `${sensor.value} dB`;

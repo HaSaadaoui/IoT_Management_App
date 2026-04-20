@@ -89,12 +89,43 @@ public class DashboardServiceImpl implements DashboardService {
 
     private List<Sensor> findSensorsByType(String sensorType) {
         if (sensorType == null || sensorType.isBlank()) return sensorDao.findAllByDeviceType("DESK");
-        if (sensorType.contains(",")) {
-            List<String> types = java.util.Arrays.stream(sensorType.split(","))
-                    .map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toList());
-            return sensorDao.findAllByDeviceTypes(types);
+        List<String> resolvedTypes = resolveSensorTypes(sensorType);
+        if (resolvedTypes.size() > 1) {
+            return sensorDao.findAllByDeviceTypes(resolvedTypes);
         }
-        return sensorDao.findAllByDeviceType(sensorType);
+        return sensorDao.findAllByDeviceType(resolvedTypes.get(0));
+    }
+
+    private List<String> resolveSensorTypes(String sensorType) {
+        if (sensorType == null || sensorType.isBlank()) {
+            return List.of("DESK");
+        }
+
+        LinkedHashSet<String> resolvedTypes = new LinkedHashSet<>();
+        for (String rawType : sensorType.split(",")) {
+            String type = rawType == null ? "" : rawType.trim();
+            if (type.isEmpty()) continue;
+
+            switch (type.toUpperCase(Locale.ROOT)) {
+                case "TEMP":
+                case "TEMPEX":
+                    resolvedTypes.add("TEMPEX");
+                    resolvedTypes.add("CO2");
+                    resolvedTypes.add("EYE");
+                    break;
+                case "LIGHT":
+                case "PIR_LIGHT":
+                    resolvedTypes.add("PIR_LIGHT");
+                    resolvedTypes.add("EYE");
+                    resolvedTypes.add("CO2");
+                    break;
+                default:
+                    resolvedTypes.add(type);
+                    break;
+            }
+        }
+
+        return resolvedTypes.isEmpty() ? List.of("DESK") : new ArrayList<>(resolvedTypes);
     }
 
     private List<LiveSensorData> getLiveSensorData(String building, String floor, String sensorType) {
@@ -158,7 +189,7 @@ public class DashboardServiceImpl implements DashboardService {
         DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE;
 
         LocalDate endDate = LocalDate.now();
-        List<Sensor> filteredSensors = sensorDao.findAllByDeviceType(sensorType);
+        List<Sensor> filteredSensors = findSensorsByType(sensorType);
 
         int totalSensors = filteredSensors.size();
         List<String> histSensorIds = filteredSensors.stream().map(Sensor::getIdSensor).collect(Collectors.toList());
@@ -397,7 +428,7 @@ public class DashboardServiceImpl implements DashboardService {
             if (isAllSensorType(request.getSensorType())) {
                 sensors = sensorDao.findAllSensors();
             } else {
-                sensors = sensorDao.findAllByDeviceType(request.getSensorType());
+                sensors = findSensorsByType(request.getSensorType());
             }
         }
 
@@ -645,6 +676,7 @@ public class DashboardServiceImpl implements DashboardService {
         SENSOR_METRIC_CONFIG.put("CONSO",  Map.of("energy", "energy_data"));
         SENSOR_METRIC_CONFIG.put("ENERGY", Map.of("energy", "energy_data"));
         SENSOR_METRIC_CONFIG.put("EYE",    Map.of("temperature", "temperature", "humidity", "humidity", "light", "light"));
+        SENSOR_METRIC_CONFIG.put("PIR_LIGHT", Map.of("light", "light", "presence", "pir"));
         SENSOR_METRIC_CONFIG.put("DESK",   Map.of("occupancy", "occupancy", "temperature", "temperature", "humidity", "humidity"));
     }
 

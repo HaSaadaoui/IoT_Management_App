@@ -277,7 +277,7 @@ class ArchitecturalFloorPlan {
           return payload["light"] ?? payload["illuminance"] ?? payload["lux"];
         case "PIR_LIGHT":
         case "PR":
-            return payload["pir"] ?? payload["presence"] ?? payload["daylight"] ?? "Empty";
+            return payload["light"] ?? payload["illuminance"] ?? payload["lux"] ?? payload["daylight"];
         case "COUNT":
           return {
             in: payload.period_in ?? 0,
@@ -463,19 +463,19 @@ class ArchitecturalFloorPlan {
         // pour la configuration on récupère tous les capteurs du svg
         // pour le dashboard uniquement ceux de l'étage courant et du mode courant
         if (this.isDashboard){
-            // Certains modes peuvent être fournis par plusieurs types de capteurs
-            // ex: TEMP peut venir d'un CO2, d'un TEMPEX, d'un EYE...
+            // Certains modes peuvent être fournis par plusieurs types de capteurs.
+            // Pour la température, on agrège tous les capteurs qui remontent une valeur exploitable.
             const SENSOR_TYPES_BY_MODE = {
                 'TEMP':     ['TEMP', 'TEMPEX', 'CO2', 'EYE'],
-                'TEMPEX':   ['TEMPEX', 'TEMP', 'CO2', 'EYE'],
+                'TEMPEX':   ['TEMPEX', 'CO2', 'EYE'],
                 'HUMIDITY': ['CO2', 'TEMPEX', 'EYE'],
                 'CO2':      ['CO2'],
                 'NOISE':    ['NOISE', 'SON'],
                 'SON':      ['SON', 'NOISE'],
                 'LIGHT':    ['LIGHT', 'PIR_LIGHT', 'EYE', 'CO2'],
                 'MOTION':   ['MOTION', 'PIR_LIGHT', 'EYE', 'OCCUP'],
-                'PIR_LIGHT':['PIR_LIGHT', 'PR'],
-                'PR':       ['PR', 'PIR_LIGHT'],
+                'PIR_LIGHT':['PIR_LIGHT', 'EYE', 'CO2', 'PR'],
+                'PR':       ['PR', 'PIR_LIGHT', 'EYE', 'CO2'],
                 'COUNT':    ['COUNT'],
                 'ENERGY':   ['ENERGY', 'CONSO'],
                 'CONSO':    ['CONSO', 'ENERGY'],
