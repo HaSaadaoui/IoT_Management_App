@@ -120,9 +120,13 @@ public class SensorSyncService {
         List<TtnDeviceInfo.EndDevice> ttnDevices = fetchDevicesFromTTN(gatewayId);
 
         // ✅ Charger tous les device types en une seule requête
-        Map<String, Integer> deviceTypeLabelToId = deviceTypeService.findAll().stream()
+        Map<String, Integer> deviceTypeCodeToId = deviceTypeService.findAll().stream()
                 .collect(Collectors.toMap(
-                        dt -> dt.getLabel().toUpperCase(),
+                        dt -> {
+                            String typeName = dt.getTypeName();
+                            String fallback = dt.getLabel();
+                            return (typeName != null && !typeName.isBlank() ? typeName : fallback).toUpperCase();
+                        },
                         DeviceType::getIdDeviceType
                 ));
 
@@ -155,10 +159,10 @@ public class SensorSyncService {
                         ? "GENERIC"
                         : detectedLabel;
 
-                Integer idDeviceType = deviceTypeLabelToId.get(resolvedLabel.toUpperCase());
+                Integer idDeviceType = deviceTypeCodeToId.get(resolvedLabel.toUpperCase());
                 if (idDeviceType == null) {
                     // Fallback sur GENERIC si le label n'existe pas en DB
-                    idDeviceType = deviceTypeLabelToId.get("GENERIC");
+                    idDeviceType = deviceTypeCodeToId.get("GENERIC");
                     log.warn("[SensorSync] DeviceType '{}' not found in DB for sensor {}, falling back to GENERIC",
                             resolvedLabel, deviceId);
                 }

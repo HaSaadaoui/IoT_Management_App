@@ -1,6 +1,7 @@
 package com.amaris.sensorprocessor.controller;
 
 import com.amaris.sensorprocessor.entity.Building;
+import com.amaris.sensorprocessor.entity.DeviceType;
 import com.amaris.sensorprocessor.entity.Gateway;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.User;
@@ -8,6 +9,7 @@ import com.amaris.sensorprocessor.model.dashboard.*;
 import com.amaris.sensorprocessor.service.AlertService;
 import com.amaris.sensorprocessor.service.BuildingService;
 import com.amaris.sensorprocessor.service.DashboardService;
+import com.amaris.sensorprocessor.service.DeviceTypeService;
 import com.amaris.sensorprocessor.service.GatewayService;
 import com.amaris.sensorprocessor.service.SensorService;
 import com.amaris.sensorprocessor.service.UserService;
@@ -46,6 +48,7 @@ public class DashboardController {
     private final AlertService alertService;
     private final GatewayService gatewayService;
     private final BuildingService buildingService;
+    private final DeviceTypeService deviceTypeService;
     private final SensorDataDao sensorDataDao;
     private final BuildingEnergyConfigDao buildingEnergyConfigDao;
 
@@ -80,6 +83,7 @@ public class DashboardController {
             SensorService sensorService,
             GatewayService gatewayService,
             BuildingService buildingService,
+            DeviceTypeService deviceTypeService,
             SensorDataDao sensorDataDao,
             BuildingEnergyConfigDao buildingEnergyConfigDao
     ) {
@@ -89,6 +93,7 @@ public class DashboardController {
         this.sensorService = sensorService;
         this.gatewayService = gatewayService;
         this.buildingService = buildingService;
+        this.deviceTypeService = deviceTypeService;
         this.sensorDataDao = sensorDataDao;
         this.buildingEnergyConfigDao = buildingEnergyConfigDao;
     }
@@ -98,6 +103,7 @@ public class DashboardController {
         User user = userService.searchUserByUsername(principal.getName());
         model.addAttribute("user", user);
         model.addAttribute("loggedUsername", user.getUsername());
+        model.addAttribute("deviceTypes", resolveDashboardDeviceTypes());
         return "dashboard";
     }
 
@@ -175,6 +181,52 @@ public class DashboardController {
                 .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Building not found: " + building));
+    }
+
+    private List<DeviceType> resolveDashboardDeviceTypes() {
+        Map<String, DeviceType> deviceTypesByFamily = new LinkedHashMap<>();
+
+        deviceTypeService.findAll().stream()
+                .filter(Objects::nonNull)
+                .filter(dt -> dt.getLabel() != null && !dt.getLabel().isBlank())
+                .filter(dt -> dt.getTypeName() == null || !"ALL".equalsIgnoreCase(dt.getTypeName()))
+                .sorted(Comparator
+                        .comparing((DeviceType dt) -> isLegacyDashboardDeviceType(dt.getTypeName()))
+                        .thenComparing(dt -> dt.getLabel().toUpperCase(Locale.ROOT)))
+                .forEach(dt -> deviceTypesByFamily.putIfAbsent(resolveDashboardDeviceTypeName(dt), toDashboardDeviceType(dt)));
+
+        return deviceTypesByFamily.values().stream()
+                .sorted(Comparator.comparing(dt -> dt.getLabel().toUpperCase(Locale.ROOT)))
+                .toList();
+    }
+
+    private DeviceType toDashboardDeviceType(DeviceType source) {
+        DeviceType deviceType = new DeviceType();
+        deviceType.setIdDeviceType(source.getIdDeviceType());
+        deviceType.setTypeName(resolveDashboardDeviceTypeName(source));
+        deviceType.setLabel(source.getLabel());
+        return deviceType;
+    }
+
+    private String resolveDashboardDeviceTypeName(DeviceType deviceType) {
+        String typeName = deviceType.getTypeName();
+        if (typeName == null || typeName.isBlank()) {
+            return deviceType.getLabel();
+        }
+
+        return switch (typeName.trim().toUpperCase(Locale.ROOT)) {
+            case "NOISE" -> "SON";
+            case "ENERGY" -> "CONSO";
+            default -> typeName.trim().toUpperCase(Locale.ROOT);
+        };
+    }
+
+    private boolean isLegacyDashboardDeviceType(String typeName) {
+        if (typeName == null) {
+            return false;
+        }
+        String normalized = typeName.trim().toUpperCase(Locale.ROOT);
+        return "NOISE".equals(normalized) || "ENERGY".equals(normalized);
     }
 
     @GetMapping("/api/dashboard")
@@ -729,9 +781,9 @@ public class DashboardController {
         java.time.LocalDateTime endDateTime = to.plusDays(1).atStartOfDay();
         
         // Use substr to get daily buckets (YYYY-MM-DD format, first 10 chars)
-        List<String> consoSensorIds = new java.util.ArrayList<>();
-        consoSensorIds.addAll(sensorService.getSensorIdsByTypeAndBuilding("CONSO", buildingId));
-        consoSensorIds.addAll(sensorService.getSensorIdsByTypeAndBuilding("ENERGY", buildingId));
+        List<String> consoSensorIds = new java.util.ArrayList<>(
+                new java.util.LinkedHashSet<>(sensorService.getSensorIdsByTypeAndBuilding("CONSO", buildingId))
+        );
         
         List<Map<String, Object>> dailyData = new java.util.ArrayList<>();
         double totalEnergy = 0;

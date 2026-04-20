@@ -19,6 +19,15 @@ public class DeviceTypeCacheService {
     @Cacheable("deviceTypeMap")
     public Map<Integer, String> loadDeviceTypeMap() {
         return deviceTypeService.findAll().stream()
-                .collect(Collectors.toMap(DeviceType::getIdDeviceType, DeviceType::getLabel));
+                .collect(Collectors.toMap(
+                        DeviceType::getIdDeviceType,
+                        dt -> {
+                            String typeName = dt.getTypeName();
+                            if (typeName != null && !typeName.isBlank()) {
+                                return typeName;
+                            }
+                            return dt.getLabel();
+                        }
+                ));
     }
 }

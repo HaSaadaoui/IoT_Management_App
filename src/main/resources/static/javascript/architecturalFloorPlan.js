@@ -271,15 +271,20 @@ class ArchitecturalFloorPlan {
         case "HUMIDITY":
           return payload["humidity"] ?? payload["humidity (%)"];
         case "NOISE":
+        case "SON":
           return payload["LAeq"] ?? payload["LAeq (dB)"];
         case "LIGHT":
           return payload["light"] ?? payload["illuminance"] ?? payload["lux"];
+        case "PIR_LIGHT":
+        case "PR":
+            return payload["pir"] ?? payload["presence"] ?? payload["daylight"] ?? "Empty";
         case "COUNT":
           return {
             in: payload.period_in ?? 0,
             out: payload.period_out ?? 0,
           };
         case "ENERGY":
+        case "CONSO":
             return "";  // la valeur sera récupérée par la suite sur Avg Power
         case "MOTION":
             return payload["pir"] ?? "Motion";
@@ -466,10 +471,14 @@ class ArchitecturalFloorPlan {
                 'HUMIDITY': ['CO2', 'TEMPEX', 'EYE'],
                 'CO2':      ['CO2'],
                 'NOISE':    ['NOISE', 'SON'],
+                'SON':      ['SON', 'NOISE'],
                 'LIGHT':    ['LIGHT', 'PIR_LIGHT', 'EYE', 'CO2'],
                 'MOTION':   ['MOTION', 'PIR_LIGHT', 'EYE', 'OCCUP'],
+                'PIR_LIGHT':['PIR_LIGHT', 'PR'],
+                'PR':       ['PR', 'PIR_LIGHT'],
                 'COUNT':    ['COUNT'],
                 'ENERGY':   ['ENERGY', 'CONSO'],
+                'CONSO':    ['CONSO', 'ENERGY'],
                 'DESK':     ['DESK'],
             };
             const allowedTypes = SENSOR_TYPES_BY_MODE[this.sensorMode] ?? [this.sensorMode];

@@ -1,3 +1,10 @@
+function normalizeDashboardSensorType(sensorType) {
+	const normalized = String(sensorType || '').toUpperCase();
+	if (normalized === 'NOISE') return 'SON';
+	if (normalized === 'ENERGY') return 'CONSO';
+	return normalized;
+}
+
 class DashboardManager {
 	constructor() {
 		this.buildings = [];
@@ -148,7 +155,11 @@ class DashboardManager {
 					: filterKey;
 
 			if (this.filters[mappedKey] !== undefined && this.filters[mappedKey] !== null) {
-				element.value = this.filters[mappedKey];
+				const desiredValue = this.filters[mappedKey];
+				element.value = desiredValue;
+				if (element.value !== desiredValue && element.options.length > 0) {
+					this.filters[mappedKey] = element.value;
+				}
 			}
 
 			element.addEventListener('change', e => this.handleFilterChange(filterId, e.target.value));
@@ -465,16 +476,24 @@ class DashboardManager {
 	// =========================
 
 	getApiSensorType(sensorType = this.filters.sensorType) {
-		const normalized = String(sensorType || '').toUpperCase();
+		const normalized = normalizeDashboardSensorType(sensorType);
 		if (normalized === 'LIGHT') return 'CO2';
-		return sensorType;
+		return normalized;
 	}
 
 	updateSensorTypeUI(sensorType) {
 		const sensorInfo = {
+			ALL: {
+				icon: '📡',
+				name: 'All Sensors'
+			},
 			DESK: {
 				icon: '📊',
 				name: 'Desk Occupancy'
+			},
+			COUNT: {
+				icon: '🚶',
+				name: 'People Counter'
 			},
 			CO2: {
 				icon: '🌫️',
@@ -484,9 +503,17 @@ class DashboardManager {
 				icon: '🌡️',
 				name: 'Temperature'
 			},
+			EYE: {
+				icon: '💡',
+				name: 'EYE'
+			},
 			LIGHT: {
 				icon: '💡',
 				name: 'Light Levels'
+			},
+			PIR_LIGHT: {
+				icon: '💡',
+				name: 'PIR Light'
 			},
 			MOTION: {
 				icon: '👁️',
@@ -496,6 +523,10 @@ class DashboardManager {
 				icon: '🔉',
 				name: 'Noise Levels'
 			},
+			SON: {
+				icon: '🔉',
+				name: 'Sound'
+			},
 			HUMIDITY: {
 				icon: '💧',
 				name: 'Humidity'
@@ -504,9 +535,21 @@ class DashboardManager {
 				icon: '🌀',
 				name: 'HVAC Flow (TEMPex)'
 			},
+			OCCUP: {
+				icon: '👤',
+				name: 'Occupancy'
+			},
 			PR: {
 				icon: '👤',
 				name: 'Presence & Light'
+			},
+			CONSO: {
+				icon: '⚡',
+				name: 'Consumption'
+			},
+			ENERGY: {
+				icon: '⚡',
+				name: 'Energy Consumption'
 			},
 			SECURITY: {
 				icon: '🚨',
@@ -514,7 +557,11 @@ class DashboardManager {
 			}
 		};
 
-		const info = sensorInfo[sensorType] || sensorInfo.DESK;
+		const normalizedType = normalizeDashboardSensorType(sensorType);
+		const info = sensorInfo[normalizedType] || {
+			icon: '📡',
+			name: normalizedType || 'Sensor'
+		};
 		const buildingSelect = document.getElementById('filter-building');
 		let buildingName = "Châteaudun";
 		if (buildingSelect) {
@@ -3130,7 +3177,7 @@ function updateTitles(buildingName) {
 
 	const sensorSelect = document.getElementById('filter-sensor-type');
 	if (sensorSelect) {
-		const sensorType = sensorSelect.value;
+		const sensorType = normalizeDashboardSensorType(sensorSelect.value);
 
 		const sensorInfo = {
 			DESK: {icon: '📊', name: 'Desk Occupancy'},
@@ -3139,9 +3186,12 @@ function updateTitles(buildingName) {
 			LIGHT: {icon: '💡', name: 'Light Levels'},
 			MOTION: {icon: '👁️',name: 'Motion Detection'},
 			NOISE: { icon: '🔉',name: 'Noise Levels'},
+			SON: { icon: '🔉',name: 'Sound'},
 			HUMIDITY: {icon: '💧', name: 'Humidity'},
 			TEMPEX: {icon: '🌀', name: 'HVAC Flow (TEMPex)'},
 			PR: {icon: '👤',name: 'Presence & Light'},
+			CONSO: {icon: '⚡', name: 'Consumption'},
+			ENERGY: {icon: '⚡', name: 'Energy Consumption'},
 			SECURITY: {icon: '🚨',name: 'Security Alerts'}
 		};
 

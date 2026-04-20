@@ -8,6 +8,13 @@ const setText = (selector, value) => {
     if (target) target.textContent = (value == null ? "--" : String(value));
 };
 
+function normalizeMonitoringDeviceType(type) {
+    const normalized = String(type || '').toUpperCase();
+    if (normalized === 'NOISE') return 'SON';
+    if (normalized === 'ENERGY') return 'CONSO';
+    return normalized;
+}
+
 // --- Battery helper (icône + couleur)
 function updateBatteryBadge(selector, pct) {
     const node = typeof selector === 'string' ? el(selector) : selector;
@@ -185,6 +192,12 @@ const DEVICE_TYPE_METRICS = {
         // "VDD",
     ],
     "SON": [
+        "LAST_BATTERY_PERCENTAGE",
+        "LAI",
+        "LAIMAX",
+        "LAEQ",
+    ],
+    "NOISE": [
         "LAST_BATTERY_PERCENTAGE",
         "LAI",
         "LAIMAX",
@@ -385,8 +398,8 @@ function startSSE() {
                 vdd: v => `${v} mV`,
                 db: v => `${v} dB`
             };
-            const devTypeFromHtml = (document.documentElement.dataset.devType || '').toUpperCase();
-            const PROF = String((isNormalized && data.ids?.profile) ? data.ids.profile : devTypeFromHtml).toUpperCase();
+            const devTypeFromHtml = normalizeMonitoringDeviceType(document.documentElement.dataset.devType || '');
+            const PROF = normalizeMonitoringDeviceType((isNormalized && data.ids?.profile) ? data.ids.profile : devTypeFromHtml);
             const p = (isNormalized && data.payload) ? data.payload : {};
 
             switch (PROF) {
@@ -684,7 +697,7 @@ async function loadHistory(fromISO, toISO) {
     if (sensorMetricsContainer) sensorMetricsContainer.innerHTML = '';
     dynamicMetricCharts = [];
 
-    const devType = (document.documentElement.dataset.devType || '').toUpperCase();
+    const devType = normalizeMonitoringDeviceType(document.documentElement.dataset.devType || '');
     if (devType === 'ENERGY' || devType === 'CONSO') {
         const allGroupData = await Promise.all(
             Object.values(consumptionCharts).map(group => loadChannelHistogramData(group.channels, fromISO, toISO))
@@ -1182,7 +1195,7 @@ const CHART_REFRESH_INTERVAL_MS = 30000; // repeat last value every 30 s
 
 function initRealtimeCharts() {
     if (typeof Chart === 'undefined') { console.warn('Chart.js not loaded, skipping chart initialization'); return; }
-    const devType = (document.documentElement.dataset.devType || '').toUpperCase();
+    const devType = normalizeMonitoringDeviceType(document.documentElement.dataset.devType || '');
 
     const chartConfigs = {
         'CO2':      { main: { label: 'CO₂', color: '#ef4444', title: '🌬️ CO₂ Level', unit: 'ppm' }, secondary: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' }, humidity: { label: 'Humidity', color: '#10b981', title: '💧 Humidity', unit: '%' }, light: { label: 'Light', color: '#fbbf24', title: '💡 Light Level', unit: 'lux' } },
@@ -1327,7 +1340,7 @@ function updateRealtimeCharts(data) {
     if (chartsPaused) return;
     lastKnownChartValues = data;
     const timestamp = new Date().toLocaleTimeString();
-    const devType = (document.documentElement.dataset.devType || '').toUpperCase();
+    const devType = normalizeMonitoringDeviceType(document.documentElement.dataset.devType || '');
 
     function getBatteryLevel(data) {
         if (typeof data['battery (%)'] === 'number') return data['battery (%)'];
@@ -1491,7 +1504,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (LIVE_MODE) startSSE();
     if (window.Chart) {
         initRealtimeCharts();
-        const devType = (document.documentElement.dataset.devType || '').toUpperCase();
+        const devType = normalizeMonitoringDeviceType(document.documentElement.dataset.devType || '');
         if (devType === 'ENERGY' || devType === 'CONSO') initEnergyPlaceholders();
     }
 });

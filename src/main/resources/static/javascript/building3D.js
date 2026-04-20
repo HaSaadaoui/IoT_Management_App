@@ -856,9 +856,12 @@ class Building3D {
             'LIGHT': 'Light Levels',
             'MOTION': 'Motion Detection',
             'NOISE': 'Noise Levels',
+            'SON': 'Sound Levels',
             'HUMIDITY': 'Humidity',
             'TEMPEX': 'HVAC Flow',
             'PR': 'Presence & Light',
+            'CONSO': 'Consumption',
+            'ENERGY': 'Energy Consumption',
             'SECURITY': 'Security Alerts'
         };
         const label = sensorNames[this.currentSensorMode] || this.currentSensorMode;
@@ -867,7 +870,12 @@ class Building3D {
     }
 
     setSensorMode(mode) {
-        this.currentSensorMode = mode;
+        const normalizedMode = String(mode || '').toUpperCase();
+        this.currentSensorMode = normalizedMode === 'NOISE'
+            ? 'SON'
+            : normalizedMode === 'ENERGY'
+                ? 'CONSO'
+                : normalizedMode;
         if (!this.isIn3DView && this.currentFloorNumber !== null) {
             this.loadArchitecturalPlan(this.currentFloorNumber);
         }

@@ -258,6 +258,14 @@ function updatePageTitles(sensorType) {
             chartTitle: 'Noise Levels Trend (08:00 - 19:00)',
             globalTitle: 'Average Noise Level'
         },
+        'SON': {
+            icon: '🔉',
+            name: 'Sound Levels',
+            liveTitle: 'Live Sound Monitoring',
+            historicalTitle: 'Historical Sound Data',
+            chartTitle: 'Sound Levels Trend (08:00 - 19:00)',
+            globalTitle: 'Average Sound Level'
+        },
         'HUMIDITY': {
             icon: '💧',
             name: 'Humidity',

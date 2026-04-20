@@ -641,6 +641,7 @@ public class DashboardServiceImpl implements DashboardService {
         SENSOR_METRIC_CONFIG.put("CO2",    Map.of("co2", "co2", "temperature", "temperature", "humidity", "humidity"));
         SENSOR_METRIC_CONFIG.put("TEMPEX", Map.of("temperature", "temperature", "humidity", "humidity"));
         SENSOR_METRIC_CONFIG.put("SON",    Map.of("sound", "LAeq"));
+        SENSOR_METRIC_CONFIG.put("NOISE",  Map.of("sound", "LAeq"));
         SENSOR_METRIC_CONFIG.put("CONSO",  Map.of("energy", "energy_data"));
         SENSOR_METRIC_CONFIG.put("ENERGY", Map.of("energy", "energy_data"));
         SENSOR_METRIC_CONFIG.put("EYE",    Map.of("temperature", "temperature", "humidity", "humidity", "light", "light"));

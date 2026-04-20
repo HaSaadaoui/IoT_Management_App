@@ -13,6 +13,9 @@ public class DeviceType {
     @Column("id_device_type")
     private Integer idDeviceType;
 
+    @Column("type_name")
+    private String typeName;
+
     @Column("label")
     private String label;
 }

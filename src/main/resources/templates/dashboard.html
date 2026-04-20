@@ -229,14 +229,17 @@
                     <label>📊 Sensor Type</label>
                     <select id="filter-sensor-type">
                         <option value="ALL">All Sensors</option>
-                        <option value="DESK" selected>Desk Occupancy</option>
-                        <option value="COUNT">People Counter</option>
-                        <option value="CO2">CO₂ Air Quality</option>
-                        <option value="TEMPEX">HVAC Flow</option>
-                        <option value="LIGHT">Light Sensor</option>
-                        <option value="NOISE">Noise Level</option>
-                        <option value="OCCUP">Room Occupancy</option>
-                        <option value="ENERGY">Energy Consumption</option>
+                        <option th:each="dt : ${deviceTypes}"
+                                th:value="${#strings.toUpperCase(dt.typeName != null ? dt.typeName : dt.label)}"
+                                th:text="${dt.label}"
+                                th:selected="${#strings.equalsIgnoreCase(dt.typeName != null ? dt.typeName : dt.label, 'DESK')}">
+                            DESK
+                        </option>
+                        <option th:if="${deviceTypes == null || #lists.isEmpty(deviceTypes)}"
+                                value="DESK"
+                                selected>
+                            DESK
+                        </option>
                     </select>
                 </div>
             </div>

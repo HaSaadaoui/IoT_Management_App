@@ -15,6 +15,17 @@ class SensorOverlayManager {
         ENERGY:   "⚡"
     }
 
+    static normalizeMode(sensorType) {
+        const normalized = String(sensorType || '').toUpperCase();
+        if (normalized === 'NOISE') return 'SON';
+        if (normalized === 'ENERGY') return 'CONSO';
+        return normalized;
+    }
+
+    static isSameSensorFamily(left, right) {
+        return SensorOverlayManager.normalizeMode(left) === SensorOverlayManager.normalizeMode(right);
+    }
+
     constructor(svgContainer, colors, isDashboard = false) {
         this.svg = svgContainer;
         this.colors = colors;
@@ -49,22 +60,26 @@ class SensorOverlayManager {
     }
 
     getIcon(sensorType, options = {}) {
-        const icon = SensorOverlayManager.ICONS[sensorType];
+        const normalizedType = SensorOverlayManager.normalizeMode(sensorType);
+        const icon = SensorOverlayManager.ICONS[normalizedType]
+            || SensorOverlayManager.ICONS[sensorType]
+            || (normalizedType === "SON" ? SensorOverlayManager.ICONS.NOISE : null)
+            || (normalizedType === "CONSO" ? SensorOverlayManager.ICONS.ENERGY : null);
         if (!icon) return "❓";
-        if (sensorType === "SECURITY") {
+        if (normalizedType === "SECURITY") {
             return options.alert ? icon.alert : icon.ok;
-        } else if (sensorType === "PR") {
+        } else if (normalizedType === "PR") {
             return options.present ? icon.present : icon.empty;
         }
         return icon;
     }
 
     setSensorMode(mode, sensors, floorNumber) {
-        this.currentMode = mode;
+        this.currentMode = SensorOverlayManager.normalizeMode(mode);
         this.sensors = sensors;
         this.currentFloor = floorNumber;
         this.clearOverlay();
-        this.createOverlay(mode);
+        this.createOverlay(this.currentMode);
     }
 
     clearOverlay() {
@@ -89,13 +104,14 @@ class SensorOverlayManager {
                 case 'LIGHT':
                 case 'EYE': this.createLightMap(); break;
                 case 'MOTION': this.createMotionRadar(); break;
-                case 'NOISE': this.createNoiseMap(); break;
+                case 'SON': this.createNoiseMap(); break;
                 case 'HUMIDITY': this.createHumidityZones(); break;
                 case 'TEMPEX': this.createTempexFlow(); break;
+                case 'PIR_LIGHT':
                 case 'PR': this.createPresenceLight(); break;
                 case 'SECURITY': this.createSecurityOverlay(); break;
                 case 'COUNT': this.createCounterMap(); break;
-                case 'ENERGY': this.createEnergyMap(); break;
+                case 'CONSO': this.createEnergyMap(); break;
                 case 'DESK': this.createSensorsConfig(); break;
             }
         } else {
@@ -501,10 +517,35 @@ class SensorOverlayManager {
         return g;
     }
 
+    isPresenceActive(sensor) {
+        const rawValue = sensor?.presence ?? sensor?.value ?? sensor?.status;
+        if (typeof rawValue === "boolean") {
+            return rawValue;
+        }
+        if (typeof rawValue === "number") {
+            return rawValue > 0;
+        }
+
+        const normalized = String(rawValue ?? "").trim().toLowerCase();
+        return [
+            "1",
+            "true",
+            "present",
+            "occupied",
+            "motion",
+            "active",
+            "detected",
+            "on",
+            "yes"
+        ].includes(normalized);
+    }
+
     createPresenceLight() {
         this.sensors.forEach(sensor => {
             const parent = this._resolveParentGroup(sensor.floor);
-            if (sensor.presence) {
+            const isPresent = this.isPresenceActive(sensor);
+
+            if (isPresent) {
                 const glow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                 glow.setAttribute("class", "circle-marker");
                 glow.setAttribute("cx", sensor.x);
@@ -513,9 +554,9 @@ class SensorOverlayManager {
                 glow.setAttribute("fill", "#fbbf24");
                 glow.setAttribute("opacity", "0.3");
                 parent.appendChild(glow);
-                this.addSensorIcon(sensor.x, sensor.y, this.getIcon("PR", { sensor: sensor.presence }), "Present", null, sensor.floor);
+                this.addSensorIcon(sensor.x, sensor.y, this.getIcon("PR", { present: true }), "Present", sensor.id, sensor.floor);
             } else {
-                this.addSensorIcon(sensor.x, sensor.y, this.getIcon("PR"), "Empty", null, sensor.floor);
+                this.addSensorIcon(sensor.x, sensor.y, this.getIcon("PR", { present: false }), "Empty", sensor.id, sensor.floor);
             }
         });
     }
@@ -913,7 +954,12 @@ class SensorOverlayManager {
           this.updateTempVisual(sensor);
           break;
         case "HUMIDITY": this.updateHumidityVisual(sensor); break;
-        case "NOISE":    this.updateNoiseVisual(sensor);    break;
+        case "PIR_LIGHT":
+        case "PR":
+          this.clearOverlay();
+          this.createOverlay(this.currentMode);
+          break;
+        case "SON":      this.updateNoiseVisual(sensor);    break;
         case "LIGHT":
         case "EYE":      this.updateLightVisual(sensor);   break;
       }
@@ -944,7 +990,11 @@ class SensorOverlayManager {
         case "EYE":
           el.textContent = `${sensor.value} lux`;
           break;
-        case "NOISE":
+        case "PIR_LIGHT":
+        case "PR":
+          el.textContent = this.isPresenceActive(sensor) ? "Present" : "Empty";
+          break;
+        case "SON":
           el.textContent = `${sensor.value} dB`;
           break;
         case "COUNT":
@@ -956,7 +1006,7 @@ class SensorOverlayManager {
             el.textContent = "— | —";
           }
           break;
-        case "ENERGY": {
+        case "CONSO": {
           const elt = document.getElementById("live-current-power");
           if (elt) {
             el.textContent = `${elt.textContent.trim()} kW`;
@@ -981,7 +1031,7 @@ class SensorOverlayManager {
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
         g.setAttribute("class", "sensor-marker");
         g.setAttribute("id", "marker-"+sensor.id);
-        if (sensor.type !== this.currentMode || parseInt(sensor.floor) !== parseInt(this.currentFloor)){
+        if (!SensorOverlayManager.isSameSensorFamily(sensor.type, this.currentMode) || parseInt(sensor.floor) !== parseInt(this.currentFloor)){
             g.style.display="none";
         }
         if (!this.isDashboard && parseInt(sensor.floor) === parseInt(this.currentFloor)) {
