@@ -2,16 +2,26 @@
 
 // Charge un SVG via URL et renvoie { shape, centerX, centerZ }
 async function loadSVGShapeFromUrl(url) {
-    // Pre-check: ensure the SVG file actually exists before handing off to THREE.SVGLoader
-    const check = await fetch(url, { method: 'HEAD' }).catch(() => null);
-    if (!check || !check.ok) {
-        throw new Error(`SVG not found (HTTP ${check ? check.status : 'network error'}): ${url}`);
+    if (!url) {
+        throw new Error("SVG URL is empty");
+    }
+
+    const normalizedUrl = String(url).trim();
+    const isEphemeralUrl = normalizedUrl.startsWith("blob:") || normalizedUrl.startsWith("data:");
+
+    // Pre-check only for persistent HTTP/relative URLs.
+    // Blob/data URLs used for local preview do not support HEAD consistently.
+    if (!isEphemeralUrl) {
+        const check = await fetch(normalizedUrl, { method: 'HEAD' }).catch(() => null);
+        if (!check || !check.ok) {
+            throw new Error(`SVG not found (HTTP ${check ? check.status : 'network error'}): ${normalizedUrl}`);
+        }
     }
 
     return new Promise((resolve, reject) => {
         const loader = new THREE.SVGLoader();
         loader.load(
-            url,
+            normalizedUrl,
             (data) => {
                 if (!data.paths.length) {
                     reject(new Error("SVG ne contient aucun <path>"));
@@ -1267,19 +1277,28 @@ document.addEventListener('DOMContentLoaded', function () {
                 const sensorType = sensorSelect.value;
 
                 const sensorInfo = {
+                    ALL: {icon: '📡', name: 'All Sensors'},
                     DESK: {icon: '📊', name: 'Desk Occupancy'},
+                    COUNT: {icon: '🚶', name: 'People Counter'},
                     CO2: {icon: '🌫️', name: 'CO₂ Air Quality'},
                     TEMP: {icon: '🌡️', name: 'Temperature'},
+                    EYE: {icon: '💡', name: 'EYE'},
                     LIGHT: {icon: '💡', name: 'Light Levels'},
+                    PIR_LIGHT: {icon: '💡', name: 'PIR Light'},
                     MOTION: {icon: '👁️',name: 'Motion Detection'},
                     NOISE: { icon: '🔉',name: 'Noise Levels'},
+                    SON: { icon: '🔉',name: 'Sound'},
                     HUMIDITY: {icon: '💧', name: 'Humidity'},
                     TEMPEX: {icon: '🌀', name: 'HVAC Flow (TEMPex)'},
+                    OCCUP: {icon: '👤', name: 'Occupancy'},
                     PR: {icon: '👤',name: 'Presence & Light'},
+                    CONSO: {icon: '⚡', name: 'Consumption'},
+                    ENERGY: {icon: '⚡', name: 'Energy Consumption'},
                     SECURITY: {icon: '🚨',name: 'Security Alerts'}
                 };
 
-                const info = sensorInfo[sensorType] || sensorInfo.DESK;
+                const normalizedType = String(sensorType || '').toUpperCase();
+                const info = sensorInfo[normalizedType] || {icon: '📡', name: normalizedType || 'Sensor'};
                 const liveTitle     = document.getElementById('live-section-title');
                 const histTitle     = document.getElementById('historical-section-title');
                 if (liveTitle)     liveTitle.textContent     = `${info.icon} Live Data - ${buildingName} Office`;
