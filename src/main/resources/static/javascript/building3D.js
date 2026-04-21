@@ -111,6 +111,8 @@ class Building3D {
         this._ephemeralSvgUrl = null;
 
         this.isDashboard = true;
+        this.dashboardAutoRotateSpeed = 0;
+        this.dashboardLockedPolarAngle = Math.PI * 0.29;
 
         // OCCUPANCY STATE (centralisé)
         this.deskStatusMap = new Map();
@@ -280,6 +282,22 @@ class Building3D {
         const verticalOffset = Math.min(Math.max(size.y * 0.1, 1), 5);
         const target = center.clone();
         target.y += verticalOffset;
+
+        if (this.isDashboard && this.isIn3DView) {
+            target.x = 0;
+            target.z = 0;
+
+            const distance = THREE.MathUtils.clamp(radius * 2.35, 10, 60);
+            const camPos = new THREE.Vector3(
+                0,
+                target.y + distance * 0.95,
+                distance * 0.28
+            );
+            const minD = THREE.MathUtils.clamp(radius * 0.9, 6, 30);
+            const maxD = THREE.MathUtils.clamp(radius * 3.0, 14, 80);
+
+            return { target, camPos, minD, maxD };
+        }
 
         const distance = THREE.MathUtils.clamp(radius * 2.2, 6, 60);
 
@@ -475,6 +493,25 @@ class Building3D {
         this.controls.maxDistance = 40;
         this.controls.maxPolarAngle = Math.PI / 2.1;
         this.controls.target.set(0, 5, 0);
+        this.applyInteractionMode();
+    }
+
+    applyInteractionMode() {
+        if (!this.controls) return;
+
+        if (this.isDashboard && this.isIn3DView) {
+            this.controls.enableRotate = true;
+            this.controls.enableZoom = true;
+            this.controls.enablePan = false;
+            this.controls.minPolarAngle = this.dashboardLockedPolarAngle;
+            this.controls.maxPolarAngle = this.dashboardLockedPolarAngle;
+        } else {
+            this.controls.enableRotate = true;
+            this.controls.enableZoom = true;
+            this.controls.enablePan = true;
+            this.controls.minPolarAngle = 0;
+            this.controls.maxPolarAngle = Math.PI / 2.1;
+        }
     }
 
     resetCameraForBuilding() {
@@ -488,6 +525,37 @@ class Building3D {
 
         this.camera.updateProjectionMatrix();
         this.controls.update();
+    }
+
+    updateSceneFogForBuilding() {
+        if (!this.scene || !this.building || !THREE) return;
+
+        this.building.updateMatrixWorld(true);
+
+        const bbox = new THREE.Box3().setFromObject(this.building);
+        const sphere = new THREE.Sphere();
+        bbox.getBoundingSphere(sphere);
+
+        const radius = Math.max(sphere.radius, 0.001);
+        const fogNear = Math.max(radius * 3.5, 35);
+        const fogFar = Math.max(radius * 7.5, fogNear + 40);
+
+        this.scene.fog = new THREE.Fog(0x0f172a, fogNear, fogFar);
+    }
+
+    centerBuildingAtOrigin() {
+        if (!this.building || !THREE) return;
+
+        this.building.updateMatrixWorld(true);
+
+        const bbox = new THREE.Box3().setFromObject(this.building);
+        const center = new THREE.Vector3();
+        bbox.getCenter(center);
+
+        this.building.position.x -= center.x;
+        this.building.position.z -= center.z;
+
+        this.building.updateMatrixWorld(true);
     }
 
     async createBuilding() {
@@ -610,6 +678,9 @@ class Building3D {
         }
 
         this.scene.add(this.building);
+        this.centerBuildingAtOrigin();
+        this.building.rotation.y = 0;
+        this.updateSceneFogForBuilding();
     }
 
     setupEventListeners() {
@@ -795,8 +866,7 @@ class Building3D {
 
         requestAnimationFrame(() => this.resize3D());
 
-        //garder interaction 3D
-        if (this.controls) this.controls.enabled = true;
+        this.applyInteractionMode();
 
         this.loadArchitecturalPlan(floorNumber);
     }
@@ -890,6 +960,7 @@ class Building3D {
 
     return3DView() {
         this.isIn3DView = true;
+        this.applyInteractionMode();
 
         if (this.isDashboard) {
             // Show placeholder, hide floor content
@@ -1142,6 +1213,7 @@ class Building3D {
         try {
             await this.createBuilding();
             this.resetCameraForBuilding();
+            this.applyInteractionMode();
             await this.preloadDeskStatusMap();  // pré-remplir depuis la DB avant le rendu
             this.loadRealOccupancyData();
             this.startOccupancySSE();
@@ -1205,8 +1277,8 @@ class Building3D {
     animate() {
         requestAnimationFrame(() => this.animate());
         if (this.controls) this.controls.update();
-        if (this.building) {
-            this.building.rotation.y += 0.0005;
+        if (this.building && this.isDashboard && this.isIn3DView) {
+            this.building.rotation.y += this.dashboardAutoRotateSpeed;
         }
         this.renderer.render(this.scene, this.camera);
     }
