@@ -139,7 +139,7 @@ class ArchitecturalFloorPlan {
         if (this.sensorMode === "DESK"){
             sensors.forEach(s => {s.status = deskOccupancy[s.id] || "invalid";});
         }
-        
+
         this.overlayManager = new SensorOverlayManager(this.svg, this.colors, this.isDashboard);
         this.overlayManager.setSensorMode(this.sensorMode, sensors, this.floorData.floorNumber);
 
@@ -156,7 +156,7 @@ class ArchitecturalFloorPlan {
         this.displayContentRoot();
 
         if (!this.isDashboard){
-            this._initDragAndDrop();  
+            this._initDragAndDrop();
         }
     }
 
@@ -521,7 +521,7 @@ class ArchitecturalFloorPlan {
             desks.forEach((desk) => {
                 deskOccupancy[desk.id] = desk.status;
             });
-            
+
         } catch (error) {
             console.error("Error loading desk occupancy:", error);
         }
@@ -664,6 +664,8 @@ class ArchitecturalFloorPlan {
                         return el;
                     }
                     this.populateFormFromG(el);
+                    // ✅ Passer en mode édition : ID grisé, bouton Save actif
+                    if (window.setFormMode) window.setFormMode('edit', el.getAttribute('id'));
                     return el;
                 }
                 el = el.parentNode;
@@ -775,7 +777,7 @@ class ArchitecturalFloorPlan {
                         if (chairTop) chairTop.value = "0";
                         if (chairBottom) chairBottom.value = "0";
                         if (chairLeft) chairLeft.value = "0";
-                        if (chairRight) chairRight.value = "0";   
+                        if (chairRight) chairRight.value = "0";
                     }
 
                     // Charger les options de location + pré-sélectionner la valeur courante
@@ -795,7 +797,12 @@ class ArchitecturalFloorPlan {
                                 window.loadLocationOptions(buildingId, floor, null);
                             }
                         });
+
+                    // ✅ Passer en mode édition : ID grisé, bouton Save actif
+                    if (window.setFormMode) {
+                        window.setFormMode('edit', sensor.getAttribute("id"));
                     }
+                }
             }
 
             const TOLERANCE_PERCENT = 20;
@@ -857,7 +864,11 @@ class ArchitecturalFloorPlan {
                 }
 
                 el = bestEl;
-                if (el) this.populateFormFromG(el);
+                if (el){
+                    this.populateFormFromG(el);
+                    // ✅ Passer en mode édition : ID grisé, bouton Save actif
+                    if (window.setFormMode) window.setFormMode('edit', el.getAttribute('id'));
+                }
             }
 
             if (!el) return;
@@ -986,7 +997,7 @@ class ArchitecturalFloorPlan {
             this.svg.releasePointerCapture?.(evt.pointerId);
 
             const el = drag.el;
-            
+
             const id =
                 el.getAttribute("data-id") ||
                 el.getAttribute("data-desk-id") ||
@@ -995,7 +1006,7 @@ class ArchitecturalFloorPlan {
             if (id) {
                 // mémoriser la position finale (patch)
                 let pos = { x: 0, y: 0, type: drag.type };
-                
+
                 if (drag.type === "groupChildren") {
                     const deskRect = el.querySelector("rect");
                     if (deskRect) {
@@ -1097,6 +1108,9 @@ class ArchitecturalFloorPlan {
         }
         const sel = document.getElementById("filter-element");
         if (sel) sel.value = type;
+
+        // ✅ Passer en mode édition : ID grisé, bouton Save actif
+        if (window.setFormMode) window.setFormMode('edit', id);
     }
 
     _applyTransform() {
@@ -1211,5 +1225,3 @@ class ArchitecturalFloorPlan {
 
 // Global reference
 window.ArchitecturalFloorPlan = ArchitecturalFloorPlan;
-
-

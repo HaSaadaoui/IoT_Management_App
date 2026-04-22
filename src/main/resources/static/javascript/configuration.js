@@ -258,7 +258,6 @@ function testDecoder() {
 
     let result = {};
     try {
-        // On attend que le code définisse function decodePayload(bytes) { ... }
         const func = new Function("bytes", editorCode + "\nreturn decodePayload(bytes);");
         result = func(byteArray);
     } catch (err) {
@@ -309,11 +308,9 @@ function populateFloorSelect() {
         floorSelect.innerHTML = '<option value="">All Floors</option>';
     }
 
-    // Keep track of previously excluded floors
     const previouslyExcluded = (window._pendingExcludedFloors !== undefined)
         ? window._pendingExcludedFloors.map(String)
         : getExcludedFloors();
-    // On consomme la valeur une seule fois
     window._pendingExcludedFloors = undefined;
 
     // Clear hidden select and checkbox list
@@ -343,7 +340,7 @@ function populateFloorSelect() {
                 <input type="checkbox" value="${i}" ${isExcluded ? 'checked' : ''} onchange="onFloorCheckboxChange(this)">
                 <span class="floor-checkbox-label">${label}</span>
             `;
-            checkboxList.prepend(item); // prepend so highest floor is at top
+            checkboxList.prepend(item);
         }
     }
 
@@ -540,30 +537,78 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
     }
 }
 
+// ======================================================
+// ================== MODE AJOUT / ÉDITION ==============
+// ======================================================
+
+/**
+ * mode = 'add'  : nouveau élément — ID saisissable, bouton Save grisé
+ * mode = 'edit' : élément sélectionné — ID readonly, bouton Save actif
+ *
+ * Appelé par :
+ *  - initializeInputs()          → mode 'add'
+ *  - window.setFormMode(id)      → mode 'edit' (depuis building3D / managers)
+ */
+function setFormMode(mode, elementId = '') {
+    const idInput   = document.getElementById('input_id');
+    const modifyBtn = document.getElementById('btn-modify-plan');
+    const saveBtn   = document.getElementById('btn-save-plan');
+
+    if (mode === 'edit') {
+        // ID verrouillé
+        if (idInput) {
+            idInput.value    = elementId;
+            idInput.readOnly = true;
+            idInput.style.background = '#f3f4f6';
+            idInput.style.color      = '#9ca3af';
+            idInput.style.cursor     = 'not-allowed';
+            idInput.title            = '⚠ The ID cannot be changed here.';
+        }
+        // Modify visible, Save caché — toggleEditMode gère l'affichage ensuite
+        if (modifyBtn) modifyBtn.style.display = 'inline-block';
+        if (saveBtn)   saveBtn.style.display   = 'none';
+    } else {
+        // mode 'add' — ID libre, bouton Save grisé
+        const element = document.getElementById("filter-element")?.value || 'Element';
+        if (idInput) {
+            idInput.value    = `${element}_${Date.now()}`;
+            idInput.readOnly = false;
+            idInput.style.background  = '';
+            idInput.style.color       = '';
+            idInput.style.cursor      = '';
+            idInput.title             = '';
+        }
+        // Modify visible, Save caché
+        if (modifyBtn) modifyBtn.style.display = 'inline-block';
+        if (saveBtn)   saveBtn.style.display   = 'none';
+        isEditMode = false;
+    }
+}
+
 function initializeInputs() {
     const element = document.getElementById("filter-element").value;
     const sensorType = document.getElementById("filter-sensor-type").value;
 
-    const idInput = document.getElementById("input_id");
-    const sizeInput = document.getElementById("input_size");
-    const widthInput = document.getElementById("input_width");
-    const heightInput = document.getElementById("input_height");
-    const radiusInput = document.getElementById("input_radius");
+    const sizeInput     = document.getElementById("input_size");
+    const widthInput    = document.getElementById("input_width");
+    const heightInput   = document.getElementById("input_height");
+    const radiusInput   = document.getElementById("input_radius");
     const rotationInput = document.getElementById("input_rotation");
-    const labelInput = document.getElementById("input_label");
-    const chairTop = document.getElementById("chair_top");
-    const chairBottom = document.getElementById("chair_bottom");
-    const chairLeft = document.getElementById("chair_left");
-    const chairRight = document.getElementById("chair_right");
-    const styleSelect = document.getElementById("filter-style");
-    const select = document.getElementById("select_location");
-    const wrapper = document.getElementById("new-location-input-wrapper");
-    const inputNew = document.getElementById("input_location_new");
-    const hidden = document.getElementById("input_location");
+    const labelInput    = document.getElementById("input_label");
+    const chairTop      = document.getElementById("chair_top");
+    const chairBottom   = document.getElementById("chair_bottom");
+    const chairLeft     = document.getElementById("chair_left");
+    const chairRight    = document.getElementById("chair_right");
+    const styleSelect   = document.getElementById("filter-style");
+    const select        = document.getElementById("select_location");
+    const wrapper       = document.getElementById("new-location-input-wrapper");
+    const inputNew      = document.getElementById("input_location_new");
+    const hidden        = document.getElementById("input_location");
 
-    // ID auto-généré
-    idInput.value = `${element}_${Date.now()}`;
-    chairTop.value = 0;
+    // ✅ Passer en mode ajout : ID libre, Save grisé
+    setFormMode('add');
+
+    chairTop.value    = 0;
     chairBottom.value = 0;
     chairLeft.value = 0;
     chairRight.value = 0;
@@ -746,7 +791,7 @@ async function initBuildingConfig() {
         window._pendingExcludedFloors = [];
     }
     svgInput.value = "";
-    this.refresh3DConfig()
+    this.refresh3DConfig();
 }
 
 function refresh3DConfig(){
@@ -769,20 +814,35 @@ function refresh3DConfig(){
     // On révoque le blob s'il existe lorsque l'on modifie le paramétrage 3D
     if (blobUrl) {
         URL.revokeObjectURL(blobUrl);
+        blobUrl = "";
     }
 }
 
 function applyFormUpdate() {
-    this.refresh3DConfig()
-
     const svgInput = document.getElementById("building-svg");
 
+    // ✅ Créer le nouveau blob AVANT refresh3DConfig qui révoque l'ancien
     if (svgInput.value && svgInput.value.trim() !== "") {
+        if (blobUrl) {
+            URL.revokeObjectURL(blobUrl);
+            blobUrl = "";
+        }
         const file = svgInput.files[0];
         blobUrl = URL.createObjectURL(file);
-        window.building3D.dbBuildingConfig.svgUrl = blobUrl;
     }
 
+    // Sauvegarder le blob avant que refresh3DConfig ne le révoque
+    const savedBlobUrl = blobUrl;
+
+    this.refresh3DConfig(); // ← révoque blobUrl
+
+    // ✅ Réinjecter le blob sauvegardé après refresh
+    if (savedBlobUrl) {
+        blobUrl = savedBlobUrl;
+        window.building3D.dbBuildingConfig.svgUrl = savedBlobUrl;
+    }
+
+    window.building3D.dbShapeCache = null;
     window.building3D.setBuilding();
 }
 
@@ -891,9 +951,10 @@ async function saveBuildingConfig() {
         return false;
     }
 
-    // Exporter le SVG depuis la mémoire (currentArchPlan)
+    // Exporter le SVG depuis la mémoire uniquement si ce n'est pas une création avec fichier fourni
+    const isNewBuilding = !(selectBuilding.value && !isNaN(selectBuilding.value) && selectBuilding.value !== "");
     const archPlan = window.building3D?.currentArchPlan;
-    if (archPlan && typeof archPlan.exportSVG === 'function') {
+    if (!isNewBuilding && archPlan && typeof archPlan.exportSVG === 'function') {
         const fileName = (svgFile && svgFile.name) || (defaultSVGFile && defaultSVGFile.split('/').pop()) || name + '.svg';
         const svgContent = archPlan.exportSVG();
         if (!svgContent) {
@@ -936,15 +997,34 @@ async function createBuildingConfig(formData) {
         console.log("Building created:", data);
 
         await populateBuildingSelect();
-        const values = Array.from(selectBuilding.options)
-            .map(opt => parseFloat(opt.value))
-            .filter(v => !Number.isNaN(v));
-        const maxValue = Math.max(...values);
-        selectBuilding.value = isNaN(maxValue) ? "" : maxValue;
 
-        if (typeof cfgToast === 'function') cfgToast('Building created successfully (id=' + (maxValue ?? '?') + ')', 'success');
+        // ✅ Utiliser l'ID de la réponse, sinon fallback sur le maxValue
+        let newId = data.id;
+        if (!newId || isNaN(newId)) {
+            const values = Array.from(selectBuilding.options)
+                .map(opt => parseFloat(opt.value))
+                .filter(v => !Number.isNaN(v));
+            newId = Math.max(...values);
+        }
+
+        if (!newId || isNaN(newId)) {
+            if (typeof cfgToast === 'function') cfgToast('Building created but could not determine its ID.', 'error');
+            return false;
+        }
+
+        selectBuilding.value = String(newId);
+
+        if (typeof cfgToast === 'function') cfgToast('Building created successfully (id=' + newId + ')', 'success');
         else alert('Building created successfully');
 
+        // ✅ Charger la config depuis le serveur (récupère le svgPlan)
+        await initBuildingConfig();
+
+        // ✅ Forcer le rechargement du SVG depuis le serveur
+        window.building3D.dbShapeCache = null;
+        console.log("[createBuildingConfig] svgUrl:", window.building3D.dbBuildingConfig?.svgUrl);
+
+        window.building3D.setBuilding();
         return true;
 
     } catch (err) {
@@ -1086,6 +1166,13 @@ function syncHiddenLocationField(value) {
 // ======================================================
 
 async function addElementSVG() {
+    // ✅ Vérification que le plan est bien initialisé
+    if (!window.building3D || !window.building3D.currentArchPlan) {
+        if (typeof cfgToast === 'function') cfgToast('Please select and load a building first.', 'warning');
+        else alert('Please select and load a building first.');
+        return;
+    }
+
     const sensorType  = document.getElementById("filter-sensor-type");
     const floorNumber = document.getElementById("filter-floor");
     const elementSelect = document.getElementById('filter-element');
@@ -1148,7 +1235,7 @@ async function addElementSVG() {
                 left: parseInt(document.getElementById("chair_left").value || 0),
                 right: parseInt(document.getElementById("chair_right").value || 0),
             }
-        }
+        };
         window.building3D.currentArchPlan.overlayManager.drawSensor(sensor);
         if (locationId) await saveSensorLocation(sensor.id, locationId);
     } else {
@@ -1218,10 +1305,16 @@ async function addElementSVG() {
         };
         window.building3D.currentArchPlan.elementsManager.addElement(element);
     }
+
+    // ✅ Sauvegarder le SVG en BDD pour persister l'ajout
+    const saveResult = await saveBuildingConfig();
+    if (saveResult !== false) {
+        if (typeof cfgToast === 'function') cfgToast('Element added and saved!', 'success');
+    }
 }
 
 function removeElementSVG() {
-    const elementId  = document.getElementById("input_id");
+    const elementId     = document.getElementById("input_id");
     const elementSelect = document.getElementById('filter-element');
 
     if (!elementId || elementId.value.trim() === '') {
@@ -1241,6 +1334,9 @@ function removeElementSVG() {
     } else {
         window.building3D.currentArchPlan.elementsManager.removeElement(elementId.value);
     }
+
+    // ✅ Repasser en mode ajout après suppression
+    setFormMode('add');
 }
 
 function updateElementSVG() {
@@ -1294,6 +1390,7 @@ function updateElementSVG() {
         });
     }
 }
+
 function getPlanCenterXY() {
     const arch = window.building3D?.currentArchPlan;
     if (!arch || !arch.svg) {
@@ -1304,7 +1401,6 @@ function getPlanCenterXY() {
     const root = svg.querySelector('#content-root') || svg;
 
     try {
-        // Centre de l'élément SVG à l'écran (pixels)
         const rect = svg.getBoundingClientRect();
         const pt = svg.createSVGPoint();
         pt.x = rect.left + rect.width / 2;
@@ -1330,8 +1426,9 @@ function getPlanCenterXY() {
     return { x: 600, y: 600 };
 }
 
-
-
+// ======================================================
+// ================== MODE ÉDITION ÉLÉMENT ==============
+// ======================================================
 
 let isEditMode = false;
 
@@ -1341,32 +1438,37 @@ let isEditMode = false;
  * Si la sauvegarde réussit, le formulaire repasse en lecture seule (grisé).
  */
 function toggleEditMode() {
-    const container = document.getElementById("floor-plan-2d");
-    const btn       = document.getElementById("btn-edit-plan");
+    const modifyBtn = document.getElementById('btn-modify-plan');
+    const saveBtn   = document.getElementById('btn-save-plan');
+    const container = document.getElementById('floor-plan-2d');
 
     if (!isEditMode) {
-        // Passer en mode édition
+        // Activer le mode édition
         isEditMode = true;
-        container.classList.remove("plan-readonly");
-        container.classList.add("plan-edit");
-        btn.innerText = "Save Element";
-        btn.classList.remove("btn-edit-blue");
-        btn.classList.add("btn-save-green");
+        container.classList.remove('plan-readonly');
+        container.classList.add('plan-edit');
+        if (modifyBtn) modifyBtn.style.display = 'none';
+        if (saveBtn)   saveBtn.style.display   = 'inline-block';
     } else {
         // Sauvegarder
-        btn.disabled = true;
-        btn.innerText = "⏳ Saving...";
+        if (saveBtn) {
+            saveBtn.disabled  = true;
+            saveBtn.innerText = '⏳ Saving...';
+        }
         _doSaveElement().finally(() => {
-            btn.disabled = false;
+            if (saveBtn) {
+                saveBtn.disabled  = false;
+                saveBtn.innerText = 'Save Element';
+            }
         });
     }
 }
 
 async function _doSaveElement() {
-    const container = document.getElementById("floor-plan-2d");
-    const btn       = document.getElementById("btn-edit-plan");
+    const modifyBtn = document.getElementById('btn-modify-plan');
+    const saveBtn   = document.getElementById('btn-save-plan');
+    const container = document.getElementById('floor-plan-2d');
     try {
-        // Appliquer les modifications géométriques au SVG
         updateElementSVG();
 
         // Sauvegarder la Location en BDD si c'est un Sensor
@@ -1387,23 +1489,26 @@ async function _doSaveElement() {
 
         if (result === false) {
             // Erreur de validation — rester en mode édition
-            btn.innerText = "Save Element";
+            if (saveBtn) saveBtn.innerText = 'Save Element';
             return;
         }
 
         // Succès — repasser en lecture seule
         isEditMode = false;
-        container.classList.remove("plan-edit");
-        container.classList.add("plan-readonly");
-        btn.innerText = "Modify Element";
-        btn.classList.remove("btn-save-green");
-        btn.classList.add("btn-edit-blue");
+        container.classList.remove('plan-edit');
+        container.classList.add('plan-readonly');
+        if (modifyBtn) modifyBtn.style.display = 'inline-block';
+        if (saveBtn)   saveBtn.style.display   = 'none';
+        if (saveBtn)   saveBtn.innerText        = 'Save Element';
         if (typeof cfgToast === 'function') cfgToast('Élément sauvegardé !', 'success');
+
+        // Repasser en mode ajout après sauvegarde réussie
+        setFormMode('add');
 
     } catch (e) {
         console.error("_doSaveElement error:", e);
         if (typeof cfgToast === 'function') cfgToast('Erreur lors de la sauvegarde.', 'error');
-        btn.innerText = "Save Element";
+        if (saveBtn) saveBtn.innerText = 'Save Element';
     }
 }
 
@@ -1494,9 +1599,9 @@ async function saveNotificationChannels() {
     const customPhone = document.getElementById("notif-custom-phone").value.trim();
 
     const payload = {
-        parameterType: parameterType,
-        emailEnabled: emailEnabled,
-        smsEnabled: smsEnabled,
+        parameterType,
+        emailEnabled,
+        smsEnabled,
         customEmail: customEmail || null,
         customPhone: customPhone || null
     };
@@ -1576,21 +1681,13 @@ async function loadNotificationPreferences() {
 // Update parameter units display based on selected parameter type
 function updateParameterUnits() {
     const parameterType = document.getElementById("threshold-parameter").value;
-    const units = {
-        "CO2": "ppm",
-        "Temperature": "°C",
-        "Humidity": "%",
-        "Noise": "dB"
-    };
-
-    const unit = units[parameterType] || "";
-    const unitSpans = document.querySelectorAll("#sensor-threshold-form .input-unit");
-    unitSpans.forEach(span => {
+    const units = { "CO2": "ppm", "Temperature": "°C", "Humidity": "%", "Noise": "dB" };
+    const unit  = units[parameterType] || "";
+    document.querySelectorAll("#sensor-threshold-form .input-unit").forEach(span => {
         span.textContent = unit;
     });
 }
 
-// Edit notification preference
 async function editNotificationPreference(prefId) {
     try {
         const response = await fetch(`/api/configuration/notifications/${prefId}`);
@@ -1679,25 +1776,19 @@ function loadSensors() {
         option.value = "";
         option.textContent = "No sensors found in database";
         select.appendChild(option);
-        console.log("Added 'no sensors' option");
         return;
     }
 
     sensors.forEach((sensor, index) => {
-        console.log(`Processing sensor ${index}:`, sensor); // Debug log
-
         const option = document.createElement("option");
         // Use the same property names as manageSensors.html
         const sensorId = sensor.idSensor;
         const deviceType = sensor.deviceType || 'Unknown';
 
-        console.log(`Sensor ${index} - ID: ${sensorId}, Type: ${deviceType}`); // Debug log
-
         if (sensorId) {
             option.value = sensorId;
             option.textContent = `${sensorId} (${deviceType})`;
             select.appendChild(option);
-            console.log("Successfully added sensor option:", sensorId); // Debug log
         } else {
             console.warn("Sensor has no valid ID:", sensor);
         }
@@ -1708,7 +1799,7 @@ function loadSensors() {
 
 function loadSensorThresholds() {
     const sensorId = document.getElementById("sensor-select").value;
-    const form = document.getElementById("sensor-threshold-form");
+    const form     = document.getElementById("sensor-threshold-form");
 
     if (!sensorId) {
         form.style.display = "none";
@@ -1743,8 +1834,8 @@ async function saveSensorThreshold() {
     }
 
     const payload = {
-        sensorId: sensorId,
-        parameterType: parameterType,
+        sensorId,
+        parameterType,
         criticalThreshold: criticalHigh || null,
         warningThreshold: warningHigh || null,
         warningLow: warningLow || null,
@@ -1937,6 +2028,8 @@ window.onLocationChange  = onLocationChange;
 window.getLocationValue        = getLocationValue;
 window.initializeInputs = initializeInputs;
 window.syncHiddenLocationField = syncHiddenLocationField;
+// ✅ Exposé pour être appelé depuis building3D / floorElementsManager / sensorOverlays
+window.setFormMode                 = setFormMode;
 
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", function() {
@@ -1944,6 +2037,9 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof loadNotificationPreferences === 'function') loadNotificationPreferences();
     if (typeof toggleFormFields === 'function') toggleFormFields();
     if (typeof loadEnergyConfigs === 'function') loadEnergyConfigs();
+
+    // Initialiser en mode ajout au chargement
+    setFormMode('add');
 
     const inputNew = document.getElementById("input_location_new");
     const buildingSelect = document.getElementById("filter-building");
