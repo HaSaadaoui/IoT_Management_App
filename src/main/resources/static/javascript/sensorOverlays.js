@@ -203,8 +203,8 @@ class SensorOverlayManager {
 
     createTempThermal() {
       const stableDefs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-      const stableIsNumericValue = (value) => typeof value === 'number' && !Number.isNaN(value);
-      const stableClusterThreshold = 28;
+      const stableIsNumericValue = (value) => Number.isFinite(Number(value));
+      const stableClusterThreshold = 34;
       const stableLabelClusters = [];
 
       this.sensors.forEach(sensor => {
@@ -265,6 +265,9 @@ class SensorOverlayManager {
 
       stableLabelClusters.forEach(({ chosen }) => {
         const iconY = (chosen.type === 'CO2' || chosen.type === 'EYE') ? chosen.y - 18 : chosen.y;
+        const label = stableIsNumericValue(chosen.value)
+          ? `${Number(chosen.value).toFixed(1)} °C`
+          : "";
         this.addSensorIcon(
           chosen.x,
           iconY,
@@ -448,6 +451,9 @@ class SensorOverlayManager {
 
     createHumidityZones() {
       const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      const isNumericValue = (value) => Number.isFinite(Number(value));
+      const clusterThreshold = 34;
+      const labelClusters = [];
 
       this.sensors.forEach(sensor => {
         const parent = this._resolveParentGroup(sensor.floor);
@@ -475,8 +481,46 @@ class SensorOverlayManager {
         circle.setAttribute("fill", `url(#${gradId})`);
 
         parent.appendChild(circle);
+      });
 
-        this.addSensorIcon(sensor.x, sensor.y, this.getIcon("HUMIDITY"), `${sensor.value} %`, sensor.id, sensor.floor);
+      const sameCluster = (left, right) =>
+        left.floor === right.floor &&
+        Math.abs(left.x - right.x) < clusterThreshold &&
+        Math.abs(left.y - right.y) < clusterThreshold;
+
+      const sensorScore = (sensor) => {
+        const valueScore = isNumericValue(sensor.value) ? 100 : 0;
+        const co2Score = sensor.type === 'CO2' ? 20 : 0;
+        const eyeScore = sensor.type === 'EYE' ? 15 : 0;
+        const nativeHumidityScore = sensor.type === 'TEMPEX' ? 10 : 0;
+        return valueScore + co2Score + eyeScore + nativeHumidityScore;
+      };
+
+      this.sensors.forEach(sensor => {
+        const cluster = labelClusters.find(entry => sameCluster(entry.anchor, sensor));
+        if (!cluster) {
+          labelClusters.push({ anchor: sensor, chosen: sensor });
+          return;
+        }
+
+        if (sensorScore(sensor) > sensorScore(cluster.chosen)) {
+          cluster.chosen = sensor;
+        }
+      });
+
+      labelClusters.forEach(({ chosen }) => {
+        const iconY = (chosen.type === 'CO2' || chosen.type === 'EYE') ? chosen.y - 18 : chosen.y;
+        const label = isNumericValue(chosen.value)
+          ? `${Math.round(Number(chosen.value))} %`
+          : "";
+        this.addSensorIcon(
+          chosen.x,
+          iconY,
+          this.getIcon("HUMIDITY"),
+          label,
+          chosen.id,
+          chosen.floor
+        );
       });
 
       this.svg.insertBefore(defs, this.svg.firstChild);
@@ -618,9 +662,18 @@ class SensorOverlayManager {
             text.setAttribute("id", `sensor-value-${sensorId}`);
         }
 
-        text.textContent = label;
-
         g.appendChild(icon);
+        const labelText = label == null ? "" : String(label).trim();
+        const hasRenderableLabel = labelText !== ""
+            && !labelText.includes("undefined")
+            && !labelText.includes("NaN")
+            && !labelText.startsWith("--")
+            && !labelText.startsWith("â€”");
+
+        text.textContent = hasRenderableLabel ? labelText : "";
+        bg.style.display = hasRenderableLabel ? "" : "none";
+        text.style.display = hasRenderableLabel ? "" : "none";
+
         g.appendChild(bg);
         g.appendChild(text);
         parent.appendChild(g);
@@ -969,28 +1022,80 @@ class SensorOverlayManager {
       const el = document.getElementById(`sensor-value-${sensor.id}`);
 
       if (!el) return;
+      const bg = el.previousSibling;
+      const numericValue = Number(sensor.value);
+      const hasNumericValue = Number.isFinite(numericValue);
+      const setLabelState = (text) => {
+        const hasText = typeof text === "string" && text.trim() !== "";
+        el.textContent = hasText ? text : "";
+        el.style.display = hasText ? "" : "none";
+        if (bg) bg.style.display = hasText ? "" : "none";
+      };
+
+      if (this.currentMode === "CO2") {
+        setLabelState(hasNumericValue ? `${Math.round(numericValue)} ppm` : "");
+        return;
+      }
+
+      if (this.currentMode === "TEMP" || this.currentMode === "TEMPEX") {
+        setLabelState(hasNumericValue ? `${numericValue.toFixed(1)} °C` : "");
+        return;
+      }
+
+      if (this.currentMode === "HUMIDITY") {
+        setLabelState(hasNumericValue ? `${Math.round(numericValue)} %` : "");
+        return;
+      }
+
+      if (["LIGHT", "EYE", "PIR_LIGHT", "PR"].includes(this.currentMode)) {
+        setLabelState(hasNumericValue ? `${Math.round(numericValue)} lux` : "");
+        return;
+      }
+
+      if (this.currentMode === "SON") {
+        setLabelState(hasNumericValue ? `${numericValue.toFixed(1)} dB` : "");
+        return;
+      }
+
+      if (this.currentMode === "COUNT") {
+        if (sensor.value) {
+          const inVal = sensor.value.in ?? "—";
+          const outVal = sensor.value.out ?? "—";
+          setLabelState(`${inVal} | ${outVal}`);
+        } else {
+          setLabelState("");
+        }
+        return;
+      }
+
+      if (this.currentMode === "CONSO") {
+        const elt = document.getElementById("live-current-power");
+        const text = elt?.textContent?.trim();
+        setLabelState(text ? `${text} kW` : "");
+        return;
+      }
 
       // Use currentMode for the unit label so that multi-metric sensors
       // (e.g. CO2 sensors providing temperature in TEMP mode) show the right unit.
       switch (this.currentMode) {
         case "CO2":
-          el.textContent = `${sensor.value} ppm`;
+          setLabelState(hasNumericValue ? `${Math.round(numericValue)} ppm` : "");
           break;
         case "TEMP":
         case "TEMPEX":
           el.textContent = `${sensor.value} °C`;
           break;
         case "HUMIDITY":
-          el.textContent = `${sensor.value} %`;
+          setLabelState(hasNumericValue ? `${Math.round(numericValue)} %` : "");
           break;
         case "LIGHT":
         case "EYE":
         case "PIR_LIGHT":
         case "PR":
-          el.textContent = `${sensor.value} lux`;
+          setLabelState(hasNumericValue ? `${Math.round(numericValue)} lux` : "");
           break;
         case "SON":
-          el.textContent = `${sensor.value} dB`;
+          setLabelState(hasNumericValue ? `${numericValue.toFixed(1)} dB` : "");
           break;
         case "COUNT":
           if (sensor.value) {

@@ -38,14 +38,15 @@ class ArchitecturalFloorPlan {
 
         this.camera = {
             scale: 1,
-            min: 0.2,
-            max: 8,
+            min: 1,
+            max: 4,
             tx: 0,
             ty: 0
         };
 
         this.zoomConfig = {
-            wheelSpeed: 0.15
+            wheelSpeed: 0.12,
+            panPadding: 80
         };
 
         this.init();
@@ -78,6 +79,9 @@ class ArchitecturalFloorPlan {
         if (!existingSvg) {
             this.container.appendChild(this.svg);
         }
+
+        this._clampCamera();
+        this._applyTransform();
     }
 
     createSVG() {
@@ -146,6 +150,8 @@ class ArchitecturalFloorPlan {
         // On modifie le SVG pour le centrer sur l'écran
         const vb = this.svg.viewBox.baseVal;
         this.centerSVGContent({targetX: vb.x, targetY: vb.y, targetWidth: vb.width, targetHeight: vb.height, padding: 20, fit: true });
+        this._clampCamera();
+        this._applyTransform();
 
         this.displayContentRoot();
 
@@ -472,14 +478,15 @@ class ArchitecturalFloorPlan {
                 'CO2':      ['CO2'],
                 'NOISE':    ['NOISE', 'SON'],
                 'SON':      ['SON', 'NOISE'],
-                'LIGHT':    ['LIGHT', 'PIR_LIGHT', 'EYE', 'CO2'],
+                'LIGHT':    ['LIGHT', 'PIR_LIGHT', 'EYE', 'CO2', 'PR'],
                 'MOTION':   ['MOTION', 'PIR_LIGHT', 'EYE', 'OCCUP'],
                 'PIR_LIGHT':['PIR_LIGHT', 'EYE', 'CO2', 'PR'],
                 'PR':       ['PR', 'PIR_LIGHT', 'EYE', 'CO2'],
                 'COUNT':    ['COUNT'],
                 'ENERGY':   ['ENERGY', 'CONSO'],
                 'CONSO':    ['CONSO', 'ENERGY'],
-                'DESK':     ['DESK'],
+                'DESK':     ['DESK', 'OCCUP'],
+                'OCCUP':    ['DESK', 'OCCUP'],
             };
             const allowedTypes = SENSOR_TYPES_BY_MODE[this.sensorMode] ?? [this.sensorMode];
             sensors = sensors
@@ -1096,12 +1103,32 @@ class ArchitecturalFloorPlan {
         if (this._rafPending) return;
         this._rafPending = true;
         requestAnimationFrame(() => {
+            this._clampCamera();
             this.viewport.setAttribute(
                 "transform",
                 `translate(${this.camera.tx}, ${this.camera.ty}) scale(${this.camera.scale})`
             );
             this._rafPending = false;
         });
+    }
+
+    _clampCamera() {
+        if (!this.svg) return;
+
+        const vb = this.svg.viewBox?.baseVal;
+        if (!vb) return;
+
+        this.camera.scale = Math.max(this.camera.min, Math.min(this.camera.max, this.camera.scale));
+
+        const { panPadding } = this.zoomConfig;
+        const extraWidth = Math.max(0, (this.camera.scale - 1) * vb.width);
+        const extraHeight = Math.max(0, (this.camera.scale - 1) * vb.height);
+
+        const maxPanX = extraWidth / 2 + panPadding;
+        const maxPanY = extraHeight / 2 + panPadding;
+
+        this.camera.tx = Math.max(-maxPanX, Math.min(maxPanX, this.camera.tx));
+        this.camera.ty = Math.max(-maxPanY, Math.min(maxPanY, this.camera.ty));
     }
 
     enablePan() {
@@ -1153,7 +1180,7 @@ class ArchitecturalFloorPlan {
             this.camera.ty -= (cursor.y * newScale - cursor.y * oldScale);
 
             this.camera.scale = newScale;
-            this.viewport.setAttribute("transform", `translate(${this.camera.tx}, ${this.camera.ty}) scale(${this.camera.scale})`);
+            this._applyTransform();
         }, { passive: false });
     }
 

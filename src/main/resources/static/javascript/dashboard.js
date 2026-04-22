@@ -2,6 +2,9 @@ function normalizeDashboardSensorType(sensorType) {
 	const normalized = String(sensorType || '').toUpperCase();
 	if (normalized === 'NOISE') return 'SON';
 	if (normalized === 'ENERGY') return 'CONSO';
+	if (normalized === 'OCCUP') return 'DESK';
+	if (normalized === 'EYE' || normalized === 'PIR_LIGHT' || normalized === 'PR') return 'LIGHT';
+	if (normalized === 'TEMPEX') return 'TEMP';
 	return normalized;
 }
 
@@ -417,6 +420,9 @@ class DashboardManager {
 		// UI pour sensor-type
 		if (filterId === 'sensor-type') {
 			this.updateSensorTypeUI(value);
+			if (window.building3D?.setSensorMode) {
+				window.building3D.setSensorMode(this.getApiSensorType(value));
+			}
 		}
 
 		// ✅ Si on change d'étage : restart SSE (building + floor)
@@ -489,31 +495,23 @@ class DashboardManager {
 			},
 			DESK: {
 				icon: '📊',
-				name: 'Desk Occupancy'
+				name: 'Occupancy'
 			},
 			COUNT: {
 				icon: '🚶',
-				name: 'People Counter'
+				name: 'Counting'
 			},
 			CO2: {
 				icon: '🌫️',
-				name: 'CO₂ Air Quality'
+				name: 'Air Quality'
 			},
 			TEMP: {
 				icon: '🌡️',
 				name: 'Temperature'
 			},
-			EYE: {
-				icon: '💡',
-				name: 'EYE'
-			},
 			LIGHT: {
 				icon: '💡',
-				name: 'Light Levels'
-			},
-			PIR_LIGHT: {
-				icon: '💡',
-				name: 'PIR Light'
+				name: 'Light / Presence'
 			},
 			MOTION: {
 				icon: '👁️',
@@ -531,25 +529,21 @@ class DashboardManager {
 				icon: '💧',
 				name: 'Humidity'
 			},
-			TEMPEX: {
-				icon: '🌀',
-				name: 'Temperature'
-			},
 			OCCUP: {
 				icon: '👤',
 				name: 'Occupancy'
 			},
 			PR: {
-				icon: '👤',
-				name: 'Presence & Light'
+				icon: '💡',
+				name: 'Light / Presence'
 			},
 			CONSO: {
 				icon: '⚡',
-				name: 'Consumption'
+				name: 'Power Consumption'
 			},
 			ENERGY: {
 				icon: '⚡',
-				name: 'Energy Consumption'
+				name: 'Power Consumption'
 			},
 			SECURITY: {
 				icon: '🚨',
@@ -3180,18 +3174,22 @@ function updateTitles(buildingName) {
 		const sensorType = normalizeDashboardSensorType(sensorSelect.value);
 
 		const sensorInfo = {
-			DESK: {icon: '📊', name: 'Desk Occupancy'},
-			CO2: {icon: '🌫️', name: 'CO₂ Air Quality'},
+			DESK: {icon: '📊', name: 'Occupancy'},
+			OCCUP: {icon: '📊', name: 'Occupancy'},
+			CO2: {icon: '🌫️', name: 'Air Quality'},
 			TEMP: {icon: '🌡️', name: 'Temperature'},
-			LIGHT: {icon: '💡', name: 'Light Levels'},
+			HUMIDITY: {icon: '💧', name: 'Humidity'},
+			LIGHT: {icon: '💡', name: 'Light / Presence'},
+			EYE: {icon: '💡', name: 'Light / Presence'},
+			PIR_LIGHT: {icon: '💡', name: 'Light / Presence'},
+			PR: {icon: '💡',name: 'Light / Presence'},
 			MOTION: {icon: '👁️',name: 'Motion Detection'},
 			NOISE: { icon: '🔉',name: 'Noise Levels'},
 			SON: { icon: '🔉',name: 'Sound'},
-			HUMIDITY: {icon: '💧', name: 'Humidity'},
-			TEMPEX: {icon: '🌀', name: 'Temperature'},
-			PR: {icon: '👤',name: 'Presence & Light'},
-			CONSO: {icon: '⚡', name: 'Consumption'},
-			ENERGY: {icon: '⚡', name: 'Energy Consumption'},
+			TEMPEX: {icon: '🌡️', name: 'Temperature'},
+			COUNT: {icon: '🚶', name: 'Counting'},
+			CONSO: {icon: '⚡', name: 'Power Consumption'},
+			ENERGY: {icon: '⚡', name: 'Power Consumption'},
 			SECURITY: {icon: '🚨',name: 'Security Alerts'}
 		};
 

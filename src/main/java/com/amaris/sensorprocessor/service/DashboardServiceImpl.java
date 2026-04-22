@@ -28,18 +28,21 @@ public class DashboardServiceImpl implements DashboardService {
     private final BuildingService buildingService;
     private final LocationCacheService locationCacheService;
     private final DeviceTypeCacheService deviceTypeCacheService;
+    private final DeviceTypeService deviceTypeService;
     @Autowired
     public DashboardServiceImpl(SensorDao sensorDao, SensorDataDao sensorDataDao,
                                 AlertService alertService,
                                 BuildingService buildingService,
                                 LocationCacheService locationCacheService,
-                                DeviceTypeCacheService deviceTypeCacheService) {
+                                DeviceTypeCacheService deviceTypeCacheService,
+                                DeviceTypeService deviceTypeService) {
         this.sensorDao = sensorDao;
         this.sensorDataDao = sensorDataDao;
         this.alertService = alertService;
         this.buildingService = buildingService;
         this.locationCacheService = locationCacheService;
         this.deviceTypeCacheService = deviceTypeCacheService;
+        this.deviceTypeService = deviceTypeService;
     }
 
     private Integer mapBuildingToId(String building) {
@@ -97,35 +100,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     private List<String> resolveSensorTypes(String sensorType) {
-        if (sensorType == null || sensorType.isBlank()) {
-            return List.of("DESK");
-        }
-
-        LinkedHashSet<String> resolvedTypes = new LinkedHashSet<>();
-        for (String rawType : sensorType.split(",")) {
-            String type = rawType == null ? "" : rawType.trim();
-            if (type.isEmpty()) continue;
-
-            switch (type.toUpperCase(Locale.ROOT)) {
-                case "TEMP":
-                case "TEMPEX":
-                    resolvedTypes.add("TEMPEX");
-                    resolvedTypes.add("CO2");
-                    resolvedTypes.add("EYE");
-                    break;
-                case "LIGHT":
-                case "PIR_LIGHT":
-                    resolvedTypes.add("PIR_LIGHT");
-                    resolvedTypes.add("EYE");
-                    resolvedTypes.add("CO2");
-                    break;
-                default:
-                    resolvedTypes.add(type);
-                    break;
-            }
-        }
-
-        return resolvedTypes.isEmpty() ? List.of("DESK") : new ArrayList<>(resolvedTypes);
+        return DashboardSensorFamilyResolver.expandRequestedTypes(sensorType, deviceTypeService.findAll());
     }
 
     private List<LiveSensorData> getLiveSensorData(String building, String floor, String sensorType) {

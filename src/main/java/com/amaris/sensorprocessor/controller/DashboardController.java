@@ -6,13 +6,7 @@ import com.amaris.sensorprocessor.entity.Gateway;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.User;
 import com.amaris.sensorprocessor.model.dashboard.*;
-import com.amaris.sensorprocessor.service.AlertService;
-import com.amaris.sensorprocessor.service.BuildingService;
-import com.amaris.sensorprocessor.service.DashboardService;
-import com.amaris.sensorprocessor.service.DeviceTypeService;
-import com.amaris.sensorprocessor.service.GatewayService;
-import com.amaris.sensorprocessor.service.SensorService;
-import com.amaris.sensorprocessor.service.UserService;
+import com.amaris.sensorprocessor.service.*;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
 import com.amaris.sensorprocessor.repository.BuildingEnergyConfigDao;
 
@@ -184,49 +178,7 @@ public class DashboardController {
     }
 
     private List<DeviceType> resolveDashboardDeviceTypes() {
-        Map<String, DeviceType> deviceTypesByFamily = new LinkedHashMap<>();
-
-        deviceTypeService.findAll().stream()
-                .filter(Objects::nonNull)
-                .filter(dt -> dt.getLabel() != null && !dt.getLabel().isBlank())
-                .filter(dt -> dt.getTypeName() == null || !"ALL".equalsIgnoreCase(dt.getTypeName()))
-                .sorted(Comparator
-                        .comparing((DeviceType dt) -> isLegacyDashboardDeviceType(dt.getTypeName()))
-                        .thenComparing(dt -> dt.getLabel().toUpperCase(Locale.ROOT)))
-                .forEach(dt -> deviceTypesByFamily.putIfAbsent(resolveDashboardDeviceTypeName(dt), toDashboardDeviceType(dt)));
-
-        return deviceTypesByFamily.values().stream()
-                .sorted(Comparator.comparing(dt -> dt.getLabel().toUpperCase(Locale.ROOT)))
-                .toList();
-    }
-
-    private DeviceType toDashboardDeviceType(DeviceType source) {
-        DeviceType deviceType = new DeviceType();
-        deviceType.setIdDeviceType(source.getIdDeviceType());
-        deviceType.setTypeName(resolveDashboardDeviceTypeName(source));
-        deviceType.setLabel(source.getLabel());
-        return deviceType;
-    }
-
-    private String resolveDashboardDeviceTypeName(DeviceType deviceType) {
-        String typeName = deviceType.getTypeName();
-        if (typeName == null || typeName.isBlank()) {
-            return deviceType.getLabel();
-        }
-
-        return switch (typeName.trim().toUpperCase(Locale.ROOT)) {
-            case "NOISE" -> "SON";
-            case "ENERGY" -> "CONSO";
-            default -> typeName.trim().toUpperCase(Locale.ROOT);
-        };
-    }
-
-    private boolean isLegacyDashboardDeviceType(String typeName) {
-        if (typeName == null) {
-            return false;
-        }
-        String normalized = typeName.trim().toUpperCase(Locale.ROOT);
-        return "NOISE".equals(normalized) || "ENERGY".equals(normalized);
+        return DashboardSensorFamilyResolver.buildFilterDeviceTypes(deviceTypeService.findAll());
     }
 
     @GetMapping("/api/dashboard")
