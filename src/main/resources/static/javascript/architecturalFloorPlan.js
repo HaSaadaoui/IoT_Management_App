@@ -1,5 +1,59 @@
 // ===== ARCHITECTURAL FLOOR PLAN - CEILING VIEW =====
 // Professional architectural drawing system matching "Occupation Live" style
+const FLOOR_PLAN_MODE_CONFIG = {
+    DESK: {
+        sensorTypes: ['DESK', 'OCCUP']
+    },
+    CO2: {
+        sensorTypes: ['CO2'],
+        payloadFields: ['co2', 'co2 (ppm)']
+    },
+    TEMP: {
+        sensorTypes: ['CO2', 'TEMPEX'],
+        payloadFields: ['temperature', 'temperature (°C)', 'temperature (Â°C)']
+    },
+    TEMPEX: {
+        sensorTypes: ['CO2', 'TEMPEX'],
+        payloadFields: ['temperature', 'temperature (°C)', 'temperature (Â°C)']
+    },
+    HUMIDITY: {
+        sensorTypes: ['CO2', 'TEMPEX'],
+        payloadFields: ['humidity', 'humidity (%)']
+    },
+    LIGHT: {
+        sensorTypes: ['EYE'],
+        payloadFields: ['light', 'illuminance', 'lux', 'daylight']
+    },
+    PIR_LIGHT: {
+        sensorTypes: ['CO2', 'EYE', 'PIR_LIGHT', 'PR'],
+        payloadFields: ['light', 'illuminance', 'lux', 'daylight']
+    },
+    PR: {
+        sensorTypes: ['CO2', 'EYE', 'PIR_LIGHT', 'PR'],
+        payloadFields: ['light', 'illuminance', 'lux', 'daylight']
+    },
+    MOTION: {
+        sensorTypes: ['MOTION', 'PIR_LIGHT', 'OCCUP'],
+        payloadFields: ['pir', 'motion']
+    },
+    SON: {
+        sensorTypes: ['SON', 'NOISE'],
+        payloadFields: ['LAeq', 'LAeq (dB)']
+    },
+    NOISE: {
+        sensorTypes: ['SON', 'NOISE'],
+        payloadFields: ['LAeq', 'LAeq (dB)']
+    },
+    COUNT: {
+        sensorTypes: ['COUNT']
+    },
+    CONSO: {
+        sensorTypes: ['CONSO', 'ENERGY']
+    },
+    ENERGY: {
+        sensorTypes: ['CONSO', 'ENERGY']
+    }
+};
 class ArchitecturalFloorPlan {
     constructor(
         containerId,
@@ -21,6 +75,8 @@ class ArchitecturalFloorPlan {
         this.buildingKey = buildingKey;
         this.svgPath = svgPath;
         this.isDashboard = isDashboard;
+        this.sensorValueCache = new Map();
+        this._drawRequestId = 0;
         this._positionsDirty = new Map();
         this.floorsCount = floorsCount;
 
@@ -124,6 +180,9 @@ class ArchitecturalFloorPlan {
     }
 
     async drawFloorPlan(deskOccupancy = {}) {
+        const drawRequestId = ++this._drawRequestId;
+        this.stopLiveSensors();
+
         // Clear every floor before redrawing
         for (let i = 0; i < this.floorsCount; i++) {
             const floorGroup = this.svg.querySelector(`#floor-${i}`);
@@ -133,9 +192,11 @@ class ArchitecturalFloorPlan {
         }
 
         await this.drawFloorSVG();
+        if (drawRequestId !== this._drawRequestId) return;
 
         // Gestion des capteurs
-        let sensors = await this.populateSensorsFromSvg();
+        let sensors = await this.populateSensorsFromSvg(this.sensorValueCache);
+        if (drawRequestId !== this._drawRequestId) return;
         if (this.sensorMode === "DESK"){
             sensors.forEach(s => {s.status = deskOccupancy[s.id] || "invalid";});
         }
@@ -265,8 +326,61 @@ class ArchitecturalFloorPlan {
       };
     }
 
+    getModeConfig(mode = this.sensorMode) {
+      const normalizedMode = String(mode || '').toUpperCase();
+      return FLOOR_PLAN_MODE_CONFIG[normalizedMode] || {
+        sensorTypes: [normalizedMode],
+        payloadFields: []
+      };
+    }
+
+    normalizeSvgSensorType(sensorMode, sensorId = "") {
+      const normalizedMode = String(sensorMode || "").toUpperCase();
+      const normalizedId = String(sensorId || "").toLowerCase();
+
+      if (normalizedId.startsWith("tempex-")) return "TEMPEX";
+      if (normalizedId.startsWith("co2-")) return "CO2";
+      if (normalizedId.startsWith("eye-")) return "EYE";
+      if (normalizedId.startsWith("son-")) return "SON";
+      if (normalizedId.startsWith("count-")) return "COUNT";
+      if (normalizedId.startsWith("conso-")) return "CONSO";
+      if (normalizedId.startsWith("energy-")) return "ENERGY";
+      if (normalizedId.startsWith("desk-")) return "DESK";
+      if (normalizedId.startsWith("occup-")) return "OCCUP";
+      if (normalizedId.startsWith("humidity-")) return "HUMIDITY";
+      if (normalizedId.startsWith("tempint-")) return "TEMP";
+
+      return normalizedMode || "UNKNOWN";
+    }
+
     extractSensorValue(mode, payload) {
       if (!payload) return null;
+
+      const normalizedMode = String(mode || '').toUpperCase();
+      const config = this.getModeConfig(normalizedMode);
+
+      if (normalizedMode === "COUNT") {
+        return {
+          in: payload.period_in ?? 0,
+          out: payload.period_out ?? 0,
+        };
+      }
+
+      if (normalizedMode === "CONSO" || normalizedMode === "ENERGY") {
+        return "";
+      }
+
+      for (const field of config.payloadFields || []) {
+        if (payload[field] != null) {
+          return payload[field];
+        }
+      }
+
+      if (normalizedMode === "MOTION") {
+        return payload["pir"] ?? payload["motion"] ?? "Motion";
+      }
+
+      return null;
 
       switch (mode) {
         case "CO2":
@@ -305,6 +419,7 @@ class ArchitecturalFloorPlan {
     }
 
     updateSensorValue(sensorId, value) {
+      this.sensorValueCache.set(sensorId, value);
       if (!this.overlayManager) return;
 
       const updated = this.overlayManager.updateSensorValue(
@@ -449,9 +564,12 @@ class ArchitecturalFloorPlan {
                     return match ? parseFloat(match[1]) : 0;
                 }
 
-                const liveValue = valueMap?.get(el.getAttribute('id')) ?? '--';
-                return { id : el.getAttribute('id'),
-                    type : el.getAttribute('sensor-mode') || 'UNKNOWN',
+                const sensorId = el.getAttribute('id');
+                const rawType = el.getAttribute('sensor-mode') || 'UNKNOWN';
+                const liveValue = valueMap?.get(sensorId) ?? '--';
+                return { id : sensorId,
+                    type : this.normalizeSvgSensorType(rawType, sensorId),
+                    rawType,
                     floor : el.getAttribute('floor-number'),
                     x : parseFloat(el.getAttribute('x')),
                     y : parseFloat(el.getAttribute('y')),
@@ -471,24 +589,7 @@ class ArchitecturalFloorPlan {
         if (this.isDashboard){
             // Certains modes peuvent être fournis par plusieurs types de capteurs.
             // Pour la température, on agrège tous les capteurs qui remontent une valeur exploitable.
-            const SENSOR_TYPES_BY_MODE = {
-                'TEMP':     ['TEMP', 'TEMPEX', 'CO2', 'EYE'],
-                'TEMPEX':   ['TEMPEX', 'CO2', 'EYE'],
-                'HUMIDITY': ['CO2', 'TEMPEX', 'EYE'],
-                'CO2':      ['CO2'],
-                'NOISE':    ['NOISE', 'SON'],
-                'SON':      ['SON', 'NOISE'],
-                'LIGHT':    ['LIGHT', 'PIR_LIGHT', 'EYE', 'CO2', 'PR'],
-                'MOTION':   ['MOTION', 'PIR_LIGHT', 'EYE', 'OCCUP'],
-                'PIR_LIGHT':['PIR_LIGHT', 'EYE', 'CO2', 'PR'],
-                'PR':       ['PR', 'PIR_LIGHT', 'EYE', 'CO2'],
-                'COUNT':    ['COUNT'],
-                'ENERGY':   ['ENERGY', 'CONSO'],
-                'CONSO':    ['CONSO', 'ENERGY'],
-                'DESK':     ['DESK', 'OCCUP'],
-                'OCCUP':    ['DESK', 'OCCUP'],
-            };
-            const allowedTypes = SENSOR_TYPES_BY_MODE[this.sensorMode] ?? [this.sensorMode];
+            const allowedTypes = this.getModeConfig(this.sensorMode).sensorTypes ?? [this.sensorMode];
             sensors = sensors
                 .filter(s => s.floor == this.floorData.floorNumber)
                 .filter(s => allowedTypes.includes(s.type));

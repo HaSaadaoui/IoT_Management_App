@@ -1312,6 +1312,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const sensorSelect = document.getElementById('filter-sensor-type');
     if (sensorSelect) {
         sensorSelect.addEventListener('change', () => {
+            if (window.dashboardManager) {
+                return;
+            }
             if (window.building3D) {
                 window.building3D.setSensorMode(sensorSelect.value);
             }

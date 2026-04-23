@@ -86,7 +86,7 @@ class SensorOverlayManager {
         this.animationFrames.forEach(id => cancelAnimationFrame(id));
         this.animationFrames = [];
 
-        const floorGroup = this.svg.querySelector(`#floor-${this.currentFloor}`);
+        const floorGroup = this.svg;
         if (!floorGroup) return;
 
         // On supprime seulement les capteurs précédents
@@ -483,6 +483,24 @@ class SensorOverlayManager {
         parent.appendChild(circle);
       });
 
+      this.sensors.forEach(sensor => {
+        const iconY = sensor.type === 'CO2' ? sensor.y - 18 : sensor.y;
+        const label = isNumericValue(sensor.value)
+          ? `${Math.round(Number(sensor.value))} %`
+          : "";
+        this.addSensorIcon(
+          sensor.x,
+          iconY,
+          this.getIcon("HUMIDITY"),
+          label,
+          sensor.id,
+          sensor.floor
+        );
+      });
+
+      this.svg.insertBefore(defs, this.svg.firstChild);
+      return;
+
       const sameCluster = (left, right) =>
         left.floor === right.floor &&
         Math.abs(left.x - right.x) < clusterThreshold &&
@@ -490,13 +508,39 @@ class SensorOverlayManager {
 
       const sensorScore = (sensor) => {
         const valueScore = isNumericValue(sensor.value) ? 100 : 0;
+        const tempexScore = sensor.type === 'TEMPEX' ? 50 : 0;
         const co2Score = sensor.type === 'CO2' ? 20 : 0;
-        const eyeScore = sensor.type === 'EYE' ? 15 : 0;
-        const nativeHumidityScore = sensor.type === 'TEMPEX' ? 10 : 0;
-        return valueScore + co2Score + eyeScore + nativeHumidityScore;
+        const eyeScore = sensor.type === 'EYE' ? 10 : 0;
+        return valueScore + tempexScore + co2Score + eyeScore;
       };
 
+      const hasNearbyTempex = (sensor) =>
+        sensor.type !== 'TEMPEX' &&
+        this.sensors.some(candidate =>
+          candidate.type === 'TEMPEX' &&
+          candidate.floor === sensor.floor &&
+          Math.abs(candidate.x - sensor.x) < clusterThreshold &&
+          Math.abs(candidate.y - sensor.y) < clusterThreshold
+        );
+
+      this.sensors
+        .filter(sensor => sensor.type === 'TEMPEX')
+        .forEach(sensor => {
+          const label = isNumericValue(sensor.value)
+            ? `${Math.round(Number(sensor.value))} %`
+            : "";
+          this.addSensorIcon(
+            sensor.x,
+            sensor.y,
+            this.getIcon("HUMIDITY"),
+            label,
+            sensor.id,
+            sensor.floor
+          );
+        });
+
       this.sensors.forEach(sensor => {
+        if (sensor.type === 'TEMPEX' || hasNearbyTempex(sensor)) return;
         const cluster = labelClusters.find(entry => sameCluster(entry.anchor, sensor));
         if (!cluster) {
           labelClusters.push({ anchor: sensor, chosen: sensor });

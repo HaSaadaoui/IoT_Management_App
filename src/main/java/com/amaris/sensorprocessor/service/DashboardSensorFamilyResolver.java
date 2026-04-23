@@ -1,3 +1,4 @@
+
 package com.amaris.sensorprocessor.service;
 
 import com.amaris.sensorprocessor.entity.DeviceType;
@@ -30,7 +31,7 @@ public final class DashboardSensorFamilyResolver {
             "CONSO", "Power Consumption",
             "CO2", "Air Quality",
             "DESK", "Occupancy",
-            "LIGHT", "Light / Presence",
+            "LIGHT", "Light",
             "SON", "Sound",
             "TEMP", "Temperature",
             "HUMIDITY", "Humidity"
@@ -91,7 +92,7 @@ public final class DashboardSensorFamilyResolver {
 
                 String canonicalType = canonicalTypeName(deviceType);
                 LinkedHashSet<String> families = resolveFamilies(deviceType);
-                if (canonicalType.equals(requestedFamily) || families.contains(requestedFamily)) {
+                if (matchesRequestedFamily(requestedFamily, canonicalType, families)) {
                     resolvedTypes.add(canonicalType);
                     matched = true;
                 }
@@ -103,6 +104,13 @@ public final class DashboardSensorFamilyResolver {
         }
 
         return resolvedTypes.isEmpty() ? List.of("DESK") : new ArrayList<>(resolvedTypes);
+    }
+
+    private static boolean matchesRequestedFamily(String requestedFamily, String canonicalType, LinkedHashSet<String> families) {
+        return switch (requestedFamily) {
+            case "LIGHT" -> Objects.equals(canonicalType, "EYE");
+            default -> Objects.equals(canonicalType, requestedFamily) || families.contains(requestedFamily);
+        };
     }
 
     public static LinkedHashSet<String> resolveFamilies(DeviceType deviceType) {
@@ -125,11 +133,7 @@ public final class DashboardSensorFamilyResolver {
                 families.add("TEMP");
                 families.add("HUMIDITY");
             }
-            case "EYE" -> {
-                families.add("LIGHT");
-                families.add("TEMP");
-                families.add("HUMIDITY");
-            }
+            case "EYE" -> families.add("LIGHT");
             case "CO2" -> {
                 families.add("CO2");
                 families.add("TEMP");
