@@ -555,20 +555,24 @@ function setFormMode(mode, elementId = '') {
     const saveBtn   = document.getElementById('btn-save-plan');
 
     if (mode === 'edit') {
-        // ID verrouillé
+        // ID éditable (la modification n'est appliquée qu'au SVG, pas en BDD)
+        _editingOriginalId = elementId;
         if (idInput) {
             idInput.value    = elementId;
-            idInput.readOnly = true;
-            idInput.style.background = '#f3f4f6';
-            idInput.style.color      = '#9ca3af';
-            idInput.style.cursor     = 'not-allowed';
-            idInput.title            = '⚠ The ID cannot be changed here.';
+            idInput.readOnly = false;
+            idInput.style.background = '';
+            idInput.style.color      = '';
+            idInput.style.cursor     = '';
+            idInput.title            = '⚠ Modifying the ID updates the SVG only (not saved to DB).';
         }
-        // Modify visible, Save caché — toggleEditMode gère l'affichage ensuite
-        if (modifyBtn) modifyBtn.style.display = 'inline-block';
-        if (saveBtn)   saveBtn.style.display   = 'none';
+        // Ne pas écraser les boutons si toggleEditMode est déjà actif
+        if (!isEditMode) {
+            if (modifyBtn) modifyBtn.style.display = 'inline-block';
+            if (saveBtn)   saveBtn.style.display   = 'none';
+        }
     } else {
         // mode 'add' — ID libre, bouton Save grisé
+        _editingOriginalId = '';
         const element = document.getElementById("filter-element")?.value || 'Element';
         if (idInput) {
             idInput.value    = `${element}_${Date.now()}`;
@@ -1345,12 +1349,45 @@ function updateElementSVG() {
     const elementSelect     = document.getElementById('filter-element');
     const inputIdEl         = document.getElementById('input_id');
 
-    // L'ID ne peut pas être modifié : on cherche directement par la valeur actuelle
-    const elementId = (inputIdEl?.value || '').trim();
-    if (!elementId) {
+    // L'ID courant dans le formulaire (peut avoir été modifié par l'utilisateur)
+    const newElementId = (inputIdEl?.value || '').trim();
+    if (!newElementId) {
         if (typeof cfgToast === 'function') cfgToast('Aucun élément sélectionné.', 'warning');
         return;
     }
+
+    // ID original (celui présent dans le SVG avant édition)
+    const originalId = _editingOriginalId || newElementId;
+
+    // Si l'ID a été modifié, renommer les éléments dans le SVG (sans persistance BDD)
+    if (newElementId !== originalId && window.building3D?.currentArchPlan?.svg) {
+        const svg = window.building3D.currentArchPlan.svg;
+
+        // Renommer le groupe principal (id="originalId")
+        const mainEl = svg.querySelector('#' + CSS.escape(originalId));
+        if (mainEl) {
+            mainEl.id = newElementId;
+        }
+
+        // Renommer le marker desk : son ID est exactement "marker-" + originalId
+        // ex: originalId="desk-01-01" → markerEl id="marker-desk-01-01"
+        const expectedMarkerId = 'marker-' + originalId;
+        const markerEl = svg.querySelector('#' + CSS.escape(expectedMarkerId));
+        if (markerEl) {
+            markerEl.id = 'marker-' + newElementId;
+        }
+
+        // Renommer tous les éléments qui portent un attribut data-id="originalId"
+        svg.querySelectorAll('[data-id="' + originalId + '"]').forEach(el => {
+            el.setAttribute('data-id', newElementId);
+        });
+
+        // Mettre à jour l'ID de référence dans _editingOriginalId pour la suite
+        _editingOriginalId = newElementId;
+    }
+
+    // Utiliser le nouvel ID pour la mise à jour de la géométrie
+    const elementId = newElementId;
 
     const v = id => { const n = parseInt(document.getElementById(id)?.value); return isNaN(n) ? NaN : n; };
     const rotation = (() => {
@@ -1431,6 +1468,7 @@ function getPlanCenterXY() {
 // ======================================================
 
 let isEditMode = false;
+let _editingOriginalId = ''; // ID original de l'élément en cours d'édition (avant renommage)
 
 /**
  * Le bouton "Modify Element" active l'édition.
@@ -1469,12 +1507,15 @@ async function _doSaveElement() {
     const saveBtn   = document.getElementById('btn-save-plan');
     const container = document.getElementById('floor-plan-2d');
     try {
+        // ⚠ Capturer l'ID BDD AVANT updateElementSVG() qui met à jour _editingOriginalId
+        const dbSensorId = (_editingOriginalId || document.getElementById('input_id')?.value)?.trim();
+
         updateElementSVG();
 
         // Sauvegarder la Location en BDD si c'est un Sensor
         const elementSelect = document.getElementById('filter-element');
         if (elementSelect?.value === "Sensor") {
-            const sensorId   = document.getElementById('input_id')?.value?.trim();
+            const sensorId = dbSensorId;
             const locationSelect = document.getElementById('select_location');
             const locationId = locationSelect?.value ? parseInt(locationSelect.value) : null;
             if (sensorId) {
@@ -2031,6 +2072,18 @@ window.syncHiddenLocationField = syncHiddenLocationField;
 // ✅ Exposé pour être appelé depuis building3D / floorElementsManager / sensorOverlays
 window.setFormMode                 = setFormMode;
 
+
+// ✅ Fonctions appelées via onclick/onchange depuis le HTML
+window.addElementSVG = addElementSVG;
+window.removeElementSVG = removeElementSVG;
+window.toggleEditMode = toggleEditMode;
+window.onChangeElement = onChangeElement;
+window.onChangeSensor = onChangeSensor;
+window.applyFormUpdate = applyFormUpdate;
+window.refresh3DConfig = refresh3DConfig;
+window.populateBuildingSelect = populateBuildingSelect;
+window.toggleFloorCheckboxPanel = toggleFloorCheckboxPanel;
+window.onFloorCheckboxChange = onFloorCheckboxChange;
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", function() {
     if (typeof loadSensors === 'function') loadSensors();
