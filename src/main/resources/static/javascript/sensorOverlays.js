@@ -1,6 +1,9 @@
 // Multi-Sensor Visualization Overlay System
 class SensorOverlayManager {
 
+    static thresholdPromise = null;
+    static cachedThresholds = null;
+
     static ICONS = {
         CO2:      "🌫️",
         TEMP:     "🌡️",
@@ -35,6 +38,9 @@ class SensorOverlayManager {
         this.currentMode = 'DESK';
         this.sensors = [];
         this.animationFrames = [];
+        this.sensorIndex = new Map();
+        this.elementRefs = new Map();
+        this.pulseAnimations = new Map();
 
         this.init()
     }
@@ -77,6 +83,7 @@ class SensorOverlayManager {
     setSensorMode(mode, sensors, floorNumber) {
         this.currentMode = SensorOverlayManager.normalizeMode(mode);
         this.sensors = sensors;
+        this.sensorIndex = new Map((sensors || []).map(sensor => [sensor.id, sensor]));
         this.currentFloor = floorNumber;
         this.clearOverlay();
         this.createOverlay(this.currentMode);
@@ -85,6 +92,9 @@ class SensorOverlayManager {
     clearOverlay() {
         this.animationFrames.forEach(id => cancelAnimationFrame(id));
         this.animationFrames = [];
+        this.pulseAnimations.forEach(id => cancelAnimationFrame(id));
+        this.pulseAnimations.clear();
+        this.elementRefs.clear();
 
         const floorGroup = this.svg;
         if (!floorGroup) return;
@@ -121,12 +131,44 @@ class SensorOverlayManager {
 
     async loadThresholds() {
         try {
-            const res = await fetch('/api/configuration/alert-config');
-            if (!res.ok) throw new Error("Impossible de charger les seuils");
-            this.thresholds = await res.json();
+            if (SensorOverlayManager.cachedThresholds) {
+                this.thresholds = SensorOverlayManager.cachedThresholds;
+                return;
+            }
+
+            if (!SensorOverlayManager.thresholdPromise) {
+                SensorOverlayManager.thresholdPromise = fetch('/api/configuration/alert-config')
+                    .then(res => {
+                        if (!res.ok) throw new Error("Impossible de charger les seuils");
+                        return res.json();
+                    })
+                    .then(data => {
+                        SensorOverlayManager.cachedThresholds = data;
+                        return data;
+                    })
+                    .finally(() => {
+                        SensorOverlayManager.thresholdPromise = null;
+                    });
+            }
+
+            this.thresholds = await SensorOverlayManager.thresholdPromise;
         } catch (err) {
             console.error("Erreur lors du chargement des seuils :", err);
         }
+    }
+
+    rememberElementRefs(sensorId, refs) {
+        if (!sensorId || !refs) return;
+        const existingRefs = this.elementRefs.get(sensorId) || {};
+        this.elementRefs.set(sensorId, { ...existingRefs, ...refs });
+    }
+
+    getElementRefs(sensorId) {
+        return this.elementRefs.get(sensorId) || null;
+    }
+
+    getSensorById(sensorId) {
+        return this.sensorIndex.get(sensorId) || null;
     }
 
     createCO2Heatmap() {
@@ -159,6 +201,11 @@ class SensorOverlayManager {
         circle.setAttribute("fill", `url(#${gradId})`);
 
         parent.appendChild(circle);
+        this.rememberElementRefs(sensor.id, {
+          co2Gradient: gradient,
+          co2GradientStops: Array.from(gradient.querySelectorAll("stop")),
+          co2Circle: circle
+        });
 
         this.addSensorIcon(
           sensor.x,
@@ -174,20 +221,23 @@ class SensorOverlayManager {
     }
 
     updateCO2Visual(sensor) {
-      const grad = document.getElementById(`co2-grad-${sensor.id}`);
-      const circle = document.getElementById(`co2-circle-${sensor.id}`);
-
-      if (!grad || !circle) return;
+      const refs = this.getElementRefs(sensor.id);
+      const grad = refs?.co2Gradient;
+      const circle = refs?.co2Circle;
+      const stops = refs?.co2GradientStops;
+      if (!grad || !circle || !stops?.length) return;
 
       const color = this.getCO2Color(sensor.value);
 
-      grad.querySelectorAll("stop").forEach(stop => {
+      stops.forEach(stop => {
         stop.style.stopColor = color;
       });
 
       // Pulse uniquement en critical (>1000)
       if (sensor.value > 1000) {
-        this.addPulseAnimation(circle);
+        this.addPulseAnimation(circle, circle.id || `co2-pulse-${sensor.id}`);
+      } else {
+        this.stopPulseAnimation(circle.id || `co2-pulse-${sensor.id}`, circle);
       }
     }
 
@@ -234,6 +284,11 @@ class SensorOverlayManager {
         circle.setAttribute("fill", `url(#${gradId})`);
 
         parent.appendChild(circle);
+        this.rememberElementRefs(sensor.id, {
+          tempGradient: gradient,
+          tempGradientStops: Array.from(gradient.querySelectorAll("stop")),
+          tempCircle: circle
+        });
       });
 
       const stableSameCluster = (left, right) =>
@@ -352,10 +407,12 @@ class SensorOverlayManager {
 
     createLightMap() {
         const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-        this.sensors.forEach((sensor, i) => {
+        this.sensors.forEach((sensor) => {
             const parent = this._resolveParentGroup(sensor.floor);
             const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
-            gradient.setAttribute("id", `light-grad-${i}`);
+            const gradientId = `light-grad-${sensor.id}`;
+            const circleId = `light-circle-${sensor.id}`;
+            gradient.setAttribute("id", gradientId);
             const color = this.getLightColor(sensor.value);
             gradient.innerHTML = `
                 <stop offset="0%" style="stop-color:${color};stop-opacity:0.5"/>
@@ -365,11 +422,17 @@ class SensorOverlayManager {
             
             const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
             circle.setAttribute("class", "circle-marker");
+            circle.setAttribute("id", circleId);
             circle.setAttribute("cx", sensor.x);
             circle.setAttribute("cy", sensor.y);
             circle.setAttribute("r", "70");
-            circle.setAttribute("fill", `url(#light-grad-${i})`);
+            circle.setAttribute("fill", `url(#${gradientId})`);
             parent.appendChild(circle);
+            this.rememberElementRefs(sensor.id, {
+                lightGradient: gradient,
+                lightGradientStops: Array.from(gradient.querySelectorAll("stop")),
+                lightCircle: circle
+            });
             
             this.addSensorIcon(sensor.x, sensor.y, this.getIcon("LIGHT"), sensor.value + " lux", sensor.id, sensor.floor);
         });
@@ -481,6 +544,11 @@ class SensorOverlayManager {
         circle.setAttribute("fill", `url(#${gradId})`);
 
         parent.appendChild(circle);
+        this.rememberElementRefs(sensor.id, {
+          humidityGradient: gradient,
+          humidityGradientStops: Array.from(gradient.querySelectorAll("stop")),
+          humidityCircle: circle
+        });
       });
 
       this.sensors.forEach(sensor => {
@@ -661,7 +729,7 @@ class SensorOverlayManager {
                 circle.setAttribute("fill", "#ef4444");
                 circle.setAttribute("opacity", "0.7");
                 parent.appendChild(circle);
-                this.addPulseAnimation(circle);
+                this.addPulseAnimation(circle, `security-pulse-${sensor.id}`);
             }
             this.addSensorIcon(sensor.x, sensor.y, this.getIcon("SECURITY", { alert: sensor.alert }), sensor.message || "OK", sensor.id, sensor.floor);
         });
@@ -721,20 +789,50 @@ class SensorOverlayManager {
         g.appendChild(bg);
         g.appendChild(text);
         parent.appendChild(g);
+        this.rememberElementRefs(sensorId, {
+            markerGroup: g,
+            markerIcon: icon,
+            labelBg: bg,
+            labelText: text
+        });
     }
 
-    addPulseAnimation(element) {
+    addPulseAnimation(element, key = null) {
+        const pulseKey = key || element?.id;
+        if (!element || !pulseKey || this.pulseAnimations.has(pulseKey)) {
+            return;
+        }
+
+        this.pulseAnimations.set(pulseKey, 0);
         let scale = 1;
         let growing = true;
         const pulse = () => {
+            if (!element.isConnected) {
+                this.stopPulseAnimation(pulseKey);
+                return;
+            }
             scale += growing ? 0.02 : -0.02;
             if (scale >= 1.2) growing = false;
             if (scale <= 1) growing = true;
             element.setAttribute("transform", `scale(${scale})`);
             element.setAttribute("transform-origin", `${element.getAttribute("cx")} ${element.getAttribute("cy")}`);
-            this.animationFrames.push(requestAnimationFrame(pulse));
+            const frameId = requestAnimationFrame(pulse);
+            this.pulseAnimations.set(pulseKey, frameId);
         };
         pulse();
+    }
+
+    stopPulseAnimation(key, element = null) {
+        if (!key) return;
+        const frameId = this.pulseAnimations.get(key);
+        if (frameId != null) {
+            cancelAnimationFrame(frameId);
+        }
+        this.pulseAnimations.delete(key);
+        if (element) {
+            element.removeAttribute("transform");
+            element.removeAttribute("transform-origin");
+        }
     }
 
     createCounterMap() {
@@ -1017,10 +1115,10 @@ class SensorOverlayManager {
     }
 
     updateDeskStatus(sensorId, status) {
-        const sensor = this.sensors?.find(s => s.id === sensorId);
+        const sensor = this.getSensorById(sensorId);
         if (!sensor) return false;
         sensor.status = status;
-        const group = this.svg.querySelector(`#${CSS.escape("marker-" + sensorId)}`);
+        const group = this.getElementRefs(sensorId)?.markerGroup || this.svg.querySelector(`#${CSS.escape("marker-" + sensorId)}`);
         if (!group) return false;
         const rect = group.querySelector('.sensor');
         if (rect) {
@@ -1031,16 +1129,12 @@ class SensorOverlayManager {
     }
 
     updateSensorValue(sensorId, value, timestamp) {
-      const sensor = this.sensors?.find(s => s.id === sensorId);
-      console.log('Sensor: ', sensor);
-
+      const sensor = this.getSensorById(sensorId);
       if (!sensor) return false;
       sensor.value = value;
-      console.log('Sensor value: ', sensor.value);
       sensor.timestamp = timestamp;
 
       this.updateVisual(sensor);
-      console.log('Updated visual: ', sensor);
 
       // Update gradient/heatmap based on current display mode, not sensor.type
       // (CO2 sensors can display temperature in TEMP mode, etc.)
@@ -1063,10 +1157,11 @@ class SensorOverlayManager {
     updateVisual(sensor) {
       if (!sensor) return;
 
-      const el = document.getElementById(`sensor-value-${sensor.id}`);
+      const refs = this.getElementRefs(sensor.id);
+      const el = refs?.labelText || document.getElementById(`sensor-value-${sensor.id}`);
 
       if (!el) return;
-      const bg = el.previousSibling;
+      const bg = refs?.labelBg || el.previousSibling;
       const numericValue = Number(sensor.value);
       const hasNumericValue = Number.isFinite(numericValue);
       const setLabelState = (text) => {
@@ -1119,49 +1214,7 @@ class SensorOverlayManager {
         return;
       }
 
-      // Use currentMode for the unit label so that multi-metric sensors
-      // (e.g. CO2 sensors providing temperature in TEMP mode) show the right unit.
-      switch (this.currentMode) {
-        case "CO2":
-          setLabelState(hasNumericValue ? `${Math.round(numericValue)} ppm` : "");
-          break;
-        case "TEMP":
-        case "TEMPEX":
-          el.textContent = `${sensor.value} °C`;
-          break;
-        case "HUMIDITY":
-          setLabelState(hasNumericValue ? `${Math.round(numericValue)} %` : "");
-          break;
-        case "LIGHT":
-        case "EYE":
-        case "PIR_LIGHT":
-        case "PR":
-          setLabelState(hasNumericValue ? `${Math.round(numericValue)} lux` : "");
-          break;
-        case "SON":
-          setLabelState(hasNumericValue ? `${numericValue.toFixed(1)} dB` : "");
-          break;
-        case "COUNT":
-          if (sensor.value) {
-            const inVal = sensor.value.in ?? "—";
-            const outVal = sensor.value.out ?? "—";
-            el.textContent = `${inVal} | ${outVal}`;
-          } else {
-            el.textContent = "— | —";
-          }
-          break;
-        case "CONSO": {
-          const elt = document.getElementById("live-current-power");
-          if (elt) {
-            el.textContent = `${elt.textContent.trim()} kW`;
-          } else {
-            el.textContent = `-- kW`;
-          }
-          break;
-        }
-        default:
-          el.textContent = sensor.value;
-      }
+      setLabelState(hasNumericValue ? String(sensor.value) : "");
     }
 
     createSensorsConfig() {
@@ -1230,40 +1283,46 @@ class SensorOverlayManager {
     }
 
     updateHumidityVisual(sensor) {
-      const grad = document.getElementById(`humid-grad-${sensor.id}`);
-      const circle = document.getElementById(`humid-circle-${sensor.id}`);
-      if (!grad || !circle) return;
+      const refs = this.getElementRefs(sensor.id);
+      const grad = refs?.humidityGradient;
+      const circle = refs?.humidityCircle;
+      const stops = refs?.humidityGradientStops;
+      if (!grad || !circle || !stops?.length) return;
 
       const color = this.getHumidityColor(sensor.value);
 
-      grad.querySelectorAll("stop").forEach(stop => {
+      stops.forEach(stop => {
         stop.style.stopColor = color;
       });
     }
 
     updateTempVisual(sensor) {
-      const grad = document.getElementById(`temp-grad-${sensor.id}`);
-      const circle = document.getElementById(`temp-circle-${sensor.id}`);
-      if (!grad || !circle) return;
+      const refs = this.getElementRefs(sensor.id);
+      const grad = refs?.tempGradient;
+      const circle = refs?.tempCircle;
+      const stops = refs?.tempGradientStops;
+      if (!grad || !circle || !stops?.length) return;
 
       const color = this.getTempColor(sensor.value);
 
-      grad.querySelectorAll("stop").forEach(stop => {
+      stops.forEach(stop => {
         stop.style.stopColor = color;
       });
 
-      if (this.getTempColor(sensor.value) === '#ef4444') {
-        this.addPulseAnimation(circle);
+      if (color === '#ef4444') {
+        this.addPulseAnimation(circle, circle.id || `temp-pulse-${sensor.id}`);
+      } else {
+        this.stopPulseAnimation(circle.id || `temp-pulse-${sensor.id}`, circle);
       }
     }
 
     updateLightVisual(sensor) {
-      const idx = this.sensors?.findIndex(s => s.id === sensor.id);
-      if (idx === -1) return;
-      const grad = document.getElementById(`light-grad-${idx}`);
-      if (!grad) return;
+      const refs = this.getElementRefs(sensor.id);
+      const grad = refs?.lightGradient;
+      const stops = refs?.lightGradientStops;
+      if (!grad || !stops?.length) return;
       const color = this.getLightColor(sensor.value);
-      grad.querySelectorAll("stop").forEach(stop => {
+      stops.forEach(stop => {
         stop.style.stopColor = color;
       });
     }

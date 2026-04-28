@@ -77,6 +77,10 @@ class ArchitecturalFloorPlan {
         this.isDashboard = isDashboard;
         this.sensorValueCache = new Map();
         this._drawRequestId = 0;
+        this._svgCacheKey = null;
+        this._svgDocCache = null;
+        this._pendingSensorUpdates = new Map();
+        this._sensorFlushFrame = null;
         this._positionsDirty = new Map();
         this.floorsCount = floorsCount;
 
@@ -118,10 +122,14 @@ class ArchitecturalFloorPlan {
     }
 
     updateConfig(floorData, sensorMode, svgPath, floorsCount) {
+        const previousSvgPath = this.svgPath;
         this.floorData = floorData;
         this.sensorMode = sensorMode;
         this.svgPath = svgPath;
         if (floorsCount != null) this.floorsCount = floorsCount;
+        if (previousSvgPath !== svgPath) {
+            this.invalidateSvgCache();
+        }
 
         // Reset camera zoom/pan so the new floor starts properly fitted
         this.camera.scale = 1;
@@ -138,6 +146,35 @@ class ArchitecturalFloorPlan {
 
         this._clampCamera();
         this._applyTransform();
+    }
+
+    invalidateSvgCache() {
+        this._svgCacheKey = null;
+        this._svgDocCache = null;
+    }
+
+    async getSvgDocument() {
+        if (!this.svgPath) {
+            return null;
+        }
+
+        if (this._svgDocCache && this._svgCacheKey === this.svgPath) {
+            return this._svgDocCache;
+        }
+
+        let raw;
+        try {
+            const resp = await fetch(this.svgPath);
+            raw = await resp.text();
+        } catch (e) {
+            console.error("Erreur de chargement du SVG", e);
+            return null;
+        }
+
+        const parser = new DOMParser();
+        this._svgDocCache = parser.parseFromString(raw, "image/svg+xml");
+        this._svgCacheKey = this.svgPath;
+        return this._svgDocCache;
     }
 
     createSVG() {
@@ -182,6 +219,7 @@ class ArchitecturalFloorPlan {
     async drawFloorPlan(deskOccupancy = {}) {
         const drawRequestId = ++this._drawRequestId;
         this.stopLiveSensors();
+        this.clearQueuedSensorUpdates();
 
         // Clear every floor before redrawing
         for (let i = 0; i < this.floorsCount; i++) {
@@ -201,7 +239,13 @@ class ArchitecturalFloorPlan {
             sensors.forEach(s => {s.status = deskOccupancy[s.id] || "invalid";});
         }
 
-        this.overlayManager = new SensorOverlayManager(this.svg, this.colors, this.isDashboard);
+        if (!this.overlayManager) {
+            this.overlayManager = new SensorOverlayManager(this.svg, this.colors, this.isDashboard);
+        } else {
+            this.overlayManager.svg = this.svg;
+            this.overlayManager.colors = this.colors;
+            this.overlayManager.isDashboard = this.isDashboard;
+        }
         this.overlayManager.setSensorMode(this.sensorMode, sensors, this.floorData.floorNumber);
 
         if (this.isDashboard && this.sensorMode !== "DESK"){
@@ -230,6 +274,7 @@ class ArchitecturalFloorPlan {
 
     destroy() {
       this.stopLiveSensors();
+      this.clearQueuedSensorUpdates();
     }
 
     startLiveSensors() {
@@ -237,7 +282,7 @@ class ArchitecturalFloorPlan {
 
       const building = this.buildingKey;
       const sensors = this.overlayManager?.sensors ?? [];
-      const deviceIds = sensors.map(s => s.id);
+      const deviceIds = Array.from(new Set(sensors.map(s => s.id).filter(Boolean)));
 
       if (!deviceIds.length) {
         console.warn("[SSE] no sensors to subscribe");
@@ -418,43 +463,49 @@ class ArchitecturalFloorPlan {
         return this.overlayManager.updateDeskStatus(sensorId, status);
     }
 
-    updateSensorValue(sensorId, value) {
-      this.sensorValueCache.set(sensorId, value);
-      if (!this.overlayManager) return;
-
-      const updated = this.overlayManager.updateSensorValue(
-        sensorId,
-        value,
-        new Date().toISOString()
-      );
-      console.log('Updated sensor: ', updated);
-
-      if (!updated) {
-        // capteur hors étage affiché → ignore
+    clearQueuedSensorUpdates() {
+      if (this._sensorFlushFrame != null) {
+        cancelAnimationFrame(this._sensorFlushFrame);
+        this._sensorFlushFrame = null;
       }
+      this._pendingSensorUpdates.clear();
+    }
+
+    flushQueuedSensorUpdates() {
+      this._sensorFlushFrame = null;
+
+      if (!this.overlayManager || !this._pendingSensorUpdates.size) {
+        this._pendingSensorUpdates.clear();
+        return;
+      }
+
+      const updates = Array.from(this._pendingSensorUpdates.entries());
+      const timestamp = new Date().toISOString();
+      this._pendingSensorUpdates.clear();
+
+      updates.forEach(([sensorId, value]) => {
+        this.overlayManager.updateSensorValue(sensorId, value, timestamp);
+      });
+    }
+
+    updateSensorValue(sensorId, value) {
+      if (!sensorId) return;
+
+      this.sensorValueCache.set(sensorId, value);
+      this._pendingSensorUpdates.set(sensorId, value);
+
+      if (this._sensorFlushFrame != null) {
+        return;
+      }
+
+      this._sensorFlushFrame = requestAnimationFrame(() => {
+        this.flushQueuedSensorUpdates();
+      });
     }
 
     async drawFloorSVG() {
-        if (!this.svgPath) {
-            console.warn('Aucun svgPath fourni');
-            return;
-        }
-
-        // Charger le SVG externe
-        let raw;
-        try {
-            const resp = await fetch(this.svgPath);
-            raw = await resp.text();
-        } catch (e) {
-            console.error('Erreur de chargement du SVG', e);
-            return;
-        }
-
-        console.log(this.svgPath);
-        console.log(raw);
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(raw, "image/svg+xml");
+        const doc = await this.getSvgDocument();
+        if (!doc) return;
         const graphicSelector = ['rect','circle','line','text','path','ellipse','polyline','polygon','use'].join(', ');
         const nodes = Array.from(doc.querySelectorAll(graphicSelector));
         if (!nodes.length) {
@@ -538,19 +589,8 @@ class ArchitecturalFloorPlan {
     }
 
     async populateSensorsFromSvg(valueMap = null) {
-        if (!this.svgPath) return [];
-
-        let raw;
-        try {
-            const resp = await fetch(this.svgPath);
-            raw = await resp.text();
-        } catch (e) {
-            console.error('[Sensors] Erreur de chargement du SVG', e);
-            return [];
-        }
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(raw, 'image/svg+xml');;
+        const doc = await this.getSvgDocument();
+        if (!doc) return [];
 
         // On considère capteur = tout élément portant la classe "sensor"
         const nodes = Array.from(doc.querySelectorAll('.sensor'));
