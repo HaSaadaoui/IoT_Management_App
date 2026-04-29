@@ -1,16 +1,12 @@
 package com.amaris.sensorprocessor.controller;
 
 import com.amaris.sensorprocessor.entity.Building;
+import com.amaris.sensorprocessor.entity.DeviceType;
 import com.amaris.sensorprocessor.entity.Gateway;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.User;
 import com.amaris.sensorprocessor.model.dashboard.*;
-import com.amaris.sensorprocessor.service.AlertService;
-import com.amaris.sensorprocessor.service.BuildingService;
-import com.amaris.sensorprocessor.service.DashboardService;
-import com.amaris.sensorprocessor.service.GatewayService;
-import com.amaris.sensorprocessor.service.SensorService;
-import com.amaris.sensorprocessor.service.UserService;
+import com.amaris.sensorprocessor.service.*;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
 import com.amaris.sensorprocessor.repository.BuildingEnergyConfigDao;
 
@@ -46,6 +42,7 @@ public class DashboardController {
     private final AlertService alertService;
     private final GatewayService gatewayService;
     private final BuildingService buildingService;
+    private final DeviceTypeService deviceTypeService;
     private final SensorDataDao sensorDataDao;
     private final BuildingEnergyConfigDao buildingEnergyConfigDao;
 
@@ -80,6 +77,7 @@ public class DashboardController {
             SensorService sensorService,
             GatewayService gatewayService,
             BuildingService buildingService,
+            DeviceTypeService deviceTypeService,
             SensorDataDao sensorDataDao,
             BuildingEnergyConfigDao buildingEnergyConfigDao
     ) {
@@ -89,6 +87,7 @@ public class DashboardController {
         this.sensorService = sensorService;
         this.gatewayService = gatewayService;
         this.buildingService = buildingService;
+        this.deviceTypeService = deviceTypeService;
         this.sensorDataDao = sensorDataDao;
         this.buildingEnergyConfigDao = buildingEnergyConfigDao;
     }
@@ -98,6 +97,7 @@ public class DashboardController {
         User user = userService.searchUserByUsername(principal.getName());
         model.addAttribute("user", user);
         model.addAttribute("loggedUsername", user.getUsername());
+        model.addAttribute("deviceTypes", resolveDashboardDeviceTypes());
         return "dashboard";
     }
 
@@ -175,6 +175,10 @@ public class DashboardController {
                 .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Building not found: " + building));
+    }
+
+    private List<DeviceType> resolveDashboardDeviceTypes() {
+        return DashboardSensorFamilyResolver.buildFilterDeviceTypes(deviceTypeService.findAll());
     }
 
     @GetMapping("/api/dashboard")
@@ -267,7 +271,7 @@ public class DashboardController {
         List<SensorInfo> sensors = dashboardService.getSensorsList(
                 String.valueOf(mapBuildingToId(building)),
                 null,
-                "CONSO"
+                "CONSO,ENERGY"
         );
 
         List<String> consoDeviceIds = sensors.stream()
@@ -729,7 +733,9 @@ public class DashboardController {
         java.time.LocalDateTime endDateTime = to.plusDays(1).atStartOfDay();
         
         // Use substr to get daily buckets (YYYY-MM-DD format, first 10 chars)
-        List<String> consoSensorIds = sensorService.getSensorIdsByTypeAndBuilding("CONSO", buildingId);
+        List<String> consoSensorIds = new java.util.ArrayList<>(
+                new java.util.LinkedHashSet<>(sensorService.getSensorIdsByTypeAndBuilding("CONSO", buildingId))
+        );
         
         List<Map<String, Object>> dailyData = new java.util.ArrayList<>();
         double totalEnergy = 0;
@@ -784,9 +790,8 @@ public class DashboardController {
     @ResponseBody
     public Map<String, Object> getEnvConfig(
             @RequestParam String building,
-            @RequestParam(required = false) String floor
+            @RequestParam(required = false) Integer floor
     ) {
         return dashboardService.getEnvConfig(building, floor);
     }
-
 }

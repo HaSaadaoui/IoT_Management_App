@@ -10,7 +10,7 @@
     <script th:inline="javascript">
         document.documentElement.dataset.deviceId  = /*[[${sensor.idSensor}]]*/ '';
         document.documentElement.dataset.gatewayId = /*[[${sensor.idGateway}]]*/ '';
-        document.documentElement.dataset.devType   = /*[[${deviceTypeLabel}]]*/ '';
+        document.documentElement.dataset.devType   = /*[[${deviceTypeCode}]]*/ '';
         document.documentElement.dataset.sseToken  = /*[[${sseToken}]]*/ '';
     </script>
 
@@ -97,7 +97,7 @@
         <h3 class="section-title">🕒 Last seen</h3>
 
         <!-- COUNT -->
-        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'COUNT')}">
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeCode,'COUNT')}">
             <div class="card"><h4 class="with-icon icon-signal">Battery</h4>
                 <p><span id="s-count-batt" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
@@ -108,7 +108,7 @@
         </section>
 
         <!-- OCCUP -->
-        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'OCCUP')}">
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeCode,'OCCUP')}">
             <div class="card"><h4>Occupancy</h4><p><span id="s-occup-presence" class="badge">--</span></p></div>
             <!-- VS70: Illuminance -->
             <div class="card" id="s-occup-illum-card"><h4 class="with-icon icon-light">Illuminance</h4><p><span id="s-occup-illum" class="badge">--</span></p></div>
@@ -122,7 +122,7 @@
         </section>
 
         <!-- TEMPEX -->
-        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'TEMPEX')}">
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeCode,'TEMPEX')}">
             <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-tempex-temp" class="badge">--</span></p></div>
             <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-tempex-hum" class="humidity-badge humidity--normal">--</span></p></div>
             <div class="card"><h4>Battery</h4>
@@ -133,7 +133,7 @@
         </section>
 
         <!-- PIR_LIGHT -->
-        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'PIR_LIGHT')}">
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeCode,'PIR_LIGHT')}">
             <div class="card"><h4>PIR</h4><p><span id="s-pir-presence" class="badge">--</span></p></div>
             <div class="card"><h4>Daylight</h4><p><span id="s-pir-daylight" class="badge">--</span></p></div>
             <div class="card"><h4>Battery</h4>
@@ -144,7 +144,7 @@
         </section>
 
         <!-- DESK -->
-        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'DESK')}">
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeCode,'DESK')}">
             <div class="card"><h4>👤 Occupancy</h4><p><span id="s-desk-occupancy" class="badge">--</span></p></div>
             <div class="card" id="s-desk-temp-card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-desk-temp" class="temp-badge temp--normal">--</span></p></div>
             <div class="card" id="s-desk-hum-card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-desk-hum" class="humidity-badge humidity--normal">-- %</span></p></div>
@@ -156,7 +156,7 @@
         </section>
 
         <!-- CO2 -->
-        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'CO2')}">
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeCode,'CO2')}">
             <div class="card">
                 <h4>💨 CO₂ Level</h4>
                 <p><span id="s-co2-ppm" class="co2-badge co2--good">-- ppm</span></p>
@@ -173,7 +173,7 @@
         </section>
 
         <!-- SON -->
-        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'SON')}">
+                <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeCode,'SON') or #strings.equalsIgnoreCase(deviceTypeCode,'NOISE')}">
             <div class="card"><h4>Equivalent Sound Level (LAeq)</h4><p><span id="s-sound-laeq" class="badge">--</span></p></div>
             <div class="card"><h4>Sound Impact (LAI)</h4><p><span id="s-sound-lai" class="badge">--</span></p></div>
             <div class="card"><h4>Max Sound Impact (LAImax)</h4><p><span id="s-sound-laimax" class="badge">--</span></p></div>
@@ -185,7 +185,7 @@
         </section>
 
         <!-- EYE -->
-        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'EYE')}">
+        <section class="info-grid" th:if="${#strings.equalsIgnoreCase(deviceTypeCode,'EYE')}">
             <div class="card"><h4 class="with-icon icon-temp">Temperature</h4><p><span id="s-eye-temp" class="badge">--</span></p></div>
             <div class="card"><h4 class="with-icon icon-hum">Humidity</h4><p><span id="s-eye-hum" class="humidity-badge humidity--normal">--</span></p></div>
             <div class="card"><h4>Light</h4><p><span id="s-eye-light" class="badge">--</span></p></div>
@@ -198,16 +198,17 @@
         </section>
 
         <!-- GENERIC -->
-        <section class="info-grid" th:if="${!(#strings.equalsIgnoreCase(deviceTypeLabel,'COUNT')
-          or #strings.equalsIgnoreCase(deviceTypeLabel,'OCCUP')
-          or #strings.equalsIgnoreCase(deviceTypeLabel,'PIR_LIGHT')
-          or #strings.equalsIgnoreCase(deviceTypeLabel,'DESK')
-          or #strings.equalsIgnoreCase(deviceTypeLabel,'CO2')
-          or #strings.equalsIgnoreCase(deviceTypeLabel,'TEMPEX')
-          or #strings.equalsIgnoreCase(deviceTypeLabel,'SON')
-          or #strings.equalsIgnoreCase(deviceTypeLabel,'EYE')
-          or #strings.equalsIgnoreCase(deviceTypeLabel,'ENERGY')
-          or #strings.equalsIgnoreCase(deviceTypeLabel,'CONSO'))}">
+        <section class="info-grid" th:if="${!(#strings.equalsIgnoreCase(deviceTypeCode,'COUNT')
+          or #strings.equalsIgnoreCase(deviceTypeCode,'OCCUP')
+          or #strings.equalsIgnoreCase(deviceTypeCode,'PIR_LIGHT')
+          or #strings.equalsIgnoreCase(deviceTypeCode,'DESK')
+          or #strings.equalsIgnoreCase(deviceTypeCode,'CO2')
+          or #strings.equalsIgnoreCase(deviceTypeCode,'TEMPEX')
+                or #strings.equalsIgnoreCase(deviceTypeCode,'SON')
+                or #strings.equalsIgnoreCase(deviceTypeCode,'NOISE')
+          or #strings.equalsIgnoreCase(deviceTypeCode,'EYE')
+          or #strings.equalsIgnoreCase(deviceTypeCode,'ENERGY')
+          or #strings.equalsIgnoreCase(deviceTypeCode,'CONSO'))}">
             <div class="card"><h4>Battery</h4>
                 <p><span id="s-gen-batt" class="battery-badge">
                     <svg viewBox="0 0 46 24"><rect x="1" y="5" width="38" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="41" y="9" width="4" height="6" rx="1" fill="currentColor"/></svg>
@@ -216,7 +217,7 @@
         </section>
 
         <!-- ENERGY/CONSO - Energy Consumption -->
-        <section th:if="${#strings.equalsIgnoreCase(deviceTypeLabel,'ENERGY') or #strings.equalsIgnoreCase(deviceTypeLabel,'CONSO')}">
+        <section th:if="${#strings.equalsIgnoreCase(deviceTypeCode,'ENERGY') or #strings.equalsIgnoreCase(deviceTypeCode,'CONSO')}">
             <h3 class="section-title">⚡ Energy Consumption</h3>
 
             <!-- Dashboard principal -->

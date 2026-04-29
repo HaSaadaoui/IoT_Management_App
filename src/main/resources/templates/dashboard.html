@@ -215,9 +215,9 @@
                 <div class="filter-card">
                     <label>🏢 Floor</label>
                     <select id="filter-floor">
-                        <option value="all">All Floors</option>
+                        <option value="" selected>All Floors</option>
                         <option value="0">Ground Floor</option>
-                        <option value="1" selected>Floor 1</option>
+                        <option value="1">Floor 1</option>
                         <option value="2">Floor 2</option>
                         <option value="3">Floor 3</option>
                         <option value="4">Floor 4</option>
@@ -228,17 +228,18 @@
                 <div class="filter-card">
                     <label>📊 Sensor Type</label>
                     <select id="filter-sensor-type">
-                        <option value="all">All Sensors</option>
-                        <option value="DESK" selected>Desk Occupancy</option>
-                        <option value="COUNT">People Counter</option>
-                        <option value="CO2">CO₂ Air Quality</option>
-                        <option value="TEMP">Temperature</option>
-                        <option value="TEMPEX">HVAC Flow</option>
-                        <option value="LIGHT">Light Levels</option>
-                        <option value="MOTION">Motion Detection</option>
-                        <option value="NOISE">Noise Levels</option>
-                        <option value="HUMIDITY">Humidity</option>
-                        <option value="ENERGY">Energy Consumption</option>
+                        <option value="ALL">All Sensors</option>
+                        <option th:each="dt : ${deviceTypes}"
+                                th:value="${#strings.toUpperCase(dt.typeName != null ? dt.typeName : dt.label)}"
+                                th:text="${dt.label}"
+                                th:selected="${#strings.equalsIgnoreCase(dt.typeName != null ? dt.typeName : dt.label, 'DESK')}">
+                            DESK
+                        </option>
+                        <option th:if="${deviceTypes == null || #lists.isEmpty(deviceTypes)}"
+                                value="DESK"
+                                selected>
+                            DESK
+                        </option>
                     </select>
                 </div>
             </div>
@@ -500,141 +501,8 @@
                     <!-- ============================= -->
                     <!-- REALTIME ENVIRONMENT CHARTS -->
                     <!-- ============================= -->
-
                     <section class="realtime-charts">
-                        <div class="charts-grid charts-grid--2col">
-                            <!-- ================= CO2 ================= -->
-                            <div class="chart-card">
-                                <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                        <div class="chart-title">
-                                            <span class="chart-icon" style="background: linear-gradient(135deg, #10b981, #059669);">💨</span>
-                                            <span>CO₂</span>
-                                        </div>
-                                        <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                            Avg: <span class="kpi-value" id="env-co2-avg" style="font-weight: 600; color: #10b981;">--</span> ppm
-                                        </div>
-                                        <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                            Max: <span id="env-co2-max" class="kpi-value" style="font-weight: 600; color: #10b981;">--</span> ppm
-                                        </div>
-                                    </div>
-                                    <div class="env-chart-toggle" data-chart="co2" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
-                                        <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                            📈 Line
-                                        </button>
-                                        <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                            📊 Bar
-                                        </button>
-                                        <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                            🍩 Donut
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="rt-chart-container" style="height: 280px; position: relative;">
-                                    <canvas id="rt-co2-chart"></canvas>
-                                </div>
-                            </div>
-
-                            <!-- ================= TEMPERATURE ================= -->
-                            <div class="chart-card">
-                                <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                        <div class="chart-title">
-                                            <span class="chart-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🌡️</span>
-                                            <span>Temperature</span>
-                                        </div>
-                                        <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                            Avg: <span class="kpi-value" id="env-temp-avg" style="font-weight: 600; color: #ef4444;">--</span> °C
-                                        </div>
-
-                                        <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                            Max: <span id="env-temp-max" class="kpi-value" style="font-weight: 600; color: #10b981;">--</span> °C
-                                        </div>
-                                    </div>
-                                    <div class="env-chart-toggle" data-chart="temperature" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
-                                        <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                            📈 Line
-                                        </button>
-                                        <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                            📊 Bar
-                                        </button>
-                                        <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                            🍩 Donut
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="rt-chart-container" style="height: 280px; position: relative;">
-                                    <canvas id="rt-temperature-chart"></canvas>
-                                </div>
-                            </div>
-
-                            <!-- ================= HUMIDITY ================= -->
-                            <div class="chart-card">
-                                <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                        <div class="chart-title">
-                                            <span class="chart-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">💧</span>
-                                            <span>Humidity</span>
-                                        </div>
-                                        <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                            Avg: <span class="kpi-value" id="env-humidity-avg" style="font-weight: 600; color: #3b82f6;">--</span> %
-                                        </div>
-                                        <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                            Max: <span id="env-humidity-max" class="kpi-value" style="font-weight: 600; color: #10b981;">--</span> %
-                                        </div>
-                                    </div>
-                                    <div class="env-chart-toggle" data-chart="humidity" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
-                                        <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                            📈 Line
-                                        </button>
-                                        <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                            📊 Bar
-                                        </button>
-                                        <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                            🍩 Donut
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="rt-chart-container" style="height: 280px; position: relative;">
-                                    <canvas id="rt-humidity-chart"></canvas>
-                                </div>
-                            </div>
-
-                            <!-- ================= SOUND ================= -->
-                            <div class="chart-card">
-
-                                <div class="rt-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                        <div class="chart-title">
-                                            <span class="chart-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔊</span>
-                                            <span>Sound Level</span>
-                                        </div>
-                                        <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                            Avg: <span class="kpi-value" id="env-sound-avg" style="font-weight: 600; color: #f59e0b;">--</span> dB
-                                        </div>
-
-                                        <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                            Max: <span id="env-sound-max" class="kpi-value" style="font-weight: 600; color: #10b981;">--</span> dB
-                                        </div>
-                                    </div>
-                                    <div class="env-chart-toggle" data-chart="sound" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
-                                        <button class="env-chart-btn active" data-type="line" style="padding: 0.35rem 0.6rem; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                            📈 Line
-                                        </button>
-                                        <button class="env-chart-btn" data-type="bar" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                            📊 Bar
-                                        </button>
-                                        <button class="env-chart-btn" data-type="doughnut" style="padding: 0.35rem 0.6rem; border: none; background: transparent; color: #6b7280; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.75rem; transition: all 0.3s;">
-                                            🍩 Donut
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="rt-chart-container" style="height: 280px; position: relative;">
-                                    <canvas id="rt-sound-chart"></canvas>
-                                </div>
-                            </div>
-                        </div>
+                        <div id="zones-container"></div>
                     </section>
                 </div>
             </div>
@@ -1244,7 +1112,7 @@
                                     <span>Temperature History</span>
                                 </div>
                                 <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                    Avg: <span class="kpi-value" id="env-temp-avg" style="font-weight: 600; color: #ef4444;">--</span> °C
+                                    Avg: <span class="kpi-value" id="hist-env-temp-avg" style="font-weight: 600; color: #ef4444;">--</span> °C
                                 </div>
                             </div>
                             <div class="env-chart-toggle" data-chart="temperature" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
@@ -1273,7 +1141,7 @@
                                     <span>Humidity History</span>
                                 </div>
                                 <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                    Avg: <span class="kpi-value" id="env-humidity-avg" style="font-weight: 600; color: #3b82f6;">--</span> %
+                                    Avg: <span class="kpi-value" id="hist-env-humidity-avg" style="font-weight: 600; color: #3b82f6;">--</span> %
                                 </div>
                             </div>
                             <div class="env-chart-toggle" data-chart="humidity" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
@@ -1302,7 +1170,7 @@
                                     <span>CO₂ History</span>
                                 </div>
                                 <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                    Avg: <span class="kpi-value" id="env-co2-avg" style="font-weight: 600; color: #10b981;">--</span> ppm
+                                    Avg: <span class="kpi-value" id="hist-env-co2-avg" style="font-weight: 600; color: #10b981;">--</span> ppm
                                 </div>
                             </div>
                             <div class="env-chart-toggle" data-chart="co2" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
@@ -1331,7 +1199,7 @@
                                     <span>Sound Level History</span>
                                 </div>
                                 <div class="chart-info" style="font-size: 0.85rem; color: #6b7280;">
-                                    Avg: <span class="kpi-value" id="env-sound-avg" style="font-weight: 600; color: #f59e0b;">--</span> dB
+                                    Avg: <span class="kpi-value" id="hist-env-sound-avg" style="font-weight: 600; color: #f59e0b;">--</span> dB
                                 </div>
                             </div>
                             <div class="env-chart-toggle" data-chart="sound" style="display: flex; gap: 0.25rem; background: #f3f4f6; padding: 0.2rem; border-radius: 6px;">
@@ -1752,16 +1620,24 @@
                     {
                         label: 'White Outlets & Lighting',
                         data: [],
-                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(100, 116, 139, 0.8)',
+                        borderColor: 'rgb(100, 116, 139)',
                         borderWidth: 1,
                         borderRadius: 4
                     },
                     {
                         label: 'Ventilation & Heaters',
                         data: [],
-                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
-                        borderColor: 'rgb(16, 185, 129)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        borderColor: 'rgb(59, 130, 246)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Other Circuits',
+                        data: [],
+                        backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                        borderColor: 'rgb(245, 158, 11)',
                         borderWidth: 1,
                         borderRadius: 4
                     }
@@ -1790,10 +1666,7 @@
                     }
                 },
                 plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    },
+                    legend: { display: false },
                     title: {
                         display: true,
                         text: 'Consumption (kWh) - Daily'
@@ -1906,7 +1779,7 @@
                 }
 
                 // White Outlets & Lighting = (ch6+7+8) - (ch3+4+5)
-                whiteSum = sum_ch6_7_8 - sum_ch3_4_5;
+                whiteSum = Math.max(0, sum_ch6_7_8 - sum_ch3_4_5);
 
                 // Ventilation & Heaters = ch6+7+8
                 ventSum = sum_ch6_7_8;
@@ -1922,11 +1795,19 @@
                     console.log('TOTAL:', (redSum + whiteSum + ventSum).toFixed(2), 'kWh');
                 }
 
+                // Other circuits: channels 9, 10, 11
+                let otherSum = 0;
+                for (let ch = 9; ch <= 11; ch++) {
+                    const val = entry.channels[String(ch)];
+                    if (val !== undefined && val !== null) otherSum += val;
+                }
+
                 redOutlets.push(redSum);
                 whiteOutlets.push(whiteSum);
                 ventilation.push(ventSum);
+                others.push(otherSum);
 
-                totalKWh += (redSum + whiteSum + ventSum);
+                totalKWh += (redSum + whiteSum + ventSum + otherSum);
             }
         });
 
@@ -1938,7 +1819,7 @@
                 redOutlets: redOutlets[i].toFixed(2),
                 whiteOutlets: whiteOutlets[i].toFixed(2),
                 ventilation: ventilation[i].toFixed(2),
-                total: (redOutlets[i] + whiteOutlets[i] + ventilation[i]).toFixed(2)
+                total: (redOutlets[i] + whiteOutlets[i] + ventilation[i] + others[i]).toFixed(2)
             });
         }
 
@@ -1958,8 +1839,8 @@
                 {
                     label: 'White Outlets & Lighting',
                     data: [...whiteOutlets],
-                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(100, 116, 139, 0.8)',
+                    borderColor: 'rgb(100, 116, 139)',
                     borderWidth: 2,
                     borderRadius: 4,
                     fill: false
@@ -1967,8 +1848,17 @@
                 {
                     label: 'Ventilation & Heaters',
                     data: [...ventilation],
-                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
-                    borderColor: 'rgb(16, 185, 129)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 2,
+                    borderRadius: 4,
+                    fill: false
+                },
+                {
+                    label: 'Other Circuits',
+                    data: [...others],
+                    backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                    borderColor: 'rgb(245, 158, 11)',
                     borderWidth: 2,
                     borderRadius: 4,
                     fill: false
@@ -1981,6 +1871,7 @@
         energyConsumptionChart.data.datasets[0].data = redOutlets;
         energyConsumptionChart.data.datasets[1].data = whiteOutlets;
         energyConsumptionChart.data.datasets[2].data = ventilation;
+        energyConsumptionChart.data.datasets[3].data = others;
         energyConsumptionChart.update();
 
         // Update total KPI
@@ -2132,8 +2023,7 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: true,
-                            position: 'right'
+                            display: false
                         },
                         title: {
                             display: true,
@@ -2192,8 +2082,7 @@
                     },
                     plugins: {
                         legend: {
-                            display: true,
-                            position: 'top'
+                            display: false
                         },
                         title: {
                             display: true,
@@ -2343,7 +2232,7 @@
                 ? envChartData[type].data.reduce((a, b) => a + b, 0) / envChartData[type].data.length
                 : 0;
 
-            const avgElement = document.getElementById(`env-${type === 'temperature' ? 'temp' : type}-avg`);
+            const avgElement = document.getElementById(`hist-env-${type === 'temperature' ? 'temp' : type}-avg`);
             if (avgElement) avgElement.textContent = avg.toFixed(1);
 
             // Update chart

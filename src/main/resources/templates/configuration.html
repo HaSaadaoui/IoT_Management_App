@@ -8,6 +8,16 @@
     <link rel="stylesheet" th:href="@{/css/styles.css}">
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/configuration.css}">
+    <style>
+        .btn-save-green {
+            background: #16a34a !important;
+            color: #fff;
+            box-shadow: 0 1px 3px rgba(22,163,74,0.25);
+        }
+        .btn-save-green:hover {
+            background: #15803d !important;
+        }
+    </style>
 </head>
 <body>
 
@@ -804,10 +814,11 @@
                         <div class="col-md-4">
                             <label class="form-label">ID</label>
                             <input type="text" id="input_id" class="form-control">
+                            <small id="input_id_hint" style="color:#6b7280;font-size:0.75rem;">ℹ️ En mode édition, modifier l'ID met à jour le SVG uniquement (pas la BDD).</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Text</label>
-                            <input type="text" id="input_label" class="form-control" onchange="updateElementSVG()">
+                            <input type="text" id="input_label" class="form-control">
                         </div>
                         <div class="col-md-4" id="input-location-container">
                             <label class="form-label" for="select_location">Location</label>
@@ -819,43 +830,57 @@
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <label class="form-label">Size</label>
-                            <input type="number" id="input_size" min="0" max="1000" step="10" value="20" class="form-control" onchange="updateElementSVG()">
+                            <input type="number" id="input_size" min="0" max="1000" step="10" value="20" class="form-control">
                         </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-3">
                             <label class="form-label">Radius</label>
-                            <input type="number" id="input_radius" min="0" max="1000" step="10" value="20" class="form-control" onchange="updateElementSVG()">
+                            <input type="number" id="input_radius" min="0" max="1000" step="10" value="20" class="form-control">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Width</label>
-                            <input type="number" id="input_width" min="0" max="1000" step="10" value="20" class="form-control" onchange="updateElementSVG()">
+                            <input type="number" id="input_width" min="0" max="1000" step="10" value="20" class="form-control">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Height</label>
-                            <input type="number" id="input_height" min="0" max="1000" step="10" value="20" class="form-control" onchange="updateElementSVG()">
+                            <input type="number" id="input_height" min="0" max="1000" step="10" value="20" class="form-control">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Rotation</label>
-                            <input type="number" id="input_rotation" min="0" max="360" step="5" value="0" class="form-control" onchange="updateElementSVG()">
+                            <input type="number" id="input_rotation" min="0" max="360" step="5" value="0" class="form-control">
                         </div>
                     </div>
 
                     <div class="filter-card">
-                        <label>Desk Chair:</label>
-                        <label>Top</label>
-                        <input type="number" id="chair_top" min="0" max="10" value="0" class="form-control" style="width:70px;" onchange="updateElementSVG()">
-                        <label>Bottom</label>
-                        <input type="number" id="chair_bottom" min="0" max="10" value="0" class="form-control" style="width:70px;" onchange="updateElementSVG()">
-                        <label>Left</label>
-                        <input type="number" id="chair_left" min="0" max="10" value="0" class="form-control" style="width:70px;" onchange="updateElementSVG()">
-                        <label>Right</label>
-                        <input type="number" id="chair_right" min="0" max="10" value="0" class="form-control" style="width:70px;" onchange="updateElementSVG()">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Desk Chair:</label>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Top</label>
+                                <input type="number" id="chair_top" min="0" max="10" value="0" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Bottom</label>
+                                <input type="number" id="chair_bottom" min="0" max="10" value="0" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Left</label>
+                                <input type="number" id="chair_left" min="0" max="10" value="0" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Right</label>
+                                <input type="number" id="chair_right" min="0" max="10" value="0" class="form-control">
+                            </div>
+                        </div>
                     </div>
 
                     <div class="filter-card">
                         <label>Style</label>
-                        <select id="filter-style" class="form-select" onchange="updateElementSVG()">
+                        <select id="filter-style" class="form-select">
                             <option value="Dark" selected>Dark</option>
                             <option value="Light">Light</option>
                         </select>
@@ -864,6 +889,8 @@
                     <div class="d-flex" style="gap:10px;margin-top:16px;">
                         <button class="btn btn-violet" onclick="addElementSVG()">Add Element</button>
                         <button class="btn btn-danger" onclick="removeElementSVG()">Remove Element</button>
+                        <button id="btn-modify-plan" class="btn btn-edit-blue" onclick="toggleEditMode()">Modify Element</button>
+                        <button id="btn-save-plan" class="btn btn-save-green" onclick="toggleEditMode()" style="display:none;">Save Element</button>
                     </div>
                 </div>
             </div>
@@ -1012,15 +1039,15 @@
                 },
                 body: body
             })
-            .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
-            .then(function(res) {
-                if (res.ok) {
-                    reloadWithToast(res.data.message || successMsg, '#section-sensors');
-                } else {
-                    cfgToast(res.data.error || 'Une erreur est survenue.', 'error');
-                }
-            })
-            .catch(function() { cfgToast('Une erreur est survenue.', 'error'); });
+                .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+                .then(function(res) {
+                    if (res.ok) {
+                        reloadWithToast(res.data.message || successMsg, '#section-sensors');
+                    } else {
+                        cfgToast(res.data.error || 'Une erreur est survenue.', 'error');
+                    }
+                })
+                .catch(function() { cfgToast('Une erreur est survenue.', 'error'); });
         });
     }
 
@@ -1462,9 +1489,9 @@
             headers: { 'Content-Type': 'application/json', [LOC_CSRF_HEADER]: LOC_CSRF_TOKEN },
             body: JSON.stringify({ name: name, buildingId: parseInt(buildingId) })
         })
-        .then(function(r) { if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Erreur'); }); closeEditLocationModal(); reloadWithToast('Location mise à jour avec succès.', 'section-locations'); })
-        .catch(function(err) { cfgToast(err.message || 'Erreur lors de la mise à jour.', 'error'); })
-        .finally(function() { btn.disabled = false; btn.textContent = 'Enregistrer'; });
+            .then(function(r) { if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Erreur'); }); closeEditLocationModal(); reloadWithToast('Location mise à jour avec succès.', 'section-locations'); })
+            .catch(function(err) { cfgToast(err.message || 'Erreur lors de la mise à jour.', 'error'); })
+            .finally(function() { btn.disabled = false; btn.textContent = 'Enregistrer'; });
     }
 
     // ================================================================
@@ -1491,9 +1518,9 @@
             headers: { 'Content-Type': 'application/json', [LOC_CSRF_HEADER]: LOC_CSRF_TOKEN },
             body: JSON.stringify({ name: name })
         })
-        .then(function(r) { if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Erreur'); }); document.getElementById('brand-edit-modal').style.display = 'none'; reloadWithToast('Marque mise à jour avec succès.', 'section-sensors'); })
-        .catch(function(err) { cfgToast(err.message || 'Erreur lors de la mise à jour.', 'error'); })
-        .finally(function() { btn.disabled = false; btn.textContent = 'Enregistrer'; });
+            .then(function(r) { if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Erreur'); }); document.getElementById('brand-edit-modal').style.display = 'none'; reloadWithToast('Marque mise à jour avec succès.', 'section-sensors'); })
+            .catch(function(err) { cfgToast(err.message || 'Erreur lors de la mise à jour.', 'error'); })
+            .finally(function() { btn.disabled = false; btn.textContent = 'Enregistrer'; });
     }
 
     // ================================================================
@@ -1520,9 +1547,9 @@
             headers: { 'Content-Type': 'application/json', [LOC_CSRF_HEADER]: LOC_CSRF_TOKEN },
             body: JSON.stringify({ label: label })
         })
-        .then(function(r) { if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Erreur'); }); document.getElementById('dtype-edit-modal').style.display = 'none'; reloadWithToast('Type de capteur mis à jour avec succès.', 'section-sensors'); })
-        .catch(function(err) { cfgToast(err.message || 'Erreur lors de la mise à jour.', 'error'); })
-        .finally(function() { btn.disabled = false; btn.textContent = 'Enregistrer'; });
+            .then(function(r) { if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Erreur'); }); document.getElementById('dtype-edit-modal').style.display = 'none'; reloadWithToast('Type de capteur mis à jour avec succès.', 'section-sensors'); })
+            .catch(function(err) { cfgToast(err.message || 'Erreur lors de la mise à jour.', 'error'); })
+            .finally(function() { btn.disabled = false; btn.textContent = 'Enregistrer'; });
     }
 
     // ================================================================
@@ -1551,9 +1578,9 @@
             headers: { 'Content-Type': 'application/json', [LOC_CSRF_HEADER]: LOC_CSRF_TOKEN },
             body: JSON.stringify({ name: name, availableForGateway: gw })
         })
-        .then(function(r) { if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Erreur'); }); document.getElementById('proto-edit-modal').style.display = 'none'; reloadWithToast('Protocole mis à jour avec succès.', 'section-sensors'); })
-        .catch(function(err) { cfgToast(err.message || 'Erreur lors de la mise à jour.', 'error'); })
-        .finally(function() { btn.disabled = false; btn.textContent = 'Enregistrer'; });
+            .then(function(r) { if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Erreur'); }); document.getElementById('proto-edit-modal').style.display = 'none'; reloadWithToast('Protocole mis à jour avec succès.', 'section-sensors'); })
+            .catch(function(err) { cfgToast(err.message || 'Erreur lors de la mise à jour.', 'error'); })
+            .finally(function() { btn.disabled = false; btn.textContent = 'Enregistrer'; });
     }
 </script>
 
@@ -1625,15 +1652,15 @@
         fetch(`/configuration/brands/${brandId}/decoder`, {
             headers: { 'Accept': 'application/json' }
         })
-        .then(r => r.json())
-        .then(data => {
-            aceDecoderEditor.setValue(data.decoder || getDefaultDecoder(), -1);
-            aceDecoderEditor.clearSelection();
-        })
-        .catch(() => {
-            aceDecoderEditor.setValue(getDefaultDecoder(), -1);
-            aceDecoderEditor.clearSelection();
-        });
+            .then(r => r.json())
+            .then(data => {
+                aceDecoderEditor.setValue(data.decoder || getDefaultDecoder(), -1);
+                aceDecoderEditor.clearSelection();
+            })
+            .catch(() => {
+                aceDecoderEditor.setValue(getDefaultDecoder(), -1);
+                aceDecoderEditor.clearSelection();
+            });
     }
 
     function closeDecoderModal() {
@@ -1650,13 +1677,13 @@
             },
             body: JSON.stringify({ decoder: decoder })
         })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                closeDecoderModal();
-                cfgToast('Decoder saved successfully!', 'success');
-            }
-        });
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    closeDecoderModal();
+                    cfgToast('Decoder saved successfully!', 'success');
+                }
+            });
     }
 
     function testDecoderNow() {
@@ -1684,20 +1711,20 @@
             },
             body: JSON.stringify({ decoder, payload, fport })
         })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                resultEl.style.color = '#4ade80';
-                resultEl.textContent = 'Result:\n' + JSON.stringify(JSON.parse(data.result), null, 2);
-            } else {
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    resultEl.style.color = '#4ade80';
+                    resultEl.textContent = 'Result:\n' + JSON.stringify(JSON.parse(data.result), null, 2);
+                } else {
+                    resultEl.style.color = '#f87171';
+                    resultEl.textContent = 'Error:\n' + data.error;
+                }
+            })
+            .catch(err => {
                 resultEl.style.color = '#f87171';
-                resultEl.textContent = 'Error:\n' + data.error;
-            }
-        })
-        .catch(err => {
-            resultEl.style.color = '#f87171';
-            resultEl.textContent = 'Network error: ' + err.message;
-        });
+                resultEl.textContent = 'Network error: ' + err.message;
+            });
     }
 
     function getDefaultDecoder() {

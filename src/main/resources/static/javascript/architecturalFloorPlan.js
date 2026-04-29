@@ -1,5 +1,59 @@
 // ===== ARCHITECTURAL FLOOR PLAN - CEILING VIEW =====
 // Professional architectural drawing system matching "Occupation Live" style
+const FLOOR_PLAN_MODE_CONFIG = {
+    DESK: {
+        sensorTypes: ['DESK', 'OCCUP']
+    },
+    CO2: {
+        sensorTypes: ['CO2'],
+        payloadFields: ['co2', 'co2 (ppm)']
+    },
+    TEMP: {
+        sensorTypes: ['CO2', 'TEMPEX'],
+        payloadFields: ['temperature', 'temperature (°C)', 'temperature (Â°C)']
+    },
+    TEMPEX: {
+        sensorTypes: ['CO2', 'TEMPEX'],
+        payloadFields: ['temperature', 'temperature (°C)', 'temperature (Â°C)']
+    },
+    HUMIDITY: {
+        sensorTypes: ['CO2', 'TEMPEX'],
+        payloadFields: ['humidity', 'humidity (%)']
+    },
+    LIGHT: {
+        sensorTypes: ['EYE'],
+        payloadFields: ['light', 'illuminance', 'lux', 'daylight']
+    },
+    PIR_LIGHT: {
+        sensorTypes: ['CO2', 'EYE', 'PIR_LIGHT', 'PR'],
+        payloadFields: ['light', 'illuminance', 'lux', 'daylight']
+    },
+    PR: {
+        sensorTypes: ['CO2', 'EYE', 'PIR_LIGHT', 'PR'],
+        payloadFields: ['light', 'illuminance', 'lux', 'daylight']
+    },
+    MOTION: {
+        sensorTypes: ['MOTION', 'PIR_LIGHT', 'OCCUP'],
+        payloadFields: ['pir', 'motion']
+    },
+    SON: {
+        sensorTypes: ['SON', 'NOISE'],
+        payloadFields: ['LAeq', 'LAeq (dB)']
+    },
+    NOISE: {
+        sensorTypes: ['SON', 'NOISE'],
+        payloadFields: ['LAeq', 'LAeq (dB)']
+    },
+    COUNT: {
+        sensorTypes: ['COUNT']
+    },
+    CONSO: {
+        sensorTypes: ['CONSO', 'ENERGY']
+    },
+    ENERGY: {
+        sensorTypes: ['CONSO', 'ENERGY']
+    }
+};
 class ArchitecturalFloorPlan {
     constructor(
         containerId,
@@ -21,6 +75,12 @@ class ArchitecturalFloorPlan {
         this.buildingKey = buildingKey;
         this.svgPath = svgPath;
         this.isDashboard = isDashboard;
+        this.sensorValueCache = new Map();
+        this._drawRequestId = 0;
+        this._svgCacheKey = null;
+        this._svgDocCache = null;
+        this._pendingSensorUpdates = new Map();
+        this._sensorFlushFrame = null;
         this._positionsDirty = new Map();
         this.floorsCount = floorsCount;
 
@@ -38,14 +98,15 @@ class ArchitecturalFloorPlan {
 
         this.camera = {
             scale: 1,
-            min: 0.2,
-            max: 8,
+            min: 1,
+            max: 4,
             tx: 0,
             ty: 0
         };
 
         this.zoomConfig = {
-            wheelSpeed: 0.15
+            wheelSpeed: 0.12,
+            panPadding: 80
         };
 
         this.init();
@@ -60,10 +121,15 @@ class ArchitecturalFloorPlan {
         }
     }
 
-    updateConfig(floorData, sensorMode, svgPath) {
+    updateConfig(floorData, sensorMode, svgPath, floorsCount) {
+        const previousSvgPath = this.svgPath;
         this.floorData = floorData;
         this.sensorMode = sensorMode;
         this.svgPath = svgPath;
+        if (floorsCount != null) this.floorsCount = floorsCount;
+        if (previousSvgPath !== svgPath) {
+            this.invalidateSvgCache();
+        }
 
         // Reset camera zoom/pan so the new floor starts properly fitted
         this.camera.scale = 1;
@@ -77,6 +143,38 @@ class ArchitecturalFloorPlan {
         if (!existingSvg) {
             this.container.appendChild(this.svg);
         }
+
+        this._clampCamera();
+        this._applyTransform();
+    }
+
+    invalidateSvgCache() {
+        this._svgCacheKey = null;
+        this._svgDocCache = null;
+    }
+
+    async getSvgDocument() {
+        if (!this.svgPath) {
+            return null;
+        }
+
+        if (this._svgDocCache && this._svgCacheKey === this.svgPath) {
+            return this._svgDocCache;
+        }
+
+        let raw;
+        try {
+            const resp = await fetch(this.svgPath);
+            raw = await resp.text();
+        } catch (e) {
+            console.error("Erreur de chargement du SVG", e);
+            return null;
+        }
+
+        const parser = new DOMParser();
+        this._svgDocCache = parser.parseFromString(raw, "image/svg+xml");
+        this._svgCacheKey = this.svgPath;
+        return this._svgDocCache;
     }
 
     createSVG() {
@@ -119,6 +217,10 @@ class ArchitecturalFloorPlan {
     }
 
     async drawFloorPlan(deskOccupancy = {}) {
+        const drawRequestId = ++this._drawRequestId;
+        this.stopLiveSensors();
+        this.clearQueuedSensorUpdates();
+
         // Clear every floor before redrawing
         for (let i = 0; i < this.floorsCount; i++) {
             const floorGroup = this.svg.querySelector(`#floor-${i}`);
@@ -128,14 +230,22 @@ class ArchitecturalFloorPlan {
         }
 
         await this.drawFloorSVG();
+        if (drawRequestId !== this._drawRequestId) return;
 
         // Gestion des capteurs
-        let sensors = await this.populateSensorsFromSvg();
+        let sensors = await this.populateSensorsFromSvg(this.sensorValueCache);
+        if (drawRequestId !== this._drawRequestId) return;
         if (this.sensorMode === "DESK"){
             sensors.forEach(s => {s.status = deskOccupancy[s.id] || "invalid";});
         }
-        
-        this.overlayManager = new SensorOverlayManager(this.svg, this.colors, this.isDashboard);
+
+        if (!this.overlayManager) {
+            this.overlayManager = new SensorOverlayManager(this.svg, this.colors, this.isDashboard);
+        } else {
+            this.overlayManager.svg = this.svg;
+            this.overlayManager.colors = this.colors;
+            this.overlayManager.isDashboard = this.isDashboard;
+        }
         this.overlayManager.setSensorMode(this.sensorMode, sensors, this.floorData.floorNumber);
 
         if (this.isDashboard && this.sensorMode !== "DESK"){
@@ -145,11 +255,13 @@ class ArchitecturalFloorPlan {
         // On modifie le SVG pour le centrer sur l'écran
         const vb = this.svg.viewBox.baseVal;
         this.centerSVGContent({targetX: vb.x, targetY: vb.y, targetWidth: vb.width, targetHeight: vb.height, padding: 20, fit: true });
+        this._clampCamera();
+        this._applyTransform();
 
         this.displayContentRoot();
 
         if (!this.isDashboard){
-            this._initDragAndDrop();  
+            this._initDragAndDrop();
         }
     }
 
@@ -162,6 +274,7 @@ class ArchitecturalFloorPlan {
 
     destroy() {
       this.stopLiveSensors();
+      this.clearQueuedSensorUpdates();
     }
 
     startLiveSensors() {
@@ -169,7 +282,7 @@ class ArchitecturalFloorPlan {
 
       const building = this.buildingKey;
       const sensors = this.overlayManager?.sensors ?? [];
-      const deviceIds = sensors.map(s => s.id);
+      const deviceIds = Array.from(new Set(sensors.map(s => s.id).filter(Boolean)));
 
       if (!deviceIds.length) {
         console.warn("[SSE] no sensors to subscribe");
@@ -189,29 +302,52 @@ class ArchitecturalFloorPlan {
       // ouverture du flux SSE
       this._sensorEs = new EventSource(url);
 
+      const normalizeSsePayload = (payload) => {
+        if (payload == null) return [];
+        if (Array.isArray(payload)) {
+          return payload.flatMap(normalizeSsePayload);
+        }
+        if (Array.isArray(payload.result)) {
+          return payload.result.flatMap(normalizeSsePayload);
+        }
+        if (Array.isArray(payload.results)) {
+          return payload.results.flatMap(normalizeSsePayload);
+        }
+        if (Array.isArray(payload.items)) {
+          return payload.items.flatMap(normalizeSsePayload);
+        }
+        if (payload.result && typeof payload.result === "object") {
+          return [payload.result];
+        }
+        return [payload];
+      };
+
       // Traitement commun uplink + snapshot
       const handleSensorEvent = (e) => {
         try {
           const raw = JSON.parse(e.data);
-          const msg = raw?.result ?? raw;
+          const messages = normalizeSsePayload(raw);
 
-          const sensorId =
-            msg?.end_device_ids?.device_id ||
-            msg?.deviceId ||
-            msg?.device_id;
+          messages.forEach((msg) => {
+            const sensorId =
+              msg?.end_device_ids?.device_id ||
+              msg?.deviceId ||
+              msg?.device_id;
 
-          if (!sensorId) return;
+            if (!sensorId) return;
 
-          const decoded =
-            msg?.uplink_message?.decoded_payload ||
-            msg?.decoded_payload ||
-            msg?.payload ||
-            {};
+            const decoded =
+              msg?.uplink_message?.decoded_payload ||
+              msg?.decoded_payload ||
+              msg?.payload ||
+              {};
 
-          const value = this.extractSensorValue(this.sensorMode, decoded);
-          if (value == null) return;
+            const value = this.extractSensorValue(this.sensorMode, decoded);
 
-          this.updateSensorValue(sensorId, value);
+            if (value == null) return;
+
+            this.updateSensorValue(sensorId, value);
+          });
 
         } catch (err) {
           console.warn("[SSE sensors] parse error", err, e.data);
@@ -235,8 +371,61 @@ class ArchitecturalFloorPlan {
       };
     }
 
+    getModeConfig(mode = this.sensorMode) {
+      const normalizedMode = String(mode || '').toUpperCase();
+      return FLOOR_PLAN_MODE_CONFIG[normalizedMode] || {
+        sensorTypes: [normalizedMode],
+        payloadFields: []
+      };
+    }
+
+    normalizeSvgSensorType(sensorMode, sensorId = "") {
+      const normalizedMode = String(sensorMode || "").toUpperCase();
+      const normalizedId = String(sensorId || "").toLowerCase();
+
+      if (normalizedId.startsWith("tempex-")) return "TEMPEX";
+      if (normalizedId.startsWith("co2-")) return "CO2";
+      if (normalizedId.startsWith("eye-")) return "EYE";
+      if (normalizedId.startsWith("son-")) return "SON";
+      if (normalizedId.startsWith("count-")) return "COUNT";
+      if (normalizedId.startsWith("conso-")) return "CONSO";
+      if (normalizedId.startsWith("energy-")) return "ENERGY";
+      if (normalizedId.startsWith("desk-")) return "DESK";
+      if (normalizedId.startsWith("occup-")) return "OCCUP";
+      if (normalizedId.startsWith("humidity-")) return "HUMIDITY";
+      if (normalizedId.startsWith("tempint-")) return "TEMP";
+
+      return normalizedMode || "UNKNOWN";
+    }
+
     extractSensorValue(mode, payload) {
       if (!payload) return null;
+
+      const normalizedMode = String(mode || '').toUpperCase();
+      const config = this.getModeConfig(normalizedMode);
+
+      if (normalizedMode === "COUNT") {
+        return {
+          in: payload.period_in ?? 0,
+          out: payload.period_out ?? 0,
+        };
+      }
+
+      if (normalizedMode === "CONSO" || normalizedMode === "ENERGY") {
+        return "";
+      }
+
+      for (const field of config.payloadFields || []) {
+        if (payload[field] != null) {
+          return payload[field];
+        }
+      }
+
+      if (normalizedMode === "MOTION") {
+        return payload["pir"] ?? payload["motion"] ?? "Motion";
+      }
+
+      return null;
 
       switch (mode) {
         case "CO2":
@@ -247,15 +436,20 @@ class ArchitecturalFloorPlan {
         case "HUMIDITY":
           return payload["humidity"] ?? payload["humidity (%)"];
         case "NOISE":
+        case "SON":
           return payload["LAeq"] ?? payload["LAeq (dB)"];
         case "LIGHT":
-          return payload["light"];
+          return payload["light"] ?? payload["illuminance"] ?? payload["lux"];
+        case "PIR_LIGHT":
+        case "PR":
+            return payload["light"] ?? payload["illuminance"] ?? payload["lux"] ?? payload["daylight"];
         case "COUNT":
           return {
             in: payload.period_in ?? 0,
             out: payload.period_out ?? 0,
           };
         case "ENERGY":
+        case "CONSO":
             return "";  // la valeur sera récupérée par la suite sur Avg Power
         case "MOTION":
             return payload["pir"] ?? "Motion";
@@ -264,42 +458,54 @@ class ArchitecturalFloorPlan {
       }
     }
 
-    updateSensorValue(sensorId, value) {
-      if (!this.overlayManager) return;
+    updateDeskStatus(sensorId, status) {
+        if (!this.overlayManager) return false;
+        return this.overlayManager.updateDeskStatus(sensorId, status);
+    }
 
-      const updated = this.overlayManager.updateSensorValue(
-        sensorId,
-        value,
-        new Date().toISOString()
-      );
-      console.log('Updated sensor: ', updated);
-
-      if (!updated) {
-        // capteur hors étage affiché → ignore
+    clearQueuedSensorUpdates() {
+      if (this._sensorFlushFrame != null) {
+        cancelAnimationFrame(this._sensorFlushFrame);
+        this._sensorFlushFrame = null;
       }
+      this._pendingSensorUpdates.clear();
+    }
+
+    flushQueuedSensorUpdates() {
+      this._sensorFlushFrame = null;
+
+      if (!this.overlayManager || !this._pendingSensorUpdates.size) {
+        this._pendingSensorUpdates.clear();
+        return;
+      }
+
+      const updates = Array.from(this._pendingSensorUpdates.entries());
+      const timestamp = new Date().toISOString();
+      this._pendingSensorUpdates.clear();
+
+      updates.forEach(([sensorId, value]) => {
+        this.overlayManager.updateSensorValue(sensorId, value, timestamp);
+      });
+    }
+
+    updateSensorValue(sensorId, value) {
+      if (!sensorId) return;
+
+      this.sensorValueCache.set(sensorId, value);
+      this._pendingSensorUpdates.set(sensorId, value);
+
+      if (this._sensorFlushFrame != null) {
+        return;
+      }
+
+      this._sensorFlushFrame = requestAnimationFrame(() => {
+        this.flushQueuedSensorUpdates();
+      });
     }
 
     async drawFloorSVG() {
-        if (!this.svgPath) {
-            console.warn('Aucun svgPath fourni');
-            return;
-        }
-
-        // Charger le SVG externe
-        let raw;
-        try {
-            const resp = await fetch(this.svgPath);
-            raw = await resp.text();
-        } catch (e) {
-            console.error('Erreur de chargement du SVG', e);
-            return;
-        }
-
-        console.log(this.svgPath);
-        console.log(raw);
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(raw, "image/svg+xml");
+        const doc = await this.getSvgDocument();
+        if (!doc) return;
         const graphicSelector = ['rect','circle','line','text','path','ellipse','polyline','polygon','use'].join(', ');
         const nodes = Array.from(doc.querySelectorAll(graphicSelector));
         if (!nodes.length) {
@@ -383,19 +589,8 @@ class ArchitecturalFloorPlan {
     }
 
     async populateSensorsFromSvg(valueMap = null) {
-        if (!this.svgPath) return [];
-
-        let raw;
-        try {
-            const resp = await fetch(this.svgPath);
-            raw = await resp.text();
-        } catch (e) {
-            console.error('[Sensors] Erreur de chargement du SVG', e);
-            return [];
-        }
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(raw, 'image/svg+xml');;
+        const doc = await this.getSvgDocument();
+        if (!doc) return [];
 
         // On considère capteur = tout élément portant la classe "sensor"
         const nodes = Array.from(doc.querySelectorAll('.sensor'));
@@ -409,9 +604,12 @@ class ArchitecturalFloorPlan {
                     return match ? parseFloat(match[1]) : 0;
                 }
 
-                const liveValue = valueMap?.get(el.getAttribute('id')) ?? '--';
-                return { id : el.getAttribute('id'),
-                    type : el.getAttribute('sensor-mode') || 'UNKNOWN',
+                const sensorId = el.getAttribute('id');
+                const rawType = el.getAttribute('sensor-mode') || 'UNKNOWN';
+                const liveValue = valueMap?.get(sensorId) ?? '--';
+                return { id : sensorId,
+                    type : this.normalizeSvgSensorType(rawType, sensorId),
+                    rawType,
                     floor : el.getAttribute('floor-number'),
                     x : parseFloat(el.getAttribute('x')),
                     y : parseFloat(el.getAttribute('y')),
@@ -427,11 +625,14 @@ class ArchitecturalFloorPlan {
         });
 
         // pour la configuration on récupère tous les capteurs du svg
-        // pour le dashboard uniquement ceux de l'étage courant et du mode courant 
+        // pour le dashboard uniquement ceux de l'étage courant et du mode courant
         if (this.isDashboard){
+            // Certains modes peuvent être fournis par plusieurs types de capteurs.
+            // Pour la température, on agrège tous les capteurs qui remontent une valeur exploitable.
+            const allowedTypes = this.getModeConfig(this.sensorMode).sensorTypes ?? [this.sensorMode];
             sensors = sensors
                 .filter(s => s.floor == this.floorData.floorNumber)
-                .filter(s => s.type === this.sensorMode);
+                .filter(s => allowedTypes.includes(s.type));
         }
 
         return sensors;
@@ -461,7 +662,7 @@ class ArchitecturalFloorPlan {
             desks.forEach((desk) => {
                 deskOccupancy[desk.id] = desk.status;
             });
-            
+
         } catch (error) {
             console.error("Error loading desk occupancy:", error);
         }
@@ -604,6 +805,8 @@ class ArchitecturalFloorPlan {
                         return el;
                     }
                     this.populateFormFromG(el);
+                    // ✅ Passer en mode édition : ID grisé, bouton Save actif
+                    if (window.setFormMode) window.setFormMode('edit', el.getAttribute('id'));
                     return el;
                 }
                 el = el.parentNode;
@@ -715,7 +918,7 @@ class ArchitecturalFloorPlan {
                         if (chairTop) chairTop.value = "0";
                         if (chairBottom) chairBottom.value = "0";
                         if (chairLeft) chairLeft.value = "0";
-                        if (chairRight) chairRight.value = "0";   
+                        if (chairRight) chairRight.value = "0";
                     }
 
                     // Charger les options de location + pré-sélectionner la valeur courante
@@ -735,7 +938,12 @@ class ArchitecturalFloorPlan {
                                 window.loadLocationOptions(buildingId, floor, null);
                             }
                         });
+
+                    // ✅ Passer en mode édition : ID grisé, bouton Save actif
+                    if (window.setFormMode) {
+                        window.setFormMode('edit', sensor.getAttribute("id"));
                     }
+                }
             }
 
             const TOLERANCE_PERCENT = 20;
@@ -797,7 +1005,11 @@ class ArchitecturalFloorPlan {
                 }
 
                 el = bestEl;
-                if (el) this.populateFormFromG(el);
+                if (el){
+                    this.populateFormFromG(el);
+                    // ✅ Passer en mode édition : ID grisé, bouton Save actif
+                    if (window.setFormMode) window.setFormMode('edit', el.getAttribute('id'));
+                }
             }
 
             if (!el) return;
@@ -926,7 +1138,7 @@ class ArchitecturalFloorPlan {
             this.svg.releasePointerCapture?.(evt.pointerId);
 
             const el = drag.el;
-            
+
             const id =
                 el.getAttribute("data-id") ||
                 el.getAttribute("data-desk-id") ||
@@ -935,7 +1147,7 @@ class ArchitecturalFloorPlan {
             if (id) {
                 // mémoriser la position finale (patch)
                 let pos = { x: 0, y: 0, type: drag.type };
-                
+
                 if (drag.type === "groupChildren") {
                     const deskRect = el.querySelector("rect");
                     if (deskRect) {
@@ -1037,18 +1249,41 @@ class ArchitecturalFloorPlan {
         }
         const sel = document.getElementById("filter-element");
         if (sel) sel.value = type;
+
+        // ✅ Passer en mode édition : ID grisé, bouton Save actif
+        if (window.setFormMode) window.setFormMode('edit', id);
     }
 
     _applyTransform() {
         if (this._rafPending) return;
         this._rafPending = true;
         requestAnimationFrame(() => {
+            this._clampCamera();
             this.viewport.setAttribute(
                 "transform",
                 `translate(${this.camera.tx}, ${this.camera.ty}) scale(${this.camera.scale})`
             );
             this._rafPending = false;
         });
+    }
+
+    _clampCamera() {
+        if (!this.svg) return;
+
+        const vb = this.svg.viewBox?.baseVal;
+        if (!vb) return;
+
+        this.camera.scale = Math.max(this.camera.min, Math.min(this.camera.max, this.camera.scale));
+
+        const { panPadding } = this.zoomConfig;
+        const extraWidth = Math.max(0, (this.camera.scale - 1) * vb.width);
+        const extraHeight = Math.max(0, (this.camera.scale - 1) * vb.height);
+
+        const maxPanX = extraWidth / 2 + panPadding;
+        const maxPanY = extraHeight / 2 + panPadding;
+
+        this.camera.tx = Math.max(-maxPanX, Math.min(maxPanX, this.camera.tx));
+        this.camera.ty = Math.max(-maxPanY, Math.min(maxPanY, this.camera.ty));
     }
 
     enablePan() {
@@ -1100,7 +1335,7 @@ class ArchitecturalFloorPlan {
             this.camera.ty -= (cursor.y * newScale - cursor.y * oldScale);
 
             this.camera.scale = newScale;
-            this.viewport.setAttribute("transform", `translate(${this.camera.tx}, ${this.camera.ty}) scale(${this.camera.scale})`);
+            this._applyTransform();
         }, { passive: false });
     }
 

@@ -115,17 +115,17 @@ public class EnergyChannelController {
                 Double lastValue = lastResult.get(0);
 
                 if (firstValue != null && lastValue != null) {
-                    // Calculate difference (handles negative values)
                     double consumption = lastValue - firstValue;
-                    
-                    // DEBUG: Log CH0 and CH1 in detail to find why they're 70x too small
-                    if (channel.name().equals("ENERGY_CHANNEL_0") || channel.name().equals("ENERGY_CHANNEL_1")) {
-                        log.warn("🔍 DEBUG {} on {}: FIRST={} Wh, LAST={} Wh, CONSUMPTION={} Wh ({} kWh)", 
-                                channel.name(), day, firstValue, lastValue, consumption, consumption / 1000.0);
-                    } else {
-                        log.debug("Channel {} on {}: {} - {} = {} Wh", 
-                                channel.name(), day, lastValue, firstValue, consumption);
+
+                    // Si négatif → reset du compteur sur cette journée (redémarrage capteur, etc.)
+                    // On retourne null pour ne pas afficher de valeur aberrante
+                    if (consumption < 0) {
+                        log.warn("⚠️ Negative consumption for {} on {}: first={} Wh, last={} Wh — counter reset suspected",
+                                channel.name(), day, firstValue, lastValue);
+                        return null;
                     }
+
+                    log.debug("Channel {} on {}: {} - {} = {} Wh", channel.name(), day, lastValue, firstValue, consumption);
                     return consumption;
                 }
             }

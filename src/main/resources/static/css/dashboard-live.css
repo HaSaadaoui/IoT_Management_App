@@ -32,36 +32,36 @@ main {
 }
 
 .metric-split {
-  display: flex;
-  flex-direction: column;
+    display: flex;
+    flex-direction: column;
 }
 
 .metric-split-values {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
 }
 
 .metric-scope {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 52px;
 }
 
 .scope-label {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #64748b;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #64748b;
 }
 
 .metric-divider {
-  width: 1px;
-  height: 26px;
-  background-color: #e5e7eb;
-  margin: 0 10px;
+    width: 1px;
+    height: 26px;
+    background-color: #e5e7eb;
+    margin: 0 10px;
 }
 
 .metric-card::before {
@@ -170,7 +170,7 @@ main {
     .live-metrics-grid {
         grid-template-columns: repeat(3, 1fr);
     }
-    
+
     .charts-grid--3col {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -180,15 +180,15 @@ main {
     .live-metrics-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-    
+
     .analytics-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .charts-grid--3col {
         grid-template-columns: 1fr;
     }
-    
+
     .historical-grid {
         grid-template-columns: 1fr;
     }
@@ -198,17 +198,17 @@ main {
     .live-metrics-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .metric-card {
         padding: 1.25rem;
     }
-    
+
     .metric-icon {
         width: 56px;
         height: 56px;
         font-size: 1.75rem;
     }
-    
+
     .metric-value {
         font-size: 1.75rem;
     }
@@ -234,6 +234,8 @@ main {
 }
 
 .chart-card{
+    display: flex;
+    flex-direction:column;
     background:white;
     border-radius:12px;
     padding:16px;
@@ -244,7 +246,7 @@ main {
     display:flex;
     justify-content:space-between;
     align-items:center;
-    margin-bottom:10px;
+    margin:10px;
     flex-wrap:wrap;
     gap:8px;
 }
@@ -261,7 +263,9 @@ main {
 }
 
 .rt-chart-container{
-    height:220px;
+    margin-top: auto;
+    position: relative;
+    height: 200px;
 }
 
 .env-chart-toggle{
@@ -284,4 +288,95 @@ main {
 .env-chart-btn.active{
     background:#3b82f6;
     color:white;
+}
+
+
+
+.env-chart-btn.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: white;
+}
+
+
+/* ===== ZONE TABS NAV ===== */
+.zone-tabs-nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin: 0 auto 1.25rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+    width: fit-content;
+}
+
+.zone-tab-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.zone-tab-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: -1;
+}
+
+.zone-tab-btn:hover {
+    transform: translateY(-2px);
+    color: var(--primary);
+}
+
+.zone-tab-btn.active {
+    color: white;
+    box-shadow: var(--shadow-glow);
+}
+
+.zone-tab-btn.active::before {
+    opacity: 1;
+}
+
+/* ===== ZONE PANEL ===== */
+.zone-block {
+    background: white;
+    border-radius: 0 16px 16px 16px;
+    padding: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+    border: 1px solid #f1f5f9;
+    position: relative;
+}
+
+/* accent bar top */
+.zone-block::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    border-radius: 0 16px 0 0;
+    background: linear-gradient(90deg, var(--primary), var(--primary-light));
+}
+
+.env-chart-btn.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: white;
 }

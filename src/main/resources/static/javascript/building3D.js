@@ -2,16 +2,26 @@
 
 // Charge un SVG via URL et renvoie { shape, centerX, centerZ }
 async function loadSVGShapeFromUrl(url) {
-    // Pre-check: ensure the SVG file actually exists before handing off to THREE.SVGLoader
-    const check = await fetch(url, { method: 'HEAD' }).catch(() => null);
-    if (!check || !check.ok) {
-        throw new Error(`SVG not found (HTTP ${check ? check.status : 'network error'}): ${url}`);
+    if (!url) {
+        throw new Error("SVG URL is empty");
+    }
+
+    const normalizedUrl = String(url).trim();
+    const isEphemeralUrl = normalizedUrl.startsWith("blob:") || normalizedUrl.startsWith("data:");
+
+    // Pre-check only for persistent HTTP/relative URLs.
+    // Blob/data URLs used for local preview do not support HEAD consistently.
+    if (!isEphemeralUrl) {
+        const check = await fetch(normalizedUrl, { method: 'HEAD' }).catch(() => null);
+        if (!check || !check.ok) {
+            throw new Error(`SVG not found (HTTP ${check ? check.status : 'network error'}): ${normalizedUrl}`);
+        }
     }
 
     return new Promise((resolve, reject) => {
         const loader = new THREE.SVGLoader();
         loader.load(
-            url,
+            normalizedUrl,
             (data) => {
                 if (!data.paths.length) {
                     reject(new Error("SVG ne contient aucun <path>"));
@@ -101,6 +111,8 @@ class Building3D {
         this._ephemeralSvgUrl = null;
 
         this.isDashboard = true;
+        this.dashboardAutoRotateSpeed = 0;
+        this.dashboardLockedPolarAngle = Math.PI * 0.29;
 
         // OCCUPANCY STATE (centralisé)
         this.deskStatusMap = new Map();
@@ -170,6 +182,9 @@ class Building3D {
         try {
             // On ne persiste que dans la configuration
             if (!this.currentArchPlan || this.isDashboard) return;
+            // Ne pas persister un SVG vide (drawFloorPlan pas encore terminé)
+            const contentRoot = this.currentArchPlan.svg?.querySelector('#content-root');
+            if (!contentRoot || contentRoot.children.length === 0) return;
             const svgContent = this.currentArchPlan.exportSVG();
             if (!svgContent) return;
             // Nettoyage ancien blob si existant
@@ -223,6 +238,25 @@ class Building3D {
         }
     }
 
+    // Pré-remplit deskStatusMap depuis la DB (dernière valeur connue de chaque desk)
+    async preloadDeskStatusMap() {
+        if (!this.buildingKey) return;
+        try {
+            const resp = await fetch(`/api/dashboard/occupancy?building=${encodeURIComponent(this.buildingKey)}`);
+            if (!resp.ok) return;
+            const desks = await resp.json();
+            if (!Array.isArray(desks)) return;
+            desks.forEach(d => {
+                if (d.id && d.status) {
+                    this.deskStatusMap.set(d.id, d.status);
+                }
+            });
+            console.log(`[Building3D] Preloaded ${desks.length} desk statuses from DB`);
+        } catch (e) {
+            console.warn('[Building3D] preloadDeskStatusMap error', e);
+        }
+    }
+
     computeDynamicViewForBuilding() {
         if (!this.building || !this.camera || !this.controls || !THREE) {
             const target = new THREE.Vector3(0, 0, 0);
@@ -248,6 +282,22 @@ class Building3D {
         const verticalOffset = Math.min(Math.max(size.y * 0.1, 1), 5);
         const target = center.clone();
         target.y += verticalOffset;
+
+        if (this.isDashboard && this.isIn3DView) {
+            target.x = 0;
+            target.z = 0;
+
+            const distance = THREE.MathUtils.clamp(radius * 2.35, 10, 60);
+            const camPos = new THREE.Vector3(
+                0,
+                target.y + distance * 0.95,
+                distance * 0.28
+            );
+            const minD = THREE.MathUtils.clamp(radius * 0.9, 6, 30);
+            const maxD = THREE.MathUtils.clamp(radius * 3.0, 14, 80);
+
+            return { target, camPos, minD, maxD };
+        }
 
         const distance = THREE.MathUtils.clamp(radius * 2.2, 6, 60);
 
@@ -314,19 +364,16 @@ class Building3D {
             this.showFloorInfo(this.hoveredFloor.userData.floorNumber);
         }
 
-        // Refresh plan 2D
+        // Refresh plan 2D — mise à jour ciblée du seul bureau modifié
         if (!this.isIn3DView && this.currentArchPlan && this.currentFloorNumber != null) {
-            const floorInfo = this.floorData[this.currentFloorNumber];
-            const m = {};
-            Object.values(floorInfo.desks).forEach(d => (m[d.sensor] = d.status));
-            this.currentArchPlan.drawFloorPlan(m);
+            this.currentArchPlan.updateDeskStatus(sensorId, status);
         }
     }
 
     async loadOccupancyDataForFloor(floorNumber) {
         console.log("Loading occupancy from SSE cache for", this.buildingKey, "floor", floorNumber);
-        // Update stats from building 3D
-        if (window.ChartUtils?.generateStatCardsForBuilding) {
+        // Update stats from building 3D — only when viewing a specific floor (not in 3D overview)
+        if (!this.isIn3DView && window.ChartUtils?.generateStatCardsForBuilding) {
             // Génère uniquement les cartes du floor choisi
             window.ChartUtils.generateStatCardsForBuilding(this.buildingKey, floorNumber);
         }
@@ -446,6 +493,25 @@ class Building3D {
         this.controls.maxDistance = 40;
         this.controls.maxPolarAngle = Math.PI / 2.1;
         this.controls.target.set(0, 5, 0);
+        this.applyInteractionMode();
+    }
+
+    applyInteractionMode() {
+        if (!this.controls) return;
+
+        if (this.isDashboard && this.isIn3DView) {
+            this.controls.enableRotate = true;
+            this.controls.enableZoom = true;
+            this.controls.enablePan = false;
+            this.controls.minPolarAngle = this.dashboardLockedPolarAngle;
+            this.controls.maxPolarAngle = this.dashboardLockedPolarAngle;
+        } else {
+            this.controls.enableRotate = true;
+            this.controls.enableZoom = true;
+            this.controls.enablePan = true;
+            this.controls.minPolarAngle = 0;
+            this.controls.maxPolarAngle = Math.PI / 2.1;
+        }
     }
 
     resetCameraForBuilding() {
@@ -459,6 +525,37 @@ class Building3D {
 
         this.camera.updateProjectionMatrix();
         this.controls.update();
+    }
+
+    updateSceneFogForBuilding() {
+        if (!this.scene || !this.building || !THREE) return;
+
+        this.building.updateMatrixWorld(true);
+
+        const bbox = new THREE.Box3().setFromObject(this.building);
+        const sphere = new THREE.Sphere();
+        bbox.getBoundingSphere(sphere);
+
+        const radius = Math.max(sphere.radius, 0.001);
+        const fogNear = Math.max(radius * 3.5, 35);
+        const fogFar = Math.max(radius * 7.5, fogNear + 40);
+
+        this.scene.fog = new THREE.Fog(0x0f172a, fogNear, fogFar);
+    }
+
+    centerBuildingAtOrigin() {
+        if (!this.building || !THREE) return;
+
+        this.building.updateMatrixWorld(true);
+
+        const bbox = new THREE.Box3().setFromObject(this.building);
+        const center = new THREE.Vector3();
+        bbox.getCenter(center);
+
+        this.building.position.x -= center.x;
+        this.building.position.z -= center.z;
+
+        this.building.updateMatrixWorld(true);
     }
 
     async createBuilding() {
@@ -581,6 +678,9 @@ class Building3D {
         }
 
         this.scene.add(this.building);
+        this.centerBuildingAtOrigin();
+        this.building.rotation.y = 0;
+        this.updateSceneFogForBuilding();
     }
 
     setupEventListeners() {
@@ -675,7 +775,7 @@ class Building3D {
         }
 
         overlay.innerHTML = `
-            <h4 style="margin:0 0 0.5rem;color:#662179;font-size:1rem;">${data.name}</h4>
+            <h4 style="margin:0 0 0.5rem;color:#662179;font-size:1rem;">${floorName}</h4>
             <p style="margin:0.25rem 0;font-size:0.9rem;">Total Desks: ${floorTotalDesks}</p>
             <p style="margin:0.25rem 0;font-size:0.9rem;color:#10b981;">🟢 Free: ${freeDesks}</p>
             <p style="margin:0.25rem 0;font-size:0.9rem;color:#ef4444;">🔴 Used: ${usedDesks}</p>
@@ -731,7 +831,12 @@ class Building3D {
 
         const floorSelect = document.getElementById('filter-floor');
         if (floorSelect) {
+            const alreadySet = floorSelect.value === String(floorNumber);
             floorSelect.value = floorNumber;
+            // If value wasn't already set (3D click, not dropdown), notify dashboard
+            if (!alreadySet) {
+                floorSelect.dispatchEvent(new Event('change'));
+            }
         }
     }
 
@@ -739,26 +844,29 @@ class Building3D {
     switch2DFloorView(floorNumber) {
         this.isIn3DView = false;
 
-        const layout = document.querySelector('.building-layout');
-        if (layout) layout.style.display = 'flex';
+        if (this.isDashboard) {
+            const layout = document.querySelector('.building-layout');
+            if (layout) layout.style.display = 'flex';
 
-        // Hide placeholder, show floor content
-        const placeholder = document.getElementById('floor-plan-placeholder');
-        const content = document.getElementById('floor-plan-content');
-        if (placeholder) placeholder.style.display = 'none';
-        if (content) content.style.display = 'flex';
+            // Hide placeholder, show floor content
+            const placeholder = document.getElementById('floor-plan-placeholder');
+            const content = document.getElementById('floor-plan-content');
+            if (placeholder) placeholder.style.display = 'none';
+            if (content) content.style.display = 'flex';
+        } else {
+            // Configuration page: show 2D plan, hide 3D container
+            const container3d = document.getElementById('building-3d-container');
+            if (container3d) container3d.style.display = 'none';
+            const floorPlan2d = document.getElementById('floor-plan-2d');
+            if (floorPlan2d) floorPlan2d.style.display = 'block';
+        }
 
         const backBtn = document.getElementById('back-to-3d-btn');
         if (backBtn) backBtn.style.display = 'block';
 
-        document.querySelector('.left-panel').style.flex = '0 0 50%';
-        document.querySelector('.right-panel').style.flex = '0 0 50%';
-
-
         requestAnimationFrame(() => this.resize3D());
 
-        //garder interaction 3D
-        if (this.controls) this.controls.enabled = true;
+        this.applyInteractionMode();
 
         this.loadArchitecturalPlan(floorNumber);
     }
@@ -788,7 +896,7 @@ class Building3D {
             if (!this.currentArchPlan) {
                 this.currentArchPlan = new ArchitecturalFloorPlan('desk-grid', currentFloorData, this.currentSensorMode, this.config.id, this.dbBuildingConfig.svgUrl, this.isDashboard, floorsCount);
             } else {
-                this.currentArchPlan.updateConfig(currentFloorData, this.currentSensorMode, this.dbBuildingConfig.svgUrl);
+                this.currentArchPlan.updateConfig(currentFloorData, this.currentSensorMode, this.dbBuildingConfig.svgUrl, floorsCount);
             }
             this.loadRealOccupancyData();
         } else {
@@ -818,9 +926,12 @@ class Building3D {
             'LIGHT': 'Light Levels',
             'MOTION': 'Motion Detection',
             'NOISE': 'Noise Levels',
+            'SON': 'Sound Levels',
             'HUMIDITY': 'Humidity',
             'TEMPEX': 'HVAC Flow',
             'PR': 'Presence & Light',
+            'CONSO': 'Consumption',
+            'ENERGY': 'Energy Consumption',
             'SECURITY': 'Security Alerts'
         };
         const label = sensorNames[this.currentSensorMode] || this.currentSensorMode;
@@ -829,7 +940,12 @@ class Building3D {
     }
 
     setSensorMode(mode) {
-        this.currentSensorMode = mode;
+        const normalizedMode = String(mode || '').toUpperCase();
+        this.currentSensorMode = normalizedMode === 'NOISE'
+            ? 'SON'
+            : normalizedMode === 'ENERGY'
+                ? 'CONSO'
+                : normalizedMode;
         if (!this.isIn3DView && this.currentFloorNumber !== null) {
             this.loadArchitecturalPlan(this.currentFloorNumber);
         }
@@ -844,21 +960,32 @@ class Building3D {
 
     return3DView() {
         this.isIn3DView = true;
+        this.applyInteractionMode();
 
-        // Show placeholder, hide floor content
-        const placeholder = document.getElementById('floor-plan-placeholder');
-        const content = document.getElementById('floor-plan-content');
-        if (placeholder) placeholder.style.display = '';
-        if (content) content.style.display = 'none';
+        if (this.isDashboard) {
+            // Show placeholder, hide floor content
+            const placeholder = document.getElementById('floor-plan-placeholder');
+            const content = document.getElementById('floor-plan-content');
+            if (placeholder) placeholder.style.display = '';
+            if (content) content.style.display = 'none';
 
-        const layout = document.querySelector('.building-layout');
-        if (layout) layout.style.display = 'flex';
+            const layout = document.querySelector('.building-layout');
+            if (layout) layout.style.display = 'flex';
+
+            const left = document.querySelector('.left-panel');
+            const right = document.querySelector('.right-panel');
+            if (left) left.style.flex = '';
+            if (right) right.style.flex = '';
+        } else {
+            // Configuration page: show 3D container, hide 2D plan
+            const container3d = document.getElementById('building-3d-container');
+            if (container3d) container3d.style.display = '';
+            const floorPlan2d = document.getElementById('floor-plan-2d');
+            if (floorPlan2d) floorPlan2d.style.display = 'none';
+        }
 
         const backBtn = document.getElementById('back-to-3d-btn');
         if (backBtn) backBtn.style.display = 'none';
-
-        document.querySelector('.left-panel').style.flex = '';
-        document.querySelector('.right-panel').style.flex = '';
 
         requestAnimationFrame(() => this.resize3D());
 
@@ -879,10 +1006,19 @@ class Building3D {
         });
 
         this.currentFloorNumber = null;
-        if (window.ChartUtils?.generateStatCardsForBuilding) {
-            // Génère uniquement les cartes du floor choisi
-            window.ChartUtils.generateStatCardsForBuilding(this.buildingKey, this.currentFloorNumber);
-        }
+
+        // Reset floor select and clear env zones/stat cards directly
+        const floorSelect = document.getElementById('filter-floor');
+        if (floorSelect) floorSelect.value = '';
+
+        // Clear env zone blocks (no floor selected)
+        const zonesContainer = document.getElementById('zones-container');
+        if (zonesContainer) zonesContainer.querySelectorAll('.zone-block:not([data-orphan])').forEach(b => b.remove());
+
+        // Clear stat cards
+        const statsContainer = document.getElementById('sensor-stats-container');
+        if (statsContainer) statsContainer.innerHTML = '';
+        if (window.closeOccupancySSE) window.closeOccupancySSE();
     }
 
     resize3D() {
@@ -1028,6 +1164,7 @@ class Building3D {
         this.currentFloorNumber = null;
         this.isIn3DView = true;
         this.currentArchPlan = null;
+        this.deskStatusMap = new Map(); // reset stale data from previous building
         this.resetLayout();
 
         const container3D   = document.getElementById('building-3d-container');
@@ -1035,6 +1172,25 @@ class Building3D {
 
         if (container3D) container3D.style.display = 'block';
         if (backBtn)     backBtn.style.display     = 'none';
+
+        // Sur la page config uniquement : masquer le plan 2D (sur dashboard, floor-plan-2d est le right-panel toujours visible)
+        if (!this.isDashboard) {
+            const floorPlan2d = document.getElementById('floor-plan-2d');
+            if (floorPlan2d) floorPlan2d.style.display = 'none';
+        }
+
+        // Resynchroniser le renderer si le container était caché (dimensions = 0)
+        if (container3D && this.renderer) {
+            const w = container3D.clientWidth;
+            const h = container3D.clientHeight;
+            if (w > 0 && h > 0) {
+                this.renderer.setSize(w, h);
+                if (this.camera) {
+                    this.camera.aspect = w / h;
+                    this.camera.updateProjectionMatrix();
+                }
+            }
+        }
 
         // Show placeholder, hide floor content (resetLayout already does this, but be explicit)
         const placeholder = document.getElementById('floor-plan-placeholder');
@@ -1057,6 +1213,8 @@ class Building3D {
         try {
             await this.createBuilding();
             this.resetCameraForBuilding();
+            this.applyInteractionMode();
+            await this.preloadDeskStatusMap();  // pré-remplir depuis la DB avant le rendu
             this.loadRealOccupancyData();
             this.startOccupancySSE();
         } catch (e) {
@@ -1119,8 +1277,8 @@ class Building3D {
     animate() {
         requestAnimationFrame(() => this.animate());
         if (this.controls) this.controls.update();
-        if (this.building) {
-            this.building.rotation.y += 0.0005;
+        if (this.building && this.isDashboard && this.isIn3DView) {
+            this.building.rotation.y += this.dashboardAutoRotateSpeed;
         }
         this.renderer.render(this.scene, this.camera);
     }
@@ -1154,6 +1312,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const sensorSelect = document.getElementById('filter-sensor-type');
     if (sensorSelect) {
         sensorSelect.addEventListener('change', () => {
+            if (window.dashboardManager) {
+                return;
+            }
             if (window.building3D) {
                 window.building3D.setSensorMode(sensorSelect.value);
             }
@@ -1186,7 +1347,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (window.building3D && typeof window.building3D.setBuilding === 'function') {
                 window.building3D.buildingKey = val;
                 await window.building3D.loadConfig();
-                window.building3D.setBuilding();
+                await window.building3D.setBuilding();
             }
 
             const buildingName = buildingSelect.selectedOptions[0].text;
@@ -1199,19 +1360,28 @@ document.addEventListener('DOMContentLoaded', function () {
                 const sensorType = sensorSelect.value;
 
                 const sensorInfo = {
+                    ALL: {icon: '📡', name: 'All Sensors'},
                     DESK: {icon: '📊', name: 'Desk Occupancy'},
+                    COUNT: {icon: '🚶', name: 'People Counter'},
                     CO2: {icon: '🌫️', name: 'CO₂ Air Quality'},
                     TEMP: {icon: '🌡️', name: 'Temperature'},
+                    EYE: {icon: '💡', name: 'EYE'},
                     LIGHT: {icon: '💡', name: 'Light Levels'},
+                    PIR_LIGHT: {icon: '💡', name: 'PIR Light'},
                     MOTION: {icon: '👁️',name: 'Motion Detection'},
                     NOISE: { icon: '🔉',name: 'Noise Levels'},
+                    SON: { icon: '🔉',name: 'Sound'},
                     HUMIDITY: {icon: '💧', name: 'Humidity'},
                     TEMPEX: {icon: '🌀', name: 'HVAC Flow (TEMPex)'},
+                    OCCUP: {icon: '👤', name: 'Occupancy'},
                     PR: {icon: '👤',name: 'Presence & Light'},
+                    CONSO: {icon: '⚡', name: 'Consumption'},
+                    ENERGY: {icon: '⚡', name: 'Energy Consumption'},
                     SECURITY: {icon: '🚨',name: 'Security Alerts'}
                 };
 
-                const info = sensorInfo[sensorType] || sensorInfo.DESK;
+                const normalizedType = String(sensorType || '').toUpperCase();
+                const info = sensorInfo[normalizedType] || {icon: '📡', name: normalizedType || 'Sensor'};
                 const liveTitle     = document.getElementById('live-section-title');
                 const histTitle     = document.getElementById('historical-section-title');
                 if (liveTitle)     liveTitle.textContent     = `${info.icon} Live Data - ${buildingName} Office`;

@@ -112,7 +112,7 @@
         if (title.includes('co2') || msg.includes('ppm')) return 'CO2';
         if (title.includes('temperature') || msg.includes('°c')) return 'TEMP';
         if (title.includes('humidity') || msg.includes('%')) return 'HUMIDITY';
-        if (title.includes('noise') || msg.includes('db')) return 'NOISE';
+        if (title.includes('noise') || title.includes('sound') || msg.includes('db')) return 'SON';
         if (title.includes('offline') || title.includes('sensor')) return 'OFFLINE';
         if (title.includes('gateway')) return 'GATEWAY';
         
@@ -152,7 +152,10 @@
                 const alertType = extractSensorTypeFromAlert(alert);
                 // Show OFFLINE alerts for all sensor types
                 if (alertType === 'OFFLINE') return true;
-                return alertType === typeKey || alertType === 'OTHER';
+                return alertType === typeKey
+                    || (typeKey === 'SON' && alertType === 'NOISE')
+                    || (typeKey === 'NOISE' && alertType === 'SON')
+                    || alertType === 'OTHER';
             });
         }
         

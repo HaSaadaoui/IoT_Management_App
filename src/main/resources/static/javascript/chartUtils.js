@@ -1,117 +1,45 @@
 // ===== CHART UTILITIES + LIVE OCCUPANCY =====
 // ============================================
-// OCCUPANCY ZONES
+// DYNAMIC OCCUPANCY ZONES (loaded from API)
 // ============================================
-function createDeskRangeMatcher(prefix, start, end) {
-    return id => {
-        const match = id.match(new RegExp(`^${prefix}-(\\d+)$`));
-        if (!match) return false;
-        const num = parseInt(match[1], 10);
-        return num >= start && num <= end;
-    };
+
+// Cache des zones par buildingId : { [buildingId]: { [floor]: { ZONE_KEY: { title, match, expectedCount } } } }
+const DYNAMIC_ZONES = {};
+
+async function loadZonesForBuilding(buildingId) {
+    // Ne pas cacher les erreurs : utiliser `in` pour distinguer "non chargé" de "chargé vide"
+    if (buildingId in DYNAMIC_ZONES) return DYNAMIC_ZONES[buildingId];
+
+    try {
+        const resp = await fetch(`/api/sensors/zones?buildingId=${buildingId}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        // API returns: { "3": { "Open Space": ["desk-03-01", ...], "Meeting Room": [...] } }
+        const apiZones = await resp.json();
+
+        const zones = {};
+        Object.entries(apiZones).forEach(([floor, locationMap]) => {
+            zones[floor] = {};
+            Object.entries(locationMap).forEach(([locationName, sensorIds]) => {
+                const key = locationName.toUpperCase().replace(/[\s\-]+/g, '_');
+                const idSet = new Set(sensorIds);
+                zones[floor][key] = {
+                    title: locationName,
+                    match: (id) => idSet.has(id),
+                    expectedCount: sensorIds.length,
+                    free: 0, used: 0, invalid: 0
+                };
+            });
+        });
+
+        DYNAMIC_ZONES[buildingId] = zones;
+        console.log(`[ChartUtils] Zones loaded for building ${buildingId}:`, zones);
+        return zones;
+    } catch (e) {
+        console.error(`[ChartUtils] Failed to load zones for building ${buildingId}:`, e);
+        // Ne pas mettre en cache l'erreur → permettre un retry au prochain appel
+        return {};
+    }
 }
-
-// ============================================
-function buildOccupancyZones() {
-    const createDeskRangeMatcher = (prefix, start, end) => {
-        return id => {
-            const match = id.match(new RegExp(`^${prefix}-(\\d+)$`));
-            if (!match) return false;
-            const num = parseInt(match[1], 10);
-            return num >= start && num <= end;
-        };
-    };
-
-    // TODO récupérer les zones à partir du champ "Location" de la table "Sensor"
-    const zones = {
-        23: {
-            0: {
-                FLOOR_0: {
-                    title: "Floor 0",
-                    OPEN_SPACE: { title: "Open Space", expectedCount: 0 },
-                    free: 0, used: 0, invalid: 0, expectedCount: 0
-                }
-            },
-            1: {
-                FLOOR_1: {
-                    title: "Floor 1",
-                    MEETING_ROOM_GENEVA: { title: "Meeting Room Geneva", expectedCount: 0 },
-                    free: 0, used: 0, invalid: 0, expectedCount: 0
-                }
-            },
-            2: {
-                FLOOR_2: {
-                    title: "Floor 2",
-                    OPEN_SPACE_1: { title: "Open Space 1", match: createDeskRangeMatcher("desk-01", 1, 7), expectedCount: 7 },
-                    OPEN_SPACE_2: { title: "Open Space 2", expectedCount: 8 },
-                    MEETING_ROOM_ATLANTIC: { title: "Meeting Room Atlantic", expectedCount: 0 },
-                    MEETING_ROOM_PACIFIC: { title: "Meeting Room Pacific", expectedCount: 0 },
-                    free: 0, used: 0, invalid: 0, expectedCount: 15
-                }
-            },
-            3: {
-                FLOOR_3: {
-                    title: "Floor 3",
-                    OPEN_SPACE_1: { title: "Open Space 1", expectedCount: 7 },
-                    OPEN_SPACE_2: { title: "Open Space 2", expectedCount: 8 },
-                    MEETING_ROOM_SEQUOLA: { title: "Meeting Room Sequola", expectedCount: 0 },
-                    MEETING_ROOM_SANTA: { title: "Meeting Room Santa", expectedCount: 0 },
-                    free: 0, used: 0, invalid: 0, expectedCount: 15
-                }
-            },
-            4: {
-                FLOOR_4: {
-                    title: "Floor 4",
-                    OPEN_SPACE_1: { title: "Open Space 1", match: createDeskRangeMatcher("desk-04", 1, 8), expectedCount: 8 },
-                    MEETING_ROOM_NEWYORK: { title: "Meeting Room New York", expectedCount: 0 },
-                    MEETING_ROOM_OREGAN: { title: "Meeting Room Oregan", expectedCount: 0 },
-                    MEETING_ROOM_MIAMI: { title: "Meeting Room Miami", expectedCount: 0 },
-                    free: 0, used: 0, invalid: 0, expectedCount: 8
-                }
-            },
-            5: {
-                FLOOR_5: {
-                    title: "Floor 5",
-                    OPEN_SPACE_1: { title: "Open Space 1", match: createDeskRangeMatcher("desk-05", 1, 16), expectedCount: 16 },
-                    OPEN_SPACE_2: { title: "Open Space 2", match: createDeskRangeMatcher("desk-05", 17, 24), expectedCount: 8 },
-                    free: 0, used: 0, invalid: 0, expectedCount: 24
-                }
-            },
-            6: {
-                FLOOR_6: {
-                    title: "Floor 6",
-                    OPEN_SPACE_1: { title: "Open Space 1", match: createDeskRangeMatcher("desk-06", 1, 8), expectedCount: 8 },
-                    OPEN_SPACE_2: { title: "Open Space 2", match: createDeskRangeMatcher("desk-06", 9, 16), expectedCount: 8 },
-                    MEETING_ROOM_PARIS: { title: "Meeting Room Paris", expectedCount: 0 },
-                    free: 0, used: 0, invalid: 0, expectedCount: 16
-                }
-            }
-        },
-        21: {
-            0: {
-                OPEN_SPACE: { title: "Open_03_01", match: (id) => /^desk-03-(0[1-9]|[1-7][0-9]|8[0-2])$/.test(id) },
-                VALUEMENT: { title: "Valuement", match: (id) => /^desk-03-(8[3-9]|9[0-2])$/.test(id) },
-                MEETING_ROOM: { title: "Meeting Room", match: (id) => /^occup-vs70-03-0[1-2]$/.test(id) || id === "count-03-01" },
-                INTERVIEW_ROOM: { title: "Interview Room", match: (id) => /^desk-vs41-03-0[1-2]$/.test(id) },
-                PHONE_BOOTH: { title: "Phone Booth", match: (id) => [
-                    "desk-vs41-03-03",
-                    "desk-vs41-03-04",
-                    "occup-vs30-03-01",
-                    "occup-vs30-03-02",
-                    "desk-vs40-03-01",
-                    "occup-vs70-03-03",
-                    "occup-vs70-03-04"
-                ].includes(id) }
-            }
-        },
-    };
-
-    console.log("ZONES:", zones);
-    return zones;
-}
-
-let OCCUPANCY_ZONES = buildOccupancyZones();
-console.log("OCCUPANCY_ZONES:", OCCUPANCY_ZONES);
 // ============================================
 // DASHBOARD CONTEXT
 // ============================================
@@ -126,68 +54,73 @@ const occupancyState = {};
 // SSE / LIVE OCCUPANCY
 // ============================================
 function openOccupancySSE(building, floor) {
-  console.log("🔄 openOccupancySSE (SSEManager) called with:", building, floor);
+    console.log("🔄 openOccupancySSE (SSEManager) called with:", building, floor);
 
-  // coupe l'ancienne souscription si on re-switch building/floor
-  if (occupancyUnsub) {
-    console.log("🔁 Unsub previous SSE");
-    occupancyUnsub();
-    occupancyUnsub = null;
-  }
-
-  if (!window.SSEManager?.subscribeOccupancy) {
-    console.warn("❌ SSEManager not available (script not loaded yet?)");
-    return;
-  }
-
-  // Souscription au hub (1 seul EventSource partagé)
-  occupancyUnsub = window.SSEManager.subscribeOccupancy(building, ({ type, data }) => {
-    try {
-      const msg = data;
-      const deviceId =
-        msg?.end_device_ids?.device_id ||
-        msg?.deviceId ||
-        msg?.device_id;
-
-      const decoded =
-        msg?.uplink_message?.decoded_payload ??
-        msg?.decoded_payload ??
-        msg?.payload ??
-        {};
-
-      const occRaw = decoded?.occupancy;
-      if (!deviceId) return;
-
-      const status = normalizeDeskStatus(occRaw);
-
-      // (perf) si status inchangé -> ne rerender pas
-      if (occupancyState[deviceId] === status) return;
-
-      occupancyState[deviceId] = status;
-
-      // Snapshot complet
-      const snapshot = Object.entries(occupancyState).map(([id, s]) => ({ id, status: s }));
-
-      const zoneStats = aggregateByZone(snapshot, building, floor);
-      updateAllStatCards(zoneStats);
-
-    } catch (err) {
-      console.warn("[SSEManager][occupancy] handler error", err);
+    // coupe l'ancienne souscription si on re-switch building/floor
+    if (occupancyUnsub) {
+        console.log("🔁 Unsub previous SSE");
+        occupancyUnsub();
+        occupancyUnsub = null;
     }
-  });
+
+    if (!window.SSEManager?.subscribeOccupancy) {
+        console.warn("❌ SSEManager not available (script not loaded yet?)");
+        return;
+    }
+
+    // Souscription au hub (1 seul EventSource partagé)
+    occupancyUnsub = window.SSEManager.subscribeOccupancy(building, ({ type, data }) => {
+        try {
+            const msg = data;
+            const deviceId =
+                msg?.end_device_ids?.device_id ||
+                msg?.deviceId ||
+                msg?.device_id;
+
+            const decoded =
+                msg?.uplink_message?.decoded_payload ??
+                msg?.decoded_payload ??
+                msg?.payload ??
+                {};
+
+            const occRaw = decoded?.occupancy;
+            if (!deviceId) return;
+
+            // Le snapshot TTN peut avoir une convention inversée par rapport à la DB.
+            // On laisse fetchInitialOccupancyData (source DB) avoir la priorité :
+            // si le device est déjà connu et que l'event est un snapshot, on l'ignore.
+            if (type === "snapshot" && occupancyState[deviceId] !== undefined) return;
+
+            const status = normalizeDeskStatus(occRaw);
+
+            // (perf) si status inchangé -> ne rerender pas
+            if (occupancyState[deviceId] === status) return;
+
+            occupancyState[deviceId] = status;
+
+            // Snapshot complet
+            const snapshot = Object.entries(occupancyState).map(([id, s]) => ({ id, status: s }));
+
+            const zoneStats = aggregateByZone(snapshot, building, floor);
+            updateAllStatCards(zoneStats);
+
+        } catch (err) {
+            console.warn("[SSEManager][occupancy] handler error", err);
+        }
+    });
 }
 
 function closeOccupancySSE() {
-  if (occupancyUnsub) {
-    console.log("🔒 Unsubscribe SSE (SSEManager)");
-    occupancyUnsub();
-    occupancyUnsub = null;
-  }
+    if (occupancyUnsub) {
+        console.log("🔒 Unsubscribe SSE (SSEManager)");
+        occupancyUnsub();
+        occupancyUnsub = null;
+    }
 }
 
 // Bonus: auto-clean si tu veux (recommandé)
 window.addEventListener("beforeunload", () => {
-  closeOccupancySSE();
+    closeOccupancySSE();
 });
 // ============================================
 // HELPERS
@@ -209,49 +142,20 @@ function normalizeDeskStatus(v) {
 // AGGREGATION
 // ============================================
 function aggregateByZone(rawData, building, floor) {
-    const OCCUPANCY_ZONES = buildOccupancyZones();
-    const buildingZones = OCCUPANCY_ZONES?.[building];
-    if (!buildingZones) return {};
+    const buildingZones = DYNAMIC_ZONES[building];
+    if (!buildingZones || Object.keys(buildingZones).length === 0) return {};
 
     const floorsToProcess =
         floor != null ? { [floor]: buildingZones[floor] } : buildingZones;
 
     const result = {};
 
-    function collectZones(obj, floorData) {
-        if (!obj || typeof obj !== "object") return;
-
-        Object.entries(obj).forEach(([key, val]) => {
-            if (!val || typeof val !== "object") return;
-
-            // Descendre dans FLOOR_X
-            if (key.startsWith("FLOOR_")) {
-                collectZones(val, floorData);
-                return;
-            }
-
-            // Zone réelle
-            if ("title" in val) {
-                floorData.zones[key] = {
-                    location: val.title,
-                    free: 0,
-                    used: 0,
-                    invalid: 0,
-                    expectedCount: val.expectedCount || 0,
-                    match: val.match   //ON CONSERVE LE MATCH ORIGINAL
-                };
-            }
-
-            collectZones(val, floorData);
-        });
-    }
-
-    // Init floors
+    // Init floors (structure plate, pas de FLOOR_X wrapper)
     Object.entries(floorsToProcess).forEach(([floorNum, zones]) => {
         if (!zones) return;
 
         const floorData = {
-            title: zones?.title || `Floor ${floorNum}`,
+            title: `Floor ${floorNum}`,
             free: 0,
             used: 0,
             invalid: 0,
@@ -259,7 +163,18 @@ function aggregateByZone(rawData, building, floor) {
             zones: {}
         };
 
-        collectZones(zones, floorData);
+        Object.entries(zones).forEach(([key, val]) => {
+            if (!val || typeof val !== "object" || !("title" in val)) return;
+            floorData.zones[key] = {
+                location: val.title,
+                free: 0,
+                used: 0,
+                invalid: 0,
+                expectedCount: val.expectedCount || 0,
+                match: val.match
+            };
+        });
+
         result[floorNum] = floorData;
     });
 
@@ -372,10 +287,11 @@ function updateStatCard(statCard, data) {
                     }],
                 },
                 options: {
+                    aspectRatio: 1,
                     responsive: true,
                     maintainAspectRatio: true,
                     cutout: "70%",
-                    layout: { padding: { top: 20, bottom: 5 } },
+                    layout: { padding: { top: 10, bottom: 5 } },
                     animation: { duration: 0 },
                     plugins: {
                         legend: { display: false },
@@ -430,13 +346,17 @@ function updateStatCard(statCard, data) {
 // ============================================
 // GENERATE STAT CARDS FOR BUILDING
 // ============================================
-function generateStatCardsForBuilding(building, selectedFloor = null) {
+async function generateStatCardsForBuilding(building, selectedFloor = null) {
     const container = document.getElementById('sensor-stats-container');
     if (!container) return;
 
-    // Rebuild the occupancy zones
-    OCCUPANCY_ZONES = buildOccupancyZones();
-    const buildingZones = OCCUPANCY_ZONES[building];
+    const effectiveFloor =
+        selectedFloor === '' || selectedFloor === 'all' || selectedFloor == null
+            ? null
+            : selectedFloor;
+
+    // Load zones dynamically from API
+    const buildingZones = await loadZonesForBuilding(building);
 
     if (!buildingZones || Object.keys(buildingZones).length === 0) {
         container.innerHTML = '';
@@ -446,42 +366,24 @@ function generateStatCardsForBuilding(building, selectedFloor = null) {
     let html = '';
     let index = 0;
 
-    // 🔍 Detect structure type (FLOOR_X or flat)
-    const firstFloor = Object.values(buildingZones)[0];
-    const hasFloorWrapper =
-        firstFloor && Object.keys(firstFloor).some(k => k.startsWith('FLOOR_'));
-
     // ======================================================
-    // 🟢 CASE 1: FLOOR SÉLECTIONNÉ
+    // CASE 1: FLOOR SÉLECTIONNÉ → afficher les zones du floor
     // ======================================================
-    if (selectedFloor != null && buildingZones[selectedFloor]) {
+    if (effectiveFloor != null) {
+        const floorZones = buildingZones[String(effectiveFloor)];
 
-        let floorData = buildingZones[selectedFloor];
-
-        // 👉 If structure has FLOOR_X wrapper (SQY type)
-        if (hasFloorWrapper) {
-            floorData = floorData[`FLOOR_${selectedFloor}`];
-        }
-
-        if (!floorData) {
+        if (!floorZones || Object.keys(floorZones).length === 0) {
             container.innerHTML = '';
             return;
         }
 
-        const zones = Object.entries(floorData)
-            .filter(([key]) =>
-                !['title', 'free', 'used', 'invalid', 'expectedCount']
-                    .includes(key)
-            );
-
-        zones.forEach(([zoneKey, zoneData]) => {
+        Object.entries(floorZones).forEach(([zoneKey, zoneData]) => {
             html += `
                 <div class="stat-card"
                      data-zone="${zoneKey}"
-                     data-floor="${selectedFloor}"
+                     data-floor="${effectiveFloor}"
                      data-chart-index="${index}">
-                    <h4 class="stat-card-title">${zoneData.title}</h4>
-                    <div class="stat-chart-container">
+                    <div class="stat-chart-wrapper">
                         <canvas class="chart-office"></canvas>
                     </div>
                     <div class="stat-legend"></div>
@@ -491,86 +393,30 @@ function generateStatCardsForBuilding(building, selectedFloor = null) {
         });
 
     }
-    // ======================================================
-    // 🔵 CASE 2: AUCUN FLOOR SÉLECTIONNÉ
-    // ======================================================
-    else {
 
-        // 🏢 SQY TYPE (FLOOR_X structure)
-        if (hasFloorWrapper) {
-
-            Object.entries(buildingZones).forEach(([floorId, floorObj]) => {
-                const floorData = floorObj[`FLOOR_${floorId}`];
-
-                if (!floorData) return;
-
-                html += `
-                    <div class="stat-card"
-                         data-zone="FLOOR_${floorId}"
-                         data-floor="${floorId}"
-                         data-chart-index="${index}">
-                        <h4 class="stat-card-title">${floorData.title}</h4>
-                        <div class="stat-chart-container">
-                            <canvas class="chart-office"></canvas>
-                        </div>
-                        <div class="stat-legend"></div>
-                    </div>
-                `;
-                index++;
-            });
-
-        }
-        // Flat structure
-        else {
-
-            const allZones = new Map();
-
-            Object.entries(buildingZones).forEach(([floor, zones]) => {
-                Object.entries(zones).forEach(([zoneKey, zoneConfig]) => {
-                    if (!allZones.has(zoneKey)) {
-                        allZones.set(zoneKey, {
-                            key: zoneKey,
-                            title: zoneConfig.title,
-                            floor: floor
-                        });
-                    }
-                });
-            });
-
-            allZones.forEach((zone) => {
-                html += `
-                    <div class="stat-card"
-                         data-zone="${zone.key}"
-                         data-floor="${zone.floor}"
-                         data-chart-index="${index}">
-                        <h4 class="stat-card-title">${zone.title}</h4>
-                        <div class="stat-chart-container">
-                            <canvas class="chart-office"></canvas>
-                        </div>
-                        <div class="stat-legend"></div>
-                    </div>
-                `;
-                index++;
-            });
-        }
-    }
-
-
-	// 🔥 Destroy all existing charts before regenerating DOM
-	container.querySelectorAll("canvas").forEach(c => {
-		const ch = Chart.getChart(c);
-		if (ch) ch.destroy();
-	});
+    // 🔥 Destroy all existing charts before regenerating DOM
+    container.querySelectorAll("canvas").forEach(c => {
+        const ch = Chart.getChart(c);
+        if (ch) ch.destroy();
+    });
 
     container.innerHTML = html;
 
+    // Vider l'état d'occupancy pour ne pas polluer avec les anciens sensors
+    Object.keys(occupancyState).forEach(k => delete occupancyState[k]);
+
     // Mise à jour du contexte
     DASHBOARD_CTX.building = building;
-    DASHBOARD_CTX.floor = selectedFloor;
+    DASHBOARD_CTX.floor = effectiveFloor;
+
+    // Les stat-cards viennent d'être (re)créées dans #sensor-stats-container.
+    // On notifie renderZones (dashboard.js) pour qu'il absorbe les nouvelles cartes
+    // dans les zone-blocks correspondants — sans avoir à rappeler renderZones entier.
+    document.dispatchEvent(new CustomEvent("occupancyStatCardsReady"));
 
     // Fetch initial + SSE
-    fetchInitialOccupancyData(building, selectedFloor);
-    openOccupancySSE(building, selectedFloor);
+    fetchInitialOccupancyData(building, effectiveFloor);
+    openOccupancySSE(building, effectiveFloor);
 }
 
 // ============================================
@@ -580,7 +426,7 @@ async function fetchInitialOccupancyData(building, floor) {
     try {
         const qs = new URLSearchParams();
         if (building) qs.set('building', building);
-        if (floor) qs.set('floor', floor);
+        if (floor != null) qs.set('floor', floor);  // floor=0 est valide (Ground Floor)
 
         const response = await fetch(`/api/dashboard/occupancy?${qs.toString()}`);
         if (!response.ok) {
@@ -613,16 +459,7 @@ async function fetchInitialOccupancyData(building, floor) {
     }
 }
 
-// ============================================
-// INIT
-// ============================================
-window.addEventListener("DOMContentLoaded", () => {
-    console.log("🟢 DOM fully loaded");
-    // generateStatCardsForBuilding now also opens SSE connection
-    const buildingFromFilter = document.getElementById('filter-building')?.value;
-    const initialBuilding = String(buildingFromFilter || DASHBOARD_CTX.building || '').toUpperCase();
-    generateStatCardsForBuilding(initialBuilding);
-});
+// generateStatCardsForBuilding est appelé par dashboard.js une fois les buildings chargés
 
 // Color constants - read from CSS variables for single source of truth
 const getComputedColor = (varName) => {
@@ -988,75 +825,75 @@ function createOrUpdateChart(canvas, config) {
  * @param {Array<number>} data - Array of data values [free, used, invalid]
  * @returns {Object} Chart.js configuration object
  */
- function createDoughnutChartConfig(dataCounts) {
-     // dataCounts = [freeCount, usedCount, invalidCount]
-     const total = dataCounts.reduce((a, b) => a + b, 0);
-     return {
-         type: "doughnut",
-         data: {
-             labels: ["Free", "Used", "Invalid"],
-             datasets: [
-                 {
-                     data: dataCounts.map(count => total ? (count / total) * 100 : 0),
-                     backgroundColor: [okColor, notOkColor, otherColor],
-                     borderWidth: 0,
-                     hoverOffset: 10,
-                 },
-             ],
-         },
-         options: {
-             responsive: true,
-             maintainAspectRatio: true,
-             cutout: "70%",
-             layout: {
+function createDoughnutChartConfig(dataCounts) {
+    // dataCounts = [freeCount, usedCount, invalidCount]
+    const total = dataCounts.reduce((a, b) => a + b, 0);
+    return {
+        type: "doughnut",
+        data: {
+            labels: ["Free", "Used", "Invalid"],
+            datasets: [
+                {
+                    data: dataCounts.map(count => total ? (count / total) * 100 : 0),
+                    backgroundColor: [okColor, notOkColor, otherColor],
+                    borderWidth: 0,
+                    hoverOffset: 10,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: "70%",
+            layout: {
                 padding: {
                     top: 20,
                     bottom: 5
                 }
-             },
-             animation: { duration: 0 },
-             plugins: {
-                 legend: {
-                     display: true,
-                     position: "bottom",
-                     labels: {
-                         usePointStyle: true,
-                         pointStyle: "circle",
-                         padding: 12,
-                         font: { family: "'Inter', sans-serif", size: 12 },
-                         generateLabels: (chart) => {
-                             const data = chart.data;
-                             if (data.labels.length && data.datasets.length) {
-                                 const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
-                                 return data.labels.map((label, i) => {
-                                     const value = data.datasets[0].data[i];
-                                     return {
-                                         text: `${label} (${value.toFixed(0)}%)`,
-                                         fillStyle: data.datasets[0].backgroundColor[i],
-                                         hidden: false,
-                                         index: i,
-                                     };
-                                 });
-                             }
-                             return [];
-                         },
-                     },
-                 },
-                 tooltip: {
-                     callbacks: {
-                         label: (context) => {
-                             const idx = context.dataIndex;
-                             const label = context.label;
-                             const percent = Math.round(context.parsed);
-                             const count = dataCounts[idx];
-                             return `${label}: ${percent}% (${count} desks)`;
-                         },
-                     },
-                 },
-             },
-         },
-     };
- }
+            },
+            animation: { duration: 0 },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: "bottom",
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: "circle",
+                        padding: 12,
+                        font: { family: "'Inter', sans-serif", size: 12 },
+                        generateLabels: (chart) => {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                return data.labels.map((label, i) => {
+                                    const value = data.datasets[0].data[i];
+                                    return {
+                                        text: `${label} (${value.toFixed(0)}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        hidden: false,
+                                        index: i,
+                                    };
+                                });
+                            }
+                            return [];
+                        },
+                    },
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            const idx = context.dataIndex;
+                            const label = context.label;
+                            const percent = Math.round(context.parsed);
+                            const count = dataCounts[idx];
+                            return `${label}: ${percent}% (${count} desks)`;
+                        },
+                    },
+                },
+            },
+        },
+    };
+}
 
 /**
  * Creates and renders a doughnut chart on a canvas element

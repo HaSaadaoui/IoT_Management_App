@@ -21,21 +21,24 @@ public class DeviceTypeDao {
 
     public List<DeviceType> findAll() {
         return jdbcTemplate.query(
-                "SELECT id_device_type, type_name AS label FROM device_type",
+                "SELECT id_device_type, type_name, COALESCE(NULLIF(label, ''), type_name) AS label FROM device_type",
                 new BeanPropertyRowMapper<>(DeviceType.class));
     }
 
     public Optional<DeviceType> findById(Integer id) {
         List<DeviceType> result = jdbcTemplate.query(
-                "SELECT id_device_type, type_name AS label FROM device_type WHERE id_device_type = ?",
+                "SELECT id_device_type, type_name, COALESCE(NULLIF(label, ''), type_name) AS label FROM device_type WHERE id_device_type = ?",
                 new BeanPropertyRowMapper<>(DeviceType.class), id);
         return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
     }
 
     public Optional<DeviceType> findByLabel(String label) {
         List<DeviceType> result = jdbcTemplate.query(
-                "SELECT id_device_type, type_name AS label FROM device_type WHERE type_name = ?",
-                new BeanPropertyRowMapper<>(DeviceType.class), label);
+                "SELECT id_device_type, type_name, COALESCE(NULLIF(label, ''), type_name) AS label " +
+                        "FROM device_type " +
+                        "WHERE UPPER(COALESCE(NULLIF(label, ''), type_name)) = UPPER(?) " +
+                        "OR UPPER(type_name) = UPPER(?)",
+                new BeanPropertyRowMapper<>(DeviceType.class), label, label);
         return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
     }
 
@@ -46,16 +49,16 @@ public class DeviceTypeDao {
 
     public DeviceType insert(String label) {
         jdbcTemplate.update(
-                "INSERT INTO device_type (type_name) VALUES (?)", label);
+                "INSERT INTO device_type (type_name, label) VALUES (?, ?)", label, label);
         List<DeviceType> result = jdbcTemplate.query(
-                "SELECT id_device_type, type_name AS label FROM device_type WHERE type_name = ?",
+                "SELECT id_device_type, type_name, COALESCE(NULLIF(label, ''), type_name) AS label FROM device_type WHERE type_name = ?",
                 new BeanPropertyRowMapper<>(DeviceType.class), label);
         return result.isEmpty() ? null : result.get(0);
     }
 
     public int update(Integer id, String label) {
         return jdbcTemplate.update(
-                "UPDATE device_type SET type_name = ? WHERE id_device_type = ?",
+                "UPDATE device_type SET label = ? WHERE id_device_type = ?",
                 label, id);
     }
 }

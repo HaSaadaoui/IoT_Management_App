@@ -34,7 +34,7 @@ public class AlertService {
     private static final String DEVICE_TYPE_CO2 = "CO2";
     private static final String DEVICE_TYPE_TEMP = "TEMPEX";
     private static final String DEVICE_TYPE_HUMIDITY = "HUMIDITY";
-    private static final String DEVICE_TYPE_NOISE = "NOISE";
+    private static final String DEVICE_TYPE_SOUND = "SON";
 
     private static final long CACHE_TTL_MS = 30_000;
     private final Map<String, CachedAlerts> alertCache = new ConcurrentHashMap<>();
@@ -196,19 +196,24 @@ public class AlertService {
 
         log.debug("Checking {} sensors for offline status", allSensors.size());
 
-        // ✅ Charger tous les device types en une seule requête (optimisation)
-        Map<Integer, String> deviceTypeMap = deviceTypeService.findAll().stream()
-                .collect(Collectors.toMap(DeviceType::getIdDeviceType, DeviceType::getLabel));
+        // Keep technical type for thresholds while showing the business label in alert text.
+        Map<Integer, DeviceType> deviceTypeMap = deviceTypeService.findAll().stream()
+                .collect(Collectors.toMap(DeviceType::getIdDeviceType, dt -> dt, (left, right) -> left));
 
         int deskCount = 0, otherCount = 0;
 
         for (Sensor sensor : allSensors) {
             String sensorId = sensor.getIdSensor();
 
-            // ✅ Récupérer le label via la map (pas de requête supplémentaire)
-            String deviceType = deviceTypeMap.getOrDefault(sensor.getIdDeviceType(), "UNKNOWN");
+            DeviceType deviceType = deviceTypeMap.get(sensor.getIdDeviceType());
+            String deviceTypeCode = deviceType != null && deviceType.getTypeName() != null && !deviceType.getTypeName().isBlank()
+                    ? deviceType.getTypeName()
+                    : "UNKNOWN";
+            String deviceTypeLabel = deviceType != null && deviceType.getLabel() != null && !deviceType.getLabel().isBlank()
+                    ? deviceType.getLabel()
+                    : deviceTypeCode;
 
-            int thresholdMinutes = getOfflineThresholdForDeviceType(deviceType);
+            int thresholdMinutes = getOfflineThresholdForDeviceType(deviceTypeCode);
             LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(thresholdMinutes);
 
             Optional<SensorData> latestData = sensorDataDao.findLatestBySensor(sensorId);
@@ -217,17 +222,17 @@ public class AlertService {
                 SensorData data = latestData.get();
 
                 if (data.getReceivedAt().isBefore(cutoffTime) || data.getReceivedAt().isEqual(cutoffTime)) {
-                    if ("DESK".equalsIgnoreCase(deviceType)) {
+                    if ("DESK".equalsIgnoreCase(deviceTypeCode)) {
                         deskCount++;
                     } else {
                         otherCount++;
                     }
                     alerts.add(new Alert("info", "ℹ️", "Sensor Offline",
-                            String.format("%s (%s) not responding", sensorId, deviceType),
+                            String.format("%s (%s) not responding", sensorId, deviceTypeLabel),
                             formatTimeAgo(data.getReceivedAt())));
                 }
             } else {
-                log.debug("Sensor {} ({}) has no data in database", sensorId, deviceType);
+                log.debug("Sensor {} ({}) has no data in database", sensorId, deviceTypeLabel);
             }
         }
 
@@ -288,7 +293,7 @@ public class AlertService {
 
     private List<Alert> checkNoiseAlerts(Integer building) {
         List<Alert> alerts = new ArrayList<>();
-        List<Sensor> noiseSensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_NOISE, building);
+        List<Sensor> noiseSensors = sensorDao.findAllByDeviceTypeAndBuilding(DEVICE_TYPE_SOUND, building);
 
         for (Sensor sensor : noiseSensors) {
             Optional<SensorData> latestNoise = liveSensorCache.getLatest(sensor.getIdSensor(), PayloadValueType.LAEQ);

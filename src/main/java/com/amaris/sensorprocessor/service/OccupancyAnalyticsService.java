@@ -3,12 +3,14 @@ package com.amaris.sensorprocessor.service;
 import com.amaris.sensorprocessor.entity.PayloadValueType;
 import com.amaris.sensorprocessor.entity.SensorData;
 import com.amaris.sensorprocessor.model.analytics.*;
+import com.amaris.sensorprocessor.repository.DashboardOccupancyDailyAggregateDao;
 import com.amaris.sensorprocessor.repository.SensorDataDao;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
@@ -22,6 +24,7 @@ public class OccupancyAnalyticsService {
 
     private final SensorDataDao sensorDataDao;
     private final JdbcTemplate jdbcTemplate;
+    private final DashboardOccupancyDailyAggregateDao dashboardOccupancyDailyAggregateDao;
 
     // Business hours: 9h-12h30 and 14h-18h30
     private static final int MORNING_START = 9;
@@ -33,6 +36,7 @@ public class OccupancyAnalyticsService {
     
     // 30-minute interval
     private static final int INTERVAL_MINUTES = 30;
+    private static final int OCCUPANCY_CACHE_BACKFILL_CHUNK_SIZE = 20;
 
     private static final ZoneId PARIS_ZONE = ZoneId.of("Europe/Paris");
     private static final ZoneId UTC_ZONE = ZoneId.of("UTC");
@@ -701,6 +705,79 @@ public class OccupancyAnalyticsService {
     public SectionDailyOccupancyResponse getSectionDailyOccupancy(String sectionType, String startDateStr, String endDateStr) {
         List<String> sensorIds = getSensorIdsBySection(sectionType);
         String sectionName = getSectionName(sectionType);
+
+        if (dashboardOccupancyDailyAggregateDao != null) {
+            log.info("Calculating DAILY occupancy for section: {} with {} sensors (dates: {} to {})",
+                    sectionName, sensorIds.size(), startDateStr, endDateStr);
+
+            LocalDate startDate = LocalDate.parse(startDateStr);
+            LocalDate endDate = LocalDate.parse(endDateStr);
+            List<LocalDate> workingDays = generateWorkingDays(startDate, endDate);
+
+            Map<LocalDate, Map<String, DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate>> statsByDay =
+                    loadDailyOccupancyStats(sensorIds, workingDays);
+
+            List<SensorDailyStats> allSensorStats = new ArrayList<>();
+            int totalIntervalsGlobal = 0;
+            int totalOccupiedGlobal = 0;
+
+            for (String sensorId : sensorIds) {
+                List<DailyOccupancyData> dailyDataList = new ArrayList<>();
+                int sensorTotalIntervals = 0;
+                int sensorOccupiedIntervals = 0;
+
+                for (LocalDate day : workingDays) {
+                    DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate aggregate =
+                            statsByDay.getOrDefault(day, Collections.emptyMap())
+                                    .getOrDefault(sensorId, new DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate(0, 0));
+
+                    double dayRate = aggregate.totalIntervals() > 0
+                            ? (aggregate.occupiedIntervals() * 100.0 / aggregate.totalIntervals())
+                            : 0.0;
+
+                    dailyDataList.add(DailyOccupancyData.builder()
+                            .date(day)
+                            .occupiedIntervals(aggregate.occupiedIntervals())
+                            .totalIntervals(aggregate.totalIntervals())
+                            .occupancyRate(dayRate)
+                            .build());
+
+                    sensorTotalIntervals += aggregate.totalIntervals();
+                    sensorOccupiedIntervals += aggregate.occupiedIntervals();
+                }
+
+                double overallRate = sensorTotalIntervals > 0
+                        ? (sensorOccupiedIntervals * 100.0 / sensorTotalIntervals)
+                        : 0.0;
+
+                allSensorStats.add(SensorDailyStats.builder()
+                        .sensorId(sensorId)
+                        .sensorName(formatSensorName(sensorId))
+                        .dailyData(dailyDataList)
+                        .overallOccupancyRate(overallRate)
+                        .build());
+
+                totalIntervalsGlobal += sensorTotalIntervals;
+                totalOccupiedGlobal += sensorOccupiedIntervals;
+            }
+
+            double globalRate = totalIntervalsGlobal > 0
+                    ? (totalOccupiedGlobal * 100.0 / totalIntervalsGlobal)
+                    : 0.0;
+
+            log.info("Global occupancy rate: {}% ({}/{})", globalRate, totalOccupiedGlobal, totalIntervalsGlobal);
+
+            return SectionDailyOccupancyResponse.builder()
+                    .sectionName(sectionName)
+                    .totalSensors(sensorIds.size())
+                    .globalOccupancyRate(globalRate)
+                    .dateRange(workingDays)
+                    .sensorStats(allSensorStats)
+                    .calculationMethod("Taux = (Intervalles Occupes / Intervalles avec donnees) x 100")
+                    .businessHours("9h00-12h30 et 14h00-18h30")
+                    .workingDays("Lundi a Vendredi (weekends exclus)")
+                    .build();
+        }
         
         log.info("📊 Calculating DAILY occupancy for section: {} with {} sensors (dates: {} to {})", 
                 sectionName, sensorIds.size(), startDateStr, endDateStr);
@@ -811,6 +888,286 @@ public class OccupancyAnalyticsService {
                 .build();
     }
 
+    public void refreshCachedDailyOccupancyForDate(LocalDate day) {
+        if (day == null) {
+            return;
+        }
+
+        LocalDate today = LocalDate.now(PARIS_ZONE);
+        if (!day.isBefore(today)) {
+            log.info("Skipping occupancy cache refresh for open or future day {}", day);
+            return;
+        }
+
+        if (!isWorkingDay(day)) {
+            log.info("Skipping occupancy cache refresh for non-working day {}", day);
+            return;
+        }
+
+        List<String> allSensorIds = getAllOccupancySensorIds();
+        Map<LocalDate, Map<String, DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate>> rawStats =
+                loadRawDailyOccupancyForDays(allSensorIds, List.of(day));
+
+        dashboardOccupancyDailyAggregateDao.upsertDailyAggregates(
+                day,
+                rawStats.getOrDefault(day, Collections.emptyMap())
+        );
+    }
+
+    public int refreshCachedDailyOccupancyForRange(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null || endDate.isBefore(startDate)) {
+            return 0;
+        }
+
+        LocalDate today = LocalDate.now(PARIS_ZONE);
+        LocalDate lastClosedDay = endDate.isBefore(today) ? endDate : today.minusDays(1);
+        if (lastClosedDay.isBefore(startDate)) {
+            return 0;
+        }
+
+        List<LocalDate> targetDays = generateWorkingDays(startDate, lastClosedDay);
+        if (targetDays.isEmpty()) {
+            log.info("[occupancy-cache] no closed working day to refresh for range {} -> {}", startDate, endDate);
+            return 0;
+        }
+
+        List<String> allSensorIds = getAllOccupancySensorIds();
+        int totalChunks = (targetDays.size() + OCCUPANCY_CACHE_BACKFILL_CHUNK_SIZE - 1) / OCCUPANCY_CACHE_BACKFILL_CHUNK_SIZE;
+        int refreshedDays = 0;
+
+        log.info("[occupancy-cache] start refresh range={}..{} workingDays={} sensors={} chunkSize={} totalChunks={}",
+                startDate,
+                lastClosedDay,
+                targetDays.size(),
+                allSensorIds.size(),
+                OCCUPANCY_CACHE_BACKFILL_CHUNK_SIZE,
+                totalChunks);
+
+        for (int i = 0; i < targetDays.size(); i += OCCUPANCY_CACHE_BACKFILL_CHUNK_SIZE) {
+            List<LocalDate> chunkDays = targetDays.subList(
+                    i,
+                    Math.min(i + OCCUPANCY_CACHE_BACKFILL_CHUNK_SIZE, targetDays.size())
+            );
+            int chunkNumber = (i / OCCUPANCY_CACHE_BACKFILL_CHUNK_SIZE) + 1;
+
+            log.info("[occupancy-cache] chunk {}/{} loading raw data for {} -> {} (workingDaysInChunk={})",
+                    chunkNumber,
+                    totalChunks,
+                    chunkDays.get(0),
+                    chunkDays.get(chunkDays.size() - 1),
+                    chunkDays.size());
+
+            Map<LocalDate, Map<String, DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate>> rawStats =
+                    loadRawDailyOccupancyForDays(allSensorIds, chunkDays);
+            persistDailyAggregates(rawStats);
+
+            refreshedDays += chunkDays.size();
+            log.info("[occupancy-cache] chunk {}/{} done processedDays={}/{} ({} -> {})",
+                    chunkNumber,
+                    totalChunks,
+                    refreshedDays,
+                    targetDays.size(),
+                    chunkDays.get(0),
+                    chunkDays.get(chunkDays.size() - 1));
+        }
+
+        log.info("[occupancy-cache] refresh completed range={}..{} workingDaysRefreshed={}",
+                startDate,
+                lastClosedDay,
+                refreshedDays);
+        return refreshedDays;
+    }
+
+    public OccupancyCacheBackfillSummary refreshCachedDailyOccupancyForEntireHistory() {
+        List<String> allSensorIds = getAllOccupancySensorIds();
+        LocalDate oldestAvailableDate = findOldestOccupancyDataDate(allSensorIds);
+        LocalDate lastClosedDay = LocalDate.now(PARIS_ZONE).minusDays(1);
+
+        if (oldestAvailableDate == null || lastClosedDay.isBefore(oldestAvailableDate)) {
+            log.info("[occupancy-cache] no closed occupancy history found to backfill");
+            return new OccupancyCacheBackfillSummary(null, lastClosedDay, 0);
+        }
+
+        log.info("[occupancy-cache] full history backfill requested from {} to {}", oldestAvailableDate, lastClosedDay);
+        int refreshedDays = refreshCachedDailyOccupancyForRange(oldestAvailableDate, lastClosedDay);
+        return new OccupancyCacheBackfillSummary(oldestAvailableDate, lastClosedDay, refreshedDays);
+    }
+
+    public DashboardOccupancyDailyAggregateDao.OccupancyCacheStatus getOccupancyCacheStatus() {
+        return dashboardOccupancyDailyAggregateDao.getCacheStatus();
+    }
+
+    private Map<LocalDate, Map<String, DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate>> loadDailyOccupancyStats(
+            List<String> sensorIds,
+            List<LocalDate> workingDays) {
+
+        Map<LocalDate, Map<String, DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate>> result = new LinkedHashMap<>();
+        if (sensorIds == null || sensorIds.isEmpty() || workingDays == null || workingDays.isEmpty()) {
+            return result;
+        }
+
+        LocalDate today = LocalDate.now(PARIS_ZONE);
+
+        List<LocalDate> closedDays = workingDays.stream()
+                .filter(day -> day.isBefore(today))
+                .toList();
+
+        if (!closedDays.isEmpty()) {
+            LocalDate closedStart = closedDays.get(0);
+            LocalDate closedEnd = closedDays.get(closedDays.size() - 1);
+
+            mergeDailyAggregates(
+                    result,
+                    dashboardOccupancyDailyAggregateDao.findBySensorIdsAndDateRange(sensorIds, closedStart, closedEnd)
+            );
+
+            List<LocalDate> missingClosedDays = closedDays.stream()
+                    .filter(day -> result.getOrDefault(day, Collections.emptyMap()).size() < sensorIds.size())
+                    .toList();
+
+            if (!missingClosedDays.isEmpty()) {
+                log.info("Backfilling {} missing occupancy cache day(s) for section request", missingClosedDays.size());
+                Map<LocalDate, Map<String, DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate>> rawMissing =
+                        loadRawDailyOccupancyForDays(sensorIds, missingClosedDays);
+                mergeDailyAggregates(result, rawMissing);
+                persistDailyAggregates(rawMissing);
+            }
+        }
+
+        List<LocalDate> openDays = workingDays.stream()
+                .filter(day -> !day.isBefore(today))
+                .toList();
+
+        if (!openDays.isEmpty()) {
+            mergeDailyAggregates(result, loadRawDailyOccupancyForDays(sensorIds, openDays));
+        }
+
+        return result;
+    }
+
+    private void persistDailyAggregates(
+            Map<LocalDate, Map<String, DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate>> aggregatesByDay) {
+
+        for (Map.Entry<LocalDate, Map<String, DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate>> entry : aggregatesByDay.entrySet()) {
+            dashboardOccupancyDailyAggregateDao.upsertDailyAggregates(entry.getKey(), entry.getValue());
+        }
+    }
+
+    private void mergeDailyAggregates(
+            Map<LocalDate, Map<String, DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate>> target,
+            Map<LocalDate, Map<String, DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate>> source) {
+
+        for (Map.Entry<LocalDate, Map<String, DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate>> entry : source.entrySet()) {
+            target.computeIfAbsent(entry.getKey(), ignored -> new LinkedHashMap<>()).putAll(entry.getValue());
+        }
+    }
+
+    private Map<LocalDate, Map<String, DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate>> loadRawDailyOccupancyForDays(
+            List<String> sensorIds,
+            List<LocalDate> targetDays) {
+
+        Map<LocalDate, Map<String, DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate>> result = new LinkedHashMap<>();
+        if (sensorIds == null || sensorIds.isEmpty() || targetDays == null || targetDays.isEmpty()) {
+            return result;
+        }
+
+        List<LocalDate> sortedDays = targetDays.stream()
+                .filter(this::isWorkingDay)
+                .distinct()
+                .sorted()
+                .toList();
+
+        if (sortedDays.isEmpty()) {
+            return result;
+        }
+
+        LocalDate startDate = sortedDays.get(0);
+        LocalDate endDate = sortedDays.get(sortedDays.size() - 1);
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();
+
+        String inClause = sensorIds.stream()
+                .map(id -> "?")
+                .collect(Collectors.joining(","));
+
+        String query = String.format("""
+            SELECT id_sensor, received_at, value, value_type
+            FROM sensor_data
+            WHERE id_sensor IN (%s)
+              AND value_type IN ('OCCUPANCY', 'PERIOD_IN', 'PERIOD_OUT')
+              AND received_at >= ?
+              AND received_at < ?
+            ORDER BY id_sensor, received_at
+            """, inClause);
+
+        Object[] params = new Object[sensorIds.size() + 2];
+        for (int i = 0; i < sensorIds.size(); i++) {
+            params[i] = sensorIds.get(i);
+        }
+        params[sensorIds.size()] = startDateTime;
+        params[sensorIds.size() + 1] = endDateTime;
+
+        List<Map<String, Object>> allData = jdbcTemplate.queryForList(query, params);
+        Map<String, List<Map<String, Object>>> dataPerSensor = allData.stream()
+                .collect(Collectors.groupingBy(row -> (String) row.get("id_sensor")));
+
+        for (LocalDate day : sortedDays) {
+            Map<String, DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate> aggregatesForDay = new LinkedHashMap<>();
+            for (String sensorId : sensorIds) {
+                Map<String, Integer> dayStats = calculateStatsFromDataForSingleDay(
+                        dataPerSensor.getOrDefault(sensorId, Collections.emptyList()),
+                        day
+                );
+                aggregatesForDay.put(sensorId, new DashboardOccupancyDailyAggregateDao.DailyOccupancyAggregate(
+                        dayStats.get("occupied"),
+                        dayStats.get("total")
+                ));
+            }
+            result.put(day, aggregatesForDay);
+        }
+
+        return result;
+    }
+
+    private boolean isWorkingDay(LocalDate day) {
+        return day.getDayOfWeek() != DayOfWeek.SATURDAY &&
+                day.getDayOfWeek() != DayOfWeek.SUNDAY;
+    }
+
+    private List<String> getAllOccupancySensorIds() {
+        List<String> allSensorIds = new ArrayList<>();
+        allSensorIds.addAll(getSensorIdsBySection("desk"));
+        allSensorIds.addAll(getSensorIdsBySection("meeting"));
+        allSensorIds.addAll(getSensorIdsBySection("phone"));
+        allSensorIds.addAll(getSensorIdsBySection("interview"));
+        return allSensorIds.stream().distinct().toList();
+    }
+
+    private LocalDate findOldestOccupancyDataDate(List<String> sensorIds) {
+        if (sensorIds == null || sensorIds.isEmpty()) {
+            return null;
+        }
+
+        String inClause = sensorIds.stream()
+                .map(id -> "?")
+                .collect(Collectors.joining(","));
+
+        String query = String.format("""
+            SELECT MIN(received_at)
+            FROM sensor_data
+            WHERE id_sensor IN (%s)
+              AND value_type IN ('OCCUPANCY', 'PERIOD_IN', 'PERIOD_OUT')
+            """, inClause);
+
+        Timestamp oldestTimestamp = jdbcTemplate.queryForObject(query, Timestamp.class, sensorIds.toArray());
+        return oldestTimestamp == null
+                ? null
+                : oldestTimestamp.toLocalDateTime().toLocalDate();
+    }
+
+    public record OccupancyCacheBackfillSummary(LocalDate from, LocalDate to, int workingDaysRefreshed) {
+    }
+
     /**
      * Generate list of working days (Monday-Friday) between start and end date
      */
@@ -819,8 +1176,7 @@ public class OccupancyAnalyticsService {
         LocalDate current = start;
         
         while (!current.isAfter(end)) {
-            if (current.getDayOfWeek() != DayOfWeek.SATURDAY && 
-                current.getDayOfWeek() != DayOfWeek.SUNDAY) {
+            if (isWorkingDay(current)) {
                 workingDays.add(current);
             }
             current = current.plusDays(1);

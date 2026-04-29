@@ -8,6 +8,13 @@ const setText = (selector, value) => {
     if (target) target.textContent = (value == null ? "--" : String(value));
 };
 
+function normalizeMonitoringDeviceType(type) {
+    const normalized = String(type || '').toUpperCase();
+    if (normalized === 'NOISE') return 'SON';
+    if (normalized === 'ENERGY') return 'CONSO';
+    return normalized;
+}
+
 // --- Battery helper (icône + couleur)
 function updateBatteryBadge(selector, pct) {
     const node = typeof selector === 'string' ? el(selector) : selector;
@@ -185,6 +192,12 @@ const DEVICE_TYPE_METRICS = {
         // "VDD",
     ],
     "SON": [
+        "LAST_BATTERY_PERCENTAGE",
+        "LAI",
+        "LAIMAX",
+        "LAEQ",
+    ],
+    "NOISE": [
         "LAST_BATTERY_PERCENTAGE",
         "LAI",
         "LAIMAX",
@@ -385,8 +398,8 @@ function startSSE() {
                 vdd: v => `${v} mV`,
                 db: v => `${v} dB`
             };
-            const devTypeFromHtml = (document.documentElement.dataset.devType || '').toUpperCase();
-            const PROF = String((isNormalized && data.ids?.profile) ? data.ids.profile : devTypeFromHtml).toUpperCase();
+            const devTypeFromHtml = normalizeMonitoringDeviceType(document.documentElement.dataset.devType || '');
+            const PROF = normalizeMonitoringDeviceType((isNormalized && data.ids?.profile) ? data.ids.profile : devTypeFromHtml);
             const p = (isNormalized && data.payload) ? data.payload : {};
 
             switch (PROF) {
@@ -518,6 +531,8 @@ function startSSE() {
         console.error("Sensor SSE error:", err);
         stopSSE();
     };
+
+    startChartRefreshInterval();
 }
 
 function stopSSE() {
@@ -525,6 +540,7 @@ function stopSSE() {
         es.close();
         es = null;
     }
+    stopChartRefreshInterval();
 }
 
 // =================================
@@ -681,7 +697,7 @@ async function loadHistory(fromISO, toISO) {
     if (sensorMetricsContainer) sensorMetricsContainer.innerHTML = '';
     dynamicMetricCharts = [];
 
-    const devType = (document.documentElement.dataset.devType || '').toUpperCase();
+    const devType = normalizeMonitoringDeviceType(document.documentElement.dataset.devType || '');
     if (devType === 'ENERGY' || devType === 'CONSO') {
         const allGroupData = await Promise.all(
             Object.values(consumptionCharts).map(group => loadChannelHistogramData(group.channels, fromISO, toISO))
@@ -787,8 +803,8 @@ async function loadChannelHistogramData(channels = [], fromISO, toISO) {
     if (!SENSOR_ID || !GATEWAY_ID || !fromISO || !toISO) return null;
     try {
         const params = new URLSearchParams();
-        params.set('startDate', fromISO.split('T')[0]);
-        params.set('endDate', toISO.split('T')[0]);
+        params.set('startDate', new Date(fromISO).toISOString());
+        params.set('endDate', new Date(toISO).toISOString());
         channels.forEach(ch => params.append('channels', String(ch)));
         const res = await fetch(`/manage-sensors/monitoring/${GATEWAY_ID}/${SENSOR_ID}/consumption?` + params.toString());
         if (!res.ok) throw new Error(`Failed to fetch consumption data for channels ${channels.join(',')}: ${res.statusText}`);
@@ -1133,7 +1149,7 @@ function fetchAndUpdateCurrentConsumption() {
     };
 
     fetchAllGroups();
-    currentConsumptionInterval = setInterval(fetchAllGroups, 10000);
+    currentConsumptionInterval = setInterval(fetchAllGroups, 30000);
     const minutesInput = el('#consumption-period-minutes');
     if (minutesInput) minutesInput.addEventListener('change', fetchAndUpdateCurrentConsumption);
 }
@@ -1170,9 +1186,16 @@ function updatePowerUsageChart(timestamp, values) {
 let chartsPaused = false;
 const MAX_CHART_POINTS = 50;
 
+// Last known values – used to keep charts progressing when no uplink arrives
+let lastKnownChartValues = null;
+let lastKnownSignal = null;
+let lastKnownBattery = null;
+let chartRefreshInterval = null;
+const CHART_REFRESH_INTERVAL_MS = 30000; // repeat last value every 30 s
+
 function initRealtimeCharts() {
     if (typeof Chart === 'undefined') { console.warn('Chart.js not loaded, skipping chart initialization'); return; }
-    const devType = (document.documentElement.dataset.devType || '').toUpperCase();
+    const devType = normalizeMonitoringDeviceType(document.documentElement.dataset.devType || '');
 
     const chartConfigs = {
         'CO2':      { main: { label: 'CO₂', color: '#ef4444', title: '🌬️ CO₂ Level', unit: 'ppm' }, secondary: { label: 'Temperature', color: '#f59e0b', title: '🌡️ Temperature', unit: '°C' }, humidity: { label: 'Humidity', color: '#10b981', title: '💧 Humidity', unit: '%' }, light: { label: 'Light', color: '#fbbf24', title: '💡 Light Level', unit: 'lux' } },
@@ -1315,8 +1338,9 @@ function getChartOptions() { return getChartOptionsWithUnits('', '', ''); }
 
 function updateRealtimeCharts(data) {
     if (chartsPaused) return;
+    lastKnownChartValues = data;
     const timestamp = new Date().toLocaleTimeString();
-    const devType = (document.documentElement.dataset.devType || '').toUpperCase();
+    const devType = normalizeMonitoringDeviceType(document.documentElement.dataset.devType || '');
 
     function getBatteryLevel(data) {
         if (typeof data['battery (%)'] === 'number') return data['battery (%)'];
@@ -1403,6 +1427,7 @@ function updateChart(chart, dataStore, timestamp, value) {
 
 function updateSignalChart(rssi, snr) {
     if (chartsPaused) return;
+    lastKnownSignal = { rssi, snr };
     const timestamp = new Date().toLocaleTimeString();
     if (realtimeCharts.rssi) updateChart(realtimeCharts.rssi, chartData.rssi, timestamp, rssi);
     if (realtimeCharts.snr) updateChart(realtimeCharts.snr, chartData.snr, timestamp, snr);
@@ -1410,6 +1435,7 @@ function updateSignalChart(rssi, snr) {
 
 function updateBatteryChart(batteryPct) {
     if (chartsPaused || !realtimeCharts.battery) return;
+    lastKnownBattery = batteryPct;
     const timestamp = new Date().toLocaleTimeString();
     chartData.battery.labels.push(timestamp);
     chartData.battery.data.push(batteryPct);
@@ -1453,6 +1479,23 @@ function clearAllCharts() {
     });
 }
 
+function startChartRefreshInterval() {
+    if (chartRefreshInterval) clearInterval(chartRefreshInterval);
+    chartRefreshInterval = setInterval(() => {
+        if (chartsPaused || !LIVE_MODE) return;
+        if (lastKnownChartValues) updateRealtimeCharts(lastKnownChartValues);
+        if (lastKnownSignal) updateSignalChart(lastKnownSignal.rssi, lastKnownSignal.snr);
+        if (lastKnownBattery != null) updateBatteryChart(lastKnownBattery);
+    }, CHART_REFRESH_INTERVAL_MS);
+}
+
+function stopChartRefreshInterval() {
+    if (chartRefreshInterval) {
+        clearInterval(chartRefreshInterval);
+        chartRefreshInterval = null;
+    }
+}
+
 // =================================
 // ===== Initialization on Boot =====
 // =================================
@@ -1461,7 +1504,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (LIVE_MODE) startSSE();
     if (window.Chart) {
         initRealtimeCharts();
-        const devType = (document.documentElement.dataset.devType || '').toUpperCase();
+        const devType = normalizeMonitoringDeviceType(document.documentElement.dataset.devType || '');
         if (devType === 'ENERGY' || devType === 'CONSO') initEnergyPlaceholders();
     }
 });

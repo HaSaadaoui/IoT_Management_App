@@ -7,6 +7,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -23,7 +25,13 @@ public class SensorDao {
                     "LEFT JOIN device_type dt ON s.id_device_type = dt.id_device_type ";
 
     private static final String ENV_SELECT =
-            "SELECT s.id_sensor, s.location, dt.type_name " +
+            "SELECT s.id_sensor, l.name, dt.type_name " +
+                    "FROM sensors s " +
+                    "JOIN device_type dt ON s.id_device_type = dt.id_device_type " +
+                    "LEFT JOIN location l ON s.location_id = l.id";
+
+    private static final String OCCUPANCY_ZONES_SELECT =
+            "SELECT s.id_sensor, s.floor, l.name, dt.type_name " +
                     "FROM sensors s " +
                     "LEFT JOIN device_type dt ON s.id_device_type = dt.id_device_type ";
 
@@ -84,23 +92,28 @@ public class SensorDao {
     }
 
     public List<Sensor> findAllByDeviceType(String deviceType) {
-        return jdbcTemplate.query(
-                BASE_SELECT + "WHERE dt.type_name = ?", // ✅
-                new BeanPropertyRowMapper<>(Sensor.class), deviceType);
+        return findAllByExpandedDeviceTypes(deviceType == null ? List.of() : List.of(deviceType), null);
     }
 
     public List<Sensor> findAllByDeviceTypeAndBuilding(String deviceType, Integer buildingId) {
-        return jdbcTemplate.query(
-                BASE_SELECT + "WHERE dt.type_name = ? AND s.building_id = ?",
-                new BeanPropertyRowMapper<>(Sensor.class), deviceType, buildingId);
+        return findAllByExpandedDeviceTypes(deviceType == null ? List.of() : List.of(deviceType), buildingId);
     }
 
     public boolean existsByBuildingAndType(String deviceType, Integer buildingId) {
+        List<String> expandedTypes = expandDeviceTypes(deviceType == null ? List.of() : List.of(deviceType));
+        if (expandedTypes.isEmpty()) {
+            return false;
+        }
+
+        String placeholders = expandedTypes.stream().map(t -> "?").collect(Collectors.joining(","));
+        List<Object> params = new ArrayList<>(expandedTypes);
+        params.add(buildingId);
+
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(1) FROM sensors s " +
                         "JOIN device_type dt ON s.id_device_type = dt.id_device_type " +
-                        "WHERE dt.type_name = ? AND s.building_id = ?",
-                Integer.class, deviceType, buildingId);
+                        "WHERE dt.type_name IN (" + placeholders + ") AND s.building_id = ?",
+                Integer.class, params.toArray());
         return count != null && count > 0;
     }
 
@@ -168,9 +181,7 @@ public class SensorDao {
     }
 
     public List<Sensor> findAllByDeviceTypes(List<String> deviceTypes) {
-        String placeholders = deviceTypes.stream().map(t -> "?").collect(Collectors.joining(","));
-        String sql = BASE_SELECT + "WHERE dt.type_name IN (" + placeholders + ")"; // ✅
-        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Sensor.class), deviceTypes.toArray());
+        return findAllByExpandedDeviceTypes(deviceTypes, null);
     }
 
     public Optional<Sensor> findByDevEui(String devEui) {
@@ -181,24 +192,74 @@ public class SensorDao {
     }
 
 
-    public List<Map<String, Object>> findAllByBuildingAndFloor(String building, int floor, boolean isAllFloors) {
-        // Ajouter dans la condition si nous connaissons tous les types qui seront pris en compte pour les stats
-        // AND dt.type_name IN ('CO2', 'SON', 'TEMPEX')
+    public List<Map<String, Object>> findAllByBuildingAndFloorForConfig(String building, Integer floor) {
+        if (floor != null) {
+            String sql = ENV_SELECT + " WHERE s.building_id = ? AND s.floor = ? " +
+                    "AND s.status = 1 AND dt.type_name IN ('CO2', 'SON', 'NOISE', 'TEMPEX', 'CONSO', 'ENERGY', 'EYE', 'PIR_LIGHT', 'DESK')";
+            return jdbcTemplate.queryForList(sql, Integer.parseInt(building), floor);
+        } else {
+            String sql = ENV_SELECT + " WHERE s.building_id = ? " +
+                    "AND s.status = 1 AND dt.type_name IN ('CO2', 'SON', 'NOISE', 'TEMPEX', 'CONSO', 'ENERGY', 'EYE', 'PIR_LIGHT', 'DESK')";
+            return jdbcTemplate.queryForList(sql, Integer.parseInt(building));
+        }
+    }
 
-        StringBuilder sql = new StringBuilder(
-                ENV_SELECT + " WHERE s.building_id = ? AND s.status = 1 AND dt.type_name IN ('CO2', 'SON', 'TEMPEX')"
+    public List<Map<String, Object>> findZonesByBuilding(Integer buildingId) {
+        return jdbcTemplate.queryForList(
+                "SELECT s.id_sensor, s.floor, l.name AS location_name " +
+                "FROM sensors s " +
+                        "JOIN device_type dt ON s.id_device_type = dt.id_device_type " +
+                "LEFT JOIN location l ON s.location_id = l.id " +
+                "WHERE s.building_id = ? AND dt.type_name IN ('DESK', 'OCCUP') AND s.status = 1 " +
+                "ORDER BY s.floor, l.name",
+                buildingId
         );
+    }
 
-        List<Object> params = new ArrayList<>();
-        params.add(Integer.parseInt(building));
-
-        //condition dynamique
-        if (!isAllFloors) {
-            sql.append(" AND s.floor = ?");
-            params.add(floor);
+    private List<Sensor> findAllByExpandedDeviceTypes(List<String> deviceTypes, Integer buildingId) {
+        List<String> expandedTypes = expandDeviceTypes(deviceTypes);
+        if (expandedTypes.isEmpty()) {
+            return List.of();
         }
 
-        return jdbcTemplate.queryForList(sql.toString(), params.toArray());
+        String placeholders = expandedTypes.stream().map(t -> "?").collect(Collectors.joining(","));
+        String sql = BASE_SELECT + "WHERE dt.type_name IN (" + placeholders + ")";
+        List<Object> params = new ArrayList<>(expandedTypes);
+
+        if (buildingId != null) {
+            sql += " AND s.building_id = ?";
+            params.add(buildingId);
+        }
+
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Sensor.class), params.toArray());
+    }
+
+    private List<String> expandDeviceTypes(Collection<String> deviceTypes) {
+        if (deviceTypes == null || deviceTypes.isEmpty()) {
+            return List.of();
+        }
+
+        LinkedHashSet<String> expandedTypes = new LinkedHashSet<>();
+        for (String deviceType : deviceTypes) {
+            if (deviceType == null || deviceType.isBlank()) {
+                continue;
+            }
+
+            String normalized = deviceType.trim().toUpperCase();
+            switch (normalized) {
+                case "NOISE", "SON" -> {
+                    expandedTypes.add("SON");
+                    expandedTypes.add("NOISE");
+                }
+                case "ENERGY", "CONSO" -> {
+                    expandedTypes.add("CONSO");
+                    expandedTypes.add("ENERGY");
+                }
+                default -> expandedTypes.add(normalized);
+            }
+        }
+
+        return new ArrayList<>(expandedTypes);
     }
 
 }

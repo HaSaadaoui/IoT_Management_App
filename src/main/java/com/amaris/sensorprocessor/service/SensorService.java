@@ -159,6 +159,10 @@ public class SensorService {
         return sensorDao.findAllByBuildingAndFloor(buildingId, floorNumber);
     }
 
+    public List<java.util.Map<String, Object>> findZonesByBuilding(Integer buildingId) {
+        return sensorDao.findZonesByBuilding(buildingId);
+    }
+
 
     public Sensor getOrThrow(String idSensor) {
         return findByIdSensor(idSensor)
@@ -198,42 +202,50 @@ public class SensorService {
 
     public Map<Date, Double> getConsumptionByChannels(String idSensor, Date startDate, Date endDate,
                                                       List<String> channels) {
+        ZoneId parisZone = ZoneId.of("Europe/Paris");
+
         Set<PayloadValueType> energyChannels = channels.stream()
                 .map(ch -> PayloadValueType.valueOf("ENERGY_CHANNEL_" + ch))
                 .collect(Collectors.toSet());
 
+        // Recule d'1h pour avoir la valeur de référence du premier point
         Instant adjustedStartInstant = startDate.toInstant().minus(1, ChronoUnit.HOURS);
         Date adjustedStartDate = Date.from(adjustedStartInstant);
-        List<SensorData> allSensorData = sensorDataDao.findSensorDataByPeriodAndTypes2(idSensor, adjustedStartDate,
-                endDate, energyChannels);
+        List<SensorData> allSensorData = sensorDataDao.findSensorDataByPeriodAndTypes2(idSensor, adjustedStartDate, endDate, energyChannels);
 
-        Instant startInstant = adjustedStartInstant.truncatedTo(ChronoUnit.HOURS);
+        // Heure de début tronquée (Paris timezone pour cohérence avec le dashboard)
+        Instant startInstant = adjustedStartInstant.atZone(parisZone).truncatedTo(ChronoUnit.HOURS).toInstant();
         Instant endInstant = endDate.toInstant();
 
+        // Forward-fill : à chaque heure, snapshot de la dernière valeur connue par channel
         Map<Instant, Map<PayloadValueType, Double>> hourlyChannelValues = new LinkedHashMap<>();
         Map<PayloadValueType, Double> lastKnownValues = new HashMap<>();
 
+        // Initialise avec la dernière valeur avant la période (compteur cumulatif)
         for (PayloadValueType channel : energyChannels) {
             Optional<SensorData> lastData = sensorDataDao.findLastValueBefore(idSensor, channel, startInstant);
-            lastKnownValues.put(channel, lastData.map(SensorData::getValueAsDouble).orElse(0.0));
+            lastKnownValues.put(channel, lastData.map(SensorData::getValueAsDouble).orElse(null));
         }
 
         Instant currentHour = startInstant;
         int dataIndex = 0;
 
         while (!currentHour.isAfter(endInstant)) {
+            Instant nextHour = currentHour.plus(1, ChronoUnit.HOURS);
+            // Process all data points that fall before nextHour (i.e., within this hour slot or earlier)
             while (dataIndex < allSensorData.size()) {
                 SensorData dataPoint = allSensorData.get(dataIndex);
                 Instant dataTimestamp = dataPoint.getReceivedAt().atZone(java.time.ZoneOffset.UTC).toInstant();
-                if (dataTimestamp.isAfter(currentHour)) break;
+                if (!dataTimestamp.isBefore(nextHour)) break; // belongs to next slot or later
                 Double value = dataPoint.getValueAsDouble();
                 if (value != null) lastKnownValues.put(dataPoint.getValueType(), value);
                 dataIndex++;
             }
             hourlyChannelValues.put(currentHour, new HashMap<>(lastKnownValues));
-            currentHour = currentHour.plus(1, ChronoUnit.HOURS);
+            currentHour = nextHour;
         }
 
+        // Consommation horaire = différence entre snapshots consécutifs
         Map<Date, Double> finalHourlyConsumption = new LinkedHashMap<>();
         List<Instant> hours = new ArrayList<>(hourlyChannelValues.keySet());
         hours.sort(Instant::compareTo);
@@ -247,13 +259,21 @@ public class SensorService {
 
             double totalConsumption = 0.0;
             for (PayloadValueType channel : energyChannels) {
-                double currentValue = currentValues.getOrDefault(channel, 0.0);
-                double previousValue = previousValues.getOrDefault(channel, 0.0);
-                double channelConsumption = currentValue < previousValue ? currentValue : currentValue - previousValue;
-                totalConsumption += channelConsumption;
+                Double currentValue = currentValues.get(channel);
+                Double previousValue = previousValues.get(channel);
+                if (currentValue == null || previousValue == null) continue;
+                double consumption = currentValue - previousValue;
+                if (consumption < 0) {
+                    // Reset du compteur détecté → on ignore cette heure
+                    log.warn("⚠️ Reset compteur {} à {}: {} → {} Wh", channel.name(), currentHourKey, previousValue, currentValue);
+                    consumption = 0.0;
+                }
+                totalConsumption += consumption;
             }
 
-            finalHourlyConsumption.put(Date.from(currentHourKey), totalConsumption);
+            if (totalConsumption > 0) {
+                finalHourlyConsumption.put(Date.from(currentHourKey), totalConsumption);
+            }
         }
 
         return finalHourlyConsumption;

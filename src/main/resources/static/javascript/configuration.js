@@ -93,19 +93,19 @@ function updateGatewayThresholdInputs() {
     const cpuWarning = document.getElementById('gateway-cpu-warning');
     if (cpuCritical) cpuCritical.value = gatewayThresholds.cpu.critical;
     if (cpuWarning) cpuWarning.value = gatewayThresholds.cpu.warning;
-    
+
     // RAM thresholds
     const ramCritical = document.getElementById('gateway-ram-critical');
     const ramWarning = document.getElementById('gateway-ram-warning');
     if (ramCritical) ramCritical.value = gatewayThresholds.ram.critical;
     if (ramWarning) ramWarning.value = gatewayThresholds.ram.warning;
-    
+
     // Disk thresholds
     const diskCritical = document.getElementById('gateway-disk-critical');
     const diskWarning = document.getElementById('gateway-disk-warning');
     if (diskCritical) diskCritical.value = gatewayThresholds.disk.critical;
     if (diskWarning) diskWarning.value = gatewayThresholds.disk.warning;
-    
+
     // Temperature thresholds
     const tempCritical = document.getElementById('gateway-temp-critical');
     const tempWarning = document.getElementById('gateway-temp-warning');
@@ -137,12 +137,12 @@ async function saveGatewayThresholds() {
                 critical: parseFloat(document.getElementById('gateway-temp-critical').value)
             }
         };
-        
+
         // Validate thresholds
         if (!validateGatewayThresholds(newThresholds)) {
             return;
         }
-        
+
         // Send to server
         const response = await fetch('/api/gateway-config/thresholds', {
             method: 'POST',
@@ -152,16 +152,16 @@ async function saveGatewayThresholds() {
             },
             body: JSON.stringify(newThresholds)
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             gatewayThresholds = newThresholds;
             showNotification('✅ Gateway thresholds saved successfully!', 'success');
         } else {
             showNotification('❌ Failed to save gateway thresholds: ' + result.message, 'error');
         }
-        
+
     } catch (error) {
         console.error('Error saving gateway thresholds:', error);
         showNotification('❌ Error saving gateway thresholds: ' + error.message, 'error');
@@ -177,36 +177,36 @@ function validateGatewayThresholds(thresholds) {
         showNotification('❌ CPU Warning threshold must be less than Critical threshold', 'error');
         return false;
     }
-    
+
     // Check RAM thresholds
     if (thresholds.ram.warning >= thresholds.ram.critical) {
         showNotification('❌ RAM Warning threshold must be less than Critical threshold', 'error');
         return false;
     }
-    
+
     // Check Disk thresholds
     if (thresholds.disk.warning >= thresholds.disk.critical) {
         showNotification('❌ Disk Warning threshold must be less than Critical threshold', 'error');
         return false;
     }
-    
+
     // Check Temperature thresholds
     if (thresholds.temperature.warning >= thresholds.temperature.critical) {
         showNotification('❌ Temperature Warning threshold must be less than Critical threshold', 'error');
         return false;
     }
-    
+
     // Check reasonable ranges
     if (thresholds.cpu.critical > 100 || thresholds.ram.critical > 100 || thresholds.disk.critical > 100) {
         showNotification('❌ CPU, RAM, and Disk thresholds cannot exceed 100%', 'error');
         return false;
     }
-    
+
     if (thresholds.temperature.critical > 120) {
         showNotification('❌ Temperature threshold seems too high (>120°C)', 'error');
         return false;
     }
-    
+
     return true;
 }
 
@@ -258,7 +258,6 @@ function testDecoder() {
 
     let result = {};
     try {
-        // On attend que le code définisse function decodePayload(bytes) { ... }
         const func = new Function("bytes", editorCode + "\nreturn decodePayload(bytes);");
         result = func(byteArray);
     } catch (err) {
@@ -309,11 +308,9 @@ function populateFloorSelect() {
         floorSelect.innerHTML = '<option value="">All Floors</option>';
     }
 
-    // Keep track of previously excluded floors
     const previouslyExcluded = (window._pendingExcludedFloors !== undefined)
         ? window._pendingExcludedFloors.map(String)
         : getExcludedFloors();
-    // On consomme la valeur une seule fois
     window._pendingExcludedFloors = undefined;
 
     // Clear hidden select and checkbox list
@@ -343,7 +340,7 @@ function populateFloorSelect() {
                 <input type="checkbox" value="${i}" ${isExcluded ? 'checked' : ''} onchange="onFloorCheckboxChange(this)">
                 <span class="floor-checkbox-label">${label}</span>
             `;
-            checkboxList.prepend(item); // prepend so highest floor is at top
+            checkboxList.prepend(item);
         }
     }
 
@@ -431,7 +428,7 @@ function toggleFormFields() {
 }
 
 function applyFormVisibility(elementValue, sensorTypeValue) {
-    this.populateFloorSelect(); 
+    this.populateFloorSelect();
     const sensorTypeSelect = document.getElementById('filter-sensor-type');
 
     const sensorTypeContainer = sensorTypeSelect?.parentElement;
@@ -540,30 +537,82 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
     }
 }
 
+// ======================================================
+// ================== MODE AJOUT / ÉDITION ==============
+// ======================================================
+
+/**
+ * mode = 'add'  : nouveau élément — ID saisissable, bouton Save grisé
+ * mode = 'edit' : élément sélectionné — ID readonly, bouton Save actif
+ *
+ * Appelé par :
+ *  - initializeInputs()          → mode 'add'
+ *  - window.setFormMode(id)      → mode 'edit' (depuis building3D / managers)
+ */
+function setFormMode(mode, elementId = '') {
+    const idInput   = document.getElementById('input_id');
+    const modifyBtn = document.getElementById('btn-modify-plan');
+    const saveBtn   = document.getElementById('btn-save-plan');
+
+    if (mode === 'edit') {
+        // ID éditable (la modification n'est appliquée qu'au SVG, pas en BDD)
+        _editingOriginalId = elementId;
+        if (idInput) {
+            idInput.value    = elementId;
+            idInput.readOnly = false;
+            idInput.style.background = '';
+            idInput.style.color      = '';
+            idInput.style.cursor     = '';
+            idInput.title            = '⚠ Modifying the ID updates the SVG only (not saved to DB).';
+        }
+        // Ne pas écraser les boutons si toggleEditMode est déjà actif
+        if (!isEditMode) {
+            if (modifyBtn) modifyBtn.style.display = 'inline-block';
+            if (saveBtn)   saveBtn.style.display   = 'none';
+        }
+    } else {
+        // mode 'add' — ID libre, bouton Save grisé
+        _editingOriginalId = '';
+        const element = document.getElementById("filter-element")?.value || 'Element';
+        if (idInput) {
+            idInput.value    = `${element}_${Date.now()}`;
+            idInput.readOnly = false;
+            idInput.style.background  = '';
+            idInput.style.color       = '';
+            idInput.style.cursor      = '';
+            idInput.title             = '';
+        }
+        // Modify visible, Save caché
+        if (modifyBtn) modifyBtn.style.display = 'inline-block';
+        if (saveBtn)   saveBtn.style.display   = 'none';
+        isEditMode = false;
+    }
+}
+
 function initializeInputs() {
     const element = document.getElementById("filter-element").value;
     const sensorType = document.getElementById("filter-sensor-type").value;
 
-    const idInput = document.getElementById("input_id");
-    const sizeInput = document.getElementById("input_size");
-    const widthInput = document.getElementById("input_width");
-    const heightInput = document.getElementById("input_height");
-    const radiusInput = document.getElementById("input_radius");
+    const sizeInput     = document.getElementById("input_size");
+    const widthInput    = document.getElementById("input_width");
+    const heightInput   = document.getElementById("input_height");
+    const radiusInput   = document.getElementById("input_radius");
     const rotationInput = document.getElementById("input_rotation");
-    const labelInput = document.getElementById("input_label");
-    const chairTop = document.getElementById("chair_top");
-    const chairBottom = document.getElementById("chair_bottom");
-    const chairLeft = document.getElementById("chair_left");
-    const chairRight = document.getElementById("chair_right");
-    const styleSelect = document.getElementById("filter-style");
-    const select = document.getElementById("select_location");
-    const wrapper = document.getElementById("new-location-input-wrapper");
-    const inputNew = document.getElementById("input_location_new");
-    const hidden = document.getElementById("input_location");
+    const labelInput    = document.getElementById("input_label");
+    const chairTop      = document.getElementById("chair_top");
+    const chairBottom   = document.getElementById("chair_bottom");
+    const chairLeft     = document.getElementById("chair_left");
+    const chairRight    = document.getElementById("chair_right");
+    const styleSelect   = document.getElementById("filter-style");
+    const select        = document.getElementById("select_location");
+    const wrapper       = document.getElementById("new-location-input-wrapper");
+    const inputNew      = document.getElementById("input_location_new");
+    const hidden        = document.getElementById("input_location");
 
-    // ID auto-généré
-    idInput.value = `${element}_${Date.now()}`;
-    chairTop.value = 0;
+    // ✅ Passer en mode ajout : ID libre, Save grisé
+    setFormMode('add');
+
+    chairTop.value    = 0;
     chairBottom.value = 0;
     chairLeft.value = 0;
     chairRight.value = 0;
@@ -677,7 +726,7 @@ function onChangeElement() {
     this.populateFloorSelect();
     this.initializeInputs();
     this.toggleFormFields();
-    
+
     const floorSelect = document.getElementById('filter-floor');
     const sensorTypeSelect = document.getElementById('filter-sensor-type');
     if (window.building3D) {
@@ -746,7 +795,7 @@ async function initBuildingConfig() {
         window._pendingExcludedFloors = [];
     }
     svgInput.value = "";
-    this.refresh3DConfig()
+    this.refresh3DConfig();
 }
 
 function refresh3DConfig(){
@@ -768,33 +817,48 @@ function refresh3DConfig(){
 
     // On révoque le blob s'il existe lorsque l'on modifie le paramétrage 3D
     if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);   
+        URL.revokeObjectURL(blobUrl);
+        blobUrl = "";
     }
 }
 
 function applyFormUpdate() {
-    this.refresh3DConfig()
-
     const svgInput = document.getElementById("building-svg");
-    
+
+    // ✅ Créer le nouveau blob AVANT refresh3DConfig qui révoque l'ancien
     if (svgInput.value && svgInput.value.trim() !== "") {
+        if (blobUrl) {
+            URL.revokeObjectURL(blobUrl);
+            blobUrl = "";
+        }
         const file = svgInput.files[0];
         blobUrl = URL.createObjectURL(file);
-        window.building3D.dbBuildingConfig.svgUrl = blobUrl;
     }
 
+    // Sauvegarder le blob avant que refresh3DConfig ne le révoque
+    const savedBlobUrl = blobUrl;
+
+    this.refresh3DConfig(); // ← révoque blobUrl
+
+    // ✅ Réinjecter le blob sauvegardé après refresh
+    if (savedBlobUrl) {
+        blobUrl = savedBlobUrl;
+        window.building3D.dbBuildingConfig.svgUrl = savedBlobUrl;
+    }
+
+    window.building3D.dbShapeCache = null;
     window.building3D.setBuilding();
 }
 
 async function deleteBuildingConfig() {
     const csrfMeta = document.querySelector('meta[name="_csrf"]');
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
-    
+
     if (!csrfMeta || !csrfHeaderMeta) {
         if (typeof cfgToast === 'function') cfgToast("CSRF token not found. Please refresh the page.", 'error'); else alert("CSRF token not found. Please refresh the page.");
         return;
     }
-    
+
     const csrfToken = csrfMeta.getAttribute("content");
     const csrfHeader = csrfHeaderMeta.getAttribute("content");
 
@@ -816,7 +880,7 @@ async function deleteBuildingConfig() {
                 console.log("Building deleted:" + buildingId);
                 if (typeof cfgToast === 'function') cfgToast('Building deleted successfully', 'success'); else alert('Building deleted successfully');
             }
-            
+
         } catch (error) {
             console.error("Error deleting building:", error);
             if (typeof cfgToast === 'function') cfgToast('Failed to delete building: ' + error.message, 'error'); else alert('Failed to delete building: ' + error.message);
@@ -861,7 +925,7 @@ async function saveBuildingConfig() {
 
     if (!name) {
         if (typeof cfgToast === 'function') cfgToast('Please enter a building name.', 'warning'); else alert('Please enter a building name.');
-        return;
+        return false;
     }
 
     if (!svgFile) {
@@ -870,7 +934,7 @@ async function saveBuildingConfig() {
             svgFile = new File([], "");
         } else {
             if (typeof cfgToast === 'function') cfgToast('Please select an SVG file.', 'warning'); else alert('Please select an SVG file.');
-            return;
+            return false;
         }
     }
 
@@ -888,22 +952,22 @@ async function saveBuildingConfig() {
     } catch (e) {
         console.error("Erreur CSRF:", e);
         if (typeof cfgToast === 'function') cfgToast('Could not retrieve CSRF token', 'error'); else alert('Could not retrieve CSRF token');
-        return;
+        return false;
     }
 
-    // On récupère le SVG affiché pour le sauvegarder
-    const floorPlan2D   = document.getElementById('floor-plan-2d');
-    if (floorPlan2D && floorPlan2D.style.display === 'block'){
-        const fileName = svgFile.name || defaultSVGFile.split('/').pop() || name;
-        const svgContent = window.building3D.currentArchPlan.exportSVG();
+    // Exporter le SVG depuis la mémoire uniquement si ce n'est pas une création avec fichier fourni
+    const isNewBuilding = !(selectBuilding.value && !isNaN(selectBuilding.value) && selectBuilding.value !== "");
+    const archPlan = window.building3D?.currentArchPlan;
+    if (!isNewBuilding && archPlan && typeof archPlan.exportSVG === 'function') {
+        const fileName = (svgFile && svgFile.name) || (defaultSVGFile && defaultSVGFile.split('/').pop()) || name + '.svg';
+        const svgContent = archPlan.exportSVG();
         if (!svgContent) {
             if (typeof cfgToast === 'function') cfgToast('Failed to extract SVG content.', 'error'); else alert('Failed to extract SVG content.');
-            return;
+            return false;
         }
-        // Convert SVG text → Blob (fichier)
         const blob = new Blob([svgContent], { type: "image/svg+xml" });
         svgFile = new File([blob], fileName, { type: "image/svg+xml" });
-    } 
+    }
 
     // Construire le FormData
     const formData = new FormData();
@@ -925,59 +989,79 @@ async function saveBuildingConfig() {
 async function createBuildingConfig(formData) {
     const selectBuilding = document.getElementById('filter-building');
 
-    fetch("/api/buildings", {
-        method: "POST",
-        body: formData,
-        credentials: "same-origin"
-    })
-    .then(resp => {
-        if (!resp.ok) {
-            throw new Error("HTTP error " + resp.status);
-        }
-        return resp.json();
-    })
-    .then(data => {
+    try {
+        const resp = await fetch("/api/buildings", {
+            method: "POST",
+            body: formData,
+            credentials: "same-origin"
+        });
+        if (!resp.ok) throw new Error("HTTP error " + resp.status);
+
+        const data = await resp.json();
         console.log("Building created:", data);
-        populateBuildingSelect().then(() => {
+
+        await populateBuildingSelect();
+
+        // ✅ Utiliser l'ID de la réponse, sinon fallback sur le maxValue
+        let newId = data.id;
+        if (!newId || isNaN(newId)) {
             const values = Array.from(selectBuilding.options)
                 .map(opt => parseFloat(opt.value))
                 .filter(v => !Number.isNaN(v));
+            newId = Math.max(...values);
+        }
 
-            const maxValue = Math.max(...values);
-            selectBuilding.value = isNaN(maxValue) ? "" : maxValue;
-            if (typeof cfgToast === 'function') cfgToast('Building created successfully (id=' + (maxValue ?? '?') + ')', 'success'); else alert('Building created successfully');
-        });
+        if (!newId || isNaN(newId)) {
+            if (typeof cfgToast === 'function') cfgToast('Building created but could not determine its ID.', 'error');
+            return false;
+        }
 
-    })
-    .catch(err => {
+        selectBuilding.value = String(newId);
+
+        if (typeof cfgToast === 'function') cfgToast('Building created successfully (id=' + newId + ')', 'success');
+        else alert('Building created successfully');
+
+        // ✅ Charger la config depuis le serveur (récupère le svgPlan)
+        await initBuildingConfig();
+
+        // ✅ Forcer le rechargement du SVG depuis le serveur
+        window.building3D.dbShapeCache = null;
+        console.log("[createBuildingConfig] svgUrl:", window.building3D.dbBuildingConfig?.svgUrl);
+
+        window.building3D.setBuilding();
+        return true;
+
+    } catch (err) {
         console.error(err);
         if (typeof cfgToast === 'function') cfgToast('Error creating building.', 'error'); else alert('Error creating building.');
-    });
+        return false;
+    }
 }
 
 async function updateBuildingConfig(formData) {
     const selectBuilding = document.getElementById('filter-building');
     const buildingId = selectBuilding.value;
 
-    fetch("/api/buildings/" + buildingId, {
-        method: "POST",
-        body: formData,
-        credentials: "same-origin"
-    })
-    .then(resp => {
-        if (!resp.ok) {
-            throw new Error("HTTP error " + resp.status);
-        }
-        return resp.json();
-    })
-    .then(data => {
-        console.log("Building updated :", data);
-        if (typeof cfgToast === 'function') cfgToast('Building updated successfully', 'success'); else alert('Building updated successfully');
-    })
-    .catch(err => {
+    try {
+        const resp = await fetch("/api/buildings/" + buildingId, {
+            method: "POST",
+            body: formData,
+            credentials: "same-origin"
+        });
+        if (!resp.ok) throw new Error("HTTP error " + resp.status);
+
+        const data = await resp.json();
+        console.log("Building updated:", data);
+        if (typeof cfgToast === 'function') cfgToast('Building updated successfully', 'success');
+        else alert('Building updated successfully');
+
+        return true;
+
+    } catch (err) {
         console.error(err);
         if (typeof cfgToast === 'function') cfgToast('Error updating building.', 'error'); else alert('Error updating building.');
-    });
+        return false;
+    }
 }
 
 // ======================================================
@@ -1019,12 +1103,8 @@ function loadLocationOptions(buildingId, _floor, currentLocationId = null) {
  * Affiche/masque le champ libre selon la sélection.
  */
 function onLocationChange() {
-    const selectEl = document.getElementById("select_location");
-    const inputIdEl = document.getElementById("input_id");
-    const locationId = selectEl?.value ? parseInt(selectEl.value) : null;
-    if (inputIdEl && inputIdEl.value.trim() !== '' && locationId) {
-        saveSensorLocation(inputIdEl.value, locationId);
-    }
+    // La sauvegarde se fait via le bouton Save — rien à faire ici.
+    // Conservé pour compatibilité avec les autres appels éventuels.
 }
 
 /**
@@ -1042,7 +1122,7 @@ function getLocationValue() {
  * @returns {Promise<boolean>}
  */
 async function saveSensorLocation(sensorId, locationId) {
-    if (!sensorId || !locationId) return false;
+    if (!sensorId) return false;
 
     const csrfMeta = document.querySelector('meta[name="_csrf"]');
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
@@ -1051,6 +1131,9 @@ async function saveSensorLocation(sensorId, locationId) {
         return false;
     }
 
+    const payload = locationId ? { locationId: locationId } : { locationId: null };
+    console.log(`[Location] POST /api/sensors/${sensorId}/location`, payload);
+
     try {
         const response = await fetch(`/api/sensors/${encodeURIComponent(sensorId)}/location`, {
             method: "POST",
@@ -1058,16 +1141,17 @@ async function saveSensorLocation(sensorId, locationId) {
                 "Content-Type": "application/json",
                 [csrfHeaderMeta.getAttribute("content")]: csrfMeta.getAttribute("content")
             },
-            body: JSON.stringify({ locationId: locationId })
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
-            console.error(`[Location] Failed to save for ${sensorId}:`, err);
+            console.error(`[Location] Failed for ${sensorId}:`, response.status, err);
+            if (typeof cfgToast === 'function') cfgToast('Erreur sauvegarde Location: ' + (err.message || response.status), 'error');
             return false;
         }
 
-        console.info(`[Location] Saved locationId=${locationId} for ${sensorId}`);
+        console.info(`[Location] OK locationId=${locationId} for ${sensorId}`);
         return true;
 
     } catch (e) {
@@ -1086,6 +1170,13 @@ function syncHiddenLocationField(value) {
 // ======================================================
 
 async function addElementSVG() {
+    // ✅ Vérification que le plan est bien initialisé
+    if (!window.building3D || !window.building3D.currentArchPlan) {
+        if (typeof cfgToast === 'function') cfgToast('Please select and load a building first.', 'warning');
+        else alert('Please select and load a building first.');
+        return;
+    }
+
     const sensorType  = document.getElementById("filter-sensor-type");
     const floorNumber = document.getElementById("filter-floor");
     const elementSelect = document.getElementById('filter-element');
@@ -1148,7 +1239,7 @@ async function addElementSVG() {
                 left: parseInt(document.getElementById("chair_left").value || 0),
                 right: parseInt(document.getElementById("chair_right").value || 0),
             }
-        }
+        };
         window.building3D.currentArchPlan.overlayManager.drawSensor(sensor);
         if (locationId) await saveSensorLocation(sensor.id, locationId);
     } else {
@@ -1218,10 +1309,16 @@ async function addElementSVG() {
         };
         window.building3D.currentArchPlan.elementsManager.addElement(element);
     }
+
+    // ✅ Sauvegarder le SVG en BDD pour persister l'ajout
+    const saveResult = await saveBuildingConfig();
+    if (saveResult !== false) {
+        if (typeof cfgToast === 'function') cfgToast('Element added and saved!', 'success');
+    }
 }
 
 function removeElementSVG() {
-    const elementId  = document.getElementById("input_id");
+    const elementId     = document.getElementById("input_id");
     const elementSelect = document.getElementById('filter-element');
 
     if (!elementId || elementId.value.trim() === '') {
@@ -1241,66 +1338,93 @@ function removeElementSVG() {
     } else {
         window.building3D.currentArchPlan.elementsManager.removeElement(elementId.value);
     }
+
+    // ✅ Repasser en mode ajout après suppression
+    setFormMode('add');
 }
 
 function updateElementSVG() {
-    const sensorTypeSelect = document.getElementById('filter-sensor-type');
+    const sensorTypeSelect  = document.getElementById('filter-sensor-type');
     const floorNumberSelect = document.getElementById("filter-floor");
-    const elementSelect = document.getElementById('filter-element');
+    const elementSelect     = document.getElementById('filter-element');
+    const inputIdEl         = document.getElementById('input_id');
 
-    const inputIdEl = document.getElementById('input_id');
-    const elementId = inputIdEl.value;
-    if (!elementId || elementId.trim() === '') return;
-
-    const inputSizeEl = document.getElementById('input_size');
-    const inputWidthEl = document.getElementById('input_width');
-    const inputHeightEl = document.getElementById('input_height');
-    const inputRotationEl = document.getElementById('input_rotation');
-    const inputRadiusEl = document.getElementById('input_radius');
-    const inputLabelEl = document.getElementById('input_label');
-    const inputStyleEl = document.getElementById('filter-style');
-
-    let rotation = 0;
-    if (inputRotationEl && inputRotationEl.value.trim() !== '' ){
-        rotation = parseInt(inputRotationEl.value, 10);
+    // L'ID courant dans le formulaire (peut avoir été modifié par l'utilisateur)
+    const newElementId = (inputIdEl?.value || '').trim();
+    if (!newElementId) {
+        if (typeof cfgToast === 'function') cfgToast('Aucun élément sélectionné.', 'warning');
+        return;
     }
 
-    if (elementSelect.value === "Sensor"){
-        const sensor = {
-            id : inputIdEl.value,
-            type : sensorTypeSelect.value,
-            floor : floorNumberSelect.value,
-            x : parseInt(inputSizeEl.value) || parseInt(inputWidthEl.value),
-            y : parseInt(inputSizeEl.value) || parseInt(inputHeightEl.value),
-            size : parseInt(inputSizeEl.value),
-            width : parseInt(inputWidthEl.value),
-            height : parseInt(inputHeightEl.value),
-            rotation : parseInt(rotation),
-            label : inputLabelEl.value,
-            chairs : {
-                top: parseInt(document.getElementById("chair_top").value || 0),
-                bottom: parseInt(document.getElementById("chair_bottom").value || 0),
-                left: parseInt(document.getElementById("chair_left").value || 0),
-                right: parseInt(document.getElementById("chair_right").value || 0),
-            }
+    // ID original (celui présent dans le SVG avant édition)
+    const originalId = _editingOriginalId || newElementId;
+
+    // Si l'ID a été modifié, renommer les éléments dans le SVG (sans persistance BDD)
+    if (newElementId !== originalId && window.building3D?.currentArchPlan?.svg) {
+        const svg = window.building3D.currentArchPlan.svg;
+
+        // Renommer le groupe principal (id="originalId")
+        const mainEl = svg.querySelector('#' + CSS.escape(originalId));
+        if (mainEl) {
+            mainEl.id = newElementId;
         }
-        window.building3D.currentArchPlan.overlayManager.updateSensorGeometry(sensor);
+
+        // Renommer le marker desk : son ID est exactement "marker-" + originalId
+        // ex: originalId="desk-01-01" → markerEl id="marker-desk-01-01"
+        const expectedMarkerId = 'marker-' + originalId;
+        const markerEl = svg.querySelector('#' + CSS.escape(expectedMarkerId));
+        if (markerEl) {
+            markerEl.id = 'marker-' + newElementId;
+        }
+
+        // Renommer tous les éléments qui portent un attribut data-id="originalId"
+        svg.querySelectorAll('[data-id="' + originalId + '"]').forEach(el => {
+            el.setAttribute('data-id', newElementId);
+        });
+
+        // Mettre à jour l'ID de référence dans _editingOriginalId pour la suite
+        _editingOriginalId = newElementId;
+    }
+
+    // Utiliser le nouvel ID pour la mise à jour de la géométrie
+    const elementId = newElementId;
+
+    const v = id => { const n = parseInt(document.getElementById(id)?.value); return isNaN(n) ? NaN : n; };
+    const rotation = (() => {
+        const el = document.getElementById('input_rotation');
+        return (el && el.value.trim()) ? parseInt(el.value, 10) : 0;
+    })();
+
+    if (elementSelect.value === "Sensor") {
+        window.building3D.currentArchPlan.overlayManager.updateSensorGeometry({
+            id         : elementId,
+            type       : sensorTypeSelect.value,
+            floor      : floorNumberSelect.value,
+            size       : v('input_size'),
+            width      : v('input_width'),
+            height     : v('input_height'),
+            rotation   : rotation,
+            label      : document.getElementById('input_label')?.value ?? '',
+            chairs: {
+                top:    v('chair_top')    || 0,
+                bottom: v('chair_bottom') || 0,
+                left:   v('chair_left')   || 0,
+                right:  v('chair_right')  || 0,
+            }
+        });
     } else {
-        const element = {
-            id : inputIdEl.value,
-            type : elementSelect.value,
-            floor : floorNumberSelect.value,
-            x : parseInt(inputSizeEl.value) || parseInt(inputWidthEl.value) || parseInt(inputRadiusEl.value),
-            y : parseInt(inputSizeEl.value) || parseInt(inputHeightEl.value) || parseInt(inputRadiusEl.value),
-            size : parseInt(inputSizeEl.value),
-            width : parseInt(inputWidthEl.value),
-            height : parseInt(inputHeightEl.value),
-            radius : parseInt(inputRadiusEl.value),
-            rotation : parseInt(rotation),
-            label : inputLabelEl.value,
-            style : inputStyleEl ? inputStyleEl.value : "Dark"
-        };
-        window.building3D.currentArchPlan.elementsManager.updateElement(element);
+        window.building3D.currentArchPlan.elementsManager.updateElement({
+            id     : elementId,
+            type   : elementSelect.value,
+            floor  : floorNumberSelect.value,
+            size   : v('input_size'),
+            width  : v('input_width'),
+            height : v('input_height'),
+            radius : v('input_radius'),
+            rotation,
+            label  : document.getElementById('input_label')?.value ?? '',
+            style  : document.getElementById('filter-style')?.value || 'Dark'
+        });
     }
 }
 
@@ -1314,7 +1438,6 @@ function getPlanCenterXY() {
     const root = svg.querySelector('#content-root') || svg;
 
     try {
-        // Centre de l'élément SVG à l'écran (pixels)
         const rect = svg.getBoundingClientRect();
         const pt = svg.createSVGPoint();
         pt.x = rect.left + rect.width / 2;
@@ -1341,6 +1464,96 @@ function getPlanCenterXY() {
 }
 
 // ======================================================
+// ================== MODE ÉDITION ÉLÉMENT ==============
+// ======================================================
+
+let isEditMode = false;
+let _editingOriginalId = ''; // ID original de l'élément en cours d'édition (avant renommage)
+
+/**
+ * Le bouton "Modify Element" active l'édition.
+ * Le bouton "Save Element" applique le formulaire au SVG + sauvegarde en BDD.
+ * Si la sauvegarde réussit, le formulaire repasse en lecture seule (grisé).
+ */
+function toggleEditMode() {
+    const modifyBtn = document.getElementById('btn-modify-plan');
+    const saveBtn   = document.getElementById('btn-save-plan');
+    const container = document.getElementById('floor-plan-2d');
+
+    if (!isEditMode) {
+        // Activer le mode édition
+        isEditMode = true;
+        container.classList.remove('plan-readonly');
+        container.classList.add('plan-edit');
+        if (modifyBtn) modifyBtn.style.display = 'none';
+        if (saveBtn)   saveBtn.style.display   = 'inline-block';
+    } else {
+        // Sauvegarder
+        if (saveBtn) {
+            saveBtn.disabled  = true;
+            saveBtn.innerText = '⏳ Saving...';
+        }
+        _doSaveElement().finally(() => {
+            if (saveBtn) {
+                saveBtn.disabled  = false;
+                saveBtn.innerText = 'Save Element';
+            }
+        });
+    }
+}
+
+async function _doSaveElement() {
+    const modifyBtn = document.getElementById('btn-modify-plan');
+    const saveBtn   = document.getElementById('btn-save-plan');
+    const container = document.getElementById('floor-plan-2d');
+    try {
+        // ⚠ Capturer l'ID BDD AVANT updateElementSVG() qui met à jour _editingOriginalId
+        const dbSensorId = (_editingOriginalId || document.getElementById('input_id')?.value)?.trim();
+
+        updateElementSVG();
+
+        // Sauvegarder la Location en BDD si c'est un Sensor
+        const elementSelect = document.getElementById('filter-element');
+        if (elementSelect?.value === "Sensor") {
+            const sensorId = dbSensorId;
+            const locationSelect = document.getElementById('select_location');
+            const locationId = locationSelect?.value ? parseInt(locationSelect.value) : null;
+            if (sensorId) {
+                console.log(`[Location] Saving sensorId=${sensorId} locationId=${locationId}`);
+                const locResult = await saveSensorLocation(sensorId, locationId);
+                console.log(`[Location] Result:`, locResult);
+            }
+        }
+
+        // Enregistrer le SVG en BDD
+        const result = await saveBuildingConfig();
+
+        if (result === false) {
+            // Erreur de validation — rester en mode édition
+            if (saveBtn) saveBtn.innerText = 'Save Element';
+            return;
+        }
+
+        // Succès — repasser en lecture seule
+        isEditMode = false;
+        container.classList.remove('plan-edit');
+        container.classList.add('plan-readonly');
+        if (modifyBtn) modifyBtn.style.display = 'inline-block';
+        if (saveBtn)   saveBtn.style.display   = 'none';
+        if (saveBtn)   saveBtn.innerText        = 'Save Element';
+        if (typeof cfgToast === 'function') cfgToast('Élément sauvegardé !', 'success');
+
+        // Repasser en mode ajout après sauvegarde réussie
+        setFormMode('add');
+
+    } catch (e) {
+        console.error("_doSaveElement error:", e);
+        if (typeof cfgToast === 'function') cfgToast('Erreur lors de la sauvegarde.', 'error');
+        if (saveBtn) saveBtn.innerText = 'Save Element';
+    }
+}
+
+// ======================================================
 // ================== ALERT CONFIG SAVE ==================
 // ======================================================
 
@@ -1348,12 +1561,12 @@ async function saveAlertConfig() {
     // 1. Get CSRF Token
     const csrfMeta = document.querySelector('meta[name="_csrf"]');
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
-    
+
     if (!csrfMeta || !csrfHeaderMeta) {
         if (typeof cfgToast === 'function') cfgToast("CSRF token not found. Please refresh the page.", 'error'); else alert("CSRF token not found. Please refresh the page.");
         return;
     }
-    
+
     const csrfToken = csrfMeta.getAttribute("content");
     const csrfHeader = csrfHeaderMeta.getAttribute("content");
 
@@ -1397,7 +1610,7 @@ async function saveAlertConfig() {
         const data = await response.json();
         if (typeof cfgToast === 'function') cfgToast('Configuration saved successfully!', 'success'); else alert('Configuration saved successfully!');
         console.log("Alert config saved:", data);
-        
+
     } catch (error) {
         console.error("Error saving alert config:", error);
         if (typeof cfgToast === 'function') cfgToast('Failed to save configuration: ' + error.message, 'error'); else alert('Failed to save configuration: ' + error.message);
@@ -1411,12 +1624,12 @@ async function saveAlertConfig() {
 async function saveNotificationChannels() {
     const csrfMeta = document.querySelector('meta[name="_csrf"]');
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
-    
+
     if (!csrfMeta || !csrfHeaderMeta) {
         if (typeof cfgToast === 'function') cfgToast('CSRF token not found. Please refresh the page.', 'error'); else alert('CSRF token not found.');
         return;
     }
-    
+
     const csrfToken = csrfMeta.getAttribute("content");
     const csrfHeader = csrfHeaderMeta.getAttribute("content");
 
@@ -1427,9 +1640,9 @@ async function saveNotificationChannels() {
     const customPhone = document.getElementById("notif-custom-phone").value.trim();
 
     const payload = {
-        parameterType: parameterType,
-        emailEnabled: emailEnabled,
-        smsEnabled: smsEnabled,
+        parameterType,
+        emailEnabled,
+        smsEnabled,
         customEmail: customEmail || null,
         customPhone: customPhone || null
     };
@@ -1451,7 +1664,7 @@ async function saveNotificationChannels() {
         const data = await response.json();
         if (typeof cfgToast === 'function') cfgToast('Notification preferences saved!', 'success'); else alert('Notification preferences saved!');
         loadNotificationPreferences();
-        
+
     } catch (error) {
         console.error("Error saving notification preferences:", error);
         if (typeof cfgToast === 'function') cfgToast('Failed to save notification preferences: ' + error.message, 'error'); else alert('Failed to save notification preferences: ' + error.message);
@@ -1462,21 +1675,21 @@ async function loadNotificationPreferences() {
     try {
         const response = await fetch("/api/configuration/notifications");
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
+
         const preferences = await response.json();
         const listDiv = document.getElementById("notification-prefs-list");
-        
+
         if (!preferences || preferences.length === 0) {
             listDiv.innerHTML = '<p class="text-muted">No notification preferences configured yet.</p>';
             return;
         }
-        
+
         let html = '';
         preferences.forEach(pref => {
             const channels = [];
             if (pref.emailEnabled) channels.push('📧 Email');
             if (pref.smsEnabled) channels.push('📱 SMS');
-            
+
             html += `
                 <div class="notification-item">
                     <div class="notification-info">
@@ -1498,7 +1711,7 @@ async function loadNotificationPreferences() {
                 </div>
             `;
         });
-        
+
         listDiv.innerHTML = html;
     } catch (error) {
         console.error("Error loading notification preferences:", error);
@@ -1509,21 +1722,13 @@ async function loadNotificationPreferences() {
 // Update parameter units display based on selected parameter type
 function updateParameterUnits() {
     const parameterType = document.getElementById("threshold-parameter").value;
-    const units = {
-        "CO2": "ppm",
-        "Temperature": "°C",
-        "Humidity": "%",
-        "Noise": "dB"
-    };
-    
-    const unit = units[parameterType] || "";
-    const unitSpans = document.querySelectorAll("#sensor-threshold-form .input-unit");
-    unitSpans.forEach(span => {
+    const units = { "CO2": "ppm", "Temperature": "°C", "Humidity": "%", "Noise": "dB" };
+    const unit  = units[parameterType] || "";
+    document.querySelectorAll("#sensor-threshold-form .input-unit").forEach(span => {
         span.textContent = unit;
     });
 }
 
-// Edit notification preference
 async function editNotificationPreference(prefId) {
     try {
         const response = await fetch(`/api/configuration/notifications/${prefId}`);
@@ -1534,11 +1739,11 @@ async function editNotificationPreference(prefId) {
             document.getElementById("notif-sms").checked = pref.smsEnabled;
             document.getElementById("notif-custom-email").value = pref.customEmail || '';
             document.getElementById("notif-custom-phone").value = pref.customPhone || '';
-            
+
             // Show/hide custom inputs based on checked status
             toggleNotifChannelInput('email');
             toggleNotifChannelInput('sms');
-            
+
             // Scroll to form
             document.getElementById("notif-parameter").scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
@@ -1552,18 +1757,18 @@ async function deleteNotificationPreference(prefId) {
     if (!confirm("Are you sure you want to delete this notification preference?")) {
         return;
     }
-    
+
     const csrfMeta = document.querySelector('meta[name="_csrf"]');
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
-    
+
     if (!csrfMeta || !csrfHeaderMeta) {
         if (typeof cfgToast === 'function') cfgToast('CSRF token not found. Please refresh the page.', 'error'); else alert('CSRF token not found.');
         return;
     }
-    
+
     const csrfToken = csrfMeta.getAttribute("content");
     const csrfHeader = csrfHeaderMeta.getAttribute("content");
-    
+
     try {
         const response = await fetch(`/api/configuration/notifications/${prefId}`, {
             method: "DELETE",
@@ -1571,7 +1776,7 @@ async function deleteNotificationPreference(prefId) {
                 [csrfHeader]: csrfToken
             }
         });
-        
+
         if (response.ok) {
             if (typeof cfgToast === 'function') cfgToast('Notification preference deleted!', 'success'); else alert('Notification preference deleted!');
             loadNotificationPreferences();
@@ -1590,76 +1795,70 @@ async function deleteNotificationPreference(prefId) {
 
 function loadSensors() {
     console.log("loadSensors function called"); // Debug log
-    
+
     const select = document.getElementById("sensor-select");
     if (!select) {
         console.error("sensor-select element not found!");
         return;
     }
-    
+
     // Use sensors data passed from server like manageSensors.html does
     const sensors = window.SENSORS || [];
     console.log("Sensors from server:", sensors); // Debug log
     console.log("Number of sensors:", sensors.length); // Debug log
-    
+
     // Clear existing options first (except the default one)
     while (select.children.length > 1) {
         select.removeChild(select.lastChild);
     }
-    
+
     if (sensors.length === 0) {
         const option = document.createElement("option");
         option.value = "";
         option.textContent = "No sensors found in database";
         select.appendChild(option);
-        console.log("Added 'no sensors' option");
         return;
     }
-    
+
     sensors.forEach((sensor, index) => {
-        console.log(`Processing sensor ${index}:`, sensor); // Debug log
-        
         const option = document.createElement("option");
         // Use the same property names as manageSensors.html
         const sensorId = sensor.idSensor;
         const deviceType = sensor.deviceType || 'Unknown';
-        
-        console.log(`Sensor ${index} - ID: ${sensorId}, Type: ${deviceType}`); // Debug log
-        
+
         if (sensorId) {
             option.value = sensorId;
             option.textContent = `${sensorId} (${deviceType})`;
             select.appendChild(option);
-            console.log("Successfully added sensor option:", sensorId); // Debug log
         } else {
             console.warn("Sensor has no valid ID:", sensor);
         }
     });
-    
+
     console.log("Final select options count:", select.children.length);
 }
 
 function loadSensorThresholds() {
     const sensorId = document.getElementById("sensor-select").value;
-    const form = document.getElementById("sensor-threshold-form");
-    
+    const form     = document.getElementById("sensor-threshold-form");
+
     if (!sensorId) {
         form.style.display = "none";
         return;
     }
-    
+
     form.style.display = "block";
 }
 
 async function saveSensorThreshold() {
     const csrfMeta = document.querySelector('meta[name="_csrf"]');
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
-    
+
     if (!csrfMeta || !csrfHeaderMeta) {
         if (typeof cfgToast === 'function') cfgToast('CSRF token not found. Please refresh the page.', 'error'); else alert('CSRF token not found.');
         return;
     }
-    
+
     const csrfToken = csrfMeta.getAttribute("content");
     const csrfHeader = csrfHeaderMeta.getAttribute("content");
 
@@ -1674,10 +1873,10 @@ async function saveSensorThreshold() {
         if (typeof cfgToast === 'function') cfgToast('Please select a sensor.', 'warning'); else alert('Please select a sensor.');
         return;
     }
-    
+
     const payload = {
-        sensorId: sensorId,
-        parameterType: parameterType,
+        sensorId,
+        parameterType,
         criticalThreshold: criticalHigh || null,
         warningThreshold: warningHigh || null,
         warningLow: warningLow || null,
@@ -1700,7 +1899,7 @@ async function saveSensorThreshold() {
         }
 
         if (typeof cfgToast === 'function') cfgToast('Sensor threshold saved!', 'success'); else alert('Sensor threshold saved!');
-        
+
     } catch (error) {
         console.error("Error saving sensor threshold:", error);
         if (typeof cfgToast === 'function') cfgToast('Failed to save sensor threshold: ' + error.message, 'error'); else alert('Failed to save sensor threshold: ' + error.message);
@@ -1711,18 +1910,18 @@ async function deleteSensorThreshold(thresholdId) {
     if (!confirm("Are you sure you want to delete this sensor threshold override?")) {
         return;
     }
-    
+
     const csrfMeta = document.querySelector('meta[name="_csrf"]');
     const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
-    
+
     if (!csrfMeta || !csrfHeaderMeta) {
         if (typeof cfgToast === 'function') cfgToast('CSRF token not found. Please refresh the page.', 'error'); else alert('CSRF token not found.');
         return;
     }
-    
+
     const csrfToken = csrfMeta.getAttribute("content");
     const csrfHeader = csrfHeaderMeta.getAttribute("content");
-    
+
     try {
         const response = await fetch(`/api/configuration/sensor-thresholds/${thresholdId}`, {
             method: "DELETE",
@@ -1730,7 +1929,7 @@ async function deleteSensorThreshold(thresholdId) {
                 [csrfHeader]: csrfToken
             }
         });
-        
+
         if (response.ok) {
             if (typeof cfgToast === 'function') cfgToast('Sensor threshold deleted!', 'success'); else alert('Sensor threshold deleted!');
         } else {
@@ -1870,13 +2069,30 @@ window.onLocationChange  = onLocationChange;
 window.getLocationValue        = getLocationValue;
 window.initializeInputs = initializeInputs;
 window.syncHiddenLocationField = syncHiddenLocationField;
+// ✅ Exposé pour être appelé depuis building3D / floorElementsManager / sensorOverlays
+window.setFormMode                 = setFormMode;
 
+
+// ✅ Fonctions appelées via onclick/onchange depuis le HTML
+window.addElementSVG = addElementSVG;
+window.removeElementSVG = removeElementSVG;
+window.toggleEditMode = toggleEditMode;
+window.onChangeElement = onChangeElement;
+window.onChangeSensor = onChangeSensor;
+window.applyFormUpdate = applyFormUpdate;
+window.refresh3DConfig = refresh3DConfig;
+window.populateBuildingSelect = populateBuildingSelect;
+window.toggleFloorCheckboxPanel = toggleFloorCheckboxPanel;
+window.onFloorCheckboxChange = onFloorCheckboxChange;
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", function() {
     if (typeof loadSensors === 'function') loadSensors();
     if (typeof loadNotificationPreferences === 'function') loadNotificationPreferences();
     if (typeof toggleFormFields === 'function') toggleFormFields();
     if (typeof loadEnergyConfigs === 'function') loadEnergyConfigs();
+
+    // Initialiser en mode ajout au chargement
+    setFormMode('add');
 
     const inputNew = document.getElementById("input_location_new");
     const buildingSelect = document.getElementById("filter-building");
@@ -1904,5 +2120,10 @@ document.addEventListener("DOMContentLoaded", function() {
     if (floorSelect) {
         floorSelect.addEventListener("change", reloadLocations);
         floorSelect.addEventListener("change", initializeInputs);
+    }
+
+    const container = document.getElementById("floor-plan-2d");
+    if (container) {
+        container.classList.add("plan-readonly");
     }
 });

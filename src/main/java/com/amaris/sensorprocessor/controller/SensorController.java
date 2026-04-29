@@ -99,6 +99,32 @@ public class SensorController {
 
     /* ===================== GET ===================== */
 
+    @GetMapping("/api/sensors/zones")
+    @ResponseBody
+    public ResponseEntity<Map<Integer, Map<String, List<String>>>> getSensorZones(
+            @RequestParam Integer buildingId) {
+
+        List<Map<String, Object>> rows = sensorService.findZonesByBuilding(buildingId);
+
+        Map<Integer, Map<String, List<String>>> result = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            Object floorObj = row.get("floor");
+            String sensorId = (String) row.get("id_sensor");
+            String locationName = (String) row.get("location_name");
+
+            if (floorObj == null || sensorId == null) continue;
+            int floor = ((Number) floorObj).intValue();
+            if (locationName == null || locationName.isBlank()) locationName = "Unknown";
+
+            result
+                .computeIfAbsent(floor, f -> new LinkedHashMap<>())
+                .computeIfAbsent(locationName, l -> new ArrayList<>())
+                .add(sensorId);
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
     @GetMapping("/api/sensors/locations")
     @ResponseBody
     public ResponseEntity<List<com.amaris.sensorprocessor.entity.Location>> getDistinctLocations(
@@ -222,10 +248,10 @@ public class SensorController {
         Sensor s = sensorService.getOrThrow(idSensor);
         model.addAttribute("sensor", s);
 
-        // ✅ Récupérer le label du device type via le service
-        String deviceTypeLabel = deviceTypeService.findById(s.getIdDeviceType())
-                .map(DeviceType::getLabel)
-                .orElse("GENERIC");
+        DeviceType deviceType = deviceTypeService.findById(s.getIdDeviceType()).orElse(null);
+        String deviceTypeCode = resolveDeviceTypeCode(deviceType);
+        String deviceTypeLabel = resolveDeviceTypeLabel(deviceType);
+        model.addAttribute("deviceTypeCode", deviceTypeCode);
         model.addAttribute("deviceTypeLabel", deviceTypeLabel);
 
         if (s.getBuildingId() != null) {
@@ -428,10 +454,8 @@ public class SensorController {
 
         Sensor sensor = sensorService.getOrThrow(idSensor);
 
-        // ✅ Récupérer le label du device type
-        String deviceTypeLabel = deviceTypeService.findById(sensor.getIdDeviceType())
-                .map(DeviceType::getLabel)
-                .orElse("GENERIC");
+        DeviceType deviceType = deviceTypeService.findById(sensor.getIdDeviceType()).orElse(null);
+        String deviceTypeCode = resolveDeviceTypeCode(deviceType);
 
         String appId = sensor.getIdGateway().equals("leva-rpi-mantu")
                 ? "lorawan-network-mantu"
@@ -453,7 +477,7 @@ public class SensorController {
                             try {
                                 String eventType = sse.event() != null ? sse.event() : "uplink";
                                 String normalizedJson = normalizer.normalizeToMonitoringSensorDataJson(
-                                        sse.data(), appId, sensor, deviceTypeLabel
+                                        sse.data(), appId, sensor, deviceTypeCode
                                 );
                                 emitter.send(SseEmitter.event()
                                         .name(eventType)
@@ -588,14 +612,38 @@ public class SensorController {
         return s != null && !s.isBlank();
     }
 
+    private String resolveDeviceTypeCode(DeviceType deviceType) {
+        if (deviceType == null) {
+            return "GENERIC";
+        }
+        String typeName = deviceType.getTypeName();
+        if (typeName != null && !typeName.isBlank()) {
+            return typeName;
+        }
+        String label = deviceType.getLabel();
+        return label != null && !label.isBlank() ? label : "GENERIC";
+    }
+
+    private String resolveDeviceTypeLabel(DeviceType deviceType) {
+        if (deviceType == null) {
+            return "GENERIC";
+        }
+        String label = deviceType.getLabel();
+        if (label != null && !label.isBlank()) {
+            return label;
+        }
+        String typeName = deviceType.getTypeName();
+        return typeName != null && !typeName.isBlank() ? typeName : "GENERIC";
+    }
+
     /* ===================== NORMALIZER ===================== */
 
     static class SensorEventNormalizer {
         private final com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
 
-        // ✅ Signature mise à jour avec deviceTypeLabel
+        // ✅ Signature mise à jour avec deviceTypeCode
         public String normalizeToMonitoringSensorDataJson(String json, String appId,
-                                                          Sensor sensor, String deviceTypeLabel) {
+                                                          Sensor sensor, String deviceTypeCode) {
             try {
                 var root = om.readTree(json);
                 if (root.has("raw") && root.get("raw").isObject()) {
@@ -614,7 +662,7 @@ public class SensorController {
                 }
 
                 String deviceId = textOr(endIds.path("device_id"), sensor.getIdSensor());
-                String profile = deviceTypeLabel != null ? deviceTypeLabel.toUpperCase() : "GENERIC"; // ✅ utilise le label
+                String profile = deviceTypeCode != null ? deviceTypeCode.toUpperCase() : "GENERIC";
 
                 var dto = com.amaris.sensorprocessor.entity.MonitoringSensorData.now();
 
@@ -695,7 +743,7 @@ public class SensorController {
                         payload.setPresence(motion != null ? motion : occupancy);
                         payload.setVdd(firstNumber(dp, "vdd"));
                     }
-                    case "SON" -> {
+                    case "SON", "NOISE" -> {
                         payload.setLaiDb(firstNumber(dp, "LAI"));
                         payload.setLaiMaxDb(firstNumber(dp, "LAImax"));
                         payload.setLaeqDb(firstNumber(dp, "LAeq"));

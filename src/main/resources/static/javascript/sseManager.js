@@ -27,23 +27,45 @@
 	// Crée un fan-out handler pour "snapshot" et "uplink"
 	// Le handler reçoit { type: "snapshot"|"uplink", data: <parsed> }
 	// ===============================
+	function normalizeSsePayload(payload) {
+		if (payload == null) return [];
+		if (Array.isArray(payload)) {
+			return payload.flatMap(normalizeSsePayload);
+		}
+		if (Array.isArray(payload.result)) {
+			return payload.result.flatMap(normalizeSsePayload);
+		}
+		if (Array.isArray(payload.results)) {
+			return payload.results.flatMap(normalizeSsePayload);
+		}
+		if (Array.isArray(payload.items)) {
+			return payload.items.flatMap(normalizeSsePayload);
+		}
+		if (payload.result && typeof payload.result === "object") {
+			return [payload.result];
+		}
+		return [payload];
+	}
+
 	function makeSseHandlers(entry, namespace) {
 		function dispatch(type, e) {
-			let msg;
+			let payload;
 			try {
-				const raw = JSON.parse(e.data);
-				msg = raw?.result ?? raw;
+				payload = JSON.parse(e.data);
 			} catch (err) {
 				console.warn(`[SSE][${namespace}] parse error (${type})`, err, e?.data);
 				return;
 			}
 
-			entry.listeners.forEach((fn) => {
-				try {
-					fn({ type, data: msg });
-				} catch (err) {
-					console.warn(`[SSE][${namespace}][listener] error`, err);
-				}
+			const messages = normalizeSsePayload(payload);
+			messages.forEach((msg) => {
+				entry.listeners.forEach((fn) => {
+					try {
+						fn({ type, data: msg });
+					} catch (err) {
+						console.warn(`[SSE][${namespace}][listener] error`, err);
+					}
+				});
 			});
 		}
 
@@ -120,54 +142,41 @@
 	// ===============================
 	// ENVIRONMENT
 	// ===============================
-	const BUILDING_ENV_CONFIG = {
-		23: {
-			deviceIds: ["desk-01-02"],
-			metrics: ["temperature", "humidity", "co2"], // pas de sound
-		},
-		21: {
-			deviceIds: ["co2-03-02", "son-03-03"],
-			metrics: ["temperature", "humidity", "co2", "sound"],
-		},
-	};
-
-	function getEnvironmentDevices(building) {
-		const cfg = BUILDING_ENV_CONFIG[building];
-		if (!cfg) return [];
-		return cfg.deviceIds;
+	function envKey(building, deviceIds) {
+		return `env:${building}:${deviceIds}`;
 	}
 
-	function keyForEnvironment(building) {
-		return `environment:${building}`;
-	}
 
-	function getOrCreateEnvironment(building) {
-		const key = keyForEnvironment(building);
+	function getOrCreateEnvironment(building, deviceIds) {
+
+		const key = envKey(building, deviceIds);
 		let entry = sources.get(key);
 
 		if (!entry) {
-			const deviceIds = getEnvironmentDevices(building);
-			const url =
-				`/api/dashboard/live/stream` +
-				`?building=${building}` +
-				`&deviceIds=${deviceIds.join(",")}`;
 
+			const url = `/api/dashboard/live/stream?building=${building}&deviceIds=${deviceIds}`;
 			const es = new EventSource(url);
 
-			console.log("🌡️ [SSEManager] create Environment EventSource", url);
+			console.log("🌍 [SSE] create ENV stream:", url);
 
-			entry = { es, listeners: new Set(), refCount: 0 };
+			entry = {
+				es,
+				listeners: new Set(),
+				refCount: 0
+			};
 
-			const { onSnapshot, onUplink } = makeSseHandlers(entry, "environment");
+			function handle(e) {
+				const raw = JSON.parse(e.data);
+				const msg = raw?.result ?? raw;
 
-			// snapshot = HTTP TTN (données initiales)
-			es.addEventListener("snapshot", onSnapshot);
-			// uplink   = MQTT TTN (live)
-			es.addEventListener("uplink", onUplink);
-			es.addEventListener("keepalive", () => {});
+				entry.listeners.forEach(fn => fn(msg));
+			}
 
-			es.onopen  = () => console.log("✅ [SSE][environment] opened", building);
-			es.onerror = (e) => console.warn("❌ [SSE][environment] error", building, e);
+			es.addEventListener("snapshot", handle);
+			es.addEventListener("uplink", handle);
+
+			es.onerror = (e) => console.warn("❌ [SSE][env] error", e);
+			es.onopen = () => console.log("✅ [SSE][env] opened");
 
 			sources.set(key, entry);
 		}
@@ -175,31 +184,23 @@
 		return entry;
 	}
 
-	function subscribeEnvironment(building, handler) {
-		const entry = getOrCreateEnvironment(building);
-		const key = keyForEnvironment(building);
+	function subscribeEnvironment(building, deviceIds, callback) {
+		const entry = getOrCreateEnvironment(building, deviceIds);
 
-		entry.listeners.add(handler);
+		entry.listeners.add(callback);
 		entry.refCount++;
 
-		console.log(`➕ [SSE][environment] subscribe ${key} (refs=${entry.refCount})`);
-
 		return () => {
-			const current = sources.get(key);
-			if (!current) return;
+			entry.listeners.delete(callback);
+			entry.refCount--;
 
-			current.listeners.delete(handler);
-			current.refCount = Math.max(0, current.refCount - 1);
-
-			console.log(`➖ [SSE][environment] unsubscribe ${key} (refs=${current.refCount})`);
-
-			if (current.refCount === 0) {
-				console.log("🔒 [SSE][environment] closing", building);
-				current.es.close();
-				sources.delete(key);
+			if (entry.refCount <= 0) {
+				entry.es.close();
+				sources.delete(envKey(building, deviceIds));
+				console.log("❌ [SSE] closed ENV stream");
 			}
 		};
-	}
+	};
 
 	// ===============================
 	// EXPORT
