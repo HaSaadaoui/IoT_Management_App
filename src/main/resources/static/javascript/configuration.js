@@ -825,25 +825,16 @@ function refresh3DConfig(){
 function applyFormUpdate() {
     const svgInput = document.getElementById("building-svg");
 
-    // ✅ Créer le nouveau blob AVANT refresh3DConfig qui révoque l'ancien
-    if (svgInput.value && svgInput.value.trim() !== "") {
-        if (blobUrl) {
-            URL.revokeObjectURL(blobUrl);
-            blobUrl = "";
-        }
+    // refresh3DConfig nettoie l'ancien blob et remet la config depuis le formulaire.
+    this.refresh3DConfig();
+
+    // Créer le blob après le refresh, sinon l'URL est révoquée avant d'être utilisée.
+    if (svgInput?.files?.length) {
         const file = svgInput.files[0];
-        blobUrl = URL.createObjectURL(file);
-    }
-
-    // Sauvegarder le blob avant que refresh3DConfig ne le révoque
-    const savedBlobUrl = blobUrl;
-
-    this.refresh3DConfig(); // ← révoque blobUrl
-
-    // ✅ Réinjecter le blob sauvegardé après refresh
-    if (savedBlobUrl) {
-        blobUrl = savedBlobUrl;
-        window.building3D.dbBuildingConfig.svgUrl = savedBlobUrl;
+        if (file && file.size > 0) {
+            blobUrl = URL.createObjectURL(file);
+            window.building3D.dbBuildingConfig.svgUrl = blobUrl;
+        }
     }
 
     window.building3D.dbShapeCache = null;
@@ -1054,6 +1045,20 @@ async function updateBuildingConfig(formData) {
         console.log("Building updated:", data);
         if (typeof cfgToast === 'function') cfgToast('Building updated successfully', 'success');
         else alert('Building updated successfully');
+
+        if (data?.svgPlan) {
+            defaultSVGFile = data.svgPlan;
+        }
+        if (data?.floorsCount != null) {
+            document.getElementById("building-floors").value = data.floorsCount;
+        }
+        if (data?.scale != null) {
+            document.getElementById("building-scale").value = data.scale;
+        }
+        window._pendingExcludedFloors = data?.excludedFloors || getExcludedFloors();
+        refresh3DConfig();
+        window.building3D.dbShapeCache = null;
+        window.building3D.setBuilding();
 
         return true;
 
