@@ -4,11 +4,14 @@ import com.amaris.sensorprocessor.constant.Constants;
 import com.amaris.sensorprocessor.constant.FrequencyPlan;
 import com.amaris.sensorprocessor.entity.Building;
 import com.amaris.sensorprocessor.entity.Gateway;
+import com.amaris.sensorprocessor.entity.GatewayValueType;
 import com.amaris.sensorprocessor.entity.Protocol;
 import com.amaris.sensorprocessor.entity.User;
 import com.amaris.sensorprocessor.service.*;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.stereotype.Controller;
@@ -17,12 +20,17 @@ import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.security.Principal;
+import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Controller
 public class GatewayController {
@@ -307,6 +315,48 @@ public class GatewayController {
         emitter.onTimeout(subscription::dispose);
 
         return emitter;
+    }
+
+    @GetMapping(value = "/manage-gateways/monitoring/{gatewayId}/{valueType}")
+    @ResponseBody
+    public LinkedHashMap<LocalDateTime, String> getGatewayDataByPeriod(
+            @PathVariable String gatewayId,
+            @PathVariable GatewayValueType valueType,
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Date startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Date endDate,
+            @RequestParam(value = "limit", required = false) Integer limit) {
+        try {
+            return gatewayService.findGatewayDataByPeriodAndType(
+                    gatewayId,
+                    startDate,
+                    endDate,
+                    valueType,
+                    Optional.ofNullable(limit)
+            );
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error fetching gateway data", e);
+        }
+    }
+
+    @GetMapping(value = "/manage-gateways/monitoring/{gatewayId}/history")
+    @ResponseBody
+    public Map<String, Object> getGatewayHistory(
+            @PathVariable String gatewayId,
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Date startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Date endDate) {
+        try {
+            Map<GatewayValueType, LinkedHashMap<LocalDateTime, String>> dataGroupedByValueType =
+                    gatewayService.findGatewayDataByPeriod(gatewayId, startDate, endDate);
+
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("gatewayId", gatewayId);
+            response.put("startDate", startDate);
+            response.put("endDate", endDate);
+            response.put("data", dataGroupedByValueType);
+            return response;
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error fetching gateway history", e);
+        }
     }
 
     @GetMapping("/csrf-token")

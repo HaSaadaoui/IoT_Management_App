@@ -82,6 +82,12 @@
     </div>
 </header>
 <main>
+    <nav class="tabs">
+        <button class="tab-btn is-active" data-pane="live">Real-time</button>
+        <button class="tab-btn" data-pane="history">History</button>
+    </nav>
+
+    <section id="pane-live">
     <h3 class="section-title">📊 Gateway Information</h3>
     <section class="info-grid">
         <div class="card">
@@ -172,6 +178,71 @@
             <div id="map" style="min-height:300px; height:50vh; width:100%; border-radius:10px;"></div>
         </div>
     </section>
+    </section>
+
+    <section id="pane-history" class="hidden">
+        <h3 class="section-title">Gateway History & Analysis</h3>
+
+        <div class="history-filters card">
+            <div class="filter-grid">
+                <div class="filter-item">
+                    <label for="gateway-hist-from">Start Date</label>
+                    <input type="datetime-local" id="gateway-hist-from" step="3600">
+                </div>
+                <div class="filter-item">
+                    <label for="gateway-hist-to">End Date</label>
+                    <input type="datetime-local" id="gateway-hist-to" step="3600">
+                </div>
+                <div class="filter-item">
+                    <label for="gateway-hist-metric">Metric</label>
+                    <select id="gateway-hist-metric">
+                        <option value="ALL">All metrics</option>
+                        <option value="CPU_PERCENT">CPU Usage</option>
+                        <option value="CPU_TEMP">CPU Temperature</option>
+                        <option value="RAM_USED_GB">RAM Used</option>
+                        <option value="DISK_USAGE_PERCENT">Disk Usage</option>
+                        <option value="DEVICE_COUNT">Connected Sensors</option>
+                        <option value="GATEWAY_STATUS">Gateway Status</option>
+                    </select>
+                </div>
+                <div class="filter-item filter-action">
+                    <button id="gateway-hist-load" class="btn btn-primary">Load Data</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card kpi-card--primary">
+                <div class="kpi-content">
+                    <div class="kpi-label">Total Measurements</div>
+                    <div class="kpi-value" id="gateway-kpi-total">--</div>
+                </div>
+            </div>
+            <div class="kpi-card kpi-card--info">
+                <div class="kpi-content">
+                    <div class="kpi-label">Average CPU</div>
+                    <div class="kpi-value" id="gateway-kpi-cpu">--</div>
+                </div>
+            </div>
+            <div class="kpi-card kpi-card--warning">
+                <div class="kpi-content">
+                    <div class="kpi-label">Average RAM Used</div>
+                    <div class="kpi-value" id="gateway-kpi-ram">--</div>
+                </div>
+            </div>
+            <div class="kpi-card kpi-card--success">
+                <div class="kpi-content">
+                    <div class="kpi-label">Analyzed Period</div>
+                    <div class="kpi-value" id="gateway-kpi-period">--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-section">
+            <h4 class="subsection-title">System Metrics</h4>
+            <div class="charts-grid charts-grid--2col" id="gateway-history-charts"></div>
+        </div>
+    </section>
 </main>
 
 <!-- Leaflet JS -->
@@ -180,6 +251,8 @@
 <script th:inline="javascript">
     const gatewayId = /*[[${gatewayId}]]*/ null;
     const gatewayIp = /*[[${ipAddress}]]*/ null;
+    window.gatewayId = gatewayId;
+    window.gatewayIp = gatewayIp;
 
     function toggleMenu() {
         document.getElementById("dropdownMenu").classList.toggle("show");
@@ -540,6 +613,7 @@
         return alertDiv;
     }
 </script>
+<script src="/javascript/monitoringGatewayHistory.js"></script>
 
 </body>
 </html>

@@ -175,6 +175,35 @@ ON sensor_data(id_sensor, value_type, received_at, numeric_value);
 CREATE INDEX idx_value_readings_fast
 ON sensor_data(value_type, received_at, numeric_value);
 
+-- CrÃ©ation de la table des valeurs gateways
+CREATE TABLE IF NOT EXISTS gateway_data (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_gateway VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+    received_at TIMESTAMP(6) NOT NULL,
+    `value` TEXT,
+    value_type VARCHAR(50) NOT NULL,
+    numeric_value DECIMAL(18,8)
+        GENERATED ALWAYS AS (
+            CASE
+                WHEN `value` IN ('active', 'true', '1') THEN 1.0
+                WHEN `value` IN ('inactive', 'false', '0') THEN 0.0
+                WHEN `value` REGEXP '^-?[0-9]+(\\.[0-9]+)?$'
+                    THEN CAST(`value` AS DECIMAL(18,8))
+                ELSE NULL
+            END
+        ) VIRTUAL,
+    CONSTRAINT fk_gateway_data_gateway
+        FOREIGN KEY (id_gateway) REFERENCES gateways(gateway_id) ON DELETE CASCADE,
+    CONSTRAINT unique_gateway_received_at_type
+        UNIQUE (id_gateway, received_at, value_type)
+);
+
+CREATE INDEX idx_gateway_data_received_at
+    ON gateway_data (received_at);
+
+CREATE INDEX idx_gateway_data_readings_fast
+    ON gateway_data (id_gateway, value_type, received_at, numeric_value);
+
 -- Création de la table de configuration des alertes
 CREATE TABLE alert_configuration (
     id INT PRIMARY KEY,
