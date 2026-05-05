@@ -514,6 +514,28 @@ tbody::-webkit-scrollbar-thumb:hover {
     box-shadow: var(--shadow-glow);
 }
 
+.gateway-restart-banner {
+    background: #fff7ed;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-left: 4px solid var(--warning);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    margin: 0 0 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.gateway-restart-banner-title {
+    font-weight: 800;
+    color: #92400e;
+    margin-bottom: 0.35rem;
+}
+
+.gateway-restart-banner-text {
+    color: #78350f;
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+
 .history-filters {
     margin-bottom: 2rem;
 }

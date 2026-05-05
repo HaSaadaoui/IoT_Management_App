@@ -18,6 +18,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Date;
@@ -25,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class GatewayService {
@@ -34,6 +36,9 @@ public class GatewayService {
     private final GatewayDao gatewayDao;
     private final GatewayDataService gatewayDataService;
     private final WebClient webClient;
+    private final Map<String, Instant> gatewayRestartingUntil = new ConcurrentHashMap<>();
+
+    private static final Duration GATEWAY_RESTART_EXPECTED_DURATION = Duration.ofMinutes(3);
 
     @Autowired
     public GatewayService(GatewayDao gatewayDao, GatewayDataService gatewayDataService, WebClient webClient) {
@@ -126,7 +131,10 @@ public class GatewayService {
             .accept(MediaType.TEXT_EVENT_STREAM)
             .retrieve()
             .bodyToFlux(MonitoringGatewayData.class)
-            .doOnNext(data -> gatewayDataService.storeMonitoringData(gatewayId, data))
+            .doOnNext(data -> {
+                gatewayDataService.storeMonitoringData(gatewayId, data);
+                clearGatewayRestarting(gatewayId);
+            })
             .doOnError(error -> {
                 logger.error("Erreur lors de la récupération des données de monitoring", error);
                 System.out.println("\u001B[31m" + "Erreur lors de la récupération des données de monitoring : " + error.getMessage() + "\u001B[0m");
@@ -145,6 +153,52 @@ public class GatewayService {
             .doOnSuccess(response -> logger.info("Monitoring stopped for gateway {}", threadId))
             .doOnError(error -> logger.error("Erreur lors de l'arrêt du monitoring pour gateway {}", threadId, error))
             .subscribe();
+    }
+
+    public String restartGateway(String gatewayId, String ipAddress) {
+        markGatewayRestarting(gatewayId);
+        try {
+            return webClient.post()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/api/monitoring/gateway/restart/{id}")
+                            .queryParam("ip", ipAddress)
+                            .build(gatewayId))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+        } catch (RuntimeException e) {
+            clearGatewayRestarting(gatewayId);
+            throw e;
+        }
+    }
+
+    public boolean isGatewayRestarting(String gatewayId) {
+        Instant until = gatewayRestartingUntil.get(gatewayId);
+        if (until == null) {
+            return false;
+        }
+        if (Instant.now().isAfter(until)) {
+            gatewayRestartingUntil.remove(gatewayId);
+            return false;
+        }
+        return true;
+    }
+
+    public long getGatewayRestartRemainingSeconds(String gatewayId) {
+        Instant until = gatewayRestartingUntil.get(gatewayId);
+        if (until == null) {
+            return 0;
+        }
+        long seconds = Duration.between(Instant.now(), until).toSeconds();
+        return Math.max(0, seconds);
+    }
+
+    private void markGatewayRestarting(String gatewayId) {
+        gatewayRestartingUntil.put(gatewayId, Instant.now().plus(GATEWAY_RESTART_EXPECTED_DURATION));
+    }
+
+    private void clearGatewayRestarting(String gatewayId) {
+        gatewayRestartingUntil.remove(gatewayId);
     }
 
     public void syncMonitoringDataSnapshot(String gatewayId) {

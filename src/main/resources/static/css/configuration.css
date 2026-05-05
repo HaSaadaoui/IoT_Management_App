@@ -311,6 +311,72 @@ main.config-page {
     font-weight: 600;
     color: var(--cfg-text);
 }
+
+.gateway-reboot-layout {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) minmax(280px, 1.35fr);
+    gap: 18px;
+    align-items: stretch;
+    margin-top: 18px;
+}
+
+.gateway-reboot-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    font-weight: 600;
+    color: var(--cfg-text);
+}
+
+.gateway-reboot-toggle input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--cfg-primary);
+}
+
+.gateway-reboot-manual {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.gateway-reboot-manual h3 {
+    align-self: stretch;
+    text-align: left;
+}
+
+.gateway-reboot-manual #gateway-reboot-now-btn {
+    margin: 4px auto 0;
+}
+
+.gateway-reboot-interval {
+    display: grid;
+    grid-template-columns: minmax(110px, 1fr) minmax(120px, 0.8fr);
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.gateway-reboot-status {
+    min-height: 20px;
+    margin-top: 12px;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--cfg-text-secondary);
+}
+
+.gateway-reboot-status.is-pending {
+    color: var(--cfg-warning);
+}
+
+.gateway-reboot-status.is-success {
+    color: var(--cfg-success);
+}
+
+.gateway-reboot-status.is-error {
+    color: var(--cfg-danger);
+}
 .config-inline-form {
     display: flex;
     gap: 8px;
@@ -1314,6 +1380,10 @@ textarea {
         padding: 20px;
     }
     .config-grid-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .gateway-reboot-layout {
         grid-template-columns: 1fr;
     }
     .row {

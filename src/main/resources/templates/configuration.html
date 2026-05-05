@@ -53,6 +53,10 @@
                 <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg></span>
                 Alerts &amp; Thresholds
             </a>
+            <a data-section="section-gateways" onclick="switchSection(this)">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 11-12.8 0"/></svg></span>
+                Gateways
+            </a>
             <a data-section="section-notifications" onclick="switchSection(this)">
                 <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
                 Notifications
@@ -611,6 +615,61 @@
         </div>
 
         <!-- ==========================================
+             SECTION: GATEWAYS
+             ========================================== -->
+        <div id="section-gateways" class="cfg-section">
+            <div class="config-card">
+                <h2>
+                    <span class="card-icon"><svg viewBox="0 0 24 24"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 11-12.8 0"/></svg></span>
+                    Gateway Maintenance
+                </h2>
+
+                <div class="gateway-reboot-layout">
+                    <section class="config-subcard">
+                        <h3>Gateway</h3>
+                        <label class="form-label" for="gateway-reboot-select">Select Gateway</label>
+                        <select id="gateway-reboot-select" class="form-select" onchange="updateGatewayRebootForm()">
+                            <option value="">-- Select a gateway --</option>
+                            <option th:each="gateway : ${gateways}"
+                                    th:value="${gateway.gatewayId}"
+                                    th:text="${gateway.gatewayId}"
+                                    th:data-ip="${gateway.ipAddress}">
+                            </option>
+                        </select>
+                    </section>
+
+                    <section class="config-subcard gateway-reboot-manual">
+                        <h3>Manual Restart</h3>
+                        <button id="gateway-reboot-now-btn" type="button" class="btn btn-danger" onclick="restartGatewayFromConfig()">
+                            Restart Now
+                        </button>
+                        <div id="gateway-reboot-now-status" class="gateway-reboot-status" aria-live="polite"></div>
+                    </section>
+
+                    <section class="config-subcard">
+                        <h3>Automatic Reboot</h3>
+                        <div class="gateway-reboot-toggle">
+                            <input type="checkbox" id="gateway-reboot-enabled">
+                            <label for="gateway-reboot-enabled">Enabled</label>
+                        </div>
+                        <div class="gateway-reboot-interval">
+                            <input type="number" id="gateway-reboot-interval" class="form-control" min="1" step="1" value="24">
+                            <select id="gateway-reboot-unit" class="form-select">
+                                <option value="minutes">Minutes</option>
+                                <option value="hours" selected>Hours</option>
+                                <option value="days">Days</option>
+                            </select>
+                        </div>
+                        <button id="gateway-reboot-save-btn" type="button" class="btn btn-violet" onclick="saveGatewayRebootSchedule()">
+                            Save Schedule
+                        </button>
+                        <div id="gateway-reboot-schedule-status" class="gateway-reboot-status" aria-live="polite"></div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================
              SECTION: NOTIFICATIONS
              ========================================== -->
         <div id="section-notifications" class="cfg-section">
@@ -1089,6 +1148,7 @@
     /*<![CDATA[*/
     window.SENSORS   = /*[[${sensors}]]*/   [];
     window.LOCATIONS = /*[[${locations}]]*/ [];
+    window.GATEWAYS  = /*[[${gateways}]]*/  [];
     /*]]>*/
 </script>
 <script src="/javascript/configuration.js"></script>

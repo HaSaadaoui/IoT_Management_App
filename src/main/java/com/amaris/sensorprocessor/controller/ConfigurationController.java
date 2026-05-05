@@ -36,6 +36,7 @@ public class ConfigurationController {
     private final SensorService sensorService;
     private final BuildingService buildingService;
     private final LocationService locationService;
+    private final GatewayRebootSchedulerService gatewayRebootSchedulerService;
 
     @Autowired
     public ConfigurationController(AlertThresholdConfig alertThresholdConfig,
@@ -52,7 +53,8 @@ public class ConfigurationController {
                                    SensorService sensorService,
                                    BuildingEnergyConfigDao buildingEnergyConfigDao,
                                    BuildingService buildingService,
-                                   LocationService locationService) {
+                                   LocationService locationService,
+                                   GatewayRebootSchedulerService gatewayRebootSchedulerService) {
         this.alertThresholdConfig = alertThresholdConfig;
         this.alertConfigurationService = alertConfigurationService;
         this.notificationService = notificationService;
@@ -68,6 +70,7 @@ public class ConfigurationController {
         this.buildingEnergyConfigDao = buildingEnergyConfigDao;
         this.buildingService = buildingService;
         this.locationService = locationService;
+        this.gatewayRebootSchedulerService = gatewayRebootSchedulerService;
     }
 
     @GetMapping("/configuration")
@@ -78,6 +81,7 @@ public class ConfigurationController {
         model.addAttribute("protocols", protocolService.findAll());
         model.addAttribute("gatewayConfig", null);
         model.addAttribute("sensors", sensorDao.findAllSensors());
+        model.addAttribute("gateways", gatewayDao.findAllGateways());
         model.addAttribute("buildings", buildingService.findAll());
         model.addAttribute("locations", locationService.findAll());
 
@@ -190,6 +194,43 @@ public class ConfigurationController {
     public AlertConfigEntity getAlertConfig() {
         AlertConfigEntity config = alertConfigurationDao.load();
         return config != null ? config : new AlertConfigEntity();
+    }
+
+    @GetMapping("/api/configuration/gateway-reboots")
+    @ResponseBody
+    public ResponseEntity<?> getGatewayRebootSchedules() {
+        return ResponseEntity.ok(gatewayRebootSchedulerService.findAllGatewaySchedules());
+    }
+
+    @PostMapping("/api/configuration/gateway-reboots/{gatewayId}/restart")
+    @ResponseBody
+    public ResponseEntity<?> restartGatewayFromConfiguration(@PathVariable String gatewayId) {
+        try {
+            String message = gatewayRebootSchedulerService.restartNow(gatewayId);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", message == null || message.isBlank() ? "Restart requested" : message
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Error restarting gateway"));
+        }
+    }
+
+    @PostMapping("/api/configuration/gateway-reboots/{gatewayId}/schedule")
+    @ResponseBody
+    public ResponseEntity<?> saveGatewayRebootSchedule(@PathVariable String gatewayId,
+                                                       @RequestBody Map<String, Object> body) {
+        try {
+            boolean enabled = Boolean.parseBoolean(String.valueOf(body.getOrDefault("enabled", false)));
+            int intervalMinutes = Integer.parseInt(String.valueOf(body.getOrDefault("intervalMinutes", 1440)));
+            return ResponseEntity.ok(gatewayRebootSchedulerService.saveSchedule(gatewayId, enabled, intervalMinutes));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Error saving gateway reboot schedule"));
+        }
     }
 
     @PostMapping("/configuration/brands/add")

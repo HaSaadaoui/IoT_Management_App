@@ -273,6 +273,8 @@ public class GatewayController {
                 .map(loc -> loc.getName())
                 .orElse(null);
         model.addAttribute("gatewayLocationName", locationName);
+        model.addAttribute("gatewayRestarting", gatewayService.isGatewayRestarting(id));
+        model.addAttribute("gatewayRestartRemainingSeconds", gatewayService.getGatewayRestartRemainingSeconds(id));
 
         return Constants.PAGE_MONITORING_GATEWAYS;
     }
@@ -315,6 +317,35 @@ public class GatewayController {
         emitter.onTimeout(subscription::dispose);
 
         return emitter;
+    }
+
+    @PostMapping("/manage-gateways/monitoring/{id}/restart")
+    @ResponseBody
+    public Map<String, Object> restartGateway(@PathVariable("id") String id, @RequestParam("ip") String ip) {
+        if (ip == null || ip.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Gateway IP is required");
+        }
+
+        try {
+            String message = gatewayService.restartGateway(id, ip);
+            return Map.of(
+                    "success", true,
+                    "message", message == null || message.isBlank() ? "Restart requested" : message,
+                    "restarting", true,
+                    "remainingSeconds", gatewayService.getGatewayRestartRemainingSeconds(id)
+            );
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error restarting gateway", e);
+        }
+    }
+
+    @GetMapping("/manage-gateways/monitoring/{id}/restart-status")
+    @ResponseBody
+    public Map<String, Object> getGatewayRestartStatus(@PathVariable("id") String id) {
+        return Map.of(
+                "restarting", gatewayService.isGatewayRestarting(id),
+                "remainingSeconds", gatewayService.getGatewayRestartRemainingSeconds(id)
+        );
     }
 
     @GetMapping(value = "/manage-gateways/monitoring/{gatewayId}/{valueType}")

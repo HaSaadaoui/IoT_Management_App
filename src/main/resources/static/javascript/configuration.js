@@ -9,6 +9,7 @@ let gatewayThresholds = {
     disk: { warning: 80.0, critical: 90.0 },
     temperature: { warning: 70.0, critical: 80.0 }
 };
+let gatewayRebootSchedules = {};
 
 // Ace editor pour le payload
 let editor;
@@ -66,6 +67,175 @@ function decodePayload(bytes){
 // ======================================================
 // ===============  GATEWAY CONFIGURATION  =============
 // ======================================================
+
+function getCsrfHeaders(contentType = null) {
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    const headers = {};
+    if (contentType) {
+        headers['Content-Type'] = contentType;
+    }
+    if (csrfMeta && csrfHeaderMeta) {
+        headers[csrfHeaderMeta.getAttribute('content')] = csrfMeta.getAttribute('content');
+    }
+    return headers;
+}
+
+function minutesFromGatewayRebootInput() {
+    const value = Number(document.getElementById('gateway-reboot-interval')?.value || 0);
+    const unit = document.getElementById('gateway-reboot-unit')?.value || 'hours';
+    if (!Number.isFinite(value) || value < 1) {
+        return null;
+    }
+    if (unit === 'days') return Math.round(value * 1440);
+    if (unit === 'hours') return Math.round(value * 60);
+    return Math.round(value);
+}
+
+function setGatewayRebootInterval(minutes) {
+    const intervalInput = document.getElementById('gateway-reboot-interval');
+    const unitSelect = document.getElementById('gateway-reboot-unit');
+    if (!intervalInput || !unitSelect) return;
+
+    if (minutes >= 1440 && minutes % 1440 === 0) {
+        intervalInput.value = minutes / 1440;
+        unitSelect.value = 'days';
+    } else if (minutes >= 60 && minutes % 60 === 0) {
+        intervalInput.value = minutes / 60;
+        unitSelect.value = 'hours';
+    } else {
+        intervalInput.value = minutes || 1440;
+        unitSelect.value = 'minutes';
+    }
+}
+
+async function loadGatewayRebootSchedules() {
+    try {
+        const response = await fetch('/api/configuration/gateway-reboots');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const schedules = await response.json();
+        gatewayRebootSchedules = {};
+        schedules.forEach(schedule => {
+            gatewayRebootSchedules[schedule.gatewayId] = schedule;
+        });
+        updateGatewayRebootForm();
+    } catch (error) {
+        console.error('Error loading gateway reboot schedules:', error);
+    }
+}
+
+function updateGatewayRebootForm() {
+    const select = document.getElementById('gateway-reboot-select');
+    const enabled = document.getElementById('gateway-reboot-enabled');
+    const nowStatus = document.getElementById('gateway-reboot-now-status');
+    const scheduleStatus = document.getElementById('gateway-reboot-schedule-status');
+    const gatewayId = select?.value;
+    const hasGateway = Boolean(gatewayId);
+
+    document.getElementById('gateway-reboot-now-btn')?.toggleAttribute('disabled', !hasGateway);
+    document.getElementById('gateway-reboot-save-btn')?.toggleAttribute('disabled', !hasGateway);
+    document.getElementById('gateway-reboot-interval')?.toggleAttribute('disabled', !hasGateway);
+    document.getElementById('gateway-reboot-unit')?.toggleAttribute('disabled', !hasGateway);
+    if (enabled) enabled.disabled = !hasGateway;
+
+    if (nowStatus) nowStatus.textContent = '';
+    if (scheduleStatus) scheduleStatus.textContent = '';
+
+    const schedule = gatewayRebootSchedules[gatewayId] || { enabled: false, intervalMinutes: 1440 };
+    if (enabled) enabled.checked = Boolean(schedule.enabled);
+    setGatewayRebootInterval(Number(schedule.intervalMinutes || 1440));
+
+    if (schedule.restarting && nowStatus) {
+        nowStatus.textContent = `Restarting (${Math.ceil(Number(schedule.remainingSeconds || 0) / 60)} min left)`;
+        nowStatus.className = 'gateway-reboot-status is-pending';
+    }
+}
+
+async function restartGatewayFromConfig() {
+    const gatewayId = document.getElementById('gateway-reboot-select')?.value;
+    const status = document.getElementById('gateway-reboot-now-status');
+    const button = document.getElementById('gateway-reboot-now-btn');
+    if (!gatewayId) {
+        showNotification('Please select a gateway.', 'warning');
+        return;
+    }
+
+    if (!confirm(`Restart gateway ${gatewayId} now?`)) return;
+
+    if (button) button.disabled = true;
+    if (status) {
+        status.textContent = 'Restart requested...';
+        status.className = 'gateway-reboot-status is-pending';
+    }
+
+    try {
+        const response = await fetch(`/api/configuration/gateway-reboots/${encodeURIComponent(gatewayId)}/restart`, {
+            method: 'POST',
+            headers: getCsrfHeaders()
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+
+        if (status) {
+            status.textContent = 'Restarting...';
+            status.className = 'gateway-reboot-status is-success';
+        }
+        showNotification('Gateway restart requested.', 'success');
+        await loadGatewayRebootSchedules();
+    } catch (error) {
+        if (status) {
+            status.textContent = 'Restart failed.';
+            status.className = 'gateway-reboot-status is-error';
+        }
+        showNotification('Failed to restart gateway: ' + error.message, 'error');
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+
+async function saveGatewayRebootSchedule() {
+    const gatewayId = document.getElementById('gateway-reboot-select')?.value;
+    const status = document.getElementById('gateway-reboot-schedule-status');
+    const enabled = Boolean(document.getElementById('gateway-reboot-enabled')?.checked);
+    const intervalMinutes = minutesFromGatewayRebootInput();
+
+    if (!gatewayId) {
+        showNotification('Please select a gateway.', 'warning');
+        return;
+    }
+    if (!intervalMinutes) {
+        showNotification('Please enter a valid interval.', 'warning');
+        return;
+    }
+
+    if (status) {
+        status.textContent = 'Saving...';
+        status.className = 'gateway-reboot-status is-pending';
+    }
+
+    try {
+        const response = await fetch(`/api/configuration/gateway-reboots/${encodeURIComponent(gatewayId)}/schedule`, {
+            method: 'POST',
+            headers: getCsrfHeaders('application/json'),
+            body: JSON.stringify({ enabled, intervalMinutes })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+
+        gatewayRebootSchedules[gatewayId] = payload;
+        if (status) {
+            status.textContent = enabled ? 'Schedule saved.' : 'Automatic reboot disabled.';
+            status.className = 'gateway-reboot-status is-success';
+        }
+        showNotification('Gateway reboot schedule saved.', 'success');
+    } catch (error) {
+        if (status) {
+            status.textContent = 'Save failed.';
+            status.className = 'gateway-reboot-status is-error';
+        }
+        showNotification('Failed to save reboot schedule: ' + error.message, 'error');
+    }
+}
 
 /**
  * Load current gateway thresholds from server
@@ -2069,6 +2239,10 @@ window.saveEnergyConfig = saveEnergyConfig;
 window.editEnergyConfig = editEnergyConfig;
 window.deleteEnergyConfig = deleteEnergyConfig;
 window.loadEnergyConfigs = loadEnergyConfigs;
+window.loadGatewayRebootSchedules = loadGatewayRebootSchedules;
+window.updateGatewayRebootForm = updateGatewayRebootForm;
+window.restartGatewayFromConfig = restartGatewayFromConfig;
+window.saveGatewayRebootSchedule = saveGatewayRebootSchedule;
 window.loadLocationOptions     = loadLocationOptions;
 window.onLocationChange  = onLocationChange;
 window.getLocationValue        = getLocationValue;
@@ -2095,6 +2269,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof loadNotificationPreferences === 'function') loadNotificationPreferences();
     if (typeof toggleFormFields === 'function') toggleFormFields();
     if (typeof loadEnergyConfigs === 'function') loadEnergyConfigs();
+    if (typeof loadGatewayRebootSchedules === 'function') loadGatewayRebootSchedules();
 
     // Initialiser en mode ajout au chargement
     setFormMode('add');

@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8"/>
     <title>Gateway Monitoring</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
     <link rel="stylesheet" type="text/css" th:href="@{/css/styles.css}"/>
     <link rel="stylesheet" type="text/css" th:href="@{/css/header.css}"/>
     <link rel="stylesheet" href="/css/monitoringGateway.css"/>
@@ -86,6 +88,14 @@
         <button class="tab-btn is-active" data-pane="live">Real-time</button>
         <button class="tab-btn" data-pane="history">History</button>
     </nav>
+
+    <div id="gateway-restart-banner" class="gateway-restart-banner hidden" role="status" aria-live="polite">
+        <div class="gateway-restart-banner-title">Gateway restart in progress</div>
+        <div class="gateway-restart-banner-text">
+            Monitoring data may be unavailable while the gateway boots. Estimated remaining time:
+            <strong id="gateway-restart-countdown">--</strong>
+        </div>
+    </div>
 
     <section id="pane-live">
     <h3 class="section-title">📊 Gateway Information</h3>
@@ -253,6 +263,10 @@
     const gatewayIp = /*[[${ipAddress}]]*/ null;
     window.gatewayId = gatewayId;
     window.gatewayIp = gatewayIp;
+    window.gatewayRestarting = /*[[${gatewayRestarting}]]*/ false;
+    window.gatewayRestartRemainingSeconds = /*[[${gatewayRestartRemainingSeconds}]]*/ 0;
+    const restartStorageKey = gatewayId ? `gateway-restart-until:${gatewayId}` : null;
+    let gatewayRestartTimer = null;
 
     function toggleMenu() {
         document.getElementById("dropdownMenu").classList.toggle("show");
@@ -270,6 +284,7 @@
 
     eventSource.onmessage = function (event) {
         const data = JSON.parse(event.data);
+        clearGatewayRestartState();
 
         if (data.gateway_info && data.gateway_info.name) {
             document.getElementById("gatewayName").textContent = data.gateway_info.name;
@@ -415,6 +430,80 @@
         console.error("Erreur SSE :", error);
         eventSource.close();
     };
+
+    function formatRestartRemaining(ms) {
+        const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function getStoredRestartRemainingMs() {
+        if (!restartStorageKey) return 0;
+        const until = Number(localStorage.getItem(restartStorageKey));
+        if (!Number.isFinite(until)) return 0;
+        return Math.max(0, until - Date.now());
+    }
+
+    function storeGatewayRestartState(seconds) {
+        if (!restartStorageKey) return;
+        localStorage.setItem(restartStorageKey, String(Date.now() + seconds * 1000));
+    }
+
+    function showGatewayRestartState(ms) {
+        const banner = document.getElementById('gateway-restart-banner');
+        const countdown = document.getElementById('gateway-restart-countdown');
+        const statusBadge = document.querySelector("#gateway-status-badge");
+
+        if (banner) banner.classList.remove('hidden');
+        if (statusBadge) {
+            statusBadge.innerHTML = '<img src="/image/toggle_off.svg" alt="Status" /> Restarting';
+            statusBadge.style.backgroundColor = 'orange';
+        }
+        if (countdown) countdown.textContent = formatRestartRemaining(ms);
+    }
+
+    function hideGatewayRestartState() {
+        const banner = document.getElementById('gateway-restart-banner');
+
+        if (banner) banner.classList.add('hidden');
+    }
+
+    function startGatewayRestartCountdown(initialMs) {
+        if (gatewayRestartTimer) clearInterval(gatewayRestartTimer);
+        showGatewayRestartState(initialMs);
+
+        gatewayRestartTimer = setInterval(() => {
+            const remainingMs = getStoredRestartRemainingMs();
+            if (remainingMs <= 0) {
+                clearGatewayRestartState();
+                return;
+            }
+            showGatewayRestartState(remainingMs);
+        }, 1000);
+    }
+
+    function clearGatewayRestartState() {
+        if (gatewayRestartTimer) {
+            clearInterval(gatewayRestartTimer);
+            gatewayRestartTimer = null;
+        }
+        if (restartStorageKey) localStorage.removeItem(restartStorageKey);
+        hideGatewayRestartState();
+    }
+
+    function initGatewayRestartState() {
+        const serverRemainingMs = Math.max(0, Number(window.gatewayRestartRemainingSeconds || 0) * 1000);
+        const storedRemainingMs = getStoredRestartRemainingMs();
+        const remainingMs = Math.max(serverRemainingMs, storedRemainingMs);
+
+        if (remainingMs > 0 || window.gatewayRestarting) {
+            storeGatewayRestartState(Math.max(30, Math.ceil(remainingMs / 1000)));
+            startGatewayRestartCountdown(Math.max(remainingMs, 30000));
+        }
+    }
+
+    initGatewayRestartState();
 
     // Gateway Real-time Alerting System
     function processGatewayAlerts(data) {
@@ -617,3 +706,4 @@
 
 </body>
 </html>
+
