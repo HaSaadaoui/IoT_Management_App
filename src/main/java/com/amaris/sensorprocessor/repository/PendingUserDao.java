@@ -10,6 +10,9 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -37,12 +40,10 @@ public class PendingUserDao {
         p.setRole(rs.getString("role"));
         p.setIcon(rs.getString("icon"));
         p.setTokenHash(rs.getString("token_hash"));
-        String exp = rs.getString("expires_at");
-        p.setExpiresAt(exp == null ? null : Instant.parse(exp));
+        p.setExpiresAt(readInstant(rs, "expires_at"));
         int rc = rs.getInt("resend_count");
         p.setResendCount(rs.wasNull() ? 0 : rc);
-        String lr = rs.getString("last_resend_at");
-        p.setLastResendAt(lr == null ? null : Instant.parse(lr));
+        p.setLastResendAt(readInstant(rs, "last_resend_at"));
         return p;
     };
 
@@ -93,14 +94,14 @@ public class PendingUserDao {
         return jdbcTemplate.update(
                 "INSERT INTO pending_users (email, username, firstname, lastname, password, role, icon, token_hash, expires_at, resend_count, last_resend_at) " +
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                p.getEmail(), p.getUsername(), p.getFirstname(), p.getLastname(), p.getPassword(), p.getRole(), p.getIcon(), p.getTokenHash(), p.getExpiresAt() == null ? null : p.getExpiresAt().toString(), p.getResendCount(), p.getLastResendAt() == null ? null : p.getLastResendAt().toString()
+                p.getEmail(), p.getUsername(), p.getFirstname(), p.getLastname(), p.getPassword(), p.getRole(), p.getIcon(), p.getTokenHash(), toSqlTimestamp(p.getExpiresAt()), p.getResendCount(), toSqlTimestamp(p.getLastResendAt())
         );
     }
 
     public int updateTokenAndResend(String email, String newTokenHash, Instant expiresAt, int resendCount, Instant lastResendAt) {
         return jdbcTemplate.update(
                 "UPDATE pending_users SET token_hash = ?, expires_at = ?, resend_count = ?, last_resend_at = ? WHERE email = ?",
-                newTokenHash, expiresAt == null ? null : expiresAt.toString(), resendCount, lastResendAt == null ? null : lastResendAt.toString(), email
+                newTokenHash, toSqlTimestamp(expiresAt), resendCount, toSqlTimestamp(lastResendAt), email
         );
     }
 
@@ -109,7 +110,24 @@ public class PendingUserDao {
     }
 
     public int deleteExpired(Instant now) {
-        return jdbcTemplate.update("DELETE FROM pending_users WHERE expires_at < ?", now.toString());
+        return jdbcTemplate.update("DELETE FROM pending_users WHERE expires_at < ?", toSqlTimestamp(now));
+    }
+
+    private static Timestamp toSqlTimestamp(Instant instant) {
+        return instant == null ? null : Timestamp.from(instant);
+    }
+
+    private static Instant readInstant(ResultSet rs, String columnName) throws SQLException {
+        Timestamp timestamp = rs.getTimestamp(columnName);
+        if (timestamp != null) {
+            return timestamp.toInstant();
+        }
+
+        String value = rs.getString(columnName);
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return Instant.parse(value);
     }
 }
 

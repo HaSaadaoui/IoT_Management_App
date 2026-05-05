@@ -63,13 +63,23 @@ public class GatewayRebootScheduleDao {
     }
 
     public void save(GatewayRebootSchedule schedule) {
+        int updatedRows = jdbcTemplate.update("""
+                UPDATE gateway_reboot_schedule
+                SET enabled = ?, interval_minutes = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE gateway_id = ?
+                """,
+                schedule.isEnabled(),
+                schedule.getIntervalMinutes(),
+                schedule.getGatewayId()
+        );
+
+        if (updatedRows > 0) {
+            return;
+        }
+
         jdbcTemplate.update("""
                 INSERT INTO gateway_reboot_schedule (gateway_id, enabled, interval_minutes)
                 VALUES (?, ?, ?)
-                ON DUPLICATE KEY UPDATE
-                    enabled = VALUES(enabled),
-                    interval_minutes = VALUES(interval_minutes),
-                    updated_at = CURRENT_TIMESTAMP
                 """,
                 schedule.getGatewayId(),
                 schedule.isEnabled(),
