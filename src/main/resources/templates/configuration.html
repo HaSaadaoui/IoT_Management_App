@@ -57,6 +57,10 @@
                 <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 11-12.8 0"/></svg></span>
                 Gateways
             </a>
+            <a data-section="section-database" onclick="switchSection(this)">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span>
+                Database
+            </a>
             <a data-section="section-notifications" onclick="switchSection(this)">
                 <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
                 Notifications
@@ -664,6 +668,60 @@
                             Save Schedule
                         </button>
                         <div id="gateway-reboot-schedule-status" class="gateway-reboot-status" aria-live="polite"></div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             SECTION: DATABASE
+             ========================================== -->
+        <div id="section-database" class="cfg-section">
+            <div class="config-card">
+                <h2>
+                    <span class="card-icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span>
+                    Database Connection
+                </h2>
+
+                <div class="database-config-grid">
+                    <section class="config-subcard">
+                        <h3>Connection Type</h3>
+                        <input type="hidden" id="database-type" value="mysql">
+                        <div class="database-type-badge">MySQL</div>
+                        <div id="database-current-file" class="database-config-help"></div>
+                    </section>
+
+                    <section class="config-subcard database-config-panel">
+                        <h3>Connection Details</h3>
+                        <div id="database-mysql-fields" class="database-form-grid">
+                            <div>
+                                <label class="form-label" for="database-host">Host</label>
+                                <input type="text" id="database-host" class="form-control" placeholder="localhost">
+                            </div>
+                            <div>
+                                <label class="form-label" for="database-port">Port</label>
+                                <input type="number" id="database-port" class="form-control" min="1" value="3306">
+                            </div>
+                            <div>
+                                <label class="form-label" for="database-name">Database Name</label>
+                                <input type="text" id="database-name" class="form-control" placeholder="iot_management">
+                            </div>
+                            <div>
+                                <label class="form-label" for="database-username">Username</label>
+                                <input type="text" id="database-username" class="form-control" autocomplete="username">
+                            </div>
+                            <div class="database-form-wide">
+                                <label class="form-label" for="database-password">Password</label>
+                                <input type="password" id="database-password" class="form-control" autocomplete="new-password" placeholder="Leave empty to keep saved password">
+                            </div>
+                        </div>
+
+                        <div class="database-config-actions">
+                            <button type="button" class="btn btn-violet" onclick="testDatabaseConnection()">Test Connection</button>
+                            <button type="button" class="btn btn-save-green" onclick="saveDatabaseConnection()">Save Database</button>
+                            <button type="button" class="btn btn-danger" onclick="restartApplicationFromConfig()">Restart Application</button>
+                        </div>
+                        <div id="database-config-status" class="database-config-status" aria-live="polite"></div>
                     </section>
                 </div>
             </div>

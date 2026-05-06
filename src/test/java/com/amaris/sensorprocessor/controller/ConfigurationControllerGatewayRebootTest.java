@@ -38,7 +38,9 @@ class ConfigurationControllerGatewayRebootTest {
             mock(BuildingEnergyConfigDao.class),
             mock(BuildingService.class),
             mock(LocationService.class),
-            gatewayRebootSchedulerService
+            gatewayRebootSchedulerService,
+            mock(DatabaseConnectionConfigService.class),
+            mock(ApplicationRestartService.class)
     );
 
     @Test

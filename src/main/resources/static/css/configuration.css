@@ -377,6 +377,86 @@ main.config-page {
 .gateway-reboot-status.is-error {
     color: var(--cfg-danger);
 }
+
+.database-config-grid {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.75fr) minmax(420px, 1.75fr);
+    gap: 18px;
+    align-items: stretch;
+    margin-top: 18px;
+}
+
+.database-config-panel {
+    min-height: 260px;
+}
+
+.database-type-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 96px;
+    padding: 10px 14px;
+    border-radius: var(--cfg-radius-sm);
+    background: var(--cfg-primary-subtle);
+    border: 1px solid var(--cfg-primary-ring);
+    color: var(--cfg-primary);
+    font-weight: 700;
+}
+
+.database-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+    gap: 14px;
+}
+
+.database-form-wide {
+    grid-column: 1 / -1;
+}
+
+.database-config-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+.database-config-help {
+    margin-top: 14px;
+    color: var(--cfg-text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.database-config-help.is-success {
+    color: var(--cfg-success);
+    font-weight: 600;
+}
+
+.database-config-help.is-warning {
+    color: var(--cfg-warning);
+    font-weight: 600;
+}
+
+.database-config-status {
+    min-height: 20px;
+    margin-top: 12px;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--cfg-text-secondary);
+}
+
+.database-config-status.is-pending {
+    color: var(--cfg-warning);
+}
+
+.database-config-status.is-success {
+    color: var(--cfg-success);
+}
+
+.database-config-status.is-error {
+    color: var(--cfg-danger);
+}
 .config-inline-form {
     display: flex;
     gap: 8px;
@@ -1384,6 +1464,11 @@ textarea {
     }
 
     .gateway-reboot-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .database-config-grid,
+    .database-form-grid {
         grid-template-columns: 1fr;
     }
     .row {

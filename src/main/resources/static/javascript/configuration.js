@@ -237,6 +237,116 @@ async function saveGatewayRebootSchedule() {
     }
 }
 
+function collectDatabaseConfig() {
+    return {
+        type: 'mysql',
+        host: document.getElementById('database-host')?.value?.trim() || '',
+        port: Number(document.getElementById('database-port')?.value || 3306),
+        databaseName: document.getElementById('database-name')?.value?.trim() || '',
+        username: document.getElementById('database-username')?.value?.trim() || '',
+        password: document.getElementById('database-password')?.value || ''
+    };
+}
+
+function setDatabaseStatus(message, type = 'info') {
+    const status = document.getElementById('database-config-status');
+    if (!status) return;
+    status.textContent = message || '';
+    status.className = `database-config-status is-${type}`;
+}
+
+async function loadDatabaseConnectionConfig() {
+    try {
+        const response = await fetch('/api/configuration/database');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const config = await response.json();
+
+        if (document.getElementById('database-host')) document.getElementById('database-host').value = config.host || '';
+        if (document.getElementById('database-port')) document.getElementById('database-port').value = config.port || 3306;
+        if (document.getElementById('database-name')) document.getElementById('database-name').value = config.databaseName || '';
+        if (document.getElementById('database-username')) document.getElementById('database-username').value = config.username || '';
+
+        const fileInfo = document.getElementById('database-current-file');
+        if (fileInfo) {
+            if (!config.fileExists) {
+                fileInfo.textContent = `No saved local config yet. It will be created at ${config.configuredFile}`;
+                fileInfo.className = 'database-config-help';
+            } else if (config.savedMatchesActive) {
+                fileInfo.textContent = `Active database: ${config.activeDatabase || 'configured database'}`;
+                fileInfo.className = 'database-config-help is-success';
+            } else {
+                fileInfo.textContent = `Saved database: ${config.savedDatabase || 'configured database'} - restart required. Active database: ${config.activeDatabase || 'current startup database'}`;
+                fileInfo.className = 'database-config-help is-warning';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading database config:', error);
+    }
+}
+
+async function testDatabaseConnection() {
+    setDatabaseStatus('Testing connection...', 'pending');
+    try {
+        const response = await fetch('/api/configuration/database/test', {
+            method: 'POST',
+            headers: getCsrfHeaders('application/json'),
+            body: JSON.stringify(collectDatabaseConfig())
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.success) {
+            throw new Error(payload.message || `HTTP ${response.status}`);
+        }
+        setDatabaseStatus(payload.message || 'Connection successful.', 'success');
+        showNotification('Database connection successful.', 'success');
+    } catch (error) {
+        setDatabaseStatus(error.message, 'error');
+        showNotification('Database connection failed: ' + error.message, 'error');
+    }
+}
+
+async function saveDatabaseConnection() {
+    setDatabaseStatus('Testing and saving configuration...', 'pending');
+    try {
+        const response = await fetch('/api/configuration/database/save', {
+            method: 'POST',
+            headers: getCsrfHeaders('application/json'),
+            body: JSON.stringify(collectDatabaseConfig())
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.success) {
+            throw new Error(payload.message || `HTTP ${response.status}`);
+        }
+        setDatabaseStatus(payload.message || 'Configuration saved. Restart required.', 'success');
+        showNotification('Database configuration saved. Restart the app to apply it.', 'success');
+        await loadDatabaseConnectionConfig();
+    } catch (error) {
+        setDatabaseStatus(error.message, 'error');
+        showNotification('Failed to save database configuration: ' + error.message, 'error');
+    }
+}
+
+async function restartApplicationFromConfig() {
+    const confirmed = confirm('Restart the application now? The page will be unavailable for a short moment.');
+    if (!confirmed) return;
+
+    setDatabaseStatus('Application restart requested...', 'pending');
+    try {
+        const response = await fetch('/api/configuration/application/restart', {
+            method: 'POST',
+            headers: getCsrfHeaders()
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.success) {
+            throw new Error(payload.message || `HTTP ${response.status}`);
+        }
+        setDatabaseStatus('Application is restarting. Refresh the page in a few seconds.', 'success');
+        showNotification('Application restart requested.', 'success');
+    } catch (error) {
+        setDatabaseStatus(error.message, 'error');
+        showNotification('Failed to restart application: ' + error.message, 'error');
+    }
+}
+
 /**
  * Load current gateway thresholds from server
  */
@@ -2243,6 +2353,10 @@ window.loadGatewayRebootSchedules = loadGatewayRebootSchedules;
 window.updateGatewayRebootForm = updateGatewayRebootForm;
 window.restartGatewayFromConfig = restartGatewayFromConfig;
 window.saveGatewayRebootSchedule = saveGatewayRebootSchedule;
+window.loadDatabaseConnectionConfig = loadDatabaseConnectionConfig;
+window.testDatabaseConnection = testDatabaseConnection;
+window.saveDatabaseConnection = saveDatabaseConnection;
+window.restartApplicationFromConfig = restartApplicationFromConfig;
 window.loadLocationOptions     = loadLocationOptions;
 window.onLocationChange  = onLocationChange;
 window.getLocationValue        = getLocationValue;
@@ -2270,6 +2384,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof toggleFormFields === 'function') toggleFormFields();
     if (typeof loadEnergyConfigs === 'function') loadEnergyConfigs();
     if (typeof loadGatewayRebootSchedules === 'function') loadGatewayRebootSchedules();
+    if (typeof loadDatabaseConnectionConfig === 'function') loadDatabaseConnectionConfig();
 
     // Initialiser en mode ajout au chargement
     setFormMode('add');

@@ -37,6 +37,8 @@ public class ConfigurationController {
     private final BuildingService buildingService;
     private final LocationService locationService;
     private final GatewayRebootSchedulerService gatewayRebootSchedulerService;
+    private final DatabaseConnectionConfigService databaseConnectionConfigService;
+    private final ApplicationRestartService applicationRestartService;
 
     @Autowired
     public ConfigurationController(AlertThresholdConfig alertThresholdConfig,
@@ -54,7 +56,9 @@ public class ConfigurationController {
                                    BuildingEnergyConfigDao buildingEnergyConfigDao,
                                    BuildingService buildingService,
                                    LocationService locationService,
-                                   GatewayRebootSchedulerService gatewayRebootSchedulerService) {
+                                   GatewayRebootSchedulerService gatewayRebootSchedulerService,
+                                   DatabaseConnectionConfigService databaseConnectionConfigService,
+                                   ApplicationRestartService applicationRestartService) {
         this.alertThresholdConfig = alertThresholdConfig;
         this.alertConfigurationService = alertConfigurationService;
         this.notificationService = notificationService;
@@ -71,6 +75,8 @@ public class ConfigurationController {
         this.buildingService = buildingService;
         this.locationService = locationService;
         this.gatewayRebootSchedulerService = gatewayRebootSchedulerService;
+        this.databaseConnectionConfigService = databaseConnectionConfigService;
+        this.applicationRestartService = applicationRestartService;
     }
 
     @GetMapping("/configuration")
@@ -231,6 +237,46 @@ public class ConfigurationController {
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("error", "Error saving gateway reboot schedule"));
         }
+    }
+
+    @GetMapping("/api/configuration/database")
+    @ResponseBody
+    public ResponseEntity<?> getDatabaseConfiguration() {
+        return ResponseEntity.ok(databaseConnectionConfigService.getCurrentConfig());
+    }
+
+    @PostMapping("/api/configuration/database/test")
+    @ResponseBody
+    public ResponseEntity<?> testDatabaseConfiguration(@RequestBody DatabaseConnectionConfig config) {
+        try {
+            return ResponseEntity.ok(databaseConnectionConfigService.testConnection(config));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/api/configuration/database/save")
+    @ResponseBody
+    public ResponseEntity<?> saveDatabaseConfiguration(@RequestBody DatabaseConnectionConfig config) {
+        try {
+            Map<String, Object> result = databaseConnectionConfigService.saveConfig(config);
+            boolean success = Boolean.TRUE.equals(result.get("success"));
+            return success ? ResponseEntity.ok(result) : ResponseEntity.badRequest().body(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("success", false, "message", "Unable to save database configuration"));
+        }
+    }
+
+    @PostMapping("/api/configuration/application/restart")
+    @ResponseBody
+    public ResponseEntity<?> restartApplication() {
+        applicationRestartService.restart();
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Application restart requested"
+        ));
     }
 
     @PostMapping("/configuration/brands/add")
