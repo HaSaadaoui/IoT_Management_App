@@ -153,16 +153,40 @@ function updateGatewayRebootForm() {
 
 async function restartGatewayFromConfig() {
     const gatewayId = document.getElementById('gateway-reboot-select')?.value;
-    const status = document.getElementById('gateway-reboot-now-status');
-    const button = document.getElementById('gateway-reboot-now-btn');
     if (!gatewayId) {
         showNotification('Please select a gateway.', 'warning');
         return;
     }
 
-    if (!confirm(`Restart gateway ${gatewayId} now?`)) return;
+    const nameEl = document.getElementById('gateway-restart-confirm-name');
+    const modal = document.getElementById('gateway-restart-confirm-modal');
+    if (nameEl) nameEl.textContent = gatewayId;
+    if (modal) {
+        modal.style.display = 'flex';
+    } else {
+        await confirmGatewayRestartFromConfig();
+    }
+}
 
+function closeGatewayRestartModal() {
+    const modal = document.getElementById('gateway-restart-confirm-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function confirmGatewayRestartFromConfig() {
+    const gatewayId = document.getElementById('gateway-reboot-select')?.value;
+    const status = document.getElementById('gateway-reboot-now-status');
+    const button = document.getElementById('gateway-reboot-now-btn');
+    const confirmButton = document.getElementById('gateway-restart-confirm-btn');
+    if (!gatewayId) {
+        closeGatewayRestartModal();
+        showNotification('Please select a gateway.', 'warning');
+        return;
+    }
+
+    closeGatewayRestartModal();
     if (button) button.disabled = true;
+    if (confirmButton) confirmButton.disabled = true;
     if (status) {
         status.textContent = 'Restart requested...';
         status.className = 'gateway-reboot-status is-pending';
@@ -190,6 +214,7 @@ async function restartGatewayFromConfig() {
         showNotification('Failed to restart gateway: ' + error.message, 'error');
     } finally {
         if (button) button.disabled = false;
+        if (confirmButton) confirmButton.disabled = false;
     }
 }
 
@@ -326,9 +351,24 @@ async function saveDatabaseConnection() {
 }
 
 async function restartApplicationFromConfig() {
-    const confirmed = confirm('Restart the application now? The page will be unavailable for a short moment.');
-    if (!confirmed) return;
+    const modal = document.getElementById('application-restart-confirm-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+    } else {
+        await confirmApplicationRestartFromConfig();
+    }
+}
 
+function closeApplicationRestartModal() {
+    const modal = document.getElementById('application-restart-confirm-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function confirmApplicationRestartFromConfig() {
+    const confirmButton = document.getElementById('application-restart-confirm-btn');
+
+    closeApplicationRestartModal();
+    if (confirmButton) confirmButton.disabled = true;
     setDatabaseStatus('Application restart requested...', 'pending');
     try {
         const response = await fetch('/api/configuration/application/restart', {
@@ -344,6 +384,8 @@ async function restartApplicationFromConfig() {
     } catch (error) {
         setDatabaseStatus(error.message, 'error');
         showNotification('Failed to restart application: ' + error.message, 'error');
+    } finally {
+        if (confirmButton) confirmButton.disabled = false;
     }
 }
 
@@ -2381,11 +2423,15 @@ window.loadEnergyConfigs = loadEnergyConfigs;
 window.loadGatewayRebootSchedules = loadGatewayRebootSchedules;
 window.updateGatewayRebootForm = updateGatewayRebootForm;
 window.restartGatewayFromConfig = restartGatewayFromConfig;
+window.closeGatewayRestartModal = closeGatewayRestartModal;
+window.confirmGatewayRestartFromConfig = confirmGatewayRestartFromConfig;
 window.saveGatewayRebootSchedule = saveGatewayRebootSchedule;
 window.loadDatabaseConnectionConfig = loadDatabaseConnectionConfig;
 window.testDatabaseConnection = testDatabaseConnection;
 window.saveDatabaseConnection = saveDatabaseConnection;
 window.restartApplicationFromConfig = restartApplicationFromConfig;
+window.closeApplicationRestartModal = closeApplicationRestartModal;
+window.confirmApplicationRestartFromConfig = confirmApplicationRestartFromConfig;
 window.loadLocationOptions     = loadLocationOptions;
 window.onLocationChange  = onLocationChange;
 window.getLocationValue        = getLocationValue;

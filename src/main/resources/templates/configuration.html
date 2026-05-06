@@ -1372,6 +1372,73 @@
     </div>
 </div>
 
+<!-- ================= APPLICATION RESTART CONFIRM MODAL ================= -->
+<div id="application-restart-confirm-modal" onclick="if (event.target === this) closeApplicationRestartModal()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
+     z-index:9998; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:16px; width:440px; max-width:94vw;
+                box-shadow:0 20px 60px rgba(0,0,0,0.18); overflow:hidden; font-family:'Inter',sans-serif;">
+        <div style="background:var(--cfg-danger-bg); padding:1.25rem 1.5rem; display:flex; align-items:center; gap:0.75rem; border-bottom:1px solid #fecaca;">
+            <div style="width:40px; height:40px; border-radius:50%; background:#fee2e2; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 11-12.8 0"/>
+                </svg>
+            </div>
+            <div>
+                <div style="font-weight:700; font-size:1rem; color:#991b1b;">Restart application</div>
+                <div style="font-size:0.8rem; color:#b91c1c; margin-top:2px;">The page will be unavailable for a short moment</div>
+            </div>
+            <button onclick="closeApplicationRestartModal()" style="margin-left:auto; background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer; line-height:1;">&#10005;</button>
+        </div>
+        <div style="padding:1.25rem 1.5rem;">
+            <p style="margin:0; color:var(--cfg-text); font-size:0.9rem;">
+                Are you sure you want to restart the application now?
+            </p>
+        </div>
+        <div style="padding:1rem 1.5rem; background:#f9fafb; display:flex; justify-content:flex-end; gap:0.75rem; border-top:1px solid var(--cfg-border);">
+            <button onclick="closeApplicationRestartModal()" class="btn" style="background:#f3f4f6; color:var(--cfg-text); border:1px solid var(--cfg-border); padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer;">
+                Cancel
+            </button>
+            <button id="application-restart-confirm-btn" onclick="confirmApplicationRestartFromConfig()" style="background:var(--cfg-danger); color:#fff; border:none; padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer; transition:background 0.15s;">
+                Restart application
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= GATEWAY RESTART CONFIRM MODAL ================= -->
+<div id="gateway-restart-confirm-modal" onclick="if (event.target === this) closeGatewayRestartModal()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
+     z-index:9998; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:16px; width:440px; max-width:94vw;
+                box-shadow:0 20px 60px rgba(0,0,0,0.18); overflow:hidden; font-family:'Inter',sans-serif;">
+        <div style="background:var(--cfg-danger-bg); padding:1.25rem 1.5rem; display:flex; align-items:center; gap:0.75rem; border-bottom:1px solid #fecaca;">
+            <div style="width:40px; height:40px; border-radius:50%; background:#fee2e2; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 11-12.8 0"/>
+                </svg>
+            </div>
+            <div>
+                <div style="font-weight:700; font-size:1rem; color:#991b1b;">Restart gateway</div>
+                <div style="font-size:0.8rem; color:#b91c1c; margin-top:2px;">Data will be unavailable during restart</div>
+            </div>
+            <button onclick="closeGatewayRestartModal()" style="margin-left:auto; background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer; line-height:1;">&#10005;</button>
+        </div>
+        <div style="padding:1.25rem 1.5rem;">
+            <p style="margin:0; color:var(--cfg-text); font-size:0.9rem;">
+                Are you sure you want to restart gateway
+                <strong id="gateway-restart-confirm-name" style="color:var(--cfg-primary);"></strong> now?
+            </p>
+        </div>
+        <div style="padding:1rem 1.5rem; background:#f9fafb; display:flex; justify-content:flex-end; gap:0.75rem; border-top:1px solid var(--cfg-border);">
+            <button onclick="closeGatewayRestartModal()" class="btn" style="background:#f3f4f6; color:var(--cfg-text); border:1px solid var(--cfg-border); padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer;">
+                Cancel
+            </button>
+            <button id="gateway-restart-confirm-btn" onclick="confirmGatewayRestartFromConfig()" style="background:var(--cfg-danger); color:#fff; border:none; padding:8px 18px; border-radius:8px; font-weight:600; cursor:pointer; transition:background 0.15s;">
+                Restart gateway
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- ================= LOCATION DELETE — CONFIRM MODAL ================= -->
 <div id="loc-confirm-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
      z-index:9998; align-items:center; justify-content:center;">
