@@ -619,6 +619,9 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
     const styleSelect = document.getElementById("filter-style");
     const styleSelectContainer = styleSelect?.parentElement;
     const inputLocationContainer = document.getElementById("input-location-container");
+    const labelBoldContainer     = document.getElementById("label-bold-container");
+    const chairMainContainer     = document.getElementById("chair-main-container");
+    const chairExtraContainer    = document.getElementById("chair-extra-container");
 
     const sensorMode = (sensorTypeValue ?? sensorTypeSelect?.value ?? 'DESK');
 
@@ -633,14 +636,19 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
                 if (inputHeightContainer) inputHeightContainer.style.display = 'block';
                 if (inputRotationContainer) inputRotationContainer.style.display = 'block';
                 if (selectChairContainer) selectChairContainer.style.display = 'block';
+                if (chairMainContainer)  chairMainContainer.style.display  = 'block';
+                if (chairExtraContainer) chairExtraContainer.style.display = 'block';
                 if (inputLabelContainer) inputLabelContainer.style.display = 'block';
             } else {
                 if (inputWidthContainer) inputWidthContainer.style.display = 'none';
                 if (inputHeightContainer) inputHeightContainer.style.display = 'none';
                 if (inputRotationContainer) inputRotationContainer.style.display = 'none';
                 if (selectChairContainer) selectChairContainer.style.display = 'none';
+                if (chairMainContainer)  chairMainContainer.style.display  = 'none';
+                if (chairExtraContainer) chairExtraContainer.style.display = 'none';
                 if (inputLabelContainer) inputLabelContainer.style.display = 'none';
             }
+            if (labelBoldContainer) labelBoldContainer.style.display = 'none';
             if (inputLocationContainer) {
                 inputLocationContainer.style.display = "block";
 
@@ -660,6 +668,9 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
             if (inputHeightContainer) inputHeightContainer.style.display = 'none';
             if (inputRotationContainer) inputRotationContainer.style.display = 'block';
             if (selectChairContainer) selectChairContainer.style.display = 'none';
+            if (chairMainContainer)  chairMainContainer.style.display  = 'none';
+            if (chairExtraContainer) chairExtraContainer.style.display = 'none';
+            if (labelBoldContainer) labelBoldContainer.style.display = 'none';
             if (inputLabelContainer) inputLabelContainer.style.display = 'none';
             if (styleSelectContainer) styleSelectContainer.style.display = 'block';
             break;
@@ -675,6 +686,9 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
             if (inputHeightContainer) inputHeightContainer.style.display = 'block';
             if (inputRotationContainer) inputRotationContainer.style.display = 'block';
             if (selectChairContainer) selectChairContainer.style.display = 'none';
+            if (chairMainContainer)  chairMainContainer.style.display  = 'none';
+            if (chairExtraContainer) chairExtraContainer.style.display = 'none';
+            if (labelBoldContainer) labelBoldContainer.style.display = 'none';
             if (inputLabelContainer) inputLabelContainer.style.display = 'none';
             if (styleSelectContainer) styleSelectContainer.style.display = 'block';
             break;
@@ -688,6 +702,9 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
             if (inputHeightContainer) inputHeightContainer.style.display = 'none';
             if (inputRotationContainer) inputRotationContainer.style.display = 'none';
             if (selectChairContainer) selectChairContainer.style.display = 'none';
+            if (chairMainContainer)  chairMainContainer.style.display  = 'none';
+            if (chairExtraContainer) chairExtraContainer.style.display = 'none';
+            if (labelBoldContainer) labelBoldContainer.style.display = 'none';
             if (inputLabelContainer) inputLabelContainer.style.display = 'none';
             if (styleSelectContainer) styleSelectContainer.style.display = 'block';
             break;
@@ -701,6 +718,9 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
             if (inputHeightContainer) inputHeightContainer.style.display = 'none';
             if (inputRotationContainer) inputRotationContainer.style.display = 'block';
             if (selectChairContainer) selectChairContainer.style.display = 'none';
+            if (chairMainContainer)  chairMainContainer.style.display  = 'none';
+            if (chairExtraContainer) chairExtraContainer.style.display = 'none';
+            if (labelBoldContainer) labelBoldContainer.style.display = 'flex';
             if (inputLabelContainer) inputLabelContainer.style.display = 'block';
             if (styleSelectContainer) styleSelectContainer.style.display = 'block';
             break;
@@ -1228,6 +1248,11 @@ async function updateBuildingConfig(formData) {
         window._pendingExcludedFloors = data?.excludedFloors || getExcludedFloors();
         refresh3DConfig();
         window.building3D.dbShapeCache = null;
+        // Invalider le cache SVG pour forcer la relecture depuis le serveur
+        if (window.building3D?.currentArchPlan) {
+            window.building3D.currentArchPlan._svgDocCache = null;
+            window.building3D.currentArchPlan._svgCacheKey = null;
+        }
         window.building3D.setBuilding();
 
         return true;
@@ -1413,7 +1438,8 @@ async function addElementSVG() {
                 bottom: parseInt(document.getElementById("chair_bottom").value || 0),
                 left: parseInt(document.getElementById("chair_left").value || 0),
                 right: parseInt(document.getElementById("chair_right").value || 0),
-            }
+            },
+            chairRadius : parseFloat(document.getElementById("input_chair_radius")?.value) || 5,
         };
         window.building3D.currentArchPlan.overlayManager.drawSensor(sensor);
         if (locationId) await saveSensorLocation(sensor.id, locationId);
@@ -1480,6 +1506,7 @@ async function addElementSVG() {
             radius : parseInt(inputRadiusEl.value),
             rotation : parseInt(inputRotationEl.value),
             label : inputLabelEl.value,
+            bold  : document.getElementById('input_label_bold')?.checked ?? false,
             style : inputStyleEl ? inputStyleEl.value : "Dark"
         };
         window.building3D.currentArchPlan.elementsManager.addElement(element);
@@ -1585,7 +1612,8 @@ function updateElementSVG() {
                 bottom: v('chair_bottom') || 0,
                 left:   v('chair_left')   || 0,
                 right:  v('chair_right')  || 0,
-            }
+            },
+            chairRadius : parseFloat(document.getElementById("input_chair_radius")?.value) || 5,
         });
     } else {
         window.building3D.currentArchPlan.elementsManager.updateElement({
@@ -1598,6 +1626,7 @@ function updateElementSVG() {
             radius : v('input_radius'),
             rotation,
             label  : document.getElementById('input_label')?.value ?? '',
+            bold   : document.getElementById('input_label_bold')?.checked ?? false,
             style  : document.getElementById('filter-style')?.value || 'Dark'
         });
     }

@@ -617,7 +617,8 @@ class ArchitecturalFloorPlan {
                     width : parseInt(parseFloat(el.getAttribute('width'))),
                     height : parseInt(parseFloat(el.getAttribute('height'))),
                     rotation : extractRotation(el.getAttribute('transform')),
-                    chairs : JSON.parse(el.getAttribute("chairs") || "{}"),
+                    chairs      : JSON.parse(el.getAttribute("chairs") || "{}"),
+                    chairRadius : parseFloat(el.getAttribute("chair-radius")) || 5,
                     label : el.getAttribute('label'),
                     value : liveValue,
                     status : "invalid" //valeur par défaut
@@ -919,6 +920,13 @@ class ArchitecturalFloorPlan {
                         if (chairBottom) chairBottom.value = "0";
                         if (chairLeft) chairLeft.value = "0";
                         if (chairRight) chairRight.value = "0";
+                    }
+                    const inputChairRadius = document.getElementById("input_chair_radius");
+                    const chairRadiusVal   = document.getElementById("chair_radius_val");
+                    if (inputChairRadius) {
+                        const stored = parseFloat(sensor.getAttribute("chair-radius")) || 5;
+                        inputChairRadius.value = stored;
+                        if (chairRadiusVal) chairRadiusVal.textContent = stored;
                     }
 
                     // Charger les options de location + pré-sélectionner la valeur courante
@@ -1246,6 +1254,8 @@ class ArchitecturalFloorPlan {
             setVal("input_height", 0);
             setVal("input_radius", 0);
             setVal("input_rotation", rotation);
+            const boldEl = document.getElementById("input_label_bold");
+            if (boldEl) boldEl.checked = g.getAttribute("data-bold") !== "false";
         }
         const sel = document.getElementById("filter-element");
         if (sel) sel.value = type;
