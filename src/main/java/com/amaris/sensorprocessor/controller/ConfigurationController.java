@@ -14,6 +14,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -224,6 +226,26 @@ public class ConfigurationController {
         }
     }
 
+
+    @PostMapping("/api/configuration/gateway-reboots/{gatewayId}/schedule")
+    @ResponseBody
+    public ResponseEntity<?> saveGatewayRebootSchedule(@PathVariable String gatewayId,
+                                                       @RequestBody Map<String, Object> body) {
+        try {
+            boolean enabled = Boolean.parseBoolean(String.valueOf(body.getOrDefault("enabled", false)));
+            int dayOfWeek = Integer.parseInt(String.valueOf(body.getOrDefault("dayOfWeek", 1)));
+            String rebootTime = String.valueOf(body.getOrDefault("rebootTime", "00:00"));
+            return ResponseEntity.ok(gatewayRebootSchedulerService.saveSchedule(gatewayId, enabled, dayOfWeek, LocalTime.parse(rebootTime)));
+        } catch (DateTimeParseException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "rebootTime must use HH:mm format"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Error saving gateway reboot schedule"));
+        }
+    }
+
+    /*
     @PostMapping("/api/configuration/gateway-reboots/{gatewayId}/schedule")
     @ResponseBody
     public ResponseEntity<?> saveGatewayRebootSchedule(@PathVariable String gatewayId,
@@ -237,7 +259,7 @@ public class ConfigurationController {
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("error", "Error saving gateway reboot schedule"));
         }
-    }
+    }*/
 
     @GetMapping("/api/configuration/database")
     @ResponseBody

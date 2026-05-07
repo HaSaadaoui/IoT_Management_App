@@ -81,32 +81,15 @@ function getCsrfHeaders(contentType = null) {
     return headers;
 }
 
-function minutesFromGatewayRebootInput() {
-    const value = Number(document.getElementById('gateway-reboot-interval')?.value || 0);
-    const unit = document.getElementById('gateway-reboot-unit')?.value || 'hours';
-    if (!Number.isFinite(value) || value < 1) {
-        return null;
+function normalizeGatewayRebootTime(rebootTime) {
+    if (Array.isArray(rebootTime) && rebootTime.length >= 2) {
+        const [hour, minute] = rebootTime;
+        return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
     }
-    if (unit === 'days') return Math.round(value * 1440);
-    if (unit === 'hours') return Math.round(value * 60);
-    return Math.round(value);
-}
-
-function setGatewayRebootInterval(minutes) {
-    const intervalInput = document.getElementById('gateway-reboot-interval');
-    const unitSelect = document.getElementById('gateway-reboot-unit');
-    if (!intervalInput || !unitSelect) return;
-
-    if (minutes >= 1440 && minutes % 1440 === 0) {
-        intervalInput.value = minutes / 1440;
-        unitSelect.value = 'days';
-    } else if (minutes >= 60 && minutes % 60 === 0) {
-        intervalInput.value = minutes / 60;
-        unitSelect.value = 'hours';
-    } else {
-        intervalInput.value = minutes || 1440;
-        unitSelect.value = 'minutes';
+    if (typeof rebootTime === 'string' && rebootTime.length >= 5) {
+        return rebootTime.slice(0, 5);
     }
+    return '00:00';
 }
 
 async function loadGatewayRebootSchedules() {
@@ -127,6 +110,8 @@ async function loadGatewayRebootSchedules() {
 function updateGatewayRebootForm() {
     const select = document.getElementById('gateway-reboot-select');
     const enabled = document.getElementById('gateway-reboot-enabled');
+    const daySelect = document.getElementById('gateway-reboot-day');
+    const timeInput = document.getElementById('gateway-reboot-time');
     const nowStatus = document.getElementById('gateway-reboot-now-status');
     const scheduleStatus = document.getElementById('gateway-reboot-schedule-status');
     const gatewayId = select?.value;
@@ -134,16 +119,17 @@ function updateGatewayRebootForm() {
 
     document.getElementById('gateway-reboot-now-btn')?.toggleAttribute('disabled', !hasGateway);
     document.getElementById('gateway-reboot-save-btn')?.toggleAttribute('disabled', !hasGateway);
-    document.getElementById('gateway-reboot-interval')?.toggleAttribute('disabled', !hasGateway);
-    document.getElementById('gateway-reboot-unit')?.toggleAttribute('disabled', !hasGateway);
+    if (daySelect) daySelect.disabled = !hasGateway;
+    if (timeInput) timeInput.disabled = !hasGateway;
     if (enabled) enabled.disabled = !hasGateway;
 
     if (nowStatus) nowStatus.textContent = '';
     if (scheduleStatus) scheduleStatus.textContent = '';
 
-    const schedule = gatewayRebootSchedules[gatewayId] || { enabled: false, intervalMinutes: 1440 };
+    const schedule = gatewayRebootSchedules[gatewayId] || { enabled: false, dayOfWeek: 1, rebootTime: '00:00' };
     if (enabled) enabled.checked = Boolean(schedule.enabled);
-    setGatewayRebootInterval(Number(schedule.intervalMinutes || 1440));
+    if (daySelect) daySelect.value = String(schedule.dayOfWeek ?? 1);
+    if (timeInput) timeInput.value = normalizeGatewayRebootTime(schedule.rebootTime);
 
     if (schedule.restarting && nowStatus) {
         nowStatus.textContent = `Restarting (${Math.ceil(Number(schedule.remainingSeconds || 0) / 60)} min left)`;
@@ -222,14 +208,16 @@ async function saveGatewayRebootSchedule() {
     const gatewayId = document.getElementById('gateway-reboot-select')?.value;
     const status = document.getElementById('gateway-reboot-schedule-status');
     const enabled = Boolean(document.getElementById('gateway-reboot-enabled')?.checked);
-    const intervalMinutes = minutesFromGatewayRebootInput();
+    const dayOfWeek = parseInt(document.getElementById('gateway-reboot-day')?.value, 10);
+    const rebootTime = document.getElementById('gateway-reboot-time')?.value;
 
     if (!gatewayId) {
         showNotification('Please select a gateway.', 'warning');
         return;
     }
-    if (!intervalMinutes) {
-        showNotification('Please enter a valid interval.', 'warning');
+
+    if (isNaN(dayOfWeek) || !rebootTime) {
+        showNotification('Please select a day and time.', 'warning');
         return;
     }
 
@@ -242,7 +230,7 @@ async function saveGatewayRebootSchedule() {
         const response = await fetch(`/api/configuration/gateway-reboots/${encodeURIComponent(gatewayId)}/schedule`, {
             method: 'POST',
             headers: getCsrfHeaders('application/json'),
-            body: JSON.stringify({ enabled, intervalMinutes })
+            body: JSON.stringify({ enabled, dayOfWeek, rebootTime })
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
