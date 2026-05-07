@@ -419,7 +419,7 @@ class SensorOverlayManager {
                 <stop offset="100%" style="stop-color:${color};stop-opacity:0"/>
             `;
             defs.appendChild(gradient);
-            
+
             const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
             circle.setAttribute("class", "circle-marker");
             circle.setAttribute("id", circleId);
@@ -433,7 +433,7 @@ class SensorOverlayManager {
                 lightGradientStops: Array.from(gradient.querySelectorAll("stop")),
                 lightCircle: circle
             });
-            
+
             this.addSensorIcon(sensor.x, sensor.y, this.getIcon("LIGHT"), sensor.value + " lux", sensor.id, sensor.floor);
         });
         this.svg.insertBefore(defs, this.svg.firstChild);
@@ -460,7 +460,7 @@ class SensorOverlayManager {
                 ripple.setAttribute("stroke-width", "2");
                 ripple.setAttribute("opacity", "1");
                 parent.appendChild(ripple);
-                
+
                 const animate = () => {
                     let r = 10, opacity = 1;
                     const expand = () => {
@@ -766,7 +766,7 @@ class SensorOverlayManager {
         text.setAttribute("y", labelY);
         text.setAttribute("text-anchor", "middle");
         text.setAttribute("font-size", "10");
-        text.setAttribute("font-weight", "bold");
+        text.setAttribute("font-weight", sensor.labelBold === false ? "normal" : "bold");
         text.setAttribute("fill", "#374151");
 
         //Ajout de l'id pour que updateVisual puisse trouver le texte
@@ -1025,6 +1025,8 @@ class SensorOverlayManager {
         desk.setAttribute("label", sensor.label);
         desk.setAttribute("status", sensor.status || "invalid");
         desk.setAttribute("chairs", JSON.stringify(sensor.chairs));
+        desk.setAttribute("chair-radius", sensor.chairRadius ?? 5);
+        if (sensor.labelBold   != null) desk.setAttribute("label-bold",   sensor.labelBold ? "true" : "false");
         if (sensor.rotation) {
             const cx = sensor.x + sensor.width / 2;
             const cy = sensor.y + sensor.height / 2;
@@ -1042,7 +1044,7 @@ class SensorOverlayManager {
         const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
 
         const cx = sensor.x + sensor.width / 2;
-        const cy = sensor.y + sensor.height / 2;        
+        const cy = sensor.y + sensor.height / 2;
 
         text.setAttribute("x", cx);
         text.setAttribute("y", cy);
@@ -1071,25 +1073,25 @@ class SensorOverlayManager {
             if (count <= 0) return;
 
             for (let i = 0; i < count; i++) {
-                let cx = 0, cy = 0, rad = 0;
+                let cx = 0, cy = 0;
+                // Taille uniforme : on utilise la plus petite dimension du desk / 10
+                // Cela garantit la même taille sur tous les côtés quel que soit le desk
+                const storedRad = parseFloat(sensor.chairRadius);
+                const rad = (!isNaN(storedRad) && storedRad > 0) ? storedRad : Math.min(sensor.width, sensor.height) / 10;
                 switch (side) {
                     case "top":
-                        rad = sensor.width / 10;
                         cx = sensor.x + sensor.width * (i + 1) / (count + 1);
                         cy = sensor.y - 2 * rad;
                         break;
                     case "bottom":
-                        rad = sensor.width / 10;
                         cx = sensor.x + sensor.width * (i + 1) / (count + 1);
                         cy = sensor.y + sensor.height + 2 * rad;
                         break;
                     case "left":
-                        rad = sensor.height / 10;
                         cx = sensor.x - 2 * rad;
                         cy = sensor.y + sensor.height * (i + 1) / (count + 1);
                         break;
                     case "right":
-                        rad = sensor.height / 10;
                         cx = sensor.x + sensor.width + 2 * rad;
                         cy = sensor.y + sensor.height * (i + 1) / (count + 1);
                         break;
@@ -1244,10 +1246,10 @@ class SensorOverlayManager {
         } else {
             this.createSensor(g, sensor);
         }
-        
+
         parent.appendChild(g);
     }
- 
+
     removeSensorMarkerById(id) {
         if (!id) return false;
 
@@ -1268,6 +1270,16 @@ class SensorOverlayManager {
 
         sensor.x = parseFloat(sensorEl.getAttribute("x"));
         sensor.y = parseFloat(sensorEl.getAttribute("y"));
+
+        // Toujours prendre la valeur du slider si le champ existe
+        const chairRadiusInput = document.getElementById("input_chair_radius");
+        if (chairRadiusInput != null) {
+            const v = parseFloat(chairRadiusInput.value);
+            sensor.chairRadius = isNaN(v) ? 5 : v;
+        } else {
+            const stored = parseFloat(sensorEl.getAttribute("chair-radius"));
+            sensor.chairRadius = isNaN(stored) ? 5 : stored;
+        }
 
         this.removeSensorMarkerById(sensor.id);
         this.drawSensor(sensor);

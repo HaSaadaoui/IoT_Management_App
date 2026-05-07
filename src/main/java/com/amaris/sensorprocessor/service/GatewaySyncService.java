@@ -49,7 +49,7 @@ import static com.amaris.sensorprocessor.constant.Constants.SENSOR_DATA_SYNC_ROL
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SensorSyncService {
+public class GatewaySyncService {
 
     private final SensorLorawanService lorawanService;
     private final SensorService sensorService;
@@ -187,6 +187,7 @@ public class SensorSyncService {
     public int syncGateway(String gatewayId) {
         int syncCount = syncSensorsFromTTN(gatewayId);
         syncSensorsData(gatewayId, null);
+        gatewayService.syncMonitoringDataSnapshot(gatewayId);
         return syncCount;
     }
 
@@ -234,11 +235,13 @@ public class SensorSyncService {
                 if (isInitialSync) {
                     log.info("[SensorSync] Performing initial full data sync for gateway: {}", gatewayId);
                     syncSensorsData(gatewayId, null);
+                    gatewayService.syncMonitoringDataSnapshot(gatewayId);
                 } else {
                     Instant after = Instant.now().minus(
                             SENSOR_DATA_SYNC_ROLLBACK_TIME_MINUTE, TimeUnit.MINUTES.toChronoUnit());
                     log.info("[SensorSync] Performing periodic data sync for gateway: {} with after={}", gatewayId, after);
                     syncSensorsData(gatewayId, after);
+                    gatewayService.syncMonitoringDataSnapshot(gatewayId);
                 }
                 log.info("[SensorSync] Completed periodic data sync for gateway: {}", gatewayId);
             } catch (Exception e) {

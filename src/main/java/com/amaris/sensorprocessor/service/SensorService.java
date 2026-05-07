@@ -50,6 +50,7 @@ public class SensorService {
     private final WebClient webClient;
     private final WebClient webClientSse;
     private final DeviceTypeService deviceTypeService;
+    private final BrandService brandService;
 
     @Value("${api.base.url}")
     private String baseUrl;
@@ -350,7 +351,33 @@ public class SensorService {
             log.error("[Sensor] TTN create unexpected error for {}: {}", toCreate.getIdSensor(), e.getMessage(), e);
         }
 
+        pushPayloadFormatterFromBrand(toCreate);
+
         return sensorDao.findByIdOfSensor(toCreate.getIdSensor()).orElse(toCreate);
+    }
+
+    private void pushPayloadFormatterFromBrand(Sensor sensor) {
+        if (sensor.getBrandId() == null) {
+            return;
+        }
+        if (sensor.getIdGateway() == null || sensor.getIdGateway().isBlank()) {
+            log.warn("[Sensor] No idGateway provided for {} -> skipping TTN payload formatter", sensor.getIdSensor());
+            return;
+        }
+
+        String decoder = brandService.getDecoder(sensor.getBrandId());
+        if (decoder == null || decoder.isBlank()) {
+            log.info("[Sensor] No payload decoder configured for brand {} -> skipping TTN payload formatter for {}",
+                    sensor.getBrandId(), sensor.getIdSensor());
+            return;
+        }
+
+        try {
+            lorawanService.pushPayloadFormatter(sensor.getIdGateway(), sensor.getIdSensor(), decoder);
+            log.info("[Sensor] TTN payload formatter pushed for {} from brand {}", sensor.getIdSensor(), sensor.getBrandId());
+        } catch (Exception e) {
+            log.error("[Sensor] TTN payload formatter push failed for {}: {}", sensor.getIdSensor(), e.getMessage(), e);
+        }
     }
 
     /* ===================== UPDATE ===================== */

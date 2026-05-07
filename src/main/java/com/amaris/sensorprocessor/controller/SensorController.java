@@ -58,13 +58,13 @@ public class SensorController {
     private final DeviceTypeService deviceTypeService;
     private final BuildingService buildingService;
     private final com.amaris.sensorprocessor.service.SensorLorawanService sensorLorawanService;
-    private final com.amaris.sensorprocessor.service.SensorSyncService sensorSyncService;
+    private final GatewaySyncService gatewaySyncService;
     private final com.amaris.sensorprocessor.service.LocationService locationService;
 
     @Autowired
     public SensorController(SensorService sensorService, GatewayService gatewayService,
                             UserService userService, SensorLorawanService sensorLorawanService,
-                            SensorSyncService sensorSyncService, ProtocolService protocolService,
+                            GatewaySyncService gatewaySyncService, ProtocolService protocolService,
                             BrandService brandService, DeviceTypeService deviceTypeService,
                             BuildingService buildingService,
                             com.amaris.sensorprocessor.service.LocationService locationService) {
@@ -72,7 +72,7 @@ public class SensorController {
         this.gatewayService = gatewayService;
         this.userService = userService;
         this.sensorLorawanService = sensorLorawanService;
-        this.sensorSyncService = sensorSyncService;
+        this.gatewaySyncService = gatewaySyncService;
         this.protocolService = protocolService;
         this.brandService = brandService;
         this.deviceTypeService = deviceTypeService;
@@ -210,19 +210,6 @@ public class SensorController {
 
         try {
             sensorService.create(sensor);
-            // ✅ Push du payload formatter TTN selon la marque
-            String decoder = brandService.getDecoder(sensor.getBrandId());
-            if (decoder != null && !decoder.isBlank()) {
-                try {
-                    sensorLorawanService.pushPayloadFormatter(
-                            sensor.getIdGateway(),
-                            sensor.getIdSensor(),
-                            decoder
-                    );
-                } catch (Exception e) {
-                    log.warn("[Sensors] Payload push to TTN failed for {}: {}", sensor.getIdSensor(), e.getMessage());
-                }
-            }
         } catch (IllegalArgumentException | IllegalStateException e) {
             bindingResult.addError(new FieldError(SENSOR_ADD, "idSensor", e.getMessage()));
             prepareModel(model);
@@ -427,7 +414,7 @@ public class SensorController {
     @ResponseBody
     public String syncSensorsFromTTN(@PathVariable String gatewayId) {
         try {
-            int syncCount = sensorSyncService.syncGateway(gatewayId);
+            int syncCount = gatewaySyncService.syncGateway(gatewayId);
             return "{\"success\":true,\"syncCount\":" + syncCount + ",\"message\":\"Synchronized " + syncCount + " sensors from TTN\"}";
         } catch (Exception e) {
             log.error("[API] Error syncing sensors for gateway {}: {}", gatewayId, e.getMessage());
@@ -437,8 +424,8 @@ public class SensorController {
 
     @GetMapping("/api/sensors/gateway/{gatewayId}/compare")
     @ResponseBody
-    public com.amaris.sensorprocessor.service.SensorSyncService.SyncReport compareSensorsWithTTN(@PathVariable String gatewayId) {
-        return sensorSyncService.compareWithTTN(gatewayId);
+    public GatewaySyncService.SyncReport compareSensorsWithTTN(@PathVariable String gatewayId) {
+        return gatewaySyncService.compareWithTTN(gatewayId);
     }
 
     /* ===================== SSE STREAM ===================== */

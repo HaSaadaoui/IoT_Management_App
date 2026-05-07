@@ -53,6 +53,7 @@ CODE-*.md
 GIT-PUSH-*.txt
 
 ### Local Configuration with Secrets ###
+config/database-config.properties
 application-local.properties
 *-local.properties
 # Ces fichier pourraient contenir des information confidentielles

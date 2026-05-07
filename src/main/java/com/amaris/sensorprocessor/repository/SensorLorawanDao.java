@@ -129,16 +129,7 @@ public class SensorLorawanDao {
     public void pushPayloadFormatter(String applicationId, String deviceId, String decoderJs) {
         WebClient client = webClientBuilder.baseUrl(lorawanBaseUrl).build();
 
-        Map<String, Object> body = Map.of(
-                "end_device", Map.of(
-                        "ids", Map.of("device_id", deviceId),
-                        "formatters", Map.of(
-                                "up_formatter", "FORMATTER_JAVASCRIPT",
-                                "up_formatter_parameter", decoderJs
-                        )
-                ),
-                "field_mask", Map.of("paths", List.of("formatters"))
-        );
+        Map<String, Object> body = buildPayloadFormatterRequest(applicationId, deviceId, decoderJs);
 
         client.put()
                 .uri(uriBuilder -> uriBuilder
@@ -159,6 +150,25 @@ public class SensorLorawanDao {
                 )
                 .toBodilessEntity()
                 .block();
+    }
+
+    static Map<String, Object> buildPayloadFormatterRequest(String applicationId, String deviceId, String decoderJs) {
+        return Map.of(
+                "end_device", Map.of(
+                        "ids", Map.of(
+                                "device_id", deviceId,
+                                "application_ids", Map.of("application_id", applicationId)
+                        ),
+                        "formatters", Map.of(
+                                "up_formatter", "FORMATTER_JAVASCRIPT",
+                                "up_formatter_parameter", decoderJs
+                        )
+                ),
+                "field_mask", Map.of("paths", List.of(
+                        "formatters.up_formatter",
+                        "formatters.up_formatter_parameter"
+                ))
+        );
     }
 
 }

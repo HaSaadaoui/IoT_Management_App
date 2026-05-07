@@ -6,6 +6,7 @@ services:
   sensorprocessor:
     image: localhost:5000/sensorprocessor:${BRANCH:-develop}
     container_name: sensorprocessor
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile

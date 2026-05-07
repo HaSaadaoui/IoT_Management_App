@@ -42,7 +42,7 @@ class FloorElementsManager {
         parent.appendChild(path);
         return path;
     }
-    
+
     drawLine(parent, points, color, width, rotation = null) {
         const line = document.createElementNS(this.ns, "line");
         line.setAttribute("x1", points[0].x);
@@ -198,8 +198,8 @@ class FloorElementsManager {
 
         parent.appendChild(chair);
         return chair;
-    } 
-    
+    }
+
     drawWorkstation(parent, x, y, status, id, width = 45, height = 35, chairPosition = "top", rotation = null, chairX = null, chairY = null, textX = null, textY = null) {
         const g = document.createElementNS(this.ns, "g");
         g.setAttribute("class", "workstation");
@@ -325,7 +325,7 @@ class FloorElementsManager {
                 this.drawCircle(g, el.x, el.y, el.radius, el.style || "Dark");
                 break;
             case "Label":
-                this.drawLabel(g, el.x, el.y, el.label, el.size, "normal", el.rotation || null, el.style || "Dark");
+                this.drawLabel(g, el.x, el.y, el.label, el.size, el.bold ? "bold" : "normal", el.rotation || null, el.style || "Dark");
                 break;
         }
         parent.appendChild(g);
@@ -357,6 +357,7 @@ class FloorElementsManager {
         if (el.label != null) g.setAttribute("data-label", el.label);
         if (el.rotation != null) g.setAttribute("data-rotation", el.rotation);
         if (el.style != null) g.setAttribute("data-style", el.style);
+        if (el.bold  != null) g.setAttribute("data-bold", el.bold ? "true" : "false");
 
         // MAJ enfant
         switch(el.type) {
@@ -369,7 +370,7 @@ class FloorElementsManager {
                 if (el.style && el.style !== "Dark") {
                     child.setAttribute("stroke", this.colors.interiorLine);
                 } else {
-                    child.setAttribute("stroke", this.colors.wallStroke); 
+                    child.setAttribute("stroke", this.colors.wallStroke);
                 }
                 if (el.rotation != null) {
                     const cx = (el.x + (el.x + el.size)) / 2;
@@ -390,7 +391,7 @@ class FloorElementsManager {
                 if (el.style && el.style !== "Dark") {
                     child.setAttribute("stroke", this.colors.interiorLine);
                 } else {
-                    child.setAttribute("stroke", this.colors.wallStroke); 
+                    child.setAttribute("stroke", this.colors.wallStroke);
                 }
                 if (el.rotation != null) {
                     const cx = el.x + el.width / 2;
@@ -408,7 +409,7 @@ class FloorElementsManager {
                 if (el.style && el.style !== "Dark") {
                     child.setAttribute("stroke", this.colors.interiorLine);
                 } else {
-                    child.setAttribute("stroke", this.colors.wallStroke); 
+                    child.setAttribute("stroke", this.colors.wallStroke);
                 }
                 break;
             }
@@ -417,10 +418,11 @@ class FloorElementsManager {
                 child.setAttribute("y", el.y);
                 if (typeof el.size === "number") child.setAttribute("font-size", el.size);
                 if (typeof el.label === "string") child.textContent = el.label;
+                if (el.bold != null) child.setAttribute("font-weight", el.bold ? "bold" : "normal");
                 if (el.style && el.style !== "Dark") {
                     child.setAttribute("fill", this.colors.interiorLine);
                 } else {
-                    child.setAttribute("fill", this.colors.text); 
+                    child.setAttribute("fill", this.colors.text);
                 }
                 if (el.rotation != null) {
                     child.setAttribute("transform", `rotate(${el.rotation} ${el.x} ${el.y})`);

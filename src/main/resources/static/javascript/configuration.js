@@ -9,6 +9,7 @@ let gatewayThresholds = {
     disk: { warning: 80.0, critical: 90.0 },
     temperature: { warning: 70.0, critical: 80.0 }
 };
+let gatewayRebootSchedules = {};
 
 // Ace editor pour le payload
 let editor;
@@ -66,6 +67,327 @@ function decodePayload(bytes){
 // ======================================================
 // ===============  GATEWAY CONFIGURATION  =============
 // ======================================================
+
+function getCsrfHeaders(contentType = null) {
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="_csrf_header"]');
+    const headers = {};
+    if (contentType) {
+        headers['Content-Type'] = contentType;
+    }
+    if (csrfMeta && csrfHeaderMeta) {
+        headers[csrfHeaderMeta.getAttribute('content')] = csrfMeta.getAttribute('content');
+    }
+    return headers;
+}
+
+function minutesFromGatewayRebootInput() {
+    const value = Number(document.getElementById('gateway-reboot-interval')?.value || 0);
+    const unit = document.getElementById('gateway-reboot-unit')?.value || 'hours';
+    if (!Number.isFinite(value) || value < 1) {
+        return null;
+    }
+    if (unit === 'days') return Math.round(value * 1440);
+    if (unit === 'hours') return Math.round(value * 60);
+    return Math.round(value);
+}
+
+function setGatewayRebootInterval(minutes) {
+    const intervalInput = document.getElementById('gateway-reboot-interval');
+    const unitSelect = document.getElementById('gateway-reboot-unit');
+    if (!intervalInput || !unitSelect) return;
+
+    if (minutes >= 1440 && minutes % 1440 === 0) {
+        intervalInput.value = minutes / 1440;
+        unitSelect.value = 'days';
+    } else if (minutes >= 60 && minutes % 60 === 0) {
+        intervalInput.value = minutes / 60;
+        unitSelect.value = 'hours';
+    } else {
+        intervalInput.value = minutes || 1440;
+        unitSelect.value = 'minutes';
+    }
+}
+
+async function loadGatewayRebootSchedules() {
+    try {
+        const response = await fetch('/api/configuration/gateway-reboots');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const schedules = await response.json();
+        gatewayRebootSchedules = {};
+        schedules.forEach(schedule => {
+            gatewayRebootSchedules[schedule.gatewayId] = schedule;
+        });
+        updateGatewayRebootForm();
+    } catch (error) {
+        console.error('Error loading gateway reboot schedules:', error);
+    }
+}
+
+function updateGatewayRebootForm() {
+    const select = document.getElementById('gateway-reboot-select');
+    const enabled = document.getElementById('gateway-reboot-enabled');
+    const nowStatus = document.getElementById('gateway-reboot-now-status');
+    const scheduleStatus = document.getElementById('gateway-reboot-schedule-status');
+    const gatewayId = select?.value;
+    const hasGateway = Boolean(gatewayId);
+
+    document.getElementById('gateway-reboot-now-btn')?.toggleAttribute('disabled', !hasGateway);
+    document.getElementById('gateway-reboot-save-btn')?.toggleAttribute('disabled', !hasGateway);
+    document.getElementById('gateway-reboot-interval')?.toggleAttribute('disabled', !hasGateway);
+    document.getElementById('gateway-reboot-unit')?.toggleAttribute('disabled', !hasGateway);
+    if (enabled) enabled.disabled = !hasGateway;
+
+    if (nowStatus) nowStatus.textContent = '';
+    if (scheduleStatus) scheduleStatus.textContent = '';
+
+    const schedule = gatewayRebootSchedules[gatewayId] || { enabled: false, intervalMinutes: 1440 };
+    if (enabled) enabled.checked = Boolean(schedule.enabled);
+    setGatewayRebootInterval(Number(schedule.intervalMinutes || 1440));
+
+    if (schedule.restarting && nowStatus) {
+        nowStatus.textContent = `Restarting (${Math.ceil(Number(schedule.remainingSeconds || 0) / 60)} min left)`;
+        nowStatus.className = 'gateway-reboot-status is-pending';
+    }
+}
+
+async function restartGatewayFromConfig() {
+    const gatewayId = document.getElementById('gateway-reboot-select')?.value;
+    if (!gatewayId) {
+        showNotification('Please select a gateway.', 'warning');
+        return;
+    }
+
+    const nameEl = document.getElementById('gateway-restart-confirm-name');
+    const modal = document.getElementById('gateway-restart-confirm-modal');
+    if (nameEl) nameEl.textContent = gatewayId;
+    if (modal) {
+        modal.style.display = 'flex';
+    } else {
+        await confirmGatewayRestartFromConfig();
+    }
+}
+
+function closeGatewayRestartModal() {
+    const modal = document.getElementById('gateway-restart-confirm-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function confirmGatewayRestartFromConfig() {
+    const gatewayId = document.getElementById('gateway-reboot-select')?.value;
+    const status = document.getElementById('gateway-reboot-now-status');
+    const button = document.getElementById('gateway-reboot-now-btn');
+    const confirmButton = document.getElementById('gateway-restart-confirm-btn');
+    if (!gatewayId) {
+        closeGatewayRestartModal();
+        showNotification('Please select a gateway.', 'warning');
+        return;
+    }
+
+    closeGatewayRestartModal();
+    if (button) button.disabled = true;
+    if (confirmButton) confirmButton.disabled = true;
+    if (status) {
+        status.textContent = 'Restart requested...';
+        status.className = 'gateway-reboot-status is-pending';
+    }
+
+    try {
+        const response = await fetch(`/api/configuration/gateway-reboots/${encodeURIComponent(gatewayId)}/restart`, {
+            method: 'POST',
+            headers: getCsrfHeaders()
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+
+        if (status) {
+            status.textContent = 'Restarting...';
+            status.className = 'gateway-reboot-status is-success';
+        }
+        showNotification('Gateway restart requested.', 'success');
+        await loadGatewayRebootSchedules();
+    } catch (error) {
+        if (status) {
+            status.textContent = 'Restart failed.';
+            status.className = 'gateway-reboot-status is-error';
+        }
+        showNotification('Failed to restart gateway: ' + error.message, 'error');
+    } finally {
+        if (button) button.disabled = false;
+        if (confirmButton) confirmButton.disabled = false;
+    }
+}
+
+async function saveGatewayRebootSchedule() {
+    const gatewayId = document.getElementById('gateway-reboot-select')?.value;
+    const status = document.getElementById('gateway-reboot-schedule-status');
+    const enabled = Boolean(document.getElementById('gateway-reboot-enabled')?.checked);
+    const intervalMinutes = minutesFromGatewayRebootInput();
+
+    if (!gatewayId) {
+        showNotification('Please select a gateway.', 'warning');
+        return;
+    }
+    if (!intervalMinutes) {
+        showNotification('Please enter a valid interval.', 'warning');
+        return;
+    }
+
+    if (status) {
+        status.textContent = 'Saving...';
+        status.className = 'gateway-reboot-status is-pending';
+    }
+
+    try {
+        const response = await fetch(`/api/configuration/gateway-reboots/${encodeURIComponent(gatewayId)}/schedule`, {
+            method: 'POST',
+            headers: getCsrfHeaders('application/json'),
+            body: JSON.stringify({ enabled, intervalMinutes })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+
+        gatewayRebootSchedules[gatewayId] = payload;
+        if (status) {
+            status.textContent = enabled ? 'Schedule saved.' : 'Automatic reboot disabled.';
+            status.className = 'gateway-reboot-status is-success';
+        }
+        showNotification('Gateway reboot schedule saved.', 'success');
+    } catch (error) {
+        if (status) {
+            status.textContent = 'Save failed.';
+            status.className = 'gateway-reboot-status is-error';
+        }
+        showNotification('Failed to save reboot schedule: ' + error.message, 'error');
+    }
+}
+
+function collectDatabaseConfig() {
+    return {
+        type: 'mysql',
+        host: document.getElementById('database-host')?.value?.trim() || '',
+        port: Number(document.getElementById('database-port')?.value || 3306),
+        databaseName: document.getElementById('database-name')?.value?.trim() || '',
+        username: document.getElementById('database-username')?.value?.trim() || '',
+        password: document.getElementById('database-password')?.value || ''
+    };
+}
+
+function setDatabaseStatus(message, type = 'info') {
+    const status = document.getElementById('database-config-status');
+    if (!status) return;
+    status.textContent = message || '';
+    status.className = `database-config-status is-${type}`;
+}
+
+async function loadDatabaseConnectionConfig() {
+    try {
+        const response = await fetch('/api/configuration/database');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const config = await response.json();
+
+        if (document.getElementById('database-host')) document.getElementById('database-host').value = config.host || '';
+        if (document.getElementById('database-port')) document.getElementById('database-port').value = config.port || 3306;
+        if (document.getElementById('database-name')) document.getElementById('database-name').value = config.databaseName || '';
+        if (document.getElementById('database-username')) document.getElementById('database-username').value = config.username || '';
+
+        const fileInfo = document.getElementById('database-current-file');
+        if (fileInfo) {
+            if (!config.fileExists) {
+                fileInfo.textContent = `No saved local config yet. It will be created at ${config.configuredFile}`;
+                fileInfo.className = 'database-config-help';
+            } else if (config.savedMatchesActive) {
+                fileInfo.textContent = `Active database: ${config.activeDatabase || 'configured database'}`;
+                fileInfo.className = 'database-config-help is-success';
+            } else {
+                fileInfo.textContent = `Saved database: ${config.savedDatabase || 'configured database'} - restart required. Active database: ${config.activeDatabase || 'current startup database'}`;
+                fileInfo.className = 'database-config-help is-warning';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading database config:', error);
+    }
+}
+
+async function testDatabaseConnection() {
+    setDatabaseStatus('Testing connection...', 'pending');
+    try {
+        const response = await fetch('/api/configuration/database/test', {
+            method: 'POST',
+            headers: getCsrfHeaders('application/json'),
+            body: JSON.stringify(collectDatabaseConfig())
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.success) {
+            throw new Error(payload.message || `HTTP ${response.status}`);
+        }
+        setDatabaseStatus(payload.message || 'Connection successful.', 'success');
+        showNotification('Database connection successful.', 'success');
+    } catch (error) {
+        setDatabaseStatus(error.message, 'error');
+        showNotification('Database connection failed: ' + error.message, 'error');
+    }
+}
+
+async function saveDatabaseConnection() {
+    setDatabaseStatus('Testing and saving configuration...', 'pending');
+    try {
+        const response = await fetch('/api/configuration/database/save', {
+            method: 'POST',
+            headers: getCsrfHeaders('application/json'),
+            body: JSON.stringify(collectDatabaseConfig())
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.success) {
+            throw new Error(payload.message || `HTTP ${response.status}`);
+        }
+        setDatabaseStatus(payload.message || 'Configuration saved. Restart required.', 'success');
+        showNotification('Database configuration saved. Restart the app to apply it.', 'success');
+        await loadDatabaseConnectionConfig();
+    } catch (error) {
+        setDatabaseStatus(error.message, 'error');
+        showNotification('Failed to save database configuration: ' + error.message, 'error');
+    }
+}
+
+async function restartApplicationFromConfig() {
+    const modal = document.getElementById('application-restart-confirm-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+    } else {
+        await confirmApplicationRestartFromConfig();
+    }
+}
+
+function closeApplicationRestartModal() {
+    const modal = document.getElementById('application-restart-confirm-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function confirmApplicationRestartFromConfig() {
+    const confirmButton = document.getElementById('application-restart-confirm-btn');
+
+    closeApplicationRestartModal();
+    if (confirmButton) confirmButton.disabled = true;
+    setDatabaseStatus('Application restart requested...', 'pending');
+    try {
+        const response = await fetch('/api/configuration/application/restart', {
+            method: 'POST',
+            headers: getCsrfHeaders()
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.success) {
+            throw new Error(payload.message || `HTTP ${response.status}`);
+        }
+        setDatabaseStatus('Application is restarting. Refresh the page in a few seconds.', 'success');
+        showNotification('Application restart requested.', 'success');
+    } catch (error) {
+        setDatabaseStatus(error.message, 'error');
+        showNotification('Failed to restart application: ' + error.message, 'error');
+    } finally {
+        if (confirmButton) confirmButton.disabled = false;
+    }
+}
 
 /**
  * Load current gateway thresholds from server
@@ -449,6 +771,9 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
     const styleSelect = document.getElementById("filter-style");
     const styleSelectContainer = styleSelect?.parentElement;
     const inputLocationContainer = document.getElementById("input-location-container");
+    const labelBoldContainer     = document.getElementById("label-bold-container");
+    const chairMainContainer     = document.getElementById("chair-main-container");
+    const chairExtraContainer    = document.getElementById("chair-extra-container");
 
     const sensorMode = (sensorTypeValue ?? sensorTypeSelect?.value ?? 'DESK');
 
@@ -463,14 +788,19 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
                 if (inputHeightContainer) inputHeightContainer.style.display = 'block';
                 if (inputRotationContainer) inputRotationContainer.style.display = 'block';
                 if (selectChairContainer) selectChairContainer.style.display = 'block';
+                if (chairMainContainer)  chairMainContainer.style.display  = 'block';
+                if (chairExtraContainer) chairExtraContainer.style.display = 'block';
                 if (inputLabelContainer) inputLabelContainer.style.display = 'block';
             } else {
                 if (inputWidthContainer) inputWidthContainer.style.display = 'none';
                 if (inputHeightContainer) inputHeightContainer.style.display = 'none';
                 if (inputRotationContainer) inputRotationContainer.style.display = 'none';
                 if (selectChairContainer) selectChairContainer.style.display = 'none';
+                if (chairMainContainer)  chairMainContainer.style.display  = 'none';
+                if (chairExtraContainer) chairExtraContainer.style.display = 'none';
                 if (inputLabelContainer) inputLabelContainer.style.display = 'none';
             }
+            if (labelBoldContainer) labelBoldContainer.style.display = 'none';
             if (inputLocationContainer) {
                 inputLocationContainer.style.display = "block";
 
@@ -490,6 +820,9 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
             if (inputHeightContainer) inputHeightContainer.style.display = 'none';
             if (inputRotationContainer) inputRotationContainer.style.display = 'block';
             if (selectChairContainer) selectChairContainer.style.display = 'none';
+            if (chairMainContainer)  chairMainContainer.style.display  = 'none';
+            if (chairExtraContainer) chairExtraContainer.style.display = 'none';
+            if (labelBoldContainer) labelBoldContainer.style.display = 'none';
             if (inputLabelContainer) inputLabelContainer.style.display = 'none';
             if (styleSelectContainer) styleSelectContainer.style.display = 'block';
             break;
@@ -505,6 +838,9 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
             if (inputHeightContainer) inputHeightContainer.style.display = 'block';
             if (inputRotationContainer) inputRotationContainer.style.display = 'block';
             if (selectChairContainer) selectChairContainer.style.display = 'none';
+            if (chairMainContainer)  chairMainContainer.style.display  = 'none';
+            if (chairExtraContainer) chairExtraContainer.style.display = 'none';
+            if (labelBoldContainer) labelBoldContainer.style.display = 'none';
             if (inputLabelContainer) inputLabelContainer.style.display = 'none';
             if (styleSelectContainer) styleSelectContainer.style.display = 'block';
             break;
@@ -518,6 +854,9 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
             if (inputHeightContainer) inputHeightContainer.style.display = 'none';
             if (inputRotationContainer) inputRotationContainer.style.display = 'none';
             if (selectChairContainer) selectChairContainer.style.display = 'none';
+            if (chairMainContainer)  chairMainContainer.style.display  = 'none';
+            if (chairExtraContainer) chairExtraContainer.style.display = 'none';
+            if (labelBoldContainer) labelBoldContainer.style.display = 'none';
             if (inputLabelContainer) inputLabelContainer.style.display = 'none';
             if (styleSelectContainer) styleSelectContainer.style.display = 'block';
             break;
@@ -531,6 +870,9 @@ function applyFormVisibility(elementValue, sensorTypeValue) {
             if (inputHeightContainer) inputHeightContainer.style.display = 'none';
             if (inputRotationContainer) inputRotationContainer.style.display = 'block';
             if (selectChairContainer) selectChairContainer.style.display = 'none';
+            if (chairMainContainer)  chairMainContainer.style.display  = 'none';
+            if (chairExtraContainer) chairExtraContainer.style.display = 'none';
+            if (labelBoldContainer) labelBoldContainer.style.display = 'flex';
             if (inputLabelContainer) inputLabelContainer.style.display = 'block';
             if (styleSelectContainer) styleSelectContainer.style.display = 'block';
             break;
@@ -1058,6 +1400,11 @@ async function updateBuildingConfig(formData) {
         window._pendingExcludedFloors = data?.excludedFloors || getExcludedFloors();
         refresh3DConfig();
         window.building3D.dbShapeCache = null;
+        // Invalider le cache SVG pour forcer la relecture depuis le serveur
+        if (window.building3D?.currentArchPlan) {
+            window.building3D.currentArchPlan._svgDocCache = null;
+            window.building3D.currentArchPlan._svgCacheKey = null;
+        }
         window.building3D.setBuilding();
 
         return true;
@@ -1243,7 +1590,8 @@ async function addElementSVG() {
                 bottom: parseInt(document.getElementById("chair_bottom").value || 0),
                 left: parseInt(document.getElementById("chair_left").value || 0),
                 right: parseInt(document.getElementById("chair_right").value || 0),
-            }
+            },
+            chairRadius : parseFloat(document.getElementById("input_chair_radius")?.value) || 5,
         };
         window.building3D.currentArchPlan.overlayManager.drawSensor(sensor);
         if (locationId) await saveSensorLocation(sensor.id, locationId);
@@ -1310,6 +1658,7 @@ async function addElementSVG() {
             radius : parseInt(inputRadiusEl.value),
             rotation : parseInt(inputRotationEl.value),
             label : inputLabelEl.value,
+            bold  : document.getElementById('input_label_bold')?.checked ?? false,
             style : inputStyleEl ? inputStyleEl.value : "Dark"
         };
         window.building3D.currentArchPlan.elementsManager.addElement(element);
@@ -1415,7 +1764,8 @@ function updateElementSVG() {
                 bottom: v('chair_bottom') || 0,
                 left:   v('chair_left')   || 0,
                 right:  v('chair_right')  || 0,
-            }
+            },
+            chairRadius : parseFloat(document.getElementById("input_chair_radius")?.value) || 5,
         });
     } else {
         window.building3D.currentArchPlan.elementsManager.updateElement({
@@ -1428,6 +1778,7 @@ function updateElementSVG() {
             radius : v('input_radius'),
             rotation,
             label  : document.getElementById('input_label')?.value ?? '',
+            bold   : document.getElementById('input_label_bold')?.checked ?? false,
             style  : document.getElementById('filter-style')?.value || 'Dark'
         });
     }
@@ -2069,6 +2420,18 @@ window.saveEnergyConfig = saveEnergyConfig;
 window.editEnergyConfig = editEnergyConfig;
 window.deleteEnergyConfig = deleteEnergyConfig;
 window.loadEnergyConfigs = loadEnergyConfigs;
+window.loadGatewayRebootSchedules = loadGatewayRebootSchedules;
+window.updateGatewayRebootForm = updateGatewayRebootForm;
+window.restartGatewayFromConfig = restartGatewayFromConfig;
+window.closeGatewayRestartModal = closeGatewayRestartModal;
+window.confirmGatewayRestartFromConfig = confirmGatewayRestartFromConfig;
+window.saveGatewayRebootSchedule = saveGatewayRebootSchedule;
+window.loadDatabaseConnectionConfig = loadDatabaseConnectionConfig;
+window.testDatabaseConnection = testDatabaseConnection;
+window.saveDatabaseConnection = saveDatabaseConnection;
+window.restartApplicationFromConfig = restartApplicationFromConfig;
+window.closeApplicationRestartModal = closeApplicationRestartModal;
+window.confirmApplicationRestartFromConfig = confirmApplicationRestartFromConfig;
 window.loadLocationOptions     = loadLocationOptions;
 window.onLocationChange  = onLocationChange;
 window.getLocationValue        = getLocationValue;
@@ -2095,6 +2458,8 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof loadNotificationPreferences === 'function') loadNotificationPreferences();
     if (typeof toggleFormFields === 'function') toggleFormFields();
     if (typeof loadEnergyConfigs === 'function') loadEnergyConfigs();
+    if (typeof loadGatewayRebootSchedules === 'function') loadGatewayRebootSchedules();
+    if (typeof loadDatabaseConnectionConfig === 'function') loadDatabaseConnectionConfig();
 
     // Initialiser en mode ajout au chargement
     setFormMode('add');

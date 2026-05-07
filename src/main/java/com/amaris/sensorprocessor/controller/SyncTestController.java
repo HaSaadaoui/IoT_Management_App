@@ -1,6 +1,6 @@
 package com.amaris.sensorprocessor.controller;
 
-import com.amaris.sensorprocessor.service.SensorSyncService;
+import com.amaris.sensorprocessor.service.GatewaySyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +18,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SyncTestController {
 
-    private final SensorSyncService sensorSyncService;
+    private final GatewaySyncService gatewaySyncService;
 
     /**
      * Test endpoint to verify TTN synchronization for all gateways
@@ -33,7 +33,7 @@ public class SyncTestController {
             String[] gateways = {"rpi-mantu", "leva-rpi-mantu", "lil-rpi-mantu"};
             
             for (String gatewayId : gateways) {
-                SensorSyncService.SyncReport report = sensorSyncService.compareWithTTN(gatewayId);
+                GatewaySyncService.SyncReport report = gatewaySyncService.compareWithTTN(gatewayId);
                 result.put(gatewayId, report);
                 log.info("[SyncTest] Gateway {}: TTN={}, DB={}, Missing in DB={}, Missing in TTN={}", 
                     gatewayId, report.getTtnDeviceCount(), report.getDbSensorCount(), 
@@ -62,13 +62,13 @@ public class SyncTestController {
         
         try {
             // Get sync report before
-            SensorSyncService.SyncReport beforeReport = sensorSyncService.compareWithTTN(gatewayId);
+            GatewaySyncService.SyncReport beforeReport = gatewaySyncService.compareWithTTN(gatewayId);
             
             // Perform synchronization
-            int syncCount = sensorSyncService.syncSensorsFromTTN(gatewayId);
+            int syncCount = gatewaySyncService.syncSensorsFromTTN(gatewayId);
             
             // Get sync report after
-            SensorSyncService.SyncReport afterReport = sensorSyncService.compareWithTTN(gatewayId);
+            GatewaySyncService.SyncReport afterReport = gatewaySyncService.compareWithTTN(gatewayId);
             
             result.put("status", "success");
             result.put("gatewayId", gatewayId);

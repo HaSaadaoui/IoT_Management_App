@@ -2,6 +2,8 @@ package com.amaris.sensorprocessor.service;
 
 import com.amaris.sensorprocessor.constant.Constants;
 import com.amaris.sensorprocessor.entity.Gateway;
+import com.amaris.sensorprocessor.entity.GatewayData;
+import com.amaris.sensorprocessor.entity.GatewayValueType;
 import com.amaris.sensorprocessor.entity.MonitoringGatewayData;
 import com.amaris.sensorprocessor.exception.CustomException;
 import com.amaris.sensorprocessor.repository.GatewayDao;
@@ -15,11 +17,16 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class GatewayService {
@@ -27,11 +34,16 @@ public class GatewayService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private final GatewayDao gatewayDao;
+    private final GatewayDataService gatewayDataService;
     private final WebClient webClient;
+    private final Map<String, Instant> gatewayRestartingUntil = new ConcurrentHashMap<>();
+
+    private static final Duration GATEWAY_RESTART_EXPECTED_DURATION = Duration.ofMinutes(3);
 
     @Autowired
-    public GatewayService(GatewayDao gatewayDao, WebClient webClient) {
+    public GatewayService(GatewayDao gatewayDao, GatewayDataService gatewayDataService, WebClient webClient) {
         this.gatewayDao = gatewayDao;
+        this.gatewayDataService = gatewayDataService;
         this.webClient = webClient;
     }
 
@@ -119,6 +131,10 @@ public class GatewayService {
             .accept(MediaType.TEXT_EVENT_STREAM)
             .retrieve()
             .bodyToFlux(MonitoringGatewayData.class)
+            .doOnNext(data -> {
+                gatewayDataService.storeMonitoringData(gatewayId, data);
+                clearGatewayRestarting(gatewayId);
+            })
             .doOnError(error -> {
                 logger.error("Erreur lors de la récupération des données de monitoring", error);
                 System.out.println("\u001B[31m" + "Erreur lors de la récupération des données de monitoring : " + error.getMessage() + "\u001B[0m");
@@ -137,6 +153,94 @@ public class GatewayService {
             .doOnSuccess(response -> logger.info("Monitoring stopped for gateway {}", threadId))
             .doOnError(error -> logger.error("Erreur lors de l'arrêt du monitoring pour gateway {}", threadId, error))
             .subscribe();
+    }
+
+    public String restartGateway(String gatewayId, String ipAddress) {
+        markGatewayRestarting(gatewayId);
+        try {
+            return webClient.post()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/api/monitoring/gateway/restart/{id}")
+                            .queryParam("ip", ipAddress)
+                            .build(gatewayId))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+        } catch (RuntimeException e) {
+            clearGatewayRestarting(gatewayId);
+            throw e;
+        }
+    }
+
+    public boolean isGatewayRestarting(String gatewayId) {
+        Instant until = gatewayRestartingUntil.get(gatewayId);
+        if (until == null) {
+            return false;
+        }
+        if (Instant.now().isAfter(until)) {
+            gatewayRestartingUntil.remove(gatewayId);
+            return false;
+        }
+        return true;
+    }
+
+    public long getGatewayRestartRemainingSeconds(String gatewayId) {
+        Instant until = gatewayRestartingUntil.get(gatewayId);
+        if (until == null) {
+            return 0;
+        }
+        long seconds = Duration.between(Instant.now(), until).toSeconds();
+        return Math.max(0, seconds);
+    }
+
+    private void markGatewayRestarting(String gatewayId) {
+        gatewayRestartingUntil.put(gatewayId, Instant.now().plus(GATEWAY_RESTART_EXPECTED_DURATION));
+    }
+
+    private void clearGatewayRestarting(String gatewayId) {
+        gatewayRestartingUntil.remove(gatewayId);
+    }
+
+    public void syncMonitoringDataSnapshot(String gatewayId) {
+        findById(gatewayId).ifPresentOrElse(gateway -> {
+            String ipAddress = gateway.getIpAddress();
+            if (ipAddress == null || ipAddress.isBlank()) {
+                logger.warn("Skipping gateway monitoring snapshot for {}: missing IP address", gatewayId);
+                return;
+            }
+
+            String threadId = "scheduler-" + gatewayId + "-" + System.currentTimeMillis();
+            getMonitoringData(gatewayId, ipAddress, threadId)
+                    .take(1)
+                    .timeout(Duration.ofSeconds(20))
+                    .doFinally(signal -> stopMonitoring(gatewayId, threadId))
+                    .subscribe(
+                            data -> logger.info("Stored gateway monitoring snapshot for {}", gatewayId),
+                            error -> logger.warn("Unable to store gateway monitoring snapshot for {}: {}", gatewayId, error.getMessage())
+                    );
+        }, () -> logger.warn("Skipping gateway monitoring snapshot: gateway {} not found", gatewayId));
+    }
+
+    public Map<GatewayValueType, GatewayData> findLatestDataByGateway(String gatewayId) {
+        return gatewayDataService.findLatestDataByGateway(gatewayId);
+    }
+
+    public LinkedHashMap<LocalDateTime, String> findGatewayDataByPeriodAndType(
+            String gatewayId,
+            Date startDate,
+            Date endDate,
+            GatewayValueType valueType,
+            Optional<Integer> limit
+    ) {
+        return gatewayDataService.findGatewayDataByPeriodAndType(gatewayId, startDate, endDate, valueType, limit);
+    }
+
+    public Map<GatewayValueType, LinkedHashMap<LocalDateTime, String>> findGatewayDataByPeriod(
+            String gatewayId,
+            Date startDate,
+            Date endDate
+    ) {
+        return gatewayDataService.findGatewayDataByPeriod(gatewayId, startDate, endDate);
     }
 
 }
