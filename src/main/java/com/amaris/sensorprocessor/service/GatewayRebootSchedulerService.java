@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
@@ -30,12 +31,14 @@ public class GatewayRebootSchedulerService {
 
     private static final int DEFAULT_DAY_OF_WEEK = 1;
     private static final LocalTime DEFAULT_REBOOT_TIME = LocalTime.of(0, 0);
+    private static final ZoneId REBOOT_ZONE = ZoneId.of("Europe/Paris");
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final GatewayRebootScheduleDao scheduleDao;
     private final GatewayService gatewayService;
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private final Map<String, ScheduledFuture<?>> scheduledReboots = new ConcurrentHashMap<>();
+    private final Map<String, GatewayRebootSchedule> activeSchedules = new ConcurrentHashMap<>();
 
     public GatewayRebootSchedulerService(GatewayRebootScheduleDao scheduleDao, GatewayService gatewayService) {
         this.scheduleDao = scheduleDao;
@@ -111,44 +114,67 @@ public class GatewayRebootSchedulerService {
 
     private void scheduleReboot(GatewayRebootSchedule schedule) {
         cancelReboot(schedule.getGatewayId());
+        activeSchedules.put(schedule.getGatewayId(), schedule);
+        scheduleNextReboot(schedule, true);
+    }
 
-        ZonedDateTime now = ZonedDateTime.now();
-        DayOfWeek target = schedule.getDayOfWeek() == 0
-                ? DayOfWeek.SUNDAY
-                : DayOfWeek.of(schedule.getDayOfWeek());
-
-        ZonedDateTime nextReboot = now.toLocalDate()
-                .atTime(schedule.getRebootTime())
-                .atZone(now.getZone())
-                .with(TemporalAdjusters.nextOrSame(target));
-
-        if (!nextReboot.isAfter(now)) {
-            nextReboot = nextReboot.plusWeeks(1);
+    private void scheduleNextReboot(GatewayRebootSchedule schedule, boolean allowCurrentMinute) {
+        if (activeSchedules.get(schedule.getGatewayId()) != schedule) {
+            return;
         }
 
-        long initialDelay = Duration.between(now, nextReboot).toMillis();
-        long weeklyPeriod = Duration.ofDays(7).toMillis();
+        ZonedDateTime now = ZonedDateTime.now(REBOOT_ZONE);
+        ZonedDateTime nextReboot = calculateNextReboot(now, schedule.getDayOfWeek(), schedule.getRebootTime(), allowCurrentMinute);
+        long initialDelay = Math.max(0, Duration.between(now, nextReboot).toMillis());
 
-        ScheduledFuture<?> future = executor.scheduleAtFixedRate(
-                () -> runScheduledReboot(schedule.getGatewayId()),
+        logger.info("Gateway {} next scheduled reboot at {}", schedule.getGatewayId(), nextReboot);
+
+        ScheduledFuture<?> future = executor.schedule(
+                () -> runScheduledReboot(schedule),
                 initialDelay,
-                weeklyPeriod,
                 TimeUnit.MILLISECONDS
         );
         scheduledReboots.put(schedule.getGatewayId(), future);
     }
 
+    static ZonedDateTime calculateNextReboot(ZonedDateTime now, int dayOfWeek, LocalTime rebootTime, boolean allowCurrentMinute) {
+        DayOfWeek target = dayOfWeek == 0
+                ? DayOfWeek.SUNDAY
+                : DayOfWeek.of(dayOfWeek);
+
+        ZonedDateTime nextReboot = now.toLocalDate()
+                .atTime(rebootTime)
+                .atZone(now.getZone())
+                .with(TemporalAdjusters.nextOrSame(target));
+
+        if (allowCurrentMinute && nextReboot.plusMinutes(1).isAfter(now)) {
+            return nextReboot.isAfter(now) ? nextReboot : now;
+        }
+
+        if (!nextReboot.isAfter(now)) {
+            nextReboot = nextReboot.plusWeeks(1);
+        }
+
+        return nextReboot;
+    }
+
     private void cancelReboot(String gatewayId) {
+        activeSchedules.remove(gatewayId);
         Optional.ofNullable(scheduledReboots.remove(gatewayId))
                 .ifPresent(future -> future.cancel(false));
     }
 
-    private void runScheduledReboot(String gatewayId) {
+    private void runScheduledReboot(GatewayRebootSchedule schedule) {
+        String gatewayId = schedule.getGatewayId();
         try {
             String message = restartNow(gatewayId);
             logger.info("Scheduled reboot requested for gateway {}: {}", gatewayId, message);
         } catch (Exception e) {
             logger.warn("Unable to run scheduled reboot for gateway {}: {}", gatewayId, e.getMessage());
+        } finally {
+            if (activeSchedules.get(gatewayId) == schedule) {
+                scheduleNextReboot(schedule, false);
+            }
         }
     }
 }

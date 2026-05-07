@@ -6,6 +6,8 @@ import com.amaris.sensorprocessor.repository.GatewayRebootScheduleDao;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -71,5 +73,23 @@ class GatewayRebootSchedulerServiceTest {
         assertEquals(false, schedules.get(0).get("enabled"));
         assertEquals(1, schedules.get(0).get("dayOfWeek"));
         assertEquals("00:00", schedules.get(0).get("rebootTime"));
+    }
+
+    @Test
+    void calculateNextRebootUsesSelectedTimeOnSameDay() {
+        ZonedDateTime now = ZonedDateTime.of(2026, 5, 7, 16, 39, 0, 0, ZoneId.of("Europe/Paris"));
+
+        ZonedDateTime nextReboot = GatewayRebootSchedulerService.calculateNextReboot(now, 4, LocalTime.of(16, 40), true);
+
+        assertEquals(ZonedDateTime.of(2026, 5, 7, 16, 40, 0, 0, ZoneId.of("Europe/Paris")), nextReboot);
+    }
+
+    @Test
+    void calculateNextRebootRunsImmediatelyWhenCurrentMinuteWasJustSelected() {
+        ZonedDateTime now = ZonedDateTime.of(2026, 5, 7, 16, 40, 30, 0, ZoneId.of("Europe/Paris"));
+
+        ZonedDateTime nextReboot = GatewayRebootSchedulerService.calculateNextReboot(now, 4, LocalTime.of(16, 40), true);
+
+        assertEquals(now, nextReboot);
     }
 }

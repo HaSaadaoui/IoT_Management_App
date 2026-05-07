@@ -86,4 +86,16 @@ class ConfigurationControllerGatewayRebootTest {
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("dayOfWeek must be between 0 and 6", ((Map<?, ?>) response.getBody()).get("error"));
     }
+
+    @Test
+    void saveGatewayRebootScheduleReturnsBadRequestOnInvalidTime() {
+        ResponseEntity<?> response = controller.saveGatewayRebootSchedule(
+                "rpi-mantu",
+                Map.of("enabled", true, "dayOfWeek", 1, "rebootTime", "bad-time")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("rebootTime must use HH:mm format", ((Map<?, ?>) response.getBody()).get("error"));
+        verify(gatewayRebootSchedulerService, never()).saveSchedule(anyString(), anyBoolean(), anyInt(), any());
+    }
 }
