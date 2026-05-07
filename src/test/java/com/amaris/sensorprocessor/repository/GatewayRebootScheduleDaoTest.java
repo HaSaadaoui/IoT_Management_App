@@ -6,12 +6,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class GatewayRebootScheduleDaoTest {
 
@@ -26,24 +25,26 @@ class GatewayRebootScheduleDaoTest {
 
     @Test
     void saveInsertsAndUpdatesSchedule() {
-        dao.save(new GatewayRebootSchedule("rpi-mantu", true, 180));
+        dao.save(new GatewayRebootSchedule("rpi-mantu", true, 1, LocalTime.of(3, 0)));
 
         Optional<GatewayRebootSchedule> inserted = dao.findByGatewayId("rpi-mantu");
         assertTrue(inserted.isPresent());
         assertTrue(inserted.get().isEnabled());
-        assertEquals(180, inserted.get().getIntervalMinutes());
+        assertEquals(1, inserted.get().getDayOfWeek());
+        assertEquals(LocalTime.of(3, 0), inserted.get().getRebootTime());
 
-        dao.save(new GatewayRebootSchedule("rpi-mantu", false, 60));
+        dao.save(new GatewayRebootSchedule("rpi-mantu", false, 3, LocalTime.of(2, 30)));
 
         GatewayRebootSchedule updated = dao.findByGatewayId("rpi-mantu").orElseThrow();
         assertFalse(updated.isEnabled());
-        assertEquals(60, updated.getIntervalMinutes());
+        assertEquals(3, updated.getDayOfWeek());
+        assertEquals(LocalTime.of(2, 30), updated.getRebootTime());
     }
 
     @Test
     void findEnabledReturnsOnlyEnabledSchedules() {
-        dao.save(new GatewayRebootSchedule("enabled-gateway", true, 30));
-        dao.save(new GatewayRebootSchedule("disabled-gateway", false, 45));
+        dao.save(new GatewayRebootSchedule("enabled-gateway", true, 2, LocalTime.of(1, 0)));
+        dao.save(new GatewayRebootSchedule("disabled-gateway", false, 4, LocalTime.of(4, 0)));
 
         List<GatewayRebootSchedule> enabled = dao.findEnabled();
 

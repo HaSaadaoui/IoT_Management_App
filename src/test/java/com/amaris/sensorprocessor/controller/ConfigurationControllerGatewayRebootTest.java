@@ -11,13 +11,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.time.LocalTime;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class ConfigurationControllerGatewayRebootTest {
 
@@ -57,12 +55,13 @@ class ConfigurationControllerGatewayRebootTest {
 
     @Test
     void saveGatewayRebootScheduleReturnsSavedSchedule() {
-        GatewayRebootSchedule schedule = new GatewayRebootSchedule("rpi-mantu", true, 4320);
-        when(gatewayRebootSchedulerService.saveSchedule("rpi-mantu", true, 4320)).thenReturn(schedule);
+        GatewayRebootSchedule schedule = new GatewayRebootSchedule("rpi-mantu", true, 3, LocalTime.of(2, 0));
+        when(gatewayRebootSchedulerService.saveSchedule("rpi-mantu", true, 3, LocalTime.parse(String.valueOf(LocalTime.of(2, 0)))))
+                .thenReturn(schedule);
 
         ResponseEntity<?> response = controller.saveGatewayRebootSchedule(
                 "rpi-mantu",
-                Map.of("enabled", true, "intervalMinutes", 4320)
+                Map.of("enabled", true, "dayOfWeek", 3, "rebootTime", "02:00")
         );
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -70,20 +69,21 @@ class ConfigurationControllerGatewayRebootTest {
         assertNotNull(body);
         assertEquals("rpi-mantu", body.getGatewayId());
         assertTrue(body.isEnabled());
-        assertEquals(4320, body.getIntervalMinutes());
+        assertEquals(3, body.getDayOfWeek());
+        assertEquals(LocalTime.of(2, 0), body.getRebootTime());
     }
 
     @Test
     void saveGatewayRebootScheduleReturnsBadRequestOnInvalidInput() {
-        when(gatewayRebootSchedulerService.saveSchedule("rpi-mantu", true, 0))
-                .thenThrow(new IllegalArgumentException("Interval must be at least 1 minute"));
+        when(gatewayRebootSchedulerService.saveSchedule("rpi-mantu", true, 7, LocalTime.parse(String.valueOf(LocalTime.of(0, 0)))))
+                .thenThrow(new IllegalArgumentException("dayOfWeek must be between 0 and 6"));
 
         ResponseEntity<?> response = controller.saveGatewayRebootSchedule(
                 "rpi-mantu",
-                Map.of("enabled", true, "intervalMinutes", 0)
+                Map.of("enabled", true, "dayOfWeek", 7, "rebootTime", "00:00")
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Interval must be at least 1 minute", ((Map<?, ?>) response.getBody()).get("error"));
+        assertEquals("dayOfWeek must be between 0 and 6", ((Map<?, ?>) response.getBody()).get("error"));
     }
 }

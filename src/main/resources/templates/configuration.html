@@ -657,12 +657,16 @@
                             <label for="gateway-reboot-enabled">Enabled</label>
                         </div>
                         <div class="gateway-reboot-interval">
-                            <input type="number" id="gateway-reboot-interval" class="form-control" min="1" step="1" value="24">
-                            <select id="gateway-reboot-unit" class="form-select">
-                                <option value="minutes">Minutes</option>
-                                <option value="hours" selected>Hours</option>
-                                <option value="days">Days</option>
+                            <select id="gateway-reboot-day" class="form-select">
+                                <option value="1">Lundi</option>
+                                <option value="2">Mardi</option>
+                                <option value="3">Mercredi</option>
+                                <option value="4">Jeudi</option>
+                                <option value="5">Vendredi</option>
+                                <option value="6">Samedi</option>
+                                <option value="0">Dimanche</option>
                             </select>
+                            <input type="time" id="gateway-reboot-time" class="form-control" value="00:00">
                         </div>
                         <button id="gateway-reboot-save-btn" type="button" class="btn btn-violet" onclick="saveGatewayRebootSchedule()">
                             Save Schedule

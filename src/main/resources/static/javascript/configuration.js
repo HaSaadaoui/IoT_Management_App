@@ -222,14 +222,16 @@ async function saveGatewayRebootSchedule() {
     const gatewayId = document.getElementById('gateway-reboot-select')?.value;
     const status = document.getElementById('gateway-reboot-schedule-status');
     const enabled = Boolean(document.getElementById('gateway-reboot-enabled')?.checked);
-    const intervalMinutes = minutesFromGatewayRebootInput();
+    const dayOfWeek = parseInt(document.getElementById('gateway-reboot-day')?.value, 10);
+    const rebootTime = document.getElementById('gateway-reboot-time')?.value;
 
     if (!gatewayId) {
         showNotification('Please select a gateway.', 'warning');
         return;
     }
-    if (!intervalMinutes) {
-        showNotification('Please enter a valid interval.', 'warning');
+
+    if (isNaN(dayOfWeek) || !rebootTime) {
+        showNotification('Please select a day and time.', 'warning');
         return;
     }
 
@@ -242,7 +244,7 @@ async function saveGatewayRebootSchedule() {
         const response = await fetch(`/api/configuration/gateway-reboots/${encodeURIComponent(gatewayId)}/schedule`, {
             method: 'POST',
             headers: getCsrfHeaders('application/json'),
-            body: JSON.stringify({ enabled, intervalMinutes })
+            body: JSON.stringify({ enabled, dayOfWeek, rebootTime })
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);

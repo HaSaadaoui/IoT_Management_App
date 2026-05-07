@@ -1,18 +1,22 @@
 package com.amaris.sensorprocessor.entity;
 
+import java.time.LocalTime;
+
 public class GatewayRebootSchedule {
 
     private String gatewayId;
     private boolean enabled;
-    private int intervalMinutes;
+    private int dayOfWeek;
+    private LocalTime rebootTime;
 
     public GatewayRebootSchedule() {
     }
 
-    public GatewayRebootSchedule(String gatewayId, boolean enabled, int intervalMinutes) {
+    public GatewayRebootSchedule(String gatewayId, boolean enabled, int dayOfWeek, LocalTime rebootTime) {
         this.gatewayId = gatewayId;
         this.enabled = enabled;
-        this.intervalMinutes = intervalMinutes;
+        this.dayOfWeek = dayOfWeek;
+        this.rebootTime = rebootTime;
     }
 
     public String getGatewayId() {
@@ -31,11 +35,19 @@ public class GatewayRebootSchedule {
         this.enabled = enabled;
     }
 
-    public int getIntervalMinutes() {
-        return intervalMinutes;
+    public int getDayOfWeek() {
+        return dayOfWeek;
     }
 
-    public void setIntervalMinutes(int intervalMinutes) {
-        this.intervalMinutes = intervalMinutes;
+    public void setDayOfWeek(int dayOfWeek) {
+        this.dayOfWeek = dayOfWeek;
+    }
+
+    public LocalTime getRebootTime() {
+        return rebootTime;
+    }
+
+    public void setRebootTime(LocalTime rebootTime) {
+        this.rebootTime = rebootTime;
     }
 }
